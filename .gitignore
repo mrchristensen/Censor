@@ -1,2 +1,4 @@
 *~
 *.sw?
+pycparser
+fake_libc_include

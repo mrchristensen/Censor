@@ -1,3 +1,5 @@
 A static analyzer that attempts to disprove the existence of data races in OpenMP programs. It uses ideas from Abstracting Abstract Machines, SP-bags, computation graphs, and other research.
 
-It depends on pycparser 2.15 or later (2.15 added support for pragmas, which are essential to OpenMP). pycparser is available through standard package managers, including pip.
+It depends on pycparser 2.15 or later (2.15 added support for pragmas, which are essential to OpenMP). pycparser is available through standard package managers, including pip. However, Ubuntu LTS's version is currently behind this version and pip only includes the source, not the fake headers.
+
+As a temporary fix, we cloned the pycparser master branch from github (https://github.com/eliben/pycparser.git) and created symlinks named 'pycparser' to the pycparser directory _inside_ the repository and named '`fake_libc_include`' to '`utils/fake_libc_include`' inside the repository. If no symlink is present but pycparser is in sys.path, the import will happen seamlessly. In this prototype, the dependence on a directory or symlink named '`fake_libc_include`' is hard-coded but it may change to a configuration file in future versions.
