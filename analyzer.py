@@ -1,13 +1,15 @@
 """A static analyzer; see the README for details."""
 
 import argparse
+from collections import deque, namedtuple
 from os.path import dirname
-from collections import namedtuple
 import pycparser
 
 Function = namedtuple('Function', ['funcDef'])
 
-Thread = namedtuple('Thread', ['function', 'init_state'])
+Thread = namedtuple('Thread', ['function', 'init_store'])
+
+State = namedtuple('State', ['index', 'function', 'store'])
 
 def inject_thread(function):
     """Takes a function and makes a thread that can be placed on the thread
@@ -28,121 +30,177 @@ def analyze_threads():
     for thread in THREAD_QUEUE:
         analyze_thread(thread)
 
-def analyze_statement(stmt: pycparser.c_ast.Node, state):
+def eval_exp(exp, store):
+    """Evaluate an expression. Return its result as an abstract value."""
+    # TODO
+    return (exp, store)
+
+def analyze_statement(stmt: pycparser.c_ast.Node, store):
     """Execute one statement. Return the resulting state."""
     # pylint: disable=too-many-branches
     # pylint: disable=too-many-statements
+    successors = []
     if isinstance(stmt, pycparser.c_ast.ArrayDecl):
-        pass
+        # TODO
+        print("ArrayDecl")
     elif isinstance(stmt, pycparser.c_ast.ArrayRef):
-        pass
+        # TODO
+        print("ArrayRef")
     elif isinstance(stmt, pycparser.c_ast.Assignment):
-        pass
+        # rhs = eval_exp(stmt.rvalue, store)
+        eval_exp(stmt.rvalue, store)
+        # TODO
+        print("Assignment")
     elif isinstance(stmt, pycparser.c_ast.BinaryOp):
-        pass
+        # TODO
+        print("BinaryOp")
     elif isinstance(stmt, pycparser.c_ast.Break):
-        pass
+        # TODO
+        print("Break")
     elif isinstance(stmt, pycparser.c_ast.Case):
-        pass
+        # TODO
+        print("Case")
     elif isinstance(stmt, pycparser.c_ast.Cast):
-        pass
+        # TODO
+        print("Cast")
     elif isinstance(stmt, pycparser.c_ast.Compound):
-        pass
+        # TODO
+        print("Compound")
     elif isinstance(stmt, pycparser.c_ast.CompoundLiteral):
-        pass
+        # TODO
+        print("CompoundLiteral")
     elif isinstance(stmt, pycparser.c_ast.Constant):
-        pass
+        # TODO
+        print("Constant")
     elif isinstance(stmt, pycparser.c_ast.Continue):
-        pass
+        # TODO
+        print("Continue")
     elif isinstance(stmt, pycparser.c_ast.Decl):
-        pass
+        # TODO
+        print("Decl")
     elif isinstance(stmt, pycparser.c_ast.DeclList):
-        pass
+        # TODO
+        print("DeclList")
     elif isinstance(stmt, pycparser.c_ast.Default):
-        pass
+        # TODO
+        print("Default")
     elif isinstance(stmt, pycparser.c_ast.DoWhile):
-        pass
+        # TODO
+        print("DoWhile")
     elif isinstance(stmt, pycparser.c_ast.EllipsisParam):
-        pass
+        # TODO
+        print("EllipsisParam")
     elif isinstance(stmt, pycparser.c_ast.EmptyStatement):
-        pass
+        # TODO
+        print("EmptyStatement")
     elif isinstance(stmt, pycparser.c_ast.Enum):
-        pass
+        # TODO
+        print("Enum")
     elif isinstance(stmt, pycparser.c_ast.Enumerator):
-        pass
+        # TODO
+        print("Enumerator")
     elif isinstance(stmt, pycparser.c_ast.EnumeratorList):
-        pass
+        # TODO
+        print("EnumeratorList")
     elif isinstance(stmt, pycparser.c_ast.ExprList):
-        pass
+        # TODO
+        print("ExprList")
     elif isinstance(stmt, pycparser.c_ast.FileAST):
-        pass
+        # TODO
+        print("FileAST")
     elif isinstance(stmt, pycparser.c_ast.For):
-        pass
+        # TODO
+        print("For")
     elif isinstance(stmt, pycparser.c_ast.FuncCall):
-        pass
+        # TODO
+        print("FuncCall")
     elif isinstance(stmt, pycparser.c_ast.FuncDecl):
-        pass
+        # TODO
+        print("FuncDecl")
     elif isinstance(stmt, pycparser.c_ast.FuncDef):
-        pass
+        # TODO
+        print("FuncDef")
     elif isinstance(stmt, pycparser.c_ast.Goto):
-        pass
+        # TODO
+        print("Goto")
     elif isinstance(stmt, pycparser.c_ast.ID):
-        pass
+        # TODO
+        print("ID")
     elif isinstance(stmt, pycparser.c_ast.IdentifierType):
-        pass
+        # TODO
+        print("IdentifierType")
     elif isinstance(stmt, pycparser.c_ast.If):
-        pass
+        # TODO
+        print("If")
     elif isinstance(stmt, pycparser.c_ast.InitList):
-        pass
+        # TODO
+        print("InitList")
     elif isinstance(stmt, pycparser.c_ast.Label):
-        pass
+        # TODO
+        print("Label")
     elif isinstance(stmt, pycparser.c_ast.NamedInitializer):
-        pass
+        # TODO
+        print("NamedInitializer")
     elif isinstance(stmt, pycparser.c_ast.ParamList):
-        pass
+        # TODO
+        print("ParamList")
     elif isinstance(stmt, pycparser.c_ast.PtrDecl):
-        pass
+        # TODO
+        print("PtrDecl")
     elif isinstance(stmt, pycparser.c_ast.Return):
-        pass
+        # TODO
+        print("Return")
     elif isinstance(stmt, pycparser.c_ast.Struct):
-        pass
+        # TODO
+        print("Struct")
     elif isinstance(stmt, pycparser.c_ast.StructRef):
-        pass
+        # TODO
+        print("StructRef")
     elif isinstance(stmt, pycparser.c_ast.Switch):
-        pass
+        # TODO
+        print("Switch")
     elif isinstance(stmt, pycparser.c_ast.TernaryOp):
-        pass
+        # TODO
+        print("TernaryOp")
     elif isinstance(stmt, pycparser.c_ast.TypeDecl):
-        pass
+        # TODO
+        print("TypeDecl")
     elif isinstance(stmt, pycparser.c_ast.Typedef):
-        pass
+        # TODO
+        print("Typedef")
     elif isinstance(stmt, pycparser.c_ast.Typename):
-        pass
+        # TODO
+        print("Typename")
     elif isinstance(stmt, pycparser.c_ast.UnaryOp):
-        pass
+        # TODO
+        print("UnaryOp")
     elif isinstance(stmt, pycparser.c_ast.Union):
-        pass
+        # TODO
+        print("Union")
     elif isinstance(stmt, pycparser.c_ast.While):
-        pass
+        # TODO
+        print("While")
     elif isinstance(stmt, pycparser.c_ast.Pragma):
-        pass
+        # TODO
+        print("Pragma")
     else:
         raise ValueError("Unknown C AST object type: {0}".format(stmt))
-    # TODO
-    print(stmt)
-    return state
+    return successors
 
 def analyze_thread(thread: Thread):
     """Performs analysis on a single function."""
     func = thread.function
-    state = thread.init_state
+    store = thread.init_store
     index = 0
-    while True:
-        if index >= len(func.funcDef.body.block_items):
+    queue = deque([State(index, func, store)])
+    while queue:
+        state = queue.popleft()
+        if state.index >= len(state.function.funcDef.body.block_items):
             raise ValueError("Past the end of a function")
-        stmt = func.funcDef.body.block_items[index]
-        state = analyze_statement(stmt, state)
-        index = index+1
+        stmt = state.function.funcDef.body.block_items[state.index]
+        successors = analyze_statement(stmt, state.store)
+        if successors is not NotImplemented:
+            queue.extend(successors)
 
 def main():
     """Main function."""
