@@ -11,6 +11,54 @@ Thread = namedtuple('Thread', ['function', 'init_store'])
 
 State = namedtuple('State', ['index', 'function', 'store'])
 
+class Location:
+    """Represents a program location."""
+    def __init__(self, index, function):
+        self.index = index
+        self.function = function
+
+    def __add__(self, offset):
+        """Returns the location in the same function with the line number offset
+        by the value offset. This is used most commonly as loc+1 to get the
+        syntactic successor to a Location.
+        """
+        return Location(self.index+offset, self.function)
+
+    def stmt(self):
+        """Retrieves the statement at the location."""
+        return self.function.funcDef.body.block_items[self.index]
+
+    def funcdef(self):
+        """Retrieves the FuncDef object wrapped in the function."""
+        return self.function.funcDef
+
+class Store:
+    """Represents the contents of memory at a moment in time."""
+    def __init__(self, memory=None):
+        if memory is None:
+            self.memory = {}
+        else:
+            self.memory = memory
+
+    def read(self, address):
+        """Read the contents of the store at address. Returns None if undefined.
+        """
+        if address in self.memory:
+            return self.memory[address]
+        else:
+            return None
+
+    def write(self, address, value):
+        """Write value to the store at address. If there is an existing value,
+        merge value into the existing value.
+        """
+        memory = self.memory.copy()
+        if address in self.memory:
+            memory[address] = self.memory[address].merge(value)
+        else:
+            memory[address] = value
+        return Store(memory)
+
 def inject_thread(function):
     """Takes a function and makes a thread that can be placed on the thread
     queue.
@@ -35,10 +83,20 @@ def eval_exp(exp, store):
     # TODO
     return (exp, store)
 
-def analyze_statement(stmt: pycparser.c_ast.Node, store):
+def handle_assignment(state: State):
+    """Evaluate an assignment statement."""
+    stmt = state.loc.stmt
+    # TODO
+    address = stmt.lvalue
+    value = eval_exp(stmt.rvalue, state.store)
+    store = state.store.write(address, value)
+    return State(state.loc+1, store)
+
+def analyze_statement(state: State):
     """Execute one statement. Return the resulting state."""
     # pylint: disable=too-many-branches
     # pylint: disable=too-many-statements
+    stmt = state.loc.stmt()
     successors = []
     if isinstance(stmt, pycparser.c_ast.ArrayDecl):
         # TODO
@@ -47,10 +105,7 @@ def analyze_statement(stmt: pycparser.c_ast.Node, store):
         # TODO
         print("ArrayRef")
     elif isinstance(stmt, pycparser.c_ast.Assignment):
-        # rhs = eval_exp(stmt.rvalue, store)
-        eval_exp(stmt.rvalue, store)
-        # TODO
-        print("Assignment")
+        successors.append(handle_assignment(state))
     elif isinstance(stmt, pycparser.c_ast.BinaryOp):
         # TODO
         print("BinaryOp")
@@ -192,13 +247,9 @@ def analyze_thread(thread: Thread):
     func = thread.function
     store = thread.init_store
     index = 0
-    queue = deque([State(index, func, store)])
+    queue = deque([State(Location(index, func), store)])
     while queue:
-        state = queue.popleft()
-        if state.index >= len(state.function.funcDef.body.block_items):
-            raise ValueError("Past the end of a function")
-        stmt = state.function.funcDef.body.block_items[state.index]
-        successors = analyze_statement(stmt, state.store)
+        successors = analyze_statement(queue.popleft())
         if successors is not NotImplemented:
             queue.extend(successors)
 
