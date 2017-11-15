@@ -11,6 +11,11 @@ Thread = namedtuple('Thread', ['function', 'init_store'])
 
 State = namedtuple('State', ['index', 'function', 'store'])
 
+# make sure this works in a multidimensional setting
+ArrayAddress = namedtuple('ArrayAddress', ['array', 'index'])
+
+StructAddress = namedtuple('StructAddress', ['struct', 'field'])
+
 class Location:
     """Represents a program location."""
     def __init__(self, index, function):
@@ -83,12 +88,25 @@ def eval_exp(exp, store):
     # TODO
     return (exp, store)
 
+def resolve(lvalue, store):
+    """Determine the abstract address to use for a given lvalue."""
+    if isinstance(lvalue, pycparser.c_ast.ID):
+        return lvalue.name
+    elif isinstance(lvalue, pycparser.c_ast.ArrayRef):
+        return ArrayAddress(lvalue.name, eval_exp(lvalue.subscript, store))
+    elif isinstance(lvalue, pycparser.c_ast.StructRef):
+        # check if this is correct
+        return StructAddress(lvalue.name, lvalue.field)
+    else:
+        # OH NOES
+        return NotImplemented
+
 def handle_assignment(state: State):
     """Evaluate an assignment statement."""
     stmt = state.loc.stmt
-    # TODO
-    address = stmt.lvalue
-    value = eval_exp(stmt.rvalue, state.store)
+    store = state.store
+    address = resolve(stmt.lvalue, store)
+    value = eval_exp(stmt.rvalue, store)
     store = state.store.write(address, value)
     return State(state.loc+1, store)
 
