@@ -68,7 +68,7 @@ def inject_thread(function):
     """Takes a function and makes a thread that can be placed on the thread
     queue.
     """
-    return Thread(function, {})
+    return Thread(function, Store())
 
 def is_main(ext):
     """Determines if an AST object is a FuncDef named main."""
