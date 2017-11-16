@@ -76,6 +76,9 @@ def is_main(ext):
 
 THREAD_QUEUE = []
 
+# TODO
+BOTTOM = None
+
 def analyze_threads():
     """Driver function. Iterates through the list of threads (which may expand),
     analyzing each in turn.
@@ -83,31 +86,73 @@ def analyze_threads():
     for thread in THREAD_QUEUE:
         analyze_thread(thread)
 
+def may_be_zero(aint):
+    """Evaluate if the given abstract int may be zero."""
+    # TODO
+    return aint == aint
+
+def may_be_nonzero(aint):
+    """Evaluate if the given abstract int may be nonzero. This is not simply the
+    inverse of may_be_zero!
+    """
+    # TODO
+    return aint == aint
+
+def do_unary_op(unop, store):
+    """Evaluate a unary op. Return the result and the store, which may change.
+    """
+    return (unop, store)
+
+def do_binary_op(binop, store):
+    """Evaluate a binary op. Return the result and the store, which may change.
+    """
+    return (binop, store)
+
 def eval_exp(exp, store):
     """Evaluate an expression. Return its result as an abstract value."""
-    # TODO
-    return (exp, store)
+    rvalue = exp
+    if isinstance(exp, pycparser.c_ast.UnaryOp):
+        (rvalue, store) = do_unary_op(exp, store)
+    elif isinstance(exp, pycparser.c_ast.BinaryOp):
+        (rvalue, store) = do_binary_op(exp, store)
+    elif isinstance(exp, pycparser.c_ast.TernaryOp):
+        condition = eval_exp(exp.cond, store)
+        if may_be_zero(condition):
+            (rvalue, store) = eval_exp(exp.iffalse, store)
+        else:
+            rvalue = BOTTOM
+        if may_be_nonzero(condition):
+            (result, store) = eval_exp(exp.iftrue, store)
+            rvalue = rvalue.merge(result)
+    else:
+        # consider an error that indicates what couldn't be matched
+        return NotImplemented
+    return (rvalue, store)
 
 def resolve(lvalue, store):
     """Determine the abstract address to use for a given lvalue."""
+    # pylint: disable=redefined-variable-type
+    address = lvalue
     if isinstance(lvalue, pycparser.c_ast.ID):
-        return lvalue.name
+        address = lvalue.name
     elif isinstance(lvalue, pycparser.c_ast.ArrayRef):
-        return ArrayAddress(lvalue.name, eval_exp(lvalue.subscript, store))
+        (subscript, store) = eval_exp(lvalue.subscript, store)
+        address = ArrayAddress(lvalue.name, subscript)
     elif isinstance(lvalue, pycparser.c_ast.StructRef):
-        # check if this is correct
-        return StructAddress(lvalue.name, lvalue.field)
+        # this is probably not correct
+        address = StructAddress(lvalue.name, lvalue.field)
     else:
         # OH NOES
         return NotImplemented
+    return (address, store)
 
 def handle_assignment(state: State):
     """Evaluate an assignment statement."""
     stmt = state.loc.stmt
     store = state.store
     address = resolve(stmt.lvalue, store)
-    value = eval_exp(stmt.rvalue, store)
-    store = state.store.write(address, value)
+    (value, store) = eval_exp(stmt.rvalue, store)
+    store = store.write(address, value)
     return State(state.loc+1, store)
 
 def analyze_statement(state: State):
