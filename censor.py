@@ -1,15 +1,9 @@
 """A static analyzer; see the README for details."""
 
-import argparse
 from collections import deque, namedtuple
-from os.path import dirname
+from utils import find_main, Thread, State
 import pycparser
 
-Function = namedtuple('Function', ['funcDef'])
-
-Thread = namedtuple('Thread', ['function', 'init_store'])
-
-State = namedtuple('State', ['loc', 'store'])
 
 # make sure this works in a multidimensional setting
 ArrayAddress = namedtuple('ArrayAddress', ['array', 'index'])
@@ -316,37 +310,13 @@ def analyze_thread(thread: Thread):
         if successors is not NotImplemented:
             queue.extend(successors)
 
-def find_main(ast):
-    """Examines the AST for a unique main function."""
-    mains = [child for child in ast.ext if is_main(child)]
-    if len(mains) == 1:
-        return Function(mains[0])
-    else:
-        raise ValueError
+def main(ast):
+    """Perform AAM-style abstract interpretation intraprocedurally on each
+    function in the ast reacable from main.
+    """
 
-def main():
-    """Main function."""
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("filename")
-    args = parser.parse_args()
-    dir_name = dirname(args.filename)
-    # figure out what analysis is supposed to happen and call the
-    # appropriate one
-
-    ast = pycparser.parse_file(
-        args.filename, use_cpp=True, cpp_path='gcc',
-        cpp_args=['-nostdinc',
-                  '-E',
-                  r'-Ifake_libc_include/',
-                  ''.join(['-I', dir_name]),
-                  ''.join(['-I', dir_name, '/utilities'])
-                 ])
-    # this is specific to complete data race detection
     main_function = find_main(ast)
     main_thread = inject_thread(main_function)
     THREAD_QUEUE.append(main_thread)
     analyze_threads()
 
-if __name__ == "__main__":
-    main()
