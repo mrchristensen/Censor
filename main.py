@@ -12,7 +12,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("filename")
     parser.add_argument('--tool', '-t', choices=['censor', 'bigfoot'],
-                        required=True, type=str.lower,
+                        required=False, type=str.lower,
                         help='the (case-insensitive) name of the analysis')
     args = parser.parse_args()
     dir_name = dirname(args.filename)
