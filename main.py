@@ -11,6 +11,8 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("filename")
+    parser.add_argument('--tool', '-t', choices=['censor', 'bigfoot'],
+                        required=True, type=str.lower)
     args = parser.parse_args()
     dir_name = dirname(args.filename)
     # figure out what analysis is supposed to happen and call the
@@ -24,12 +26,13 @@ def main():
                   ''.join(['-I', dir_name]),
                   ''.join(['-I', dir_name, '/utilities'])
                  ])
-    args.tool = "censor"
 
-    if args.tool is "censor":
+    if args.tool == "censor":
         censor.main(ast)
-    elif args.tool is "unkonwn":
-        print("No valid tool name given defaulting to censor.")
+    elif args.tool == "bigfoot":
+        print("The bigfoot tool is not yet implemented")
+    else:
+        print("No valid tool name given; defaulting to censor.")
         censor.main(ast) #default to censor
 
 if __name__ == "__main__":
