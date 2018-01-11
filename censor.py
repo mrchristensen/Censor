@@ -1,8 +1,8 @@
 """A static analyzer; see the README for details."""
 
 from collections import deque, namedtuple
-from utils import find_main, Thread, State
 import pycparser
+from utils import find_main, Thread, State
 
 
 # make sure this works in a multidimensional setting
