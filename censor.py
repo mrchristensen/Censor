@@ -44,9 +44,7 @@ class Store:
         """
         if address in self.memory:
             return self.memory[address]
-        else:
-            #pylint: disable=no-else-return
-            return None
+        return None
 
     def write(self, address, value):
         """Write value to the store at address. If there is an existing value,
