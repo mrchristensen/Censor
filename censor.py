@@ -45,6 +45,7 @@ class Store:
         if address in self.memory:
             return self.memory[address]
         else:
+            #pylint: disable=no-else-return
             return None
 
     def write(self, address, value):
@@ -125,7 +126,6 @@ def eval_exp(exp, store):
 
 def resolve(lvalue, store):
     """Determine the abstract address to use for a given lvalue."""
-    # pylint: disable=redefined-variable-type
     address = lvalue
     if isinstance(lvalue, pycparser.c_ast.ID):
         address = lvalue.name
@@ -316,7 +316,7 @@ def main(ast):
     """
 
     main_function = find_main(ast)
+    ast.show()
     main_thread = inject_thread(main_function)
     THREAD_QUEUE.append(main_thread)
     analyze_threads()
-
