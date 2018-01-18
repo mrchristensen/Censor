@@ -137,21 +137,388 @@ class NodeVisitor(object):
         for c in node:
             self.visit(c)
 
-class OmpFor(Node):
-    __slots__ = ('clauses', 'loop', 'coord', '__weakref__')
-    def __init__(self, clauses, loop, coord=None):
+class OmpParallel(Node):
+    __slots__ = ('clauses', 'block', 'coord', '__weakref__')
+    def __init__(self, clauses, block, coord=None):
         self.clauses = clauses
-        self.loop = loop
+        self.block = block
         self.coord = coord
 
     def children(self):
         nodelist = []
-        if self.loop is not None: nodelist.append(("loop", self.loop))
+        if self.block is not None: nodelist.append(("block", self.block))
         return tuple(nodelist)
 
     def __iter__(self):
-        if self.loop is not None:
-            yield self.loop
+        if self.block is not None:
+            yield self.block
 
     attr_names = ('clauses', )
+
+class OmpFor(Node):
+    __slots__ = ('clauses', 'loops', 'coord', '__weakref__')
+    def __init__(self, clauses, loops, coord=None):
+        self.clauses = clauses
+        self.loops = loops
+        self.coord = coord
+
+    def children(self):
+        nodelist = []
+        for i, child in enumerate(self.loops or []):
+            nodelist.append(("loops[%d]" % i, child))
+        return tuple(nodelist)
+
+    def __iter__(self):
+        for child in (self.loops or []):
+            yield child
+
+    attr_names = ('clauses', )
+
+class OmpSections(Node):
+    __slots__ = ('clauses', 'sections', 'coord', '__weakref__')
+    def __init__(self, clauses, sections, coord=None):
+        self.clauses = clauses
+        self.sections = sections
+        self.coord = coord
+
+    def children(self):
+        nodelist = []
+        for i, child in enumerate(self.sections or []):
+            nodelist.append(("sections[%d]" % i, child))
+        return tuple(nodelist)
+
+    def __iter__(self):
+        for child in (self.sections or []):
+            yield child
+
+    attr_names = ('clauses', )
+
+class OmpSection(Node):
+    __slots__ = ('block', 'coord', '__weakref__')
+    def __init__(self, block, coord=None):
+        self.block = block
+        self.coord = coord
+
+    def children(self):
+        nodelist = []
+        if self.block is not None: nodelist.append(("block", self.block))
+        return tuple(nodelist)
+
+    def __iter__(self):
+        if self.block is not None:
+            yield self.block
+
+    attr_names = ()
+
+class OmpSingle(Node):
+    __slots__ = ('clauses', 'block', 'coord', '__weakref__')
+    def __init__(self, clauses, block, coord=None):
+        self.clauses = clauses
+        self.block = block
+        self.coord = coord
+
+    def children(self):
+        nodelist = []
+        if self.block is not None: nodelist.append(("block", self.block))
+        return tuple(nodelist)
+
+    def __iter__(self):
+        if self.block is not None:
+            yield self.block
+
+    attr_names = ('clauses', )
+
+class OmpSimd(Node):
+    __slots__ = ('clauses', 'loops', 'coord', '__weakref__')
+    def __init__(self, clauses, loops, coord=None):
+        self.clauses = clauses
+        self.loops = loops
+        self.coord = coord
+
+    def children(self):
+        nodelist = []
+        for i, child in enumerate(self.loops or []):
+            nodelist.append(("loops[%d]" % i, child))
+        return tuple(nodelist)
+
+    def __iter__(self):
+        for child in (self.loops or []):
+            yield child
+
+    attr_names = ('clauses', )
+
+class OmpDeclareSimd(Node):
+    __slots__ = ('clauses', 'func', 'coord', '__weakref__')
+    def __init__(self, clauses, func, coord=None):
+        self.clauses = clauses
+        self.func = func
+        self.coord = coord
+
+    def children(self):
+        nodelist = []
+        if self.func is not None: nodelist.append(("func", self.func))
+        return tuple(nodelist)
+
+    def __iter__(self):
+        if self.func is not None:
+            yield self.func
+
+    attr_names = ('clauses', )
+
+class OmpForSimd(Node):
+    __slots__ = ('clauses', 'loops', 'coord', '__weakref__')
+    def __init__(self, clauses, loops, coord=None):
+        self.clauses = clauses
+        self.loops = loops
+        self.coord = coord
+
+    def children(self):
+        nodelist = []
+        for i, child in enumerate(self.loops or []):
+            nodelist.append(("loops[%d]" % i, child))
+        return tuple(nodelist)
+
+    def __iter__(self):
+        for child in (self.loops or []):
+            yield child
+
+    attr_names = ('clauses', )
+
+class OmpTask(Node):
+    __slots__ = ('clauses', 'block', 'coord', '__weakref__')
+    def __init__(self, clauses, block, coord=None):
+        self.clauses = clauses
+        self.block = block
+        self.coord = coord
+
+    def children(self):
+        nodelist = []
+        if self.block is not None: nodelist.append(("block", self.block))
+        return tuple(nodelist)
+
+    def __iter__(self):
+        if self.block is not None:
+            yield self.block
+
+    attr_names = ('clauses', )
+
+class OmpTaskloop(Node):
+    __slots__ = ('clauses', 'loops', 'coord', '__weakref__')
+    def __init__(self, clauses, loops, coord=None):
+        self.clauses = clauses
+        self.loops = loops
+        self.coord = coord
+
+    def children(self):
+        nodelist = []
+        for i, child in enumerate(self.loops or []):
+            nodelist.append(("loops[%d]" % i, child))
+        return tuple(nodelist)
+
+    def __iter__(self):
+        for child in (self.loops or []):
+            yield child
+
+    attr_names = ('clauses', )
+
+class OmpTaskloopSimd(Node):
+    __slots__ = ('clauses', 'loops', 'coord', '__weakref__')
+    def __init__(self, clauses, loops, coord=None):
+        self.clauses = clauses
+        self.loops = loops
+        self.coord = coord
+
+    def children(self):
+        nodelist = []
+        for i, child in enumerate(self.loops or []):
+            nodelist.append(("loops[%d]" % i, child))
+        return tuple(nodelist)
+
+    def __iter__(self):
+        for child in (self.loops or []):
+            yield child
+
+    attr_names = ('clauses', )
+
+class OmpTaskyield(Node):
+    __slots__ = ('coord', '__weakref__')
+    def __init__(self, coord=None):
+        self.coord = coord
+
+    def children(self):
+        return ()
+
+    def __iter__(self):
+        return
+        yield
+
+    attr_names = ()
+
+class OmpMaster(Node):
+    __slots__ = ('block', 'coord', '__weakref__')
+    def __init__(self, block, coord=None):
+        self.block = block
+        self.coord = coord
+
+    def children(self):
+        nodelist = []
+        if self.block is not None: nodelist.append(("block", self.block))
+        return tuple(nodelist)
+
+    def __iter__(self):
+        if self.block is not None:
+            yield self.block
+
+    attr_names = ()
+
+class OmpCritical(Node):
+    __slots__ = ('name', 'hint', 'block', 'coord', '__weakref__')
+    def __init__(self, name, hint, block, coord=None):
+        self.name = name
+        self.hint = hint
+        self.block = block
+        self.coord = coord
+
+    def children(self):
+        nodelist = []
+        if self.block is not None: nodelist.append(("block", self.block))
+        return tuple(nodelist)
+
+    def __iter__(self):
+        if self.block is not None:
+            yield self.block
+
+    attr_names = ('name', 'hint', )
+
+class OmpBarrier(Node):
+    __slots__ = ('coord', '__weakref__')
+    def __init__(self, coord=None):
+        self.coord = coord
+
+    def children(self):
+        return ()
+
+    def __iter__(self):
+        return
+        yield
+
+    attr_names = ()
+
+class OmpTaskwait(Node):
+    __slots__ = ('coord', '__weakref__')
+    def __init__(self, coord=None):
+        self.coord = coord
+
+    def children(self):
+        return ()
+
+    def __iter__(self):
+        return
+        yield
+
+    attr_names = ()
+
+class OmpTaskgroup(Node):
+    __slots__ = ('block', 'coord', '__weakref__')
+    def __init__(self, block, coord=None):
+        self.block = block
+        self.coord = coord
+
+    def children(self):
+        nodelist = []
+        if self.block is not None: nodelist.append(("block", self.block))
+        return tuple(nodelist)
+
+    def __iter__(self):
+        if self.block is not None:
+            yield self.block
+
+    attr_names = ()
+
+class OmpAtomic(Node):
+    __slots__ = ('seq_cst', 'atomic_clause', 'block', 'coord', '__weakref__')
+    def __init__(self, seq_cst, atomic_clause, block, coord=None):
+        self.seq_cst = seq_cst
+        self.atomic_clause = atomic_clause
+        self.block = block
+        self.coord = coord
+
+    def children(self):
+        nodelist = []
+        return tuple(nodelist)
+
+    def __iter__(self):
+        return
+        yield
+
+    attr_names = ('seq_cst', 'atomic_clause', 'block', )
+
+class OmpFlush(Node):
+    __slots__ = ('id_list', 'coord', '__weakref__')
+    def __init__(self, id_list, coord=None):
+        self.id_list = id_list
+        self.coord = coord
+
+    def children(self):
+        nodelist = []
+        for i, child in enumerate(self.id_list or []):
+            nodelist.append(("id_list[%d]" % i, child))
+        return tuple(nodelist)
+
+    def __iter__(self):
+        for child in (self.id_list or []):
+            yield child
+
+    attr_names = ()
+
+class OmpOrdered(Node):
+    __slots__ = ('clauses', 'block', 'coord', '__weakref__')
+    def __init__(self, clauses, block, coord=None):
+        self.clauses = clauses
+        self.block = block
+        self.coord = coord
+
+    def children(self):
+        nodelist = []
+        if self.block is not None: nodelist.append(("block", self.block))
+        return tuple(nodelist)
+
+    def __iter__(self):
+        if self.block is not None:
+            yield self.block
+
+    attr_names = ('clauses', )
+
+class OmpCancel(Node):
+    __slots__ = ('construct_type', 'if_clause', 'coord', '__weakref__')
+    def __init__(self, construct_type, if_clause, coord=None):
+        self.construct_type = construct_type
+        self.if_clause = if_clause
+        self.coord = coord
+
+    def children(self):
+        nodelist = []
+        return tuple(nodelist)
+
+    def __iter__(self):
+        return
+        yield
+
+    attr_names = ('construct_type', 'if_clause', )
+
+class OmpCancellationPoint(Node):
+    __slots__ = ('construct_type', 'coord', '__weakref__')
+    def __init__(self, construct_type, coord=None):
+        self.construct_type = construct_type
+        self.coord = coord
+
+    def children(self):
+        nodelist = []
+        return tuple(nodelist)
+
+    def __iter__(self):
+        return
+        yield
+
+    attr_names = ('construct_type', )
 
