@@ -164,13 +164,12 @@ class OmpFor(Node):
 
     def children(self):
         nodelist = []
-        for i, child in enumerate(self.loops or []):
-            nodelist.append(("loops[%d]" % i, child))
+        if self.loops is not None: nodelist.append(("loops", self.loops))
         return tuple(nodelist)
 
     def __iter__(self):
-        for child in (self.loops or []):
-            yield child
+        if self.loops is not None:
+            yield self.loops
 
     attr_names = ('clauses', )
 
@@ -237,13 +236,12 @@ class OmpSimd(Node):
 
     def children(self):
         nodelist = []
-        for i, child in enumerate(self.loops or []):
-            nodelist.append(("loops[%d]" % i, child))
+        if self.loops is not None: nodelist.append(("loops", self.loops))
         return tuple(nodelist)
 
     def __iter__(self):
-        for child in (self.loops or []):
-            yield child
+        if self.loops is not None:
+            yield self.loops
 
     attr_names = ('clauses', )
 
@@ -274,13 +272,12 @@ class OmpForSimd(Node):
 
     def children(self):
         nodelist = []
-        for i, child in enumerate(self.loops or []):
-            nodelist.append(("loops[%d]" % i, child))
+        if self.loops is not None: nodelist.append(("loops", self.loops))
         return tuple(nodelist)
 
     def __iter__(self):
-        for child in (self.loops or []):
-            yield child
+        if self.loops is not None:
+            yield self.loops
 
     attr_names = ('clauses', )
 
@@ -311,13 +308,12 @@ class OmpTaskloop(Node):
 
     def children(self):
         nodelist = []
-        for i, child in enumerate(self.loops or []):
-            nodelist.append(("loops[%d]" % i, child))
+        if self.loops is not None: nodelist.append(("loops", self.loops))
         return tuple(nodelist)
 
     def __iter__(self):
-        for child in (self.loops or []):
-            yield child
+        if self.loops is not None:
+            yield self.loops
 
     attr_names = ('clauses', )
 
@@ -330,13 +326,12 @@ class OmpTaskloopSimd(Node):
 
     def children(self):
         nodelist = []
-        for i, child in enumerate(self.loops or []):
-            nodelist.append(("loops[%d]" % i, child))
+        if self.loops is not None: nodelist.append(("loops", self.loops))
         return tuple(nodelist)
 
     def __iter__(self):
-        for child in (self.loops or []):
-            yield child
+        if self.loops is not None:
+            yield self.loops
 
     attr_names = ('clauses', )
 
