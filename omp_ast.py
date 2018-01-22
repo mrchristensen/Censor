@@ -517,3 +517,48 @@ class OmpCancellationPoint(Node):
 
     attr_names = ('construct_type', )
 
+class OmpThreadprivate(Node):
+    __slots__ = ('vars', 'coord', '__weakref__')
+    def __init__(self, vars, coord=None):
+        self.vars = vars
+        self.coord = coord
+
+    def children(self):
+        nodelist = []
+        for i, child in enumerate(self.vars or []):
+            nodelist.append(("vars[%d]" % i, child))
+        return tuple(nodelist)
+
+    def __iter__(self):
+        for child in (self.vars or []):
+            yield child
+
+    attr_names = ()
+
+class OmpDeclareReduction(Node):
+    __slots__ = ('reduction_id', 'types', 'combiner', 'initializer', 'coord', '__weakref__')
+    def __init__(self, reduction_id, types, combiner, initializer, coord=None):
+        self.reduction_id = reduction_id
+        self.types = types
+        self.combiner = combiner
+        self.initializer = initializer
+        self.coord = coord
+
+    def children(self):
+        nodelist = []
+        if self.reduction_id is not None: nodelist.append(("reduction_id", self.reduction_id))
+        if self.combiner is not None: nodelist.append(("combiner", self.combiner))
+        for i, child in enumerate(self.types or []):
+            nodelist.append(("types[%d]" % i, child))
+        return tuple(nodelist)
+
+    def __iter__(self):
+        if self.reduction_id is not None:
+            yield self.reduction_id
+        if self.combiner is not None:
+            yield self.combiner
+        for child in (self.types or []):
+            yield child
+
+    attr_names = ('initializer', )
+
