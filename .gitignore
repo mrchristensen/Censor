@@ -1,5 +1,6 @@
 *~
 *.sw?
+*.iml
 pycparser
 fake_libc_include
 __pycache__
