@@ -11,7 +11,7 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("filename")
-    parser.add_argument('--tool', '-t', choices=['censor', 'bigfoot'],
+    parser.add_argument('--tool', '-t', choices=['censor', 'yeti'],
                         required=False, type=str.lower,
                         help='the (case-insensitive) name of the analysis')
     args = parser.parse_args()
@@ -30,8 +30,8 @@ def main():
 
     if args.tool == "censor":
         censor.main(ast)
-    elif args.tool == "bigfoot":
-        print("The bigfoot tool is not yet implemented")
+    elif args.tool == "yeti":
+        print("The yeti tool is not yet implemented")
     else:
         print("No valid tool name given; defaulting to censor.")
         censor.main(ast) #default to censor
