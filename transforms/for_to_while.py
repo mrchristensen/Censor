@@ -1,14 +1,13 @@
 """AST transform that transforms a for loop to a while loop"""
 
 from pycparser.c_ast import While
-from .ast_transform import ASTTransform
+from .ast_transform import NodeTransformer
 
-class ForToWhile(ASTTransform): #pylint: disable=too-few-public-methods
+class ForToWhile(NodeTransformer): #pylint: disable=too-few-public-methods
     """ASTTransform to change for loops to while loops"""
 
-    def transform(self, node):
+    def visit_For(self, node): #pylint: disable=invalid-name,no-self-use
         """Transform a for loop to a while loop"""
-        #TODO implement transform
-        #TODO rename iteration variable because it might conflict
-        #with other declarations in the outer scope
+        #TODO: handle node.init field
+        #need to put it in an outer scope without conflicts
         return While(node.cond, node.stmt, node.coord)

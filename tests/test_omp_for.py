@@ -46,7 +46,7 @@ int main() {
         pv = self.PragmaVisitor()
         ov = self.OmpForVisitor()
 
-        self.omp_gen.transform(ast)
+        ast = self.omp_gen.visit(ast)
 
         ov.visit(ast)
         pv.visit(ast)
@@ -68,7 +68,7 @@ int main() {
         pv = self.PragmaVisitor()
         ov = self.OmpForVisitor()
 
-        self.omp_gen.transform(ast)
+        ast = self.omp_gen.visit(ast)
 
         ov.visit(ast)
         pv.visit(ast)
@@ -90,7 +90,7 @@ int main() {
         pv = self.PragmaVisitor()
         ov = self.OmpForVisitor()
 
-        self.omp_gen.transform(ast)
+        self.omp_gen.visit(ast)
 
         ov.visit(ast)
         pv.visit(ast)
