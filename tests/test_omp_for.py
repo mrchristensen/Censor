@@ -3,6 +3,7 @@
 import unittest
 import pycparser
 from transforms.omp_for import PragmaToOmpFor
+
 #pylint: disable=missing-docstring,invalid-name
 class TestOmpFor(unittest.TestCase):
     """Test OmpFor Node"""
@@ -95,6 +96,6 @@ int main() {
         ov.visit(ast)
         pv.visit(ast)
 
-        self.assertEqual("No Pragma nodes", True, len(pv.nodes) == 0)
-        self.assertEqual("One OmpFor node", True, len(ov.nodes) == 1)
-        self.assertEqual("OmpForNode clauses", ["collapse(2)", "ordered(2)"], ov.nodes[0].clauses)
+        self.assertEqual(True, len(pv.nodes) == 0)
+        self.assertEqual(True, len(ov.nodes) == 1)
+        self.assertEqual(["collapse(2)", "ordered(2)"], ov.nodes[0].clauses)
