@@ -1,6 +1,6 @@
 """Pragma to OMP For Node transform"""
 
-from .ast_transform import NodeTransformer
+from .node_transformer import NodeTransformer
 
 class PragmaToOmpFor(NodeTransformer): #pylint: disable=too-few-public-methods
     """Pragma to OMP For Node transform"""
