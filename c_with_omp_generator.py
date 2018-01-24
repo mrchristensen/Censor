@@ -5,6 +5,7 @@ from pycparser.c_generator import CGenerator
 # This class is following a pattern that is required by the pycparser.CGenerator
 # that pylint doesn't like. So:
 #pylint: disable=invalid-name,missing-docstring,too-many-public-methods
+
 class CWithOMPGenerator(CGenerator):
     """ Uses CGenerator to emit C code from an AST.
         Customized to support OMP Nodes.
