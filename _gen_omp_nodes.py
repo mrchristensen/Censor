@@ -2,6 +2,5 @@
 
 from pycparser._ast_gen import ASTCodeGenerator
 
-omp_gen = ASTCodeGenerator('_omp_ast.cfg')
-omp_gen.generate(open('omp_ast.py', 'w'))
-
+OMP_GEN = ASTCodeGenerator('_omp_ast.cfg')
+OMP_GEN.generate(open('omp_ast.py', 'w'))
