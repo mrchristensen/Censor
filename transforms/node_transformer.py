@@ -8,17 +8,26 @@ https://github.com/python/cpython/blob/3.0/Lib/ast.py
 
 from pycparser.c_ast import Node, NodeVisitor
 
-class NodeTransformer(NodeVisitor): #pylint: disable=too-few-public-methods
+class NodeTransformer(NodeVisitor):
     """Base abstract NodeTransformer class"""
+
+    def skip(self, node): #pylint: disable=no-self-use
+        """Override to not scan past certain types of nodes"""
+        return node is None
 
     def generic_visit(self, node):
         """Generic visit function"""
         for field in node.__class__.__slots__:
             old_value = getattr(node, field, None)
-            if isinstance(old_value, list):
+            if self.skip(old_value):
+                continue
+            elif isinstance(old_value, list):
                 new_values = []
                 for value in old_value:
-                    if isinstance(value, Node):
+                    if self.skip(value):
+                        new_values.append(value)
+                        continue
+                    elif isinstance(value, Node):
                         value = self.visit(value)
                         if value is None:
                             continue
