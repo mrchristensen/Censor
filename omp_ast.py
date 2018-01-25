@@ -164,12 +164,13 @@ class OmpFor(Node):
 
     def children(self):
         nodelist = []
-        if self.loops is not None: nodelist.append(("loops", self.loops))
+        for i, child in enumerate(self.loops or []):
+            nodelist.append(("loops[%d]" % i, child))
         return tuple(nodelist)
 
     def __iter__(self):
-        if self.loops is not None:
-            yield self.loops
+        for child in (self.loops or []):
+            yield child
 
     attr_names = ('clauses', )
 
