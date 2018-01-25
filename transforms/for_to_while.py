@@ -10,4 +10,5 @@ class ForToWhile(NodeTransformer): #pylint: disable=too-few-public-methods
         """Transform a for loop to a while loop"""
         #TODO: handle node.init field
         #need to put it in an outer scope without conflicts
+        node = self.generic_visit(node)
         return While(node.cond, node.stmt, node.coord)

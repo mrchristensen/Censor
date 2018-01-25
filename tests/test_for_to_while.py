@@ -12,6 +12,15 @@ int main() {
     }
 }
 """
+NESTED_FOR_LOOP = """
+int main() {
+    for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < 100; i++) {
+
+        }
+    }
+}
+"""
 
 class TestForToWhile(unittest.TestCase):
     """Test ForToWhile transform"""
@@ -35,3 +44,22 @@ class TestForToWhile(unittest.TestCase):
 
         self.assertEqual(0, len(fors.nodes))
         self.assertEqual(1, len(whiles.nodes))
+
+    def test_nested_for(self):
+        """Test that nested for loops are transformed"""
+
+        ast = self.parser.parse(NESTED_FOR_LOOP)
+        fors = ForVisitor()
+        whiles = WhileVisitor()
+
+        ast = self.transform.visit(ast)
+        ast.show()
+
+        fors.visit(ast)
+        whiles.visit(ast)
+
+        self.assertEqual(0, len(fors.nodes))
+        self.assertEqual(1, len(whiles.nodes))
+
+        whiles.visit(whiles.nodes[0])
+        self.assertEqual(2, len(whiles.nodes))
