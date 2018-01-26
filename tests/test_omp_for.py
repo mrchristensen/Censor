@@ -28,6 +28,7 @@ class TestOmpFor(unittest.TestCase):
 
         def visit_OmpFor(self, node):
             self.nodes.append(node)
+            self.generic_visit(node)
 
     @classmethod
     def setUpClass(cls):
@@ -96,6 +97,32 @@ int main() {
         ov.visit(ast)
         pv.visit(ast)
 
-        self.assertEqual(True, len(pv.nodes) == 0)
-        self.assertEqual(True, len(ov.nodes) == 1)
+        self.assertEqual(0, len(pv.nodes))
+        self.assertEqual(1, len(ov.nodes))
         self.assertEqual(["collapse(2)", "ordered(2)"], ov.nodes[0].clauses)
+
+    def test_nested_for(self):
+        c = """
+int main() {
+    #pragma omp for collapse(2) ordered(2)
+    for (int i = 0; i < 100; i++) {
+        #pragma omp for
+        for (int i = 0; i < 10; i++) {
+
+        }
+    }
+}
+        """
+        ast = self.parser.parse(c)
+        pv = self.PragmaVisitor()
+        ov = self.OmpForVisitor()
+
+        self.omp_gen.visit(ast)
+
+        ov.visit(ast)
+        pv.visit(ast)
+
+        self.assertEqual(0, len(pv.nodes))
+        self.assertEqual(2, len(ov.nodes))
+        self.assertEqual(["collapse(2)", "ordered(2)"], ov.nodes[0].clauses)
+        self.assertEqual([], ov.nodes[1].clauses)
