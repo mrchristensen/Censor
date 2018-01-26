@@ -1,8 +1,8 @@
 """Pragma to OMP For Node transform"""
 
 import re
-from omp_ast import OmpFor
 from pycparser.c_ast import Pragma, For
+from omp_ast import OmpFor
 from .node_transformer import NodeTransformer
 
 class PragmaToOmpFor(NodeTransformer):
@@ -32,3 +32,4 @@ class PragmaToOmpFor(NodeTransformer):
         matches = self.pattern.match(node.string)
         if matches:
             return OmpFor(node.string.split()[2:], [for_], node.coord)
+        return None
