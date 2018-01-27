@@ -9,46 +9,46 @@ class TestOmpFor(unittest.TestCase):
     """Test OmpFor Node"""
 
     class PragmaVisitor(pycparser.c_ast.NodeVisitor):
+        """Pragma node visitor; collect all pragma nodes"""
+
         def __init__(self):
             self.nodes = []
 
         def visit_Pragma(self, node):
-            self.nodes.append(node)
-
-    class CompoundVisitor(pycparser.c_ast.NodeVisitor):
-        def __init__(self):
-            self.nodes = []
-
-        def visit_Compound(self, node):
+            """Collect nodes, does not recurse as Pragma nodes have no children"""
             self.nodes.append(node)
 
     class OmpForVisitor(pycparser.c_ast.NodeVisitor):
+        """OmpFor node visitor; recursibely collect all OmpFor nodes"""
+
         def __init__(self):
             self.nodes = []
 
         def visit_OmpFor(self, node):
+            """Recursively collect OmpFor nodes"""
+
             self.nodes.append(node)
             self.generic_visit(node)
 
     @classmethod
     def setUpClass(cls):
         cls.parser = pycparser.CParser()
-        cls.omp_gen = PragmaToOmpFor()
+        cls.transform = PragmaToOmpFor()
 
     def test_simple(self):
         c = """
-int main() {
-    #pragma omp for
-    for (int i = 0; i < 100; i++) {
+        int main() {
+            #pragma omp for
+            for (int i = 0; i < 100; i++) {
 
-    }
-}
+            }
+        }
         """
         ast = self.parser.parse(c)
         pv = self.PragmaVisitor()
         ov = self.OmpForVisitor()
 
-        ast = self.omp_gen.visit(ast)
+        ast = self.transform.visit(ast)
 
         ov.visit(ast)
         pv.visit(ast)
@@ -59,18 +59,18 @@ int main() {
 
     def test_clauses_one(self):
         c = """
-int main() {
-    #pragma omp for collapse(2)
-    for (int i = 0; i < 100; i++) {
+        int main() {
+            #pragma omp for collapse(2)
+            for (int i = 0; i < 100; i++) {
 
-    }
-}
+            }
+        }
         """
         ast = self.parser.parse(c)
         pv = self.PragmaVisitor()
         ov = self.OmpForVisitor()
 
-        ast = self.omp_gen.visit(ast)
+        ast = self.transform.visit(ast)
 
         ov.visit(ast)
         pv.visit(ast)
@@ -81,18 +81,18 @@ int main() {
 
     def test_clauses_many(self):
         c = """
-int main() {
-    #pragma omp for collapse(2) ordered(2)
-    for (int i = 0; i < 100; i++) {
+        int main() {
+            #pragma omp for collapse(2) ordered(2)
+            for (int i = 0; i < 100; i++) {
 
-    }
-}
+            }
+        }
         """
         ast = self.parser.parse(c)
         pv = self.PragmaVisitor()
         ov = self.OmpForVisitor()
 
-        self.omp_gen.visit(ast)
+        self.transform.visit(ast)
 
         ov.visit(ast)
         pv.visit(ast)
@@ -103,21 +103,21 @@ int main() {
 
     def test_nested_for(self):
         c = """
-int main() {
-    #pragma omp for collapse(2) ordered(2)
-    for (int i = 0; i < 100; i++) {
-        #pragma omp for
-        for (int i = 0; i < 10; i++) {
+        int main() {
+            #pragma omp for collapse(2) ordered(2)
+            for (int i = 0; i < 100; i++) {
+                #pragma omp for
+                for (int i = 0; i < 10; i++) {
 
+                }
+            }
         }
-    }
-}
         """
         ast = self.parser.parse(c)
         pv = self.PragmaVisitor()
         ov = self.OmpForVisitor()
 
-        self.omp_gen.visit(ast)
+        self.transform.visit(ast)
 
         ov.visit(ast)
         pv.visit(ast)
