@@ -8,5 +8,5 @@ struct rectangle {
 int main() {
     struct rectangle a = {2, 4};
 	int x = a.x;
-    printf("x: %d\n", x);
+    printf("%d\n", x);
 }

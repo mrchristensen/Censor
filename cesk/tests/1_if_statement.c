@@ -49,6 +49,6 @@ int main() {
     }
 
     // should be 1*1*11*23 = 253
-    printf("Prod: %d\n", prod);
+    printf("%d\n", prod);
 	return 0;
 }

@@ -78,7 +78,7 @@ int main() {
 	}
 
     int lastOne = dynamicqPop(q);
-    printf("lastOne: %d\n", lastOne);
+    printf("%d\n", lastOne);
 
     return 0;
 }

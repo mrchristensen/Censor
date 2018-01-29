@@ -7,6 +7,6 @@ int main() {
     int b = 3;
 	a = &b;
     *a = 7;
-	printf("a: %d\n", *a);
+	printf("%d\n", *a);
 	return 0;
 }

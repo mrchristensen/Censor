@@ -16,6 +16,6 @@ rectangle* makeRectangle(int x, int y) {
 int main() {
     rectangle *a = makeRectangle(2, 4);
 	int x = a->x;
-    printf("x: %d\n", x);
+    printf("%d\n", x);
 }
 

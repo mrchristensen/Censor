@@ -19,6 +19,6 @@ int main() {
         if (j < dim) {
             goto outer; 
         }
-    printf("Sum: %d\n", sum);
+    printf("%d\n", sum);
     return 0;
 }

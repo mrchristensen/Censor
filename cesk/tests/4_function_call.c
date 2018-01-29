@@ -7,6 +7,6 @@ int add2(int n) {
 int main() {
     int n = 7;
     n = add2(n);
-    printf("n: %d\n", n);
+    printf("%d\n", n);
 	return 0;
 }
