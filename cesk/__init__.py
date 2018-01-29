@@ -1,8 +1,6 @@
 """Starts the CESK machine"""
 
-def main():
+def main(ast):
     """Is a stub"""
     print("Not hello World")
-
-if __name__ == "__main__":
-    main()
+    ast.show()

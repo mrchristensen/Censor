@@ -4,6 +4,7 @@ import argparse
 from os.path import dirname
 import pycparser
 import censor
+import cesk
 
 
 def main():
@@ -11,7 +12,7 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("filename")
-    parser.add_argument('--tool', '-t', choices=['censor', 'yeti'],
+    parser.add_argument('--tool', '-t', choices=['censor', 'yeti', 'cesk'],
                         required=False, type=str.lower,
                         help='the (case-insensitive) name of the analysis')
     args = parser.parse_args()
@@ -32,6 +33,8 @@ def main():
         censor.main(ast)
     elif args.tool == "yeti":
         print("The yeti tool is not yet implemented")
+    elif args.tool == "cesk":
+        cesk.main(ast)
     else:
         print("No valid tool name given; defaulting to censor.")
         censor.main(ast) #default to censor
