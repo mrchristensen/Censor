@@ -138,238 +138,290 @@ class NodeVisitor(object):
             self.visit(c)
 
 class OmpParallel(Node):
-    __slots__ = ('clauses', 'block', 'coord', '__weakref__')
-    def __init__(self, clauses, block, coord=None):
+    __slots__ = ('pragma', 'clauses', 'block', 'coord', '__weakref__')
+    def __init__(self, pragma, clauses, block, coord=None):
+        self.pragma = pragma
         self.clauses = clauses
         self.block = block
         self.coord = coord
 
     def children(self):
         nodelist = []
+        if self.pragma is not None: nodelist.append(("pragma", self.pragma))
         if self.block is not None: nodelist.append(("block", self.block))
         return tuple(nodelist)
 
     def __iter__(self):
+        if self.pragma is not None:
+            yield self.pragma
         if self.block is not None:
             yield self.block
 
     attr_names = ('clauses', )
 
 class OmpFor(Node):
-    __slots__ = ('clauses', 'loops', 'coord', '__weakref__')
-    def __init__(self, clauses, loops, coord=None):
+    __slots__ = ('pragma', 'clauses', 'loops', 'coord', '__weakref__')
+    def __init__(self, pragma, clauses, loops, coord=None):
+        self.pragma = pragma
         self.clauses = clauses
         self.loops = loops
         self.coord = coord
 
     def children(self):
         nodelist = []
+        if self.pragma is not None: nodelist.append(("pragma", self.pragma))
         for i, child in enumerate(self.loops or []):
             nodelist.append(("loops[%d]" % i, child))
         return tuple(nodelist)
 
     def __iter__(self):
+        if self.pragma is not None:
+            yield self.pragma
         for child in (self.loops or []):
             yield child
 
     attr_names = ('clauses', )
 
 class OmpSections(Node):
-    __slots__ = ('clauses', 'sections', 'coord', '__weakref__')
-    def __init__(self, clauses, sections, coord=None):
+    __slots__ = ('pragma', 'clauses', 'sections', 'coord', '__weakref__')
+    def __init__(self, pragma, clauses, sections, coord=None):
+        self.pragma = pragma
         self.clauses = clauses
         self.sections = sections
         self.coord = coord
 
     def children(self):
         nodelist = []
+        if self.pragma is not None: nodelist.append(("pragma", self.pragma))
         for i, child in enumerate(self.sections or []):
             nodelist.append(("sections[%d]" % i, child))
         return tuple(nodelist)
 
     def __iter__(self):
+        if self.pragma is not None:
+            yield self.pragma
         for child in (self.sections or []):
             yield child
 
     attr_names = ('clauses', )
 
 class OmpSection(Node):
-    __slots__ = ('block', 'coord', '__weakref__')
-    def __init__(self, block, coord=None):
+    __slots__ = ('pragma', 'block', 'coord', '__weakref__')
+    def __init__(self, pragma, block, coord=None):
+        self.pragma = pragma
         self.block = block
         self.coord = coord
 
     def children(self):
         nodelist = []
+        if self.pragma is not None: nodelist.append(("pragma", self.pragma))
         if self.block is not None: nodelist.append(("block", self.block))
         return tuple(nodelist)
 
     def __iter__(self):
+        if self.pragma is not None:
+            yield self.pragma
         if self.block is not None:
             yield self.block
 
     attr_names = ()
 
 class OmpSingle(Node):
-    __slots__ = ('clauses', 'block', 'coord', '__weakref__')
-    def __init__(self, clauses, block, coord=None):
+    __slots__ = ('pragma', 'clauses', 'block', 'coord', '__weakref__')
+    def __init__(self, pragma, clauses, block, coord=None):
+        self.pragma = pragma
         self.clauses = clauses
         self.block = block
         self.coord = coord
 
     def children(self):
         nodelist = []
+        if self.pragma is not None: nodelist.append(("pragma", self.pragma))
         if self.block is not None: nodelist.append(("block", self.block))
         return tuple(nodelist)
 
     def __iter__(self):
+        if self.pragma is not None:
+            yield self.pragma
         if self.block is not None:
             yield self.block
 
     attr_names = ('clauses', )
 
 class OmpSimd(Node):
-    __slots__ = ('clauses', 'loops', 'coord', '__weakref__')
-    def __init__(self, clauses, loops, coord=None):
+    __slots__ = ('pragma', 'clauses', 'loops', 'coord', '__weakref__')
+    def __init__(self, pragma, clauses, loops, coord=None):
+        self.pragma = pragma
         self.clauses = clauses
         self.loops = loops
         self.coord = coord
 
     def children(self):
         nodelist = []
+        if self.pragma is not None: nodelist.append(("pragma", self.pragma))
         if self.loops is not None: nodelist.append(("loops", self.loops))
         return tuple(nodelist)
 
     def __iter__(self):
+        if self.pragma is not None:
+            yield self.pragma
         if self.loops is not None:
             yield self.loops
 
     attr_names = ('clauses', )
 
 class OmpDeclareSimd(Node):
-    __slots__ = ('clauses', 'func', 'coord', '__weakref__')
-    def __init__(self, clauses, func, coord=None):
+    __slots__ = ('pragma', 'clauses', 'func', 'coord', '__weakref__')
+    def __init__(self, pragma, clauses, func, coord=None):
+        self.pragma = pragma
         self.clauses = clauses
         self.func = func
         self.coord = coord
 
     def children(self):
         nodelist = []
+        if self.pragma is not None: nodelist.append(("pragma", self.pragma))
         if self.func is not None: nodelist.append(("func", self.func))
         return tuple(nodelist)
 
     def __iter__(self):
+        if self.pragma is not None:
+            yield self.pragma
         if self.func is not None:
             yield self.func
 
     attr_names = ('clauses', )
 
 class OmpForSimd(Node):
-    __slots__ = ('clauses', 'loops', 'coord', '__weakref__')
-    def __init__(self, clauses, loops, coord=None):
+    __slots__ = ('pragma', 'clauses', 'loops', 'coord', '__weakref__')
+    def __init__(self, pragma, clauses, loops, coord=None):
+        self.pragma = pragma
         self.clauses = clauses
         self.loops = loops
         self.coord = coord
 
     def children(self):
         nodelist = []
+        if self.pragma is not None: nodelist.append(("pragma", self.pragma))
         if self.loops is not None: nodelist.append(("loops", self.loops))
         return tuple(nodelist)
 
     def __iter__(self):
+        if self.pragma is not None:
+            yield self.pragma
         if self.loops is not None:
             yield self.loops
 
     attr_names = ('clauses', )
 
 class OmpTask(Node):
-    __slots__ = ('clauses', 'block', 'coord', '__weakref__')
-    def __init__(self, clauses, block, coord=None):
+    __slots__ = ('pragma', 'clauses', 'block', 'coord', '__weakref__')
+    def __init__(self, pragma, clauses, block, coord=None):
+        self.pragma = pragma
         self.clauses = clauses
         self.block = block
         self.coord = coord
 
     def children(self):
         nodelist = []
+        if self.pragma is not None: nodelist.append(("pragma", self.pragma))
         if self.block is not None: nodelist.append(("block", self.block))
         return tuple(nodelist)
 
     def __iter__(self):
+        if self.pragma is not None:
+            yield self.pragma
         if self.block is not None:
             yield self.block
 
     attr_names = ('clauses', )
 
 class OmpTaskloop(Node):
-    __slots__ = ('clauses', 'loops', 'coord', '__weakref__')
-    def __init__(self, clauses, loops, coord=None):
+    __slots__ = ('pragma', 'clauses', 'loops', 'coord', '__weakref__')
+    def __init__(self, pragma, clauses, loops, coord=None):
+        self.pragma = pragma
         self.clauses = clauses
         self.loops = loops
         self.coord = coord
 
     def children(self):
         nodelist = []
+        if self.pragma is not None: nodelist.append(("pragma", self.pragma))
         if self.loops is not None: nodelist.append(("loops", self.loops))
         return tuple(nodelist)
 
     def __iter__(self):
+        if self.pragma is not None:
+            yield self.pragma
         if self.loops is not None:
             yield self.loops
 
     attr_names = ('clauses', )
 
 class OmpTaskloopSimd(Node):
-    __slots__ = ('clauses', 'loops', 'coord', '__weakref__')
-    def __init__(self, clauses, loops, coord=None):
+    __slots__ = ('pragma', 'clauses', 'loops', 'coord', '__weakref__')
+    def __init__(self, pragma, clauses, loops, coord=None):
+        self.pragma = pragma
         self.clauses = clauses
         self.loops = loops
         self.coord = coord
 
     def children(self):
         nodelist = []
+        if self.pragma is not None: nodelist.append(("pragma", self.pragma))
         if self.loops is not None: nodelist.append(("loops", self.loops))
         return tuple(nodelist)
 
     def __iter__(self):
+        if self.pragma is not None:
+            yield self.pragma
         if self.loops is not None:
             yield self.loops
 
     attr_names = ('clauses', )
 
 class OmpTaskyield(Node):
-    __slots__ = ('coord', '__weakref__')
-    def __init__(self, coord=None):
+    __slots__ = ('pragma', 'coord', '__weakref__')
+    def __init__(self, pragma, coord=None):
+        self.pragma = pragma
         self.coord = coord
 
     def children(self):
-        return ()
+        nodelist = []
+        if self.pragma is not None: nodelist.append(("pragma", self.pragma))
+        return tuple(nodelist)
 
     def __iter__(self):
-        return
-        yield
+        if self.pragma is not None:
+            yield self.pragma
 
     attr_names = ()
 
 class OmpMaster(Node):
-    __slots__ = ('block', 'coord', '__weakref__')
-    def __init__(self, block, coord=None):
+    __slots__ = ('pragma', 'block', 'coord', '__weakref__')
+    def __init__(self, pragma, block, coord=None):
+        self.pragma = pragma
         self.block = block
         self.coord = coord
 
     def children(self):
         nodelist = []
+        if self.pragma is not None: nodelist.append(("pragma", self.pragma))
         if self.block is not None: nodelist.append(("block", self.block))
         return tuple(nodelist)
 
     def __iter__(self):
+        if self.pragma is not None:
+            yield self.pragma
         if self.block is not None:
             yield self.block
 
     attr_names = ()
 
 class OmpCritical(Node):
-    __slots__ = ('name', 'hint', 'block', 'coord', '__weakref__')
-    def __init__(self, name, hint, block, coord=None):
+    __slots__ = ('pragma', 'name', 'hint', 'block', 'coord', '__weakref__')
+    def __init__(self, pragma, name, hint, block, coord=None):
+        self.pragma = pragma
         self.name = name
         self.hint = hint
         self.block = block
@@ -377,63 +429,77 @@ class OmpCritical(Node):
 
     def children(self):
         nodelist = []
+        if self.pragma is not None: nodelist.append(("pragma", self.pragma))
         if self.block is not None: nodelist.append(("block", self.block))
         return tuple(nodelist)
 
     def __iter__(self):
+        if self.pragma is not None:
+            yield self.pragma
         if self.block is not None:
             yield self.block
 
     attr_names = ('name', 'hint', )
 
 class OmpBarrier(Node):
-    __slots__ = ('coord', '__weakref__')
-    def __init__(self, coord=None):
+    __slots__ = ('pragma', 'coord', '__weakref__')
+    def __init__(self, pragma, coord=None):
+        self.pragma = pragma
         self.coord = coord
 
     def children(self):
-        return ()
+        nodelist = []
+        if self.pragma is not None: nodelist.append(("pragma", self.pragma))
+        return tuple(nodelist)
 
     def __iter__(self):
-        return
-        yield
+        if self.pragma is not None:
+            yield self.pragma
 
     attr_names = ()
 
 class OmpTaskwait(Node):
-    __slots__ = ('coord', '__weakref__')
-    def __init__(self, coord=None):
+    __slots__ = ('pragma', 'coord', '__weakref__')
+    def __init__(self, pragma, coord=None):
+        self.pragma = pragma
         self.coord = coord
 
     def children(self):
-        return ()
+        nodelist = []
+        if self.pragma is not None: nodelist.append(("pragma", self.pragma))
+        return tuple(nodelist)
 
     def __iter__(self):
-        return
-        yield
+        if self.pragma is not None:
+            yield self.pragma
 
     attr_names = ()
 
 class OmpTaskgroup(Node):
-    __slots__ = ('block', 'coord', '__weakref__')
-    def __init__(self, block, coord=None):
+    __slots__ = ('pragma', 'block', 'coord', '__weakref__')
+    def __init__(self, pragma, block, coord=None):
+        self.pragma = pragma
         self.block = block
         self.coord = coord
 
     def children(self):
         nodelist = []
+        if self.pragma is not None: nodelist.append(("pragma", self.pragma))
         if self.block is not None: nodelist.append(("block", self.block))
         return tuple(nodelist)
 
     def __iter__(self):
+        if self.pragma is not None:
+            yield self.pragma
         if self.block is not None:
             yield self.block
 
     attr_names = ()
 
 class OmpAtomic(Node):
-    __slots__ = ('seq_cst', 'atomic_clause', 'block', 'coord', '__weakref__')
-    def __init__(self, seq_cst, atomic_clause, block, coord=None):
+    __slots__ = ('pragma', 'seq_cst', 'atomic_clause', 'block', 'coord', '__weakref__')
+    def __init__(self, pragma, seq_cst, atomic_clause, block, coord=None):
+        self.pragma = pragma
         self.seq_cst = seq_cst
         self.atomic_clause = atomic_clause
         self.block = block
@@ -441,104 +507,122 @@ class OmpAtomic(Node):
 
     def children(self):
         nodelist = []
+        if self.pragma is not None: nodelist.append(("pragma", self.pragma))
         return tuple(nodelist)
 
     def __iter__(self):
-        return
-        yield
+        if self.pragma is not None:
+            yield self.pragma
 
     attr_names = ('seq_cst', 'atomic_clause', 'block', )
 
 class OmpFlush(Node):
-    __slots__ = ('id_list', 'coord', '__weakref__')
-    def __init__(self, id_list, coord=None):
+    __slots__ = ('pragma', 'id_list', 'coord', '__weakref__')
+    def __init__(self, pragma, id_list, coord=None):
+        self.pragma = pragma
         self.id_list = id_list
         self.coord = coord
 
     def children(self):
         nodelist = []
+        if self.pragma is not None: nodelist.append(("pragma", self.pragma))
         for i, child in enumerate(self.id_list or []):
             nodelist.append(("id_list[%d]" % i, child))
         return tuple(nodelist)
 
     def __iter__(self):
+        if self.pragma is not None:
+            yield self.pragma
         for child in (self.id_list or []):
             yield child
 
     attr_names = ()
 
 class OmpOrdered(Node):
-    __slots__ = ('clauses', 'block', 'coord', '__weakref__')
-    def __init__(self, clauses, block, coord=None):
+    __slots__ = ('pragma', 'clauses', 'block', 'coord', '__weakref__')
+    def __init__(self, pragma, clauses, block, coord=None):
+        self.pragma = pragma
         self.clauses = clauses
         self.block = block
         self.coord = coord
 
     def children(self):
         nodelist = []
+        if self.pragma is not None: nodelist.append(("pragma", self.pragma))
         if self.block is not None: nodelist.append(("block", self.block))
         return tuple(nodelist)
 
     def __iter__(self):
+        if self.pragma is not None:
+            yield self.pragma
         if self.block is not None:
             yield self.block
 
     attr_names = ('clauses', )
 
 class OmpCancel(Node):
-    __slots__ = ('construct_type', 'if_clause', 'coord', '__weakref__')
-    def __init__(self, construct_type, if_clause, coord=None):
+    __slots__ = ('pragma', 'construct_type', 'if_clause', 'coord', '__weakref__')
+    def __init__(self, pragma, construct_type, if_clause, coord=None):
+        self.pragma = pragma
         self.construct_type = construct_type
         self.if_clause = if_clause
         self.coord = coord
 
     def children(self):
         nodelist = []
+        if self.pragma is not None: nodelist.append(("pragma", self.pragma))
         return tuple(nodelist)
 
     def __iter__(self):
-        return
-        yield
+        if self.pragma is not None:
+            yield self.pragma
 
     attr_names = ('construct_type', 'if_clause', )
 
 class OmpCancellationPoint(Node):
-    __slots__ = ('construct_type', 'coord', '__weakref__')
-    def __init__(self, construct_type, coord=None):
+    __slots__ = ('pragma', 'construct_type', 'coord', '__weakref__')
+    def __init__(self, pragma, construct_type, coord=None):
+        self.pragma = pragma
         self.construct_type = construct_type
         self.coord = coord
 
     def children(self):
         nodelist = []
+        if self.pragma is not None: nodelist.append(("pragma", self.pragma))
         return tuple(nodelist)
 
     def __iter__(self):
-        return
-        yield
+        if self.pragma is not None:
+            yield self.pragma
 
     attr_names = ('construct_type', )
 
 class OmpThreadprivate(Node):
-    __slots__ = ('vars', 'coord', '__weakref__')
-    def __init__(self, vars, coord=None):
+    __slots__ = ('pragma', 'vars', 'coord', '__weakref__')
+    def __init__(self, pragma, vars, coord=None):
+        self.pragma = pragma
         self.vars = vars
         self.coord = coord
 
     def children(self):
         nodelist = []
+        if self.pragma is not None: nodelist.append(("pragma", self.pragma))
         for i, child in enumerate(self.vars or []):
             nodelist.append(("vars[%d]" % i, child))
         return tuple(nodelist)
 
     def __iter__(self):
+        if self.pragma is not None:
+            yield self.pragma
         for child in (self.vars or []):
             yield child
 
     attr_names = ()
 
 class OmpDeclareReduction(Node):
-    __slots__ = ('reduction_id', 'types', 'combiner', 'initializer', 'coord', '__weakref__')
-    def __init__(self, reduction_id, types, combiner, initializer, coord=None):
+    __slots__ = ('pragma', 'reduction_id', 'types', 'combiner', 'initializer', 'coord', '__weakref__')
+    def __init__(self, pragma, reduction_id, types, combiner, initializer, coord=None):
+        self.pragma = pragma
         self.reduction_id = reduction_id
         self.types = types
         self.combiner = combiner
@@ -547,6 +631,7 @@ class OmpDeclareReduction(Node):
 
     def children(self):
         nodelist = []
+        if self.pragma is not None: nodelist.append(("pragma", self.pragma))
         if self.reduction_id is not None: nodelist.append(("reduction_id", self.reduction_id))
         if self.combiner is not None: nodelist.append(("combiner", self.combiner))
         for i, child in enumerate(self.types or []):
@@ -554,6 +639,8 @@ class OmpDeclareReduction(Node):
         return tuple(nodelist)
 
     def __iter__(self):
+        if self.pragma is not None:
+            yield self.pragma
         if self.reduction_id is not None:
             yield self.reduction_id
         if self.combiner is not None:
