@@ -40,3 +40,10 @@ def get_fixtures(path):
         except ValueError:
             pass
     return fixtures
+
+def run_c(path):
+    """compiles and runs a c source file and returns stdout as a byte string."""
+    out_path = join(tempfile.gettempdir(), "cesk_out")
+    subprocess.check_output(['gcc', path, '-o', out_path])
+    stdout = subprocess.check_output([out_path])
+    return stdout
