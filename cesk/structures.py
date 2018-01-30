@@ -1,11 +1,18 @@
 """Holds the data structures for the CESK machine"""
 
+from cesk.interpret import execute #pylint:disable=all
+
 class State: #pylint:disable=too-few-public-methods
     """Holds a program state"""
     ctrl = None #control
     envr = None  #environment
     stor = None #store
     kont = None #k(c)ontinuation
+
+    def __init__(self, ctrl, envr, stor):
+        self.set_ctrl(ctrl)
+        self.set_envr(envr)
+        self.set_stor(stor)
 
     def set_ctrl(self, ctrl):
         """attaches a control object to the state"""
@@ -22,12 +29,21 @@ class State: #pylint:disable=too-few-public-methods
         stor.attach(self)
         self.stor = stor
 
+    def execute(self):
+        """Evaluates the code at ctrl using current state"""
+        successors = execute(self)
+        for successor in successors:
+            successor.execute()
+
 class Ctrl: #pylint:disable=too-few-public-methods
     """Holds the control pointer or location of the program"""
     host_state = None
     statement = "statement;"
     location = "filename:line:char"
     node = None #AST node
+
+    def __init__(self, node):
+        self.node = node
 
     def attach(self, state):
         """makes the given state its host"""
@@ -106,3 +122,25 @@ class Value: #pylint:disable=too-few-public-methods
 
     def __div__(self, other):
         pass
+
+
+class ConcreteValue: #pylint:disable=too-few-public-methods
+    """Concrete implementation of Value"""
+    data = None
+    type_of = None
+
+    def __init__(self, data, type_of):
+        self.data = data
+        self.type_of = type_of
+
+    def __add__(self, other):
+        return self.data + other.data
+
+    def __sub__(self, other):
+        return self.data - other.data
+
+    def __mul__(self, other):
+        return self.data * other.data
+
+    def __truediv__(self, other):
+        return self.data / other.data
