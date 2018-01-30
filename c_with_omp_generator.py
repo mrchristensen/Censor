@@ -15,6 +15,10 @@ class CWithOMPGenerator(CGenerator):
         accumulation in generic_visit.
     """
 
+    def visit_DeclList(self, n):
+        """Add semicolon to the end of DeclList"""
+        return super().visit_DeclList(n) + ';'
+
     def visit_OmpFor(self, n):
         pass
 

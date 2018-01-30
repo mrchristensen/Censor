@@ -1,8 +1,8 @@
 """Test ForToWhile -- Replacing for with while loops"""
 
-from pycparser.c_generator import CGenerator
 from pycparser.c_parser import CParser
 from transforms.for_to_while import ForToWhile
+from c_with_omp_generator import CWithOMPGenerator
 from helpers import get_fixtures, GoldenTestCase
 
 class TestForToWhile(GoldenTestCase):
@@ -12,7 +12,7 @@ class TestForToWhile(GoldenTestCase):
     def setUpClass(cls):
         cls.transform = ForToWhile()
         cls.parser = CParser()
-        cls.generator = CGenerator()
+        cls.generator = CWithOMPGenerator()
 
     def test_all_fixtures(self):
         """Run all test fixtures in censor/tests/fixtures/for_to_while"""

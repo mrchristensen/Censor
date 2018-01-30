@@ -3,8 +3,11 @@
 from pycparser.c_ast import While, Compound, ID
 from .node_transformer import NodeTransformer
 
-class ForToWhile(NodeTransformer): #pylint: disable=too-few-public-methods
+class ForToWhile(NodeTransformer):
     """NodeTransformer to change for loops to while loops"""
+
+    def __init__(self):
+        pass
 
     def visit_For(self, node): #pylint: disable=invalid-name
         """Transform a for loop to a while loop"""
