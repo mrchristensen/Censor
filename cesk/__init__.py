@@ -1,7 +1,7 @@
 """Starts the CESK machine"""
 
-from utils import find_main
 from pycparser.c_ast import Node
+from utils import find_main
 from cesk.structures import ConcreteValue, State, Ctrl, Envr, Stor
 
 def main(ast):
