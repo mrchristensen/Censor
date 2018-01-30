@@ -2,6 +2,7 @@
 
 from pycparser.c_ast import While, Compound, ID
 from .node_transformer import NodeTransformer
+from .helpers import append_statement
 
 class ForToWhile(NodeTransformer):
     """NodeTransformer to change for loops to while loops"""
@@ -28,28 +29,16 @@ def transform_loop_condition(cond):
     return cond
 
 def transform_loop_statement(stmt, inc):
-    """Transform for loop statement by incorporating for loop's increment statement"""
-    if stmt is None:
-        return Compound([inc])
-    elif not isinstance(stmt, Compound):
-        return do_transform_loop_statement([stmt], inc)
-    return do_transform_loop_statement(stmt.block_items, inc)
-
-def do_transform_loop_statement(items, inc):
-    """Embed increment statement into list of statements"""
-    if items is None:
-        items = []
-    compound = Compound(items)
+    """Transform loop statement by embedding for loop's increment statement"""
+    compound = append_statement(stmt, inc)
     if inc is None:
         return compound
     continue_transformer = PrefixContinueWithNext(inc)
     compound = continue_transformer.visit(compound)
-    compound.block_items.append(inc)
     return compound
 
 class PrefixContinueWithNext(NodeTransformer):
     """NodeTransformer to prefix continue nodes with a statement"""
-    # TODO: replace continues with goto statement?
     def __init__(self, prefix):
         self.prefix = prefix
 

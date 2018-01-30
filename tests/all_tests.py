@@ -8,7 +8,8 @@ sys.path[0:0] = ['.', '..']
 SUITE = unittest.TestLoader().loadTestsFromNames(
     [
         'test_for_to_while',
-        'test_omp_for'
+        'test_omp_for',
+        'test_do_while_to_goto'
     ]
 )
 TESTRESULT = unittest.TextTestRunner(verbosity=1).run(SUITE)

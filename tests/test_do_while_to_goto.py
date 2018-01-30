@@ -1,6 +1,6 @@
-"""Test ForToWhile -- Replacing for with while loops"""
+"""Test DoWhileToGoto -- Replacing while loops with goto code"""
 
-from transforms.for_to_while import ForToWhile
+from transforms.do_while_to_goto import DoWhileToGoto
 from helpers import GoldenTestCase
 
 class TestForToWhile(GoldenTestCase):
@@ -8,8 +8,8 @@ class TestForToWhile(GoldenTestCase):
 
     def setUp(self):
         """Set up test variables needed for GoldenTestCase"""
-        self.module = 'for_to_while'
-        self.transform = ForToWhile()
+        self.module = 'do_while_to_goto'
+        self.transform = DoWhileToGoto()
 
     def test_for_to_while(self):
         """Run golden test cases"""
