@@ -15,5 +15,5 @@ def main(ast):
     print(value_1 * value_2)
     print(value_1 / value_2)
 
-    start_state = State(Ctrl(main_function), Envr(), Stor())
+    start_state = State(Ctrl(ast), Envr(), Stor())
     start_state.execute()
