@@ -1,6 +1,6 @@
 """AST transform that transforms a for loop to a while loop"""
 
-from pycparser.c_ast import While, Compound, ID
+from pycparser.c_ast import While, Compound, ID, DoWhile
 from .node_transformer import NodeTransformer
 from .helpers import append_statement
 
@@ -44,7 +44,7 @@ class PrefixContinueWithNext(NodeTransformer):
 
     def skip(self, node): #pylint: disable=no-self-use
         """Don't visit child While loops"""
-        return isinstance(node, While)
+        return isinstance(node, (DoWhile, While))
 
     def visit_Continue(self, node): #pylint: disable=invalid-name
         """Prefix continue with prefix node"""
