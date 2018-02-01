@@ -16,55 +16,51 @@ class State: #pylint:disable=too-few-public-methods
 
     def set_ctrl(self, ctrl):
         """attaches a control object to the state"""
-        ctrl.attach(self)
         self.ctrl = ctrl
 
     def set_envr(self, envr):
         """attaches an environment object to the state"""
-        envr.attach(self)
         self.envr = envr
 
     def set_stor(self, stor):
         """attaches a stor object to the state"""
-        stor.attach(self)
         self.stor = stor
 
     def execute(self):
         """Evaluates the code at ctrl using current state"""
         successors = execute(self)
+        print("\n\n\tSuccessors:" + ''.join(str(s) for s in successors)) 
         for successor in successors:
-            successor.execute()
+            if successor.ctrl is not None:
+                successor.execute()
 
 class Ctrl: #pylint:disable=too-few-public-methods
     """Holds the control pointer or location of the program"""
-    host_state = None
-    statement = "statement;"
-    location = "filename:line:char"
-    node = None #AST node
+    index = None
+    function = None
 
-    def __init__(self, node):
-        self.node = node
+    def __init__(self, index, function):
+        self.index = index
+        self.function = function
 
-    def attach(self, state):
-        """makes the given state its host"""
-        self.host_state = state
+    def __add__(self, offset):
+        """Returns the location in the same function with the line number offset
+        by the value offset. This is used most commonly as loc+1 to get the
+        syntactic successor to a Location.
+        """
+        return Ctrl(self.index+offset, self.function)
+
+    def stmt(self):
+        """Retrieves the statement at the location."""
+        return self.function.body.block_items[self.index]
 
 class Envr:
     """Holds the enviorment (a maping of identifiers to addresses)"""
-    host_state = None
     map = {} #A set of IdToAddr mappings
 
-    def attach(self, state):
-        """makes the given state its host"""
-        self.host_state = state
-
-    def map_new_identifier(self, ident):
+    def map_new_identifier(self, ident, address):
         """Add a new identifier to the mapping"""
-        if self.host_state is None:
-            raise Exception("Calling method in Envr with no host state")
-        new_address = self.host_state.stor.get_next_address()
-        self.map[ident] = new_address
-        return new_address
+        self.map[ident] = address; 
 
     def is_defined(self, ident):
         """returns if a given identifier is defined"""
@@ -72,18 +68,14 @@ class Envr:
 
 class Stor:
     """Represents the contents of memory at a moment in time."""
-    host_state = None
     address_counter = 0
+    memory = {}
 
     def __init__(self, memory=None):
         if memory is None:
             self.memory = {}
         else:
             self.memory = memory
-
-    def attach(self, state):
-        """makes the given state its host"""
-        self.host_state = state
 
     def get_next_address(self):
         """returns the next available storage address"""
@@ -101,12 +93,10 @@ class Stor:
         """Write value to the store at address. If there is an existing value,
         merge value into the existing value.
         """
-        memory = self.memory.copy()
         if address in self.memory:
-            memory[address] = self.memory[address].merge(value)
+            self.memory[address] = self.memory[address].Merge(value)
         else:
-            memory[address] = value
-        return Stor(memory)
+            self.memory[address] = value
 
 class Value: #pylint:disable=too-few-public-methods
     """Abstract class for polymorphism between abstract and concrete values"""

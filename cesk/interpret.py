@@ -1,5 +1,6 @@
 """Functions to interpret c code directly"""
 
+import copy
 import pycparser
 import cesk.structures
 
@@ -9,7 +10,7 @@ def execute(state):
     """Takes a state evaluates the stmt from ctrl and returns a set of
     states"""
     successors = []
-    stmt = state.ctrl.node
+    stmt = state.ctrl.stmt()
 
     if isinstance(stmt, pycparser.c_ast.ArrayDecl):
         # TODO
@@ -47,6 +48,18 @@ def execute(state):
     elif isinstance(stmt, pycparser.c_ast.Decl):
         # TODO
         print("Decl")
+        new_ctrl = get_next(state.ctrl)
+
+        new_envr = copy.deepcopy(state.envr)
+        new_address = state.stor.get_next_address()
+        new_envr.map_new_identifier(stmt.name, new_address)
+
+        new_stor = copy.deepcopy(state.stor)
+        new_stor.write(new_address, stmt.init)
+
+        successors.append(cesk.structures.State(new_ctrl, new_envr, new_stor))
+
+        return successors
     elif isinstance(stmt, pycparser.c_ast.DeclList):
         # TODO
         print("DeclList")
@@ -158,17 +171,13 @@ def execute(state):
     else:
         raise ValueError("Unknown C AST object type: {0}".format(stmt))
 
-    new_ctrl = cesk.structures.Ctrl(get_next(stmt))
+    new_ctrl = get_next(state.ctrl)
     successors.append(cesk.structures.State(new_ctrl, state.envr, state.stor))
 
     return successors
 
-def get_next(ast_node):
-    """Takes a node an returns the node that should be executed next"""
-    # TODO
-    print("\n\n")
-    #ast_node.show()
-    #print("\n\n")
-    for child in ast_node:
-        print(child)
-    return None
+def get_next(ctrl):
+    """takes ctrl and returns a Ctrl for the next statment to execute"""
+    if len(ctrl.function.body.block_items) <= ctrl.index + 1:
+        return None
+    return ctrl + 1
