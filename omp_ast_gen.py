@@ -31,5 +31,5 @@ class OmpNodeCfg(NodeCfg):
             See comment at the top of the configuration file for details.
         """
         super().__init__(name, contents)
-        self.child.insert(0, "pragma")
+        self.attr.insert(0, "pragma")
         self.all_entries.insert(0, "pragma")

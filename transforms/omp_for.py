@@ -3,12 +3,13 @@
 import re
 from pycparser.c_ast import Pragma, For
 from omp_ast import OmpFor
-from .node_transformer import NodeTransformer
+from .pragma_to_omp import PragmaToOmp
 
-class PragmaToOmpFor(NodeTransformer):
+class PragmaToOmpFor(PragmaToOmp):
     """Pragma to OMP For Node transform"""
 
     def __init__(self):
+        super().__init__()
         self.pattern = re.compile(r'omp +for( +[a-zA-Z]+(\([0-9]+\))?)*')
 
     def visit_Compound(self, node): #pylint: disable=invalid-name
@@ -26,10 +27,11 @@ class PragmaToOmpFor(NodeTransformer):
         return node
 
     def alter_pragma(self, node, for_):
-        """ Return an OmpFor Node with the following for nested underneath
+        """ Return an OmpFor Node with the following `for` nested underneath
             if it is an omp for pragma
         """
         matches = self.pattern.match(node.string)
         if matches:
-            return OmpFor(node.string.split()[2:], [for_], node.coord)
+            clauses = node.string.split()[2:]
+            return OmpFor(node.string, self.parse_clauses(clauses), for_, node.coord)
         return None

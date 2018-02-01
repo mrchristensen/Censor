@@ -2,6 +2,7 @@
 
 import unittest
 import pycparser
+import omp_ast
 from transforms.omp_for import PragmaToOmpFor
 
 #pylint: disable=missing-docstring,invalid-name
@@ -77,12 +78,13 @@ class TestOmpFor(unittest.TestCase):
 
         self.assertEqual(0, len(pv.nodes))
         self.assertEqual(1, len(ov.nodes))
-        self.assertEqual(["collapse(2)"], ov.nodes[0].clauses)
+        self.assertTrue(isinstance(ov.nodes[0].clauses[0], omp_ast.OmpClauseCollapse))
+        self.assertEqual(2, ov.nodes[0].clauses[0].n)
 
     def test_clauses_many(self):
         c = """
         int main() {
-            #pragma omp for collapse(2) ordered(2)
+            #pragma omp for collapse(2) ordered
             for (int i = 0; i < 100; i++) {
 
             }
@@ -99,12 +101,14 @@ class TestOmpFor(unittest.TestCase):
 
         self.assertEqual(0, len(pv.nodes))
         self.assertEqual(1, len(ov.nodes))
-        self.assertEqual(["collapse(2)", "ordered(2)"], ov.nodes[0].clauses)
+        self.assertTrue(isinstance(ov.nodes[0].clauses[0], omp_ast.OmpClauseCollapse))
+        self.assertEqual(2, ov.nodes[0].clauses[0].n)
+        self.assertTrue(isinstance(ov.nodes[0].clauses[1], omp_ast.OmpClauseOrdered))
 
     def test_nested_for(self):
         c = """
         int main() {
-            #pragma omp for collapse(2) ordered(2)
+            #pragma omp for collapse(2) ordered
             for (int i = 0; i < 100; i++) {
                 #pragma omp for
                 for (int i = 0; i < 10; i++) {
@@ -124,5 +128,9 @@ class TestOmpFor(unittest.TestCase):
 
         self.assertEqual(0, len(pv.nodes))
         self.assertEqual(2, len(ov.nodes))
-        self.assertEqual(["collapse(2)", "ordered(2)"], ov.nodes[0].clauses)
+        self.assertEqual(2, len(ov.nodes[0].clauses))
+        self.assertEqual(0, len(ov.nodes[1].clauses))
+        self.assertTrue(isinstance(ov.nodes[0].clauses[0], omp_ast.OmpClauseCollapse))
+        self.assertEqual(2, ov.nodes[0].clauses[0].n)
+        self.assertTrue(isinstance(ov.nodes[0].clauses[1], omp_ast.OmpClauseOrdered))
         self.assertEqual([], ov.nodes[1].clauses)
