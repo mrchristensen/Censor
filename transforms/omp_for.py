@@ -2,7 +2,15 @@
 
 import re
 from pycparser.c_ast import Pragma, For
-from omp_ast import OmpFor
+from omp_ast import OmpFor, \
+        OmpClausePrivate, \
+        OmpClauseFirstPrivate, \
+        OmpClauseLastPrivate, \
+        OmpClauseReduction, \
+        OmpClauseSchedule, \
+        OmpClauseCollapse, \
+        OmpClauseOrdered, \
+        OmpClauseNoWait
 from .pragma_to_omp import PragmaToOmp
 
 class PragmaToOmpFor(PragmaToOmp):
@@ -10,6 +18,16 @@ class PragmaToOmpFor(PragmaToOmp):
 
     def __init__(self):
         super().__init__()
+        self.str_to_clause_type = {
+            "private":	    OmpClausePrivate,
+            "firstprivate": OmpClauseFirstPrivate,
+            "lastprivate":  OmpClauseLastPrivate,
+            "reduction":    OmpClauseReduction,
+            "schedule":     OmpClauseSchedule,
+            "collapse":	    OmpClauseCollapse,
+            "ordered":	    OmpClauseOrdered,
+            "nowait":	    OmpClauseNoWait,
+            }
         self.pattern = re.compile(r'omp +for( +[a-zA-Z]+(\([0-9]+\))?)*')
 
     def visit_Compound(self, node): #pylint: disable=invalid-name
@@ -20,18 +38,18 @@ class PragmaToOmpFor(PragmaToOmp):
             return node
 
         for index, child in enumerate(node.block_items):
-            if isinstance(child, Pragma) and isinstance(node.block_items[index+1], For):
-                node.block_items[index] = self.alter_pragma(child, node.block_items[index+1])
+            next_sibling = node.block_items[index+1]
+            if isinstance(child, Pragma) \
+            and isinstance(next_sibling, For) \
+            and self.pragma_matches(child.string):
+
+                node.block_items[index] = OmpFor(
+                    pragma=child.string,
+                    clauses=self.clause_nodes_from_pragma_string(child.string),
+                    loops=next_sibling,
+                    coord=child.coord
+                    )
                 node.block_items.pop(index+1)
                 self.visit(node.block_items[index])
-        return node
 
-    def alter_pragma(self, node, for_):
-        """ Return an OmpFor Node with the following `for` nested underneath
-            if it is an omp for pragma
-        """
-        matches = self.pattern.match(node.string)
-        if matches:
-            clauses = node.string.split()[2:]
-            return OmpFor(node.string, self.parse_clauses(clauses), for_, node.coord)
-        return None
+        return node
