@@ -61,7 +61,7 @@ def get_fixtures(path):
 
 def run_c(path):
     """compiles and runs a c source file and returns stdout as a byte string."""
-    out_path = join(tempfile.gettempdir(), "cesk_out")
+    out_path = join(tempfile.gettempdir(), "censor_out")
     subprocess.check_output(['gcc', path, '-o', out_path])
     stdout = subprocess.check_output([out_path])
     return stdout
