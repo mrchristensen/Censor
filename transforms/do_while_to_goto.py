@@ -12,8 +12,9 @@ class DoWhileToGoto(NodeTransformer):
 
     def visit_DoWhile(self, node): #pylint: disable=invalid-name
         """Transform a do-while loop to goto code"""
-        node = self.generic_visit(node)
         label = 'censor' + str(self.index)
+        self.index += 1
+        node = self.generic_visit(node)
         if_node = If(node.cond, Goto(label), None)
         body = append_statement(node.stmt, if_node)
         continue_transformer = ContinueToGoto(label)
