@@ -1,5 +1,6 @@
 """Holds the data structures for the CESK machine"""
 
+import copy
 from cesk.interpret import execute #pylint:disable=all
 
 class State: #pylint:disable=too-few-public-methods
@@ -9,10 +10,11 @@ class State: #pylint:disable=too-few-public-methods
     stor = None #store
     kont = None #k(c)ontinuation
 
-    def __init__(self, ctrl, envr, stor):
+    def __init__(self, ctrl, envr, stor, kont):
         self.set_ctrl(ctrl)
         self.set_envr(envr)
         self.set_stor(stor)
+        self.set_kont(kont)
 
     def set_ctrl(self, ctrl):
         """attaches a control object to the state"""
@@ -26,6 +28,10 @@ class State: #pylint:disable=too-few-public-methods
         """attaches a stor object to the state"""
         self.stor = stor
 
+    def set_kont(self, kont):
+        """attaches a kont object to the state"""
+        self.kont = kont
+
     def execute(self):
         """Evaluates the code at ctrl using current state"""
         successors = execute(self)
@@ -38,10 +44,20 @@ class Ctrl: #pylint:disable=too-few-public-methods
     """Holds the control pointer or location of the program"""
     index = None
     function = None
+    node = None
 
-    def __init__(self, index, function):
+    def const_node(self, node):
+        self.node = node
+
+    def const_index(self, index, function):
         self.index = index
         self.function = function
+    
+    def __init__(self, first, second=None):
+        if second is not None:
+            self.const_index(first, second)
+        else:
+            self.const_node(first)
 
     def __add__(self, offset):
         """Returns the location in the same function with the line number offset
@@ -52,12 +68,18 @@ class Ctrl: #pylint:disable=too-few-public-methods
 
     def stmt(self):
         """Retrieves the statement at the location."""
+        if (self.node is not None):
+            return self.node;
         return self.function.body.block_items[self.index]
 
 class Envr:
     """Holds the enviorment (a maping of identifiers to addresses)"""
     map = {} #A set of IdToAddr mappings
 
+    def get_address(self, ident):
+        "looks up the address associated with an identifier"""
+        return self.map[ident]
+    
     def map_new_identifier(self, ident, address):
         """Add a new identifier to the mapping"""
         self.map[ident] = address; 
@@ -98,6 +120,33 @@ class Stor:
         else:
             self.memory[address] = value
 
+class Kont:
+    """Abstract class for polymorphism of continuations"""
+    def satisfy(self, needs):
+        pass
+
+class Halt(Kont):
+    """Last continuation to execute"""
+    def satisfy(self, value):
+        print(value.data)
+        exit()
+        
+class AssignKont(Kont):
+    """Continuaton created by assignment requires a Value to assign to an
+    address"""
+    address = None
+    return_state = None
+
+    def __init__(self, address, return_state):
+        self.address = address
+        self.return_state = return_state
+
+    def satisfy(self, value):
+        new_stor = copy.deepcopy(self.return_state.stor)
+        new_stor.write(self.address, value)
+        return State(self.return_state.ctrl, self.return_state.envr,
+            new_stor, self.return_state.kont)
+        
 class Value: #pylint:disable=too-few-public-methods
     """Abstract class for polymorphism between abstract and concrete values"""
 
@@ -114,7 +163,7 @@ class Value: #pylint:disable=too-few-public-methods
         pass
 
 
-class ConcreteValue: #pylint:disable=too-few-public-methods
+class ConcreteValue(Value): #pylint:disable=too-few-public-methods
     """Concrete implementation of Value"""
     data = None
     type_of = None

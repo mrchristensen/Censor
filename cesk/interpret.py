@@ -7,6 +7,7 @@ import cesk.structures
 def execute(state):
     # pylint: disable=too-many-branches
     # pylint: disable=too-many-statements
+    # pylint: disable=fixme
     """Takes a state evaluates the stmt from ctrl and returns a set of
     states"""
     successors = []
@@ -21,6 +22,12 @@ def execute(state):
     elif isinstance(stmt, pycparser.c_ast.Assignment):
         # TODO
         print("Assignment")
+        if stmt.op is not '=': #pylint: disable=literal-comparison
+            raise Exception(stmt.op + " is not yet implemented")
+        ident = stmt.lvalue
+        exp = stmt.rvalue
+        successors.append(handle_assignment(ident, exp, state))
+        return successors
     elif isinstance(stmt, pycparser.c_ast.BinaryOp):
         # TODO
         print("BinaryOp")
@@ -42,23 +49,19 @@ def execute(state):
     elif isinstance(stmt, pycparser.c_ast.Constant):
         # TODO
         print("Constant")
+        value = cesk.structures.ConcreteValue(stmt.value, stmt.type)
+        successors.append(state.kont.satisfy(value))
+        return successors
     elif isinstance(stmt, pycparser.c_ast.Continue):
         # TODO
         print("Continue")
     elif isinstance(stmt, pycparser.c_ast.Decl):
         # TODO
         print("Decl")
-        new_ctrl = get_next(state.ctrl)
-
-        new_envr = copy.deepcopy(state.envr)
-        new_address = state.stor.get_next_address()
-        new_envr.map_new_identifier(stmt.name, new_address)
-
-        new_stor = copy.deepcopy(state.stor)
-        new_stor.write(new_address, stmt.init)
-
-        successors.append(cesk.structures.State(new_ctrl, new_envr, new_stor))
-
+        type_of = stmt.type
+        ident = stmt.name
+        exp = stmt.init
+        successors.append(handle_decl(type_of, ident, exp, state))
         return successors
     elif isinstance(stmt, pycparser.c_ast.DeclList):
         # TODO
@@ -132,6 +135,11 @@ def execute(state):
     elif isinstance(stmt, pycparser.c_ast.Return):
         # TODO
         print("Return")
+        exp = stmt.expr
+        #pass exp parrent continuation
+        successors.append(cesk.structures.State(cesk.structures.Ctrl(exp), state.envr,
+                                                state.stor, state.kont))
+        return successors
     elif isinstance(stmt, pycparser.c_ast.Struct):
         # TODO
         print("Struct")
@@ -172,7 +180,8 @@ def execute(state):
         raise ValueError("Unknown C AST object type: {0}".format(stmt))
 
     new_ctrl = get_next(state.ctrl)
-    successors.append(cesk.structures.State(new_ctrl, state.envr, state.stor))
+    successors.append(cesk.structures.State(new_ctrl, state.envr, state.stor,
+                                            state.kont))
 
     return successors
 
@@ -181,3 +190,33 @@ def get_next(ctrl):
     if len(ctrl.function.body.block_items) <= ctrl.index + 1:
         return None
     return ctrl + 1
+
+def handle_assignment(ident, exp, state):
+    """Creates continuation to evalueate exp and assigns resulting value to the
+    address associated with ident"""
+    #pylint: disable=too-many-function-args
+
+    # ident = exp;
+
+    address = state.envr.get_address(ident) #look up address
+    new_ctrl = cesk.structures.Ctrl(exp) #build special ctrl for exp
+
+    return_ctrl = get_next(state.ctrl) #calculate where to go once complete
+    return_state = cesk.structures.State(return_ctrl, state.envr, state.stor, state.kont)
+    new_kont = cesk.structures.AssignKont(address, return_state)
+    return cesk.structures.State(new_ctrl, state.envr, state.stor, new_kont)
+
+def handle_decl(type_of, ident, exp, state): #pylint: disable=unused-argument
+    """Maps the identifier to a new address and passes assignment part"""
+
+    # type_of ident = exp;
+    #map new ident
+    new_envr = copy.deepcopy(state.envr)
+    new_address = state.stor.get_next_address()
+    new_envr.map_new_identifier(ident, new_address)
+
+    if exp is not None:
+        new_state = cesk.structures.State(state.ctrl, new_envr, state.stor, state.kont)
+        return handle_assignment(ident, exp, new_state)
+    #case: type_of ident;
+    return cesk.structures.State(get_next(state.ctrl), new_envr, state.stor, state.kont)
