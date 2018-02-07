@@ -14,7 +14,14 @@ class CESKvsGCC(TestCase):
         cesk interpreter"""
         gcc_out = run_c(file_path)
         cesk_out = run_c_cesk(file_path)
-        if gcc_out != cesk_out:
+        if gcc_out == cesk_out:
+            print("PASSED: ", path.basename(file_path))
+        else:
+            print("FAILED: ", path.basename(file_path))
+            print("Expected (gcc): ")
+            print(str(gcc_out, 'utf-8'))
+            print("Actual (cesk): ")
+            print(str(cesk_out, 'utf-8'))
             raise self.failureException()
 
     def assert_all_equal(self, folder):
