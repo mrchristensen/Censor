@@ -35,7 +35,7 @@ class State: #pylint:disable=too-few-public-methods
     def execute(self):
         """Evaluates the code at ctrl using current state"""
         successors = execute(self)
-        print("\n\n\tSuccessors:" + ''.join(str(s) for s in successors)) 
+        #print("\n\n\tSuccessors:" + ''.join(str(s) for s in successors)) 
         for successor in successors:
             if successor.ctrl is not None:
                 successor.execute()
@@ -122,34 +122,80 @@ class Stor:
 
 class Kont:
     """Abstract class for polymorphism of continuations"""
-    def satisfy(self, needs):
+    def satisfy(self, needs, current_state):
         pass
 
 class Halt(Kont):
     """Last continuation to execute"""
-    def satisfy(self, value):
-        print(value.data)
-        exit()
+    def satisfy(self, value, current_state):
+        exit(value.data)
         
 class AssignKont(Kont):
     """Continuaton created by assignment requires a Value to assign to an
     address"""
     address = None
-    return_state = None
+    return_ctrl = None
+    return_kont = None
 
-    def __init__(self, address, return_state):
+    def __init__(self, address, return_ctrl, return_kont):
         self.address = address
-        self.return_state = return_state
+        self.return_ctrl = return_ctrl
+        self.return_kont = return_kont
 
-    def satisfy(self, value):
-        new_stor = copy.deepcopy(self.return_state.stor)
+    def satisfy(self, value, current_state):
+        new_stor = copy.deepcopy(current_state.stor)
         new_stor.write(self.address, value)
-        return State(self.return_state.ctrl, self.return_state.envr,
-            new_stor, self.return_state.kont)
+        return State(self.return_ctrl, current_state.envr,
+            new_stor, self.return_kont)
         
+class LeftBinopKont(Kont):
+    """Continuation for the left side of a binary operator"""
+
+    operator = None
+    right_exp = None
+    return_kont = None
+
+    def __init__(self, operator, rightExp, return_kont):
+        self.operator = operator
+        self.rightExp = rightExp
+        self.return_kont = return_kont
+
+    def satisfy(self, value, current_state):
+        left_result = value;
+        right_kont = RightBinopKont(left_result, self.operator,
+                                    self.return_kont)
+        return State(Ctrl(self.rightExp), current_state.envr,
+                     current_state.stor, right_kont)
+
+class RightBinopKont(Kont):
+    """Continuation for the right side of a binary operator"""
+
+    left_result = None
+    operator = None
+    return_kont = None
+
+    def __init__(self, left_result, operator, return_kont):
+        self.left_result = left_result
+        self.operator = operator
+        self.return_kont = return_kont
+
+    def satisfy(self, value, current_state):
+        result = self.left_result.performOperation(self.operator, value) 
+        return self.return_kont.satisfy(result, current_state)
+    
 class Value: #pylint:disable=too-few-public-methods
     """Abstract class for polymorphism between abstract and concrete values"""
 
+    def performOperation(self, operator, value):
+        if operator == "+":
+            return self + value
+        elif operator == "-":
+            return self - value
+        elif operator == "*":
+            return self * value
+        elif operator == "/":
+            return self / value
+            
     def __add__(self, other):
         pass
 
@@ -169,17 +215,17 @@ class ConcreteValue(Value): #pylint:disable=too-few-public-methods
     type_of = None
 
     def __init__(self, data, type_of):
-        self.data = data
+        self.data = int(data)
         self.type_of = type_of
 
     def __add__(self, other):
-        return self.data + other.data
+        return ConcreteValue(self.data + other.data, self.type_of)
 
     def __sub__(self, other):
-        return self.data - other.data
+        return ConcreteValue(self.data - other.data, self.type_of)
 
     def __mul__(self, other):
-        return self.data * other.data
+        return ConcreteValue(self.data * other.data, self.type_of)
 
     def __truediv__(self, other):
-        return self.data / other.data
+        return ConcreteValue(self.data / other.data, self.type_of)
