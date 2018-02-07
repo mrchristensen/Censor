@@ -2,6 +2,7 @@
 
 import copy
 import pycparser
+from cesk.values import generate_value
 
 def execute(state):
     # pylint: disable=too-many-return-statements
@@ -53,7 +54,7 @@ def execute(state):
     elif isinstance(stmt, pycparser.c_ast.Constant):
         # TODO
         #print("Constant")
-        value = ConcreteValue(stmt.value, stmt.type)
+        value = generate_value(stmt)
         successors.append(state.kont.satisfy(value, state))
         return successors
     elif isinstance(stmt, pycparser.c_ast.Continue):
@@ -237,4 +238,4 @@ def handle_decl(type_of, ident, exp, state): # pylint: disable=unused-argument
 
 
 from cesk.structures import State, Ctrl, AssignKont # pylint: disable=wrong-import-position
-from cesk.structures import LeftBinopKont, ConcreteValue # pylint: disable=wrong-import-position
+from cesk.structures import LeftBinopKont # pylint: disable=wrong-import-position

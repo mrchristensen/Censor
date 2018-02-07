@@ -2,7 +2,7 @@
 
 from pycparser.c_ast import Node
 from utils import find_main
-from cesk.structures import ConcreteValue, State, Ctrl, Envr, Stor, Halt
+from cesk.structures import State, Ctrl, Envr, Stor, Halt
 
 def main(ast):
     """Is a stub"""

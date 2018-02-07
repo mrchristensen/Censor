@@ -161,7 +161,7 @@ class LeftBinopKont(Kont):
         self.return_kont = return_kont
 
     def satisfy(self, value, current_state):
-        left_result = value;
+        left_result = value
         right_kont = RightBinopKont(left_result, self.operator,
                                     self.return_kont)
         return State(Ctrl(self.rightExp), current_state.envr,
@@ -182,52 +182,5 @@ class RightBinopKont(Kont):
     def satisfy(self, value, current_state):
         result = self.left_result.performOperation(self.operator, value)
         return self.return_kont.satisfy(result, current_state)
-
-class Value: #pylint:disable=too-few-public-methods
-    """Abstract class for polymorphism between abstract and concrete values"""
-
-    def performOperation(self, operator, value):
-        if operator == "+":
-            return self + value
-        elif operator == "-":
-            return self - value
-        elif operator == "*":
-            return self * value
-        elif operator == "/":
-            return self / value
-
-    def __add__(self, other):
-        pass
-
-    def __sub__(self, other):
-        pass
-
-    def __mul__(self, other):
-        pass
-
-    def __div__(self, other):
-        pass
-
-
-class ConcreteValue(Value): #pylint:disable=too-few-public-methods
-    """Concrete implementation of Value"""
-    data = None
-    type_of = None
-
-    def __init__(self, data, type_of):
-        self.data = int(data)
-        self.type_of = type_of
-
-    def __add__(self, other):
-        return ConcreteValue(self.data + other.data, self.type_of)
-
-    def __sub__(self, other):
-        return ConcreteValue(self.data - other.data, self.type_of)
-
-    def __mul__(self, other):
-        return ConcreteValue(self.data * other.data, self.type_of)
-
-    def __truediv__(self, other):
-        return ConcreteValue(self.data / other.data, self.type_of)
 
 import cesk.interpret # pylint: disable=wrong-import-position
