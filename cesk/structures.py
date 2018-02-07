@@ -1,7 +1,7 @@
 """Holds the data structures for the CESK machine"""
 
 import copy
-from cesk.interpret import execute #pylint:disable=all
+# from cesk.interpret import execute #pylint:disable=all
 
 class State: #pylint:disable=too-few-public-methods
     """Holds a program state"""
@@ -34,8 +34,8 @@ class State: #pylint:disable=too-few-public-methods
 
     def execute(self):
         """Evaluates the code at ctrl using current state"""
-        successors = execute(self)
-        #print("\n\n\tSuccessors:" + ''.join(str(s) for s in successors)) 
+        successors = cesk.interpret.execute(self)
+        #print("\n\n\tSuccessors:" + ''.join(str(s) for s in successors))
         for successor in successors:
             if successor.ctrl is not None:
                 successor.execute()
@@ -52,7 +52,7 @@ class Ctrl: #pylint:disable=too-few-public-methods
     def const_index(self, index, function):
         self.index = index
         self.function = function
-    
+
     def __init__(self, first, second=None):
         if second is not None:
             self.const_index(first, second)
@@ -69,7 +69,7 @@ class Ctrl: #pylint:disable=too-few-public-methods
     def stmt(self):
         """Retrieves the statement at the location."""
         if (self.node is not None):
-            return self.node;
+            return self.node
         return self.function.body.block_items[self.index]
 
 class Envr:
@@ -79,10 +79,10 @@ class Envr:
     def get_address(self, ident):
         "looks up the address associated with an identifier"""
         return self.map[ident]
-    
+
     def map_new_identifier(self, ident, address):
         """Add a new identifier to the mapping"""
-        self.map[ident] = address; 
+        self.map[ident] = address
 
     def is_defined(self, ident):
         """returns if a given identifier is defined"""
@@ -129,7 +129,7 @@ class Halt(Kont):
     """Last continuation to execute"""
     def satisfy(self, value, current_state):
         exit(value.data)
-        
+
 class AssignKont(Kont):
     """Continuaton created by assignment requires a Value to assign to an
     address"""
@@ -147,7 +147,7 @@ class AssignKont(Kont):
         new_stor.write(self.address, value)
         return State(self.return_ctrl, current_state.envr,
             new_stor, self.return_kont)
-        
+
 class LeftBinopKont(Kont):
     """Continuation for the left side of a binary operator"""
 
@@ -180,9 +180,9 @@ class RightBinopKont(Kont):
         self.return_kont = return_kont
 
     def satisfy(self, value, current_state):
-        result = self.left_result.performOperation(self.operator, value) 
+        result = self.left_result.performOperation(self.operator, value)
         return self.return_kont.satisfy(result, current_state)
-    
+
 class Value: #pylint:disable=too-few-public-methods
     """Abstract class for polymorphism between abstract and concrete values"""
 
@@ -195,7 +195,7 @@ class Value: #pylint:disable=too-few-public-methods
             return self * value
         elif operator == "/":
             return self / value
-            
+
     def __add__(self, other):
         pass
 
@@ -229,3 +229,5 @@ class ConcreteValue(Value): #pylint:disable=too-few-public-methods
 
     def __truediv__(self, other):
         return ConcreteValue(self.data / other.data, self.type_of)
+
+import cesk.interpret # pylint: disable=wrong-import-position

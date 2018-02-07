@@ -2,8 +2,6 @@
 
 import copy
 import pycparser
-from cesk.structures import State, Ctrl, AssignKont
-from cesk.structures import LeftBinopKont, ConcreteValue
 
 def execute(state):
     # pylint: disable=too-many-return-statements
@@ -24,7 +22,7 @@ def execute(state):
     elif isinstance(stmt, pycparser.c_ast.Assignment):
         # TODO
         #print("Assignment")
-        if stmt.op is not '=': #pylint: disable=literal-comparison
+        if stmt.op != '=':
             raise Exception(stmt.op + " is not yet implemented")
         ident = stmt.lvalue
         exp = stmt.rvalue
@@ -222,7 +220,7 @@ def handle_assignment(ident, exp, state):
     new_kont = AssignKont(address, return_ctrl, state.kont)
     return State(new_ctrl, state.envr, state.stor, new_kont)
 
-def handle_decl(type_of, ident, exp, state): #pylint: disable=unused-argument
+def handle_decl(type_of, ident, exp, state): # pylint: disable=unused-argument
     """Maps the identifier to a new address and passes assignment part"""
 
     # type_of ident = exp;
@@ -236,3 +234,7 @@ def handle_decl(type_of, ident, exp, state): #pylint: disable=unused-argument
         return handle_assignment(ident, exp, new_state)
     #case: type_of ident;
     return State(get_next(state.ctrl), new_envr, state.stor, state.kont)
+
+
+from cesk.structures import State, Ctrl, AssignKont # pylint: disable=wrong-import-position
+from cesk.structures import LeftBinopKont, ConcreteValue # pylint: disable=wrong-import-position
