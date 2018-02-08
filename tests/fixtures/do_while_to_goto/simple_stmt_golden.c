@@ -1,11 +1,11 @@
 int main()
 {
   int i = 0;
-censor2:
+censor0:
   {
   i++;
   if (i < 10)
-    goto censor2;
+    goto censor0;
 
   }
 
