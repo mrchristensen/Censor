@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """Tests basic functionality of arithmatic, functions, and linked lists,
 using only ints and pointers, not worrying about corner cases."""
 

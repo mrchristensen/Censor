@@ -90,7 +90,7 @@ class Envr:
 
 class Stor:
     """Represents the contents of memory at a moment in time."""
-    address_counter = 0
+    address_counter = 1 # start at 1 so that 0 can be nullptr
     memory = {}
 
     def __init__(self, memory=None):
