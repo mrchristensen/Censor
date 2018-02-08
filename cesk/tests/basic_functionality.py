@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """Tests basic functionality of arithmatic, functions, and linked lists,
 using only ints and pointers, not worrying about corner cases."""
 
@@ -8,3 +9,7 @@ class BasicFunctionality(CESKvsGCC):
     def test_basic_functionality(self):
         """Tests basic functionality"""
         self.assert_all_equal("./fixtures/basic_functionality")
+
+if __name__ == "__main__":
+    TEST = BasicFunctionality()
+    TEST.test_basic_functionality()

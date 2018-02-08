@@ -237,5 +237,6 @@ def handle_decl(type_of, ident, exp, state): # pylint: disable=unused-argument
     return State(get_next(state.ctrl), new_envr, state.stor, state.kont)
 
 
+# imports are down here to allow for circular dependencies between structures.py and interpret.py
 from cesk.structures import State, Ctrl, AssignKont # pylint: disable=wrong-import-position
 from cesk.structures import LeftBinopKont # pylint: disable=wrong-import-position

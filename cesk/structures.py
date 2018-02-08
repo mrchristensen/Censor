@@ -180,7 +180,8 @@ class RightBinopKont(Kont):
         self.return_kont = return_kont
 
     def satisfy(self, value, current_state):
-        result = self.left_result.performOperation(self.operator, value)
+        result = self.left_result.perform_operation(self.operator, value)
         return self.return_kont.satisfy(result, current_state)
 
+# import is down here to allow for circular dependencies between structures.py and interpret.py
 import cesk.interpret # pylint: disable=wrong-import-position
