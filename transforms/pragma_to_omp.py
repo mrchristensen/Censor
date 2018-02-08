@@ -54,6 +54,6 @@ class PragmaToOmp(NodeTransformer):
     def clause_nodes_from_pragma_string(self, pragma_string):
         """ Generate OmpClause nodes from a pragma string.
         """
-        clause_strs = pragma_string.split()[2:]
+        clause_strs = pragma_string.split()[1:]
         clauses = self.parse_clauses(clause_strs)
         return clauses

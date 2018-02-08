@@ -96,3 +96,13 @@ class NoWait():
     """
     def __init__(self):
         pass
+
+class Critical():
+    """Critical Section name"""
+    def __init__(self, name=None):
+        self.name = name
+
+class Hint():
+    """Critical section hint"""
+    def __init__(self, hint):
+        self.hint = hint

@@ -11,7 +11,7 @@
 #
 # AST Node classes.
 #
-# Copyright (C) 2008-2015, Eli Bendersky
+# Eli Bendersky [http://eli.thegreenplace.net]
 # License: BSD
 #-----------------------------------------------------------------
 
@@ -319,11 +319,10 @@ class OmpMaster(Node):
     attr_names = ('pragma', )
 
 class OmpCritical(Node):
-    __slots__ = ('pragma', 'name', 'hint', 'block', 'coord', '__weakref__')
-    def __init__(self, pragma, name, hint, block, coord=None):
+    __slots__ = ('pragma', 'clauses', 'block', 'coord', '__weakref__')
+    def __init__(self, pragma, clauses, block, coord=None):
         self.pragma = pragma
-        self.name = name
-        self.hint = hint
+        self.clauses = clauses
         self.block = block
         self.coord = coord
 
@@ -332,7 +331,7 @@ class OmpCritical(Node):
         if self.block is not None: nodelist.append(("block", self.block))
         return tuple(nodelist)
 
-    attr_names = ('pragma', 'name', 'hint', )
+    attr_names = ('pragma', 'clauses', )
 
 class OmpBarrier(Node):
     __slots__ = ('pragma', 'coord', '__weakref__')

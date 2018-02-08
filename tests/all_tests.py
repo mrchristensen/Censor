@@ -9,6 +9,7 @@ SUITE = unittest.TestLoader().loadTestsFromNames(
     [
         'test_for_to_while',
         'test_omp_for',
+        'test_omp_critical',
         'test_do_while_to_goto'
     ]
 )
