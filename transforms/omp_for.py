@@ -2,15 +2,8 @@
 
 import re
 from pycparser.c_ast import Pragma, For
-from omp_ast import OmpFor, \
-        OmpClausePrivate, \
-        OmpClauseFirstPrivate, \
-        OmpClauseLastPrivate, \
-        OmpClauseReduction, \
-        OmpClauseSchedule, \
-        OmpClauseCollapse, \
-        OmpClauseOrdered, \
-        OmpClauseNoWait
+from omp.omp_ast import OmpFor
+import omp.clause as OmpClause
 from .pragma_to_omp import PragmaToOmp
 
 class PragmaToOmpFor(PragmaToOmp):
@@ -19,14 +12,14 @@ class PragmaToOmpFor(PragmaToOmp):
     def __init__(self):
         super().__init__()
         self.str_to_clause_type = {
-            "private":	    OmpClausePrivate,
-            "firstprivate": OmpClauseFirstPrivate,
-            "lastprivate":  OmpClauseLastPrivate,
-            "reduction":    OmpClauseReduction,
-            "schedule":     OmpClauseSchedule,
-            "collapse":	    OmpClauseCollapse,
-            "ordered":	    OmpClauseOrdered,
-            "nowait":	    OmpClauseNoWait,
+            "private":	    OmpClause.Private,
+            "firstprivate": OmpClause.FirstPrivate,
+            "lastprivate":  OmpClause.LastPrivate,
+            "reduction":    OmpClause.Reduction,
+            "schedule":     OmpClause.Schedule,
+            "collapse":	    OmpClause.Collapse,
+            "ordered":	    OmpClause.Ordered,
+            "nowait":	    OmpClause.NoWait,
             }
         self.pattern = re.compile(r'omp +for( +[a-zA-Z]+(\([0-9]+\))?)*')
 

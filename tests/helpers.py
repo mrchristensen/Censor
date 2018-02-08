@@ -6,7 +6,7 @@ from os import listdir
 from os.path import join
 from unittest import TestCase
 from pycparser.c_parser import CParser
-from c_with_omp_generator import CWithOMPGenerator
+from omp.c_with_omp_generator import CWithOMPGenerator
 
 class GoldenTestCase(TestCase):
     """

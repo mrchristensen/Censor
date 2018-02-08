@@ -18,7 +18,7 @@ class PragmaToOmp(NodeTransformer):
             parts = self.parse_clause(clause)
             if parts[0] in self.str_to_clause_type.keys():
                 clause_nodes.append(
-                    self.str_to_clause_type[parts[0]](None, *parts[1:])
+                    self.str_to_clause_type[parts[0]](*parts[1:])
                     )
 
         return clause_nodes

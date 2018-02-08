@@ -2,14 +2,15 @@
 
 import unittest
 import pycparser
-import omp_ast
+import omp.omp_ast
+import omp.clause as OmpClause
 from transforms.omp_for import PragmaToOmpFor
 
 #pylint: disable=missing-docstring,invalid-name
 class TestOmpFor(unittest.TestCase):
     """Test OmpFor Node"""
 
-    class PragmaVisitor(pycparser.c_ast.NodeVisitor):
+    class PragmaVisitor(omp.omp_ast.NodeVisitor):
         """Pragma node visitor; collect all pragma nodes"""
 
         def __init__(self):
@@ -19,7 +20,7 @@ class TestOmpFor(unittest.TestCase):
             """Collect nodes, does not recurse as Pragma nodes have no children"""
             self.nodes.append(node)
 
-    class OmpForVisitor(pycparser.c_ast.NodeVisitor):
+    class OmpForVisitor(omp.omp_ast.NodeVisitor):
         """OmpFor node visitor; recursibely collect all OmpFor nodes"""
 
         def __init__(self):
@@ -78,7 +79,7 @@ class TestOmpFor(unittest.TestCase):
 
         self.assertEqual(0, len(pv.nodes))
         self.assertEqual(1, len(ov.nodes))
-        self.assertTrue(isinstance(ov.nodes[0].clauses[0], omp_ast.OmpClauseCollapse))
+        self.assertTrue(isinstance(ov.nodes[0].clauses[0], OmpClause.Collapse))
         self.assertEqual(2, ov.nodes[0].clauses[0].n)
 
     def test_clauses_many(self):
@@ -101,9 +102,9 @@ class TestOmpFor(unittest.TestCase):
 
         self.assertEqual(0, len(pv.nodes))
         self.assertEqual(1, len(ov.nodes))
-        self.assertTrue(isinstance(ov.nodes[0].clauses[0], omp_ast.OmpClauseCollapse))
+        self.assertTrue(isinstance(ov.nodes[0].clauses[0], OmpClause.Collapse))
         self.assertEqual(2, ov.nodes[0].clauses[0].n)
-        self.assertTrue(isinstance(ov.nodes[0].clauses[1], omp_ast.OmpClauseOrdered))
+        self.assertTrue(isinstance(ov.nodes[0].clauses[1], OmpClause.Ordered))
 
     def test_nested_for(self):
         c = """
@@ -130,7 +131,7 @@ class TestOmpFor(unittest.TestCase):
         self.assertEqual(2, len(ov.nodes))
         self.assertEqual(2, len(ov.nodes[0].clauses))
         self.assertEqual(0, len(ov.nodes[1].clauses))
-        self.assertTrue(isinstance(ov.nodes[0].clauses[0], omp_ast.OmpClauseCollapse))
+        self.assertTrue(isinstance(ov.nodes[0].clauses[0], OmpClause.Collapse))
         self.assertEqual(2, ov.nodes[0].clauses[0].n)
-        self.assertTrue(isinstance(ov.nodes[0].clauses[1], omp_ast.OmpClauseOrdered))
+        self.assertTrue(isinstance(ov.nodes[0].clauses[1], OmpClause.Ordered))
         self.assertEqual([], ov.nodes[1].clauses)
