@@ -54,6 +54,30 @@ class Integer(Value): #pylint:disable=too-few-public-methods
     def __truediv__(self, other):
         return Integer(self.data / other.data, self.type_of)
 
+    def __mod__(self, other):
+        return Integer(self.data % other.data, self.type_of)
+    def __lt__(self, other):
+        return self.data < other.data
+    def __le__(self, other):
+        return self.data <= other.data
+    def __eq__(self, other):
+        return self.data == other.data
+    def __ne__(self, other):
+        return self.data != other.data
+    def __gt__(self, other):
+        return self.data > other.data
+    def __ge__(self, other):
+        return self.data >= other.data
+
+
+class Float(Value):  #pylint:disable=too-few-public-methods
+    """Concrete implementation of a float.
+    NOTE: this class will represent both 'float' and 'double' from
+    C99 as a 64 bit floating point number. This gives some potentially
+    incorrect rounding for c programs that use the 'float' data type,
+    which is supposed to be represented as a 32-bit float."""
+    pass
+
 
 class Pointer(Value):  #pylint:disable=too-few-public-methods
     """Concrete implementation of a Pointer to any type."""
@@ -61,8 +85,6 @@ class Pointer(Value):  #pylint:disable=too-few-public-methods
 
     def __init__(self, data, type_of):
         pass
-
-
 
 
 def generate_value(stmt):
