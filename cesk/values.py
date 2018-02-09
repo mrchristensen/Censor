@@ -89,6 +89,4 @@ class Pointer(Value):  #pylint:disable=too-few-public-methods
 
 def generate_value(stmt):
     """Given an assignment node, return a value of the correct type"""
-    print(stmt)
-    stmt.show()
     return Integer(stmt.value, stmt.type)
