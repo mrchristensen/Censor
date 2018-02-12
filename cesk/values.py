@@ -72,19 +72,16 @@ class Integer(Value): #pylint:disable=too-few-public-methods
 
 class Float(Value):  #pylint:disable=too-few-public-methods
     """Concrete implementation of a float.
-    NOTE: this class will represent both 'float' and 'double' from
-    C99 as a 64 bit floating point number. This gives some potentially
-    incorrect rounding for c programs that use the 'float' data type,
-    which is supposed to be represented as a 32-bit float."""
+    NOTE: this class will represent 'float,' and 'double,' and 'long double'
+    from C99 as a 64 bit floating point number. This gives some potentially
+    incorrect rounding for c programs that use the 'float' or 'long double'
+    data types, which is supposed to be represented as a 32 or float."""
     pass
 
 
-class Pointer(Value):  #pylint:disable=too-few-public-methods
+class Pointer(Integer):  #pylint:disable=too-few-public-methods
     """Concrete implementation of a Pointer to any type."""
-    address = 0
-
-    def __init__(self, data, type_of):
-        pass
+    pass
 
 
 def generate_value(stmt):
