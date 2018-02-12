@@ -212,7 +212,9 @@ def get_next(ctrl, state):
         if isinstance(state.kont, VoidKont):
             return state.kont.satisfy()
         elif isinstance(state.kont, Halt):
-            state.kont.satisfy(ConcreteValue("1", "int"), state) #default return on halt is 0
+            #default return on halt is 0
+            #TODO Kyle Storey
+            state.kont.satisfy(ConcreteValue("1", "int"), state) # pylint: disable=undefined-variable
         else:
             print(state.kont)
             raise Exception("Expected Return Value")
