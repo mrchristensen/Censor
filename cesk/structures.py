@@ -1,6 +1,7 @@
 """Holds the data structures for the CESK machine"""
 
 import copy
+import pycparser
 # from cesk.interpret import execute #pylint:disable=all
 
 class State: #pylint:disable=too-few-public-methods
@@ -37,48 +38,58 @@ class State: #pylint:disable=too-few-public-methods
         successors = cesk.interpret.execute(self)
         #print("\n\n\tSuccessors:" + ''.join(str(s) for s in successors))
         for successor in successors:
-            if successor.ctrl is not None:
-                successor.execute()
+            successor.execute()
 
 class Ctrl: #pylint:disable=too-few-public-methods
     """Holds the control pointer or location of the program"""
     index = None
-    function = None
+    body = None
     node = None
 
-    def const_node(self, node):
+    def construct_node(self, node):
         self.node = node
 
-    def const_index(self, index, function):
+    def construct_body(self, index, body):
         self.index = index
-        self.function = function
+        self.body = body 
 
     def __init__(self, first, second=None):
         if second is not None:
-            self.const_index(first, second)
+            if (isinstance(second, pycparser.c_ast.FuncDef)):
+                self.construct_body(first, second.body)
+            elif(isinstance(second, pycparser.c_ast.Compound)):
+                self.construct_body(first, second)
         else:
-            self.const_node(first)
+            self.construct_node(first)
 
     def __add__(self, offset):
         """Returns the location in the same function with the line number offset
         by the value offset. This is used most commonly as loc+1 to get the
         syntactic successor to a Location.
         """
-        return Ctrl(self.index+offset, self.function)
+        return Ctrl(self.index+offset, self.body)
 
     def stmt(self):
         """Retrieves the statement at the location."""
         if (self.node is not None):
             return self.node
-        return self.function.body.block_items[self.index]
+        return self.body.block_items[self.index]
 
 class Envr:
     """Holds the enviorment (a maping of identifiers to addresses)"""
     map = {} #A set of IdToAddr mappings
+    parent = None
+
+    def __init__(self, parent = None):
+        self.parent = parent
 
     def get_address(self, ident):
         "looks up the address associated with an identifier"""
-        return self.map[ident]
+        if (ident in self.map):
+            return self.map[ident]
+        if (parent is not None):
+            return parent.get_address(ident)
+        return None
 
     def map_new_identifier(self, ident, address):
         """Add a new identifier to the mapping"""
@@ -86,8 +97,11 @@ class Envr:
 
     def is_defined(self, ident):
         """returns if a given identifier is defined"""
-        return ident in self.map
+        return get_address(self, ident) is not None
 
+    def is_localy_defined(self, ident):
+        """returns if a given identifier is local to this scope"""
+        return ident in self.map
 class Stor:
     """Represents the contents of memory at a moment in time."""
     address_counter = 1 # start at 1 so that 0 can be nullptr
@@ -135,18 +149,18 @@ class AssignKont(Kont):
     address"""
     address = None
     return_ctrl = None
-    return_kont = None
+    parent_kont = None
 
-    def __init__(self, address, return_ctrl, return_kont):
+    def __init__(self, address, return_ctrl, parent_kont):
         self.address = address
         self.return_ctrl = return_ctrl
-        self.return_kont = return_kont
+        self.parent_kont = parent_kont
 
     def satisfy(self, value, current_state):
         new_stor = copy.deepcopy(current_state.stor)
         new_stor.write(self.address, value)
         return State(self.return_ctrl, current_state.envr,
-            new_stor, self.return_kont)
+            new_stor, self.parent_kont)
 
 class LeftBinopKont(Kont):
     """Continuation for the left side of a binary operator"""
@@ -182,6 +196,22 @@ class RightBinopKont(Kont):
     def satisfy(self, value, current_state):
         result = self.left_result.perform_operation(self.operator, value)
         return self.return_kont.satisfy(result, current_state)
+
+class VoidKont(Kont):
+    """Continuation that does not require a value"""
+
+    next_ctrl = None
+    parent_kont = None
+
+    def __init__(self, next_ctrl, parent_kont):
+        self.next_ctrl = next_ctrl
+        self.parent_kont = parent_kont
+
+    def satisfy(self, first, second = None):
+        if second is not None:
+            raise Exception("'return' with a value in block returning void")
+        state = first
+        return State(next_ctrl, state.envr, state.stor, parent_kont) 
 
 # import is down here to allow for circular dependencies between structures.py and interpret.py
 import cesk.interpret # pylint: disable=wrong-import-position

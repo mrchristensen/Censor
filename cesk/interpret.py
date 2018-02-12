@@ -47,7 +47,12 @@ def execute(state):
         pass #print("Cast")
     elif isinstance(stmt, pycparser.c_ast.Compound):
         # TODO
-        pass #print("Compound")
+        #print("Compound")
+        new_ctrl = Ctrl(0, stmt)
+        new_envr = Envr(state.envr) #make blank env at head of linked list
+        new_kont = VoidKont(get_next(state.ctrl, state), state.kont) #get line after compound
+        successors.append(State(new_ctrl, new_envr, state.stor, new_kont))
+        return successors
     elif isinstance(stmt, pycparser.c_ast.CompoundLiteral):
         # TODO
         pass #print("CompoundLiteral")
@@ -195,16 +200,22 @@ def execute(state):
     else:
         raise ValueError("Unknown C AST object type: {0}".format(stmt))
 
-    new_ctrl = get_next(state.ctrl)
+    new_ctrl = get_next(state.ctrl, state)
     successors.append(State(new_ctrl, state.envr, state.stor,
                             state.kont))
 
     return successors
 
-def get_next(ctrl):
+def get_next(ctrl, state):
     """takes ctrl and returns a Ctrl for the next statment to execute"""
-    if len(ctrl.function.body.block_items) <= ctrl.index + 1:
-        return None
+    if len(ctrl.body.block_items) <= ctrl.index + 1: #we reached the block end
+        if isinstance(state.kont, VoidKont):
+            return state.kont.satisfy()
+        elif isinstance(state.kont, Halt):
+            state.kont.satisfy(ConcreteValue("1", "int"), state) #default return on halt is 0
+        else:
+            print(state.kont)
+            raise Exception("Expected Return Value")
     return ctrl + 1
 
 def handle_assignment(ident, exp, state):
@@ -217,7 +228,7 @@ def handle_assignment(ident, exp, state):
     address = state.envr.get_address(ident) #look up address
     new_ctrl = Ctrl(exp) #build special ctrl for exp
 
-    return_ctrl = get_next(state.ctrl) #calculate where to go once complete
+    return_ctrl = get_next(state.ctrl, state) #calculate where to go once complete
     new_kont = AssignKont(address, return_ctrl, state.kont)
     return State(new_ctrl, state.envr, state.stor, new_kont)
 
@@ -226,6 +237,8 @@ def handle_decl(type_of, ident, exp, state): # pylint: disable=unused-argument
 
     # type_of ident = exp;
     #map new ident
+    if state.envr.is_localy_defined(ident):
+        raise Exception("Error: redefinition of " + ident)
     new_envr = copy.deepcopy(state.envr)
     new_address = state.stor.get_next_address()
     new_envr.map_new_identifier(ident, new_address)
@@ -234,9 +247,9 @@ def handle_decl(type_of, ident, exp, state): # pylint: disable=unused-argument
         new_state = State(state.ctrl, new_envr, state.stor, state.kont)
         return handle_assignment(ident, exp, new_state)
     #case: type_of ident;
-    return State(get_next(state.ctrl), new_envr, state.stor, state.kont)
+    return State(get_next(state.ctrl, state), new_envr, state.stor, state.kont)
 
 
 # imports are down here to allow for circular dependencies between structures.py and interpret.py
-from cesk.structures import State, Ctrl, AssignKont # pylint: disable=wrong-import-position
+from cesk.structures import State, Ctrl, Envr, AssignKont, Halt, VoidKont # pylint: disable=wrong-import-position
 from cesk.structures import LeftBinopKont # pylint: disable=wrong-import-position
