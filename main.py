@@ -46,7 +46,6 @@ def main():
         censor.main(ast)
     elif args.tool == "yeti":
         yeti.main(ast)
-        print("The yeti tool is not yet implemented")
     elif args.tool == "cesk":
         cesk.main(ast)
     else:

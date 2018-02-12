@@ -9,9 +9,10 @@ class Instrumenter(NodeTransformer):
 
     def generic_visit(self, node):
         """Performs a generic visit for nodes that aren't explicitly visited"""
-        print(node)
+        node.show()
 
     def visit_While(self, node): #pylint: disable=invalid-name
         """Visit a while loop"""
         self.generic_visit(node)
+        node.show()
         print('Visiting a While')
