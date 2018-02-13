@@ -2,13 +2,14 @@
 
 import unittest
 import pycparser
+import omp
 from transforms.omp_critical import PragmaToOmpCritical
 
 #pylint: disable=invalid-name
 class TestOmpCritical(unittest.TestCase):
     """Test OmpCritical Node"""
 
-    class PragmaVisitor(pycparser.c_ast.NodeVisitor):
+    class PragmaVisitor(omp.omp_ast.NodeVisitor):
         """Pragma node visitor; collect all pragma nodes"""
 
         def __init__(self):
@@ -18,7 +19,7 @@ class TestOmpCritical(unittest.TestCase):
             """Collect nodes, does not recurse as Pragma nodes have no children"""
             self.nodes.append(node)
 
-    class OmpCriticalVisitor(pycparser.c_ast.NodeVisitor):
+    class OmpCriticalVisitor(omp.omp_ast.NodeVisitor):
         """OmpCritical node visitor; recursibely collect all OmpCritical nodes"""
 
         def __init__(self):
