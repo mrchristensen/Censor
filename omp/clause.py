@@ -8,7 +8,7 @@ class Private():
     """
 
     def __init__(self, *ids):
-        self.ids = ids
+        self.ids = list(ids)
 
     def __iter__(self):
         if self.ids is not None:
@@ -22,7 +22,7 @@ class FirstPrivate():
     """
 
     def __init__(self, *ids):
-        self.ids = ids
+        self.ids = list(ids)
 
     def __iter__(self):
         if self.ids is not None:
@@ -36,7 +36,7 @@ class LastPrivate():
     """
 
     def __init__(self, *ids):
-        self.ids = ids
+        self.ids = list(ids)
 
     def __iter__(self):
         if self.ids is not None:
@@ -52,7 +52,7 @@ class Reduction():
 
     def __init__(self, op, *ids):
         self.op = op
-        self.ids = ids
+        self.ids = list(ids)
 
     def __iter__(self):
         if self.ids is not None:
@@ -106,3 +106,48 @@ class Hint():
     """Critical section hint"""
     def __init__(self, hint):
         self.hint = hint
+
+class If():
+    """ If
+        scalar-expression
+
+        Syntax: if(scalar)
+    """
+    def __init__(self, scalar):
+        self.scalar = scalar
+
+class NumThreads():
+    """ NumThreads
+        integer-expression
+
+        Syntax: num_threads(integer)
+    """
+    def __init__(self, num):
+        self.num = num
+
+class Default():
+    """ Default
+        shared|none
+
+        Syntax: default(shared|none)
+    """
+    def __init__(self, state):
+        self.state = state
+
+class Shared():
+    """ Shared
+        list of identifiers
+
+        Syntax: shared(a, b, c, ...)
+    """
+    def __init__(self, *ids):
+        self.ids = list(ids)
+
+class CopyIn():
+    """ CopyIn
+        list of identifiers
+
+        Syntax: copyin(a, b, c, ...)
+    """
+    def __init__(self, *ids):
+        self.ids = list(ids)
