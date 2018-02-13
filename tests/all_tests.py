@@ -11,7 +11,8 @@ SUITE = unittest.TestLoader().loadTestsFromNames(
         'test_omp_for',
         'test_omp_critical',
         'test_do_while_to_goto',
-        'test_while_to_do_while'
+        'test_while_to_do_while',
+        'test_omp_parallel'
     ]
 )
 TESTRESULT = unittest.TextTestRunner(verbosity=1).run(SUITE)

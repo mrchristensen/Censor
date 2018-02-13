@@ -1,13 +1,13 @@
-"""Test PragmaToOmpCritical -- Replacing Pragma omp with Omp Nodes"""
+"""Test PragmaToOmpParallel -- Replacing Pragma omp with Omp Nodes"""
 
 import unittest
 import pycparser
-import omp
-from transforms.omp_critical import PragmaToOmpCritical
+import omp.omp_ast
+from transforms.omp_parallel import PragmaToOmpParallel
 
-#pylint: disable=invalid-name
-class TestOmpCritical(unittest.TestCase):
-    """Test OmpCritical Node"""
+#pylint: disable=missing-docstring,invalid-name
+class TestOmpParallel(unittest.TestCase):
+    """Test OmpParallel Node"""
 
     class PragmaVisitor(omp.omp_ast.NodeVisitor):
         """Pragma node visitor; collect all pragma nodes"""
@@ -19,14 +19,14 @@ class TestOmpCritical(unittest.TestCase):
             """Collect nodes, does not recurse as Pragma nodes have no children"""
             self.nodes.append(node)
 
-    class OmpCriticalVisitor(omp.omp_ast.NodeVisitor):
-        """OmpCritical node visitor; recursibely collect all OmpCritical nodes"""
+    class OmpParallelVisitor(omp.omp_ast.NodeVisitor):
+        """OmpParallel node visitor; recursibely collect all OmpParallel nodes"""
 
         def __init__(self):
             self.nodes = []
 
-        def visit_OmpCritical(self, node):
-            """Recursively collect OmpCritical nodes"""
+        def visit_OmpParallel(self, node):
+            """Recursively collect OmpParallel nodes"""
 
             self.nodes.append(node)
             self.generic_visit(node)
@@ -34,22 +34,21 @@ class TestOmpCritical(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.parser = pycparser.CParser()
-        cls.transform = PragmaToOmpCritical()
+        cls.transform = PragmaToOmpParallel()
 
     def test_simple(self):
-        """Test simple omp critical pragma"""
+        """Test simple omp parallel pragma"""
         c = """
         int main() {
-            #pragma omp critical
-            for (int i = 0; i < 100; i++) {
-
+            #pragma omp parallel
+            {
             }
         }
         """
         ast = self.parser.parse(c)
         child = ast.ext[0].body.block_items[1]
         pv = self.PragmaVisitor()
-        ov = self.OmpCriticalVisitor()
+        ov = self.OmpParallelVisitor()
 
         ast = self.transform.visit(ast)
 
@@ -59,22 +58,21 @@ class TestOmpCritical(unittest.TestCase):
         self.assertEqual(0, len(pv.nodes))
         self.assertEqual(1, len(ov.nodes))
         self.assertEqual(child, ov.nodes[0].block)
-        self.assertEqual(ov.nodes[0].clauses[0].name, None)
 
 
     def test_clauses_one(self):
-        """Test omp critical pragma with name clause"""
+        """Test omp parallel pragma with if clause"""
         c = """
         int main() {
             int i = 0;
-            #pragma omp critical(name)
+            #pragma omp parallel if(10)
             {
             }
         }
         """
         ast = self.parser.parse(c)
         pv = self.PragmaVisitor()
-        ov = self.OmpCriticalVisitor()
+        ov = self.OmpParallelVisitor()
 
         ast = self.transform.visit(ast)
 
@@ -84,20 +82,20 @@ class TestOmpCritical(unittest.TestCase):
         self.assertEqual(0, len(pv.nodes))
         self.assertEqual(1, len(ov.nodes))
         self.assertTrue(isinstance(ov.nodes[0].block, pycparser.c_ast.Compound))
-        self.assertEqual(ov.nodes[0].clauses[0].name, "name")
+        self.assertEqual(ov.nodes[0].clauses[0].scalar, 10)
 
     def test_clauses_many(self):
-        """Test omp critical pragma with two clauses"""
+        """Test omp parallel pragma with two clauses"""
         c = """
         int main() {
             int i = 0;
-            #pragma omp critical(name) hint(0)
-            i++;
+            #pragma omp parallel if(10) num_threads(4) default(shared) private(a) reduction(+: a, b, c)
+            functionCall();
         }
         """
         ast = self.parser.parse(c)
         pv = self.PragmaVisitor()
-        ov = self.OmpCriticalVisitor()
+        ov = self.OmpParallelVisitor()
 
         self.transform.visit(ast)
 
@@ -106,6 +104,10 @@ class TestOmpCritical(unittest.TestCase):
 
         self.assertEqual(0, len(pv.nodes))
         self.assertEqual(1, len(ov.nodes))
-        self.assertTrue(isinstance(ov.nodes[0].block, pycparser.c_ast.UnaryOp))
-        self.assertEqual(ov.nodes[0].clauses[0].name, "name")
-        self.assertEqual(ov.nodes[0].clauses[1].hint, 0)
+        self.assertTrue(isinstance(ov.nodes[0].block, pycparser.c_ast.FuncCall))
+        self.assertEqual(ov.nodes[0].clauses[0].scalar, 10)
+        self.assertEqual(ov.nodes[0].clauses[1].num, 4)
+        self.assertEqual(ov.nodes[0].clauses[2].state, 'shared')
+        self.assertEqual(ov.nodes[0].clauses[3].ids, ['a'])
+        self.assertEqual(ov.nodes[0].clauses[4].ids, ['a', 'b', 'c'])
+        self.assertEqual(ov.nodes[0].clauses[4].op, '+')

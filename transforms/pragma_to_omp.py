@@ -1,5 +1,6 @@
 """Base class for Pragma to OMP Node transforms"""
 
+import re
 from .node_transformer import NodeTransformer
 
 class PragmaToOmp(NodeTransformer):
@@ -9,6 +10,7 @@ class PragmaToOmp(NodeTransformer):
     def __init__(self):
         self.pattern = None
         self.str_to_clause_type = {}
+        self.clause_pattern = re.compile(r'(\w+\((?:[\w+-\\*\\|\\^&]+:\s*)?\w+(?:,\s*\w+)*\)|\w+)')
 
     def parse_clauses(self, clause_strs):
         """ Parse pragma strings to generate Omp Clause Nodes.
@@ -54,6 +56,6 @@ class PragmaToOmp(NodeTransformer):
     def clause_nodes_from_pragma_string(self, pragma_string):
         """ Generate OmpClause nodes from a pragma string.
         """
-        clause_strs = pragma_string.split()[1:]
+        clause_strs = self.clause_pattern.findall(pragma_string)
         clauses = self.parse_clauses(clause_strs)
         return clauses
