@@ -2,6 +2,7 @@
 
 import copy
 import pycparser
+import cesk.values
 # from cesk.interpret import execute #pylint:disable=all
 
 class State: #pylint:disable=too-few-public-methods
@@ -77,7 +78,8 @@ class Ctrl: #pylint:disable=too-few-public-methods
 
 class Envr:
     """Holds the enviorment (a maping of identifiers to addresses)"""
-    map = {} #A set of IdToAddr mappings
+    map_to_address = {} #A set of IdToAddr mappings
+    map_to_type = {}
     parent = None
 
     def __init__(self, parent = None):
@@ -85,15 +87,22 @@ class Envr:
 
     def get_address(self, ident):
         "looks up the address associated with an identifier"""
-        if (ident in self.map):
-            return self.map[ident]
+        if (ident in self.map_to_address):
+            return self.map_to_address[ident]
         if (parent is not None):
             return parent.get_address(ident)
         return None
 
+    def get_type(self, ident):
+        if (ident in self.map_to_type):
+            return self.map_to_type[ident]
+        if (self.parent is not None):
+            return self.parent.get_type(ident)
+        return None
+
     def map_new_identifier(self, ident, address):
         """Add a new identifier to the mapping"""
-        self.map[ident] = address
+        self.map_to_address[ident] = address
 
     def is_defined(self, ident):
         """returns if a given identifier is defined"""
@@ -101,7 +110,8 @@ class Envr:
 
     def is_localy_defined(self, ident):
         """returns if a given identifier is local to this scope"""
-        return ident in self.map
+        return ident in self.map_to_address
+
 class Stor:
     """Represents the contents of memory at a moment in time."""
     address_counter = 1 # start at 1 so that 0 can be nullptr
@@ -147,20 +157,22 @@ class Halt(Kont):
 class AssignKont(Kont):
     """Continuaton created by assignment requires a Value to assign to an
     address"""
-    address = None
-    return_ctrl = None
-    parent_kont = None
+    ident = None
+    parent_state = None
 
-    def __init__(self, address, return_ctrl, parent_kont):
-        self.address = address
-        self.return_ctrl = return_ctrl
-        self.parent_kont = parent_kont
+    def __init__(self, ident, parent_state):
+        self.ident = ident 
+        self.parent_state = parent_state
 
     def satisfy(self, value, current_state):
+        address = self.parent_state.envr.get_address(self.ident)
+        type_of = self.parent_state.envr.get_type(self.ident)
         new_stor = copy.deepcopy(current_state.stor)
-        new_stor.write(self.address, value)
-        return State(self.return_ctrl, current_state.envr,
-            new_stor, self.parent_kont)
+        cast_value = cesk.values.cast(value, type_of)
+        new_stor.write(address, cast_value)
+        return State(cesk.interpret.get_next(self.parent_state.ctrl,
+        self.parent_state), self.parent_state.envr,
+            new_stor, self.parent_state.kont)
 
 class LeftBinopKont(Kont):
     """Continuation for the left side of a binary operator"""

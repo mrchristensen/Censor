@@ -2,7 +2,7 @@
 
 import copy
 import pycparser
-from cesk.values import generate_value
+from cesk.values import generate_constant_value
 
 def execute(state):
     # pylint: disable=too-many-return-statements
@@ -59,7 +59,7 @@ def execute(state):
     elif isinstance(stmt, pycparser.c_ast.Constant):
         # TODO
         #print("Constant")
-        value = generate_value(stmt)
+        value = generate_constant_value(stmt.value)
         successors.append(state.kont.satisfy(value, state))
         return successors
     elif isinstance(stmt, pycparser.c_ast.Continue):
@@ -212,7 +212,7 @@ def get_next(ctrl, state):
         if isinstance(state.kont, VoidKont):
             return state.kont.satisfy()
         elif isinstance(state.kont, Halt):
-            state.kont.satisfy(ConcreteValue("1", "int"), state) #default return on halt is 0
+            state.kont.satisfy(generate_constant_value("0"), state) #default return on halt is 0
         else:
             print(state.kont)
             raise Exception("Expected Return Value")
@@ -223,13 +223,8 @@ def handle_assignment(ident, exp, state):
     address associated with ident"""
     #pylint: disable=too-many-function-args
 
-    # ident = exp;
-
-    address = state.envr.get_address(ident) #look up address
     new_ctrl = Ctrl(exp) #build special ctrl for exp
-
-    return_ctrl = get_next(state.ctrl, state) #calculate where to go once complete
-    new_kont = AssignKont(address, return_ctrl, state.kont)
+    new_kont = AssignKont(ident, state)
     return State(new_ctrl, state.envr, state.stor, new_kont)
 
 def handle_decl(type_of, ident, exp, state): # pylint: disable=unused-argument

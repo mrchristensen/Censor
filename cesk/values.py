@@ -118,7 +118,20 @@ class Pointer(Integer):  #pylint:disable=too-few-public-methods
     """Concrete implementation of a Pointer to any type."""
     pass
 
+def generate_constant_value(value):
+    """Given a string, parse it as a constant value."""
+    # TODO: also parse constant chars
+    if "." in value:
+        return Float(value, 'float')
+    return Integer(value, 'int')
 
-def generate_value(stmt):
-    """Given an assignment node, return a value of the correct type"""
-    return Integer(stmt.value, stmt.type)
+def generate_default_value(typedecl): #pylint: disable=unused-argument
+    """Generates a default value of the given type (used for uninitialized
+    variables)."""
+    # TODO
+    return Integer(0, 'int')
+
+def cast(value, typedeclt): #pylint: disable=unused-argument
+    """Casts the given value a  a value of the given type."""
+    #TODO
+    return value
