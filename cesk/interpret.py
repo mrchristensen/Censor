@@ -16,99 +16,140 @@ def execute(state):
 
     if isinstance(stmt, pycparser.c_ast.ArrayDecl):
         # TODO
-        pass #print("ArrayDecl")
+        #print("ArrayDecl")
+        state = generate_default_kont_state(state)
+        successors.append(state.kont.satisfy(state))
     elif isinstance(stmt, pycparser.c_ast.ArrayRef):
         # TODO
-        pass #print("ArrayRef")
+        #print("ArrayRef")
+        state = generate_default_kont_state(state)
+        successors.append(state.kont.satisfy(state))
     elif isinstance(stmt, pycparser.c_ast.Assignment):
         # TODO
         #print("Assignment")
         if stmt.op != '=':
             raise Exception(stmt.op + " is not yet implemented")
+        state = generate_default_kont_state(state)
         ident = stmt.lvalue
         exp = stmt.rvalue
         successors.append(handle_assignment(ident, exp, state))
-        return successors
     elif isinstance(stmt, pycparser.c_ast.BinaryOp):
         # TODO
         #print("BinaryOp")
+        state = generate_default_kont_state(state)
         new_kont = LeftBinopKont(stmt.op, stmt.right, state.kont)
         successors.append(State(Ctrl(stmt.left), state.envr, state.stor,
                                 new_kont))
-        return successors
     elif isinstance(stmt, pycparser.c_ast.Break):
         # TODO
-        pass #print("Break")
+        #print("Break")
+        state = generate_default_kont_state(state)
+        successors.append(state.kont.satisfy(state))
     elif isinstance(stmt, pycparser.c_ast.Case):
         # TODO
-        pass #print("Case")
+        #print("Case")
+        state = generate_default_kont_state(state)
+        successors.append(state.kont.satisfy(state))
     elif isinstance(stmt, pycparser.c_ast.Cast):
         # TODO
-        pass #print("Cast")
+        #print("Cast")
+        state = generate_default_kont_state(state)
+        successors.append(state.kont.satisfy(state))
     elif isinstance(stmt, pycparser.c_ast.Compound):
         # TODO
         #print("Compound")
+        state = generate_default_kont_state(state)
         new_ctrl = Ctrl(0, stmt)
         new_envr = Envr(state.envr) #make blank env at head of linked list
-        new_kont = VoidKont(get_next(state.ctrl, state), state.kont) #get line after compound
-        successors.append(State(new_ctrl, new_envr, state.stor, new_kont))
-        return successors
+        new_kont = DefaultKont(state)
+        if stmt.block_items is None:
+            successors.append(new_kont.satisfy(state))
+        else:
+            successors.append(State(new_ctrl, new_envr, state.stor, new_kont))
+
     elif isinstance(stmt, pycparser.c_ast.CompoundLiteral):
         # TODO
-        pass #print("CompoundLiteral")
+        #print("CompoundLiteral")
+        state = generate_default_kont_state(state)
+        successors.append(state.kont.satisfy(state))
     elif isinstance(stmt, pycparser.c_ast.Constant):
         # TODO
         #print("Constant")
+        state = generate_default_kont_state(state)
         value = generate_constant_value(stmt.value)
-        successors.append(state.kont.satisfy(value, state))
-        return successors
+        successors.append(state.kont.satisfy(state, value))
     elif isinstance(stmt, pycparser.c_ast.Continue):
         # TODO
-        pass #print("Continue")
+        #print("Continue")
+        state = generate_default_kont_state(state)
+        successors.append(state.kont.satisfy(state))
     elif isinstance(stmt, pycparser.c_ast.Decl):
         # TODO
         #print("Decl")
+        state = generate_default_kont_state(state)
         type_of = stmt.type
         ident = stmt.name
         exp = stmt.init
         successors.append(handle_decl(type_of, ident, exp, state))
-        return successors
     elif isinstance(stmt, pycparser.c_ast.DeclList):
         # TODO
-        pass #print("DeclList")
+        #print("DeclList")
+        state = generate_default_kont_state(state)
+        successors.append(state.kont.satisfy(state))
     elif isinstance(stmt, pycparser.c_ast.Default):
         # TODO
-        pass #print("Default")
+        #print("Default")
+        state = generate_default_kont_state(state)
+        successors.append(state.kont.satisfy(state))
     elif isinstance(stmt, pycparser.c_ast.DoWhile):
         # TODO
-        pass #print("DoWhile")
+        #print("DoWhile")
+        state = generate_default_kont_state(state)
+        successors.append(state.kont.satisfy(state))
     elif isinstance(stmt, pycparser.c_ast.EllipsisParam):
         # TODO
-        pass #print("EllipsisParam")
+        #print("EllipsisParam")
+        state = generate_default_kont_state(state)
+        successors.append(state.kont.satisfy(state))
     elif isinstance(stmt, pycparser.c_ast.EmptyStatement):
         # TODO
-        pass #print("EmptyStatement")
+        #print("EmptyStatement")
+        state = generate_default_kont_state(state)
+        successors.append(state.kont.satisfy(state))
     elif isinstance(stmt, pycparser.c_ast.Enum):
         # TODO
-        pass #print("Enum")
+        #print("Enum")
+        state = generate_default_kont_state(state)
+        successors.append(state.kont.satisfy(state))
     elif isinstance(stmt, pycparser.c_ast.Enumerator):
         # TODO
-        pass #print("Enumerator")
+        #print("Enumerator")
+        state = generate_default_kont_state(state)
+        successors.append(state.kont.satisfy(state))
     elif isinstance(stmt, pycparser.c_ast.EnumeratorList):
         # TODO
-        pass #print("EnumeratorList")
+        #print("EnumeratorList")
+        state = generate_default_kont_state(state)
+        successors.append(state.kont.satisfy(state))
     elif isinstance(stmt, pycparser.c_ast.ExprList):
         # TODO
-        pass #print("ExprList")
+        #print("ExprList")
+        state = generate_default_kont_state(state)
+        successors.append(state.kont.satisfy(state))
     elif isinstance(stmt, pycparser.c_ast.FileAST):
         # TODO
-        pass #print("FileAST")
+        #print("FileAST")
+        state = generate_default_kont_state(state)
+        successors.append(state.kont.satisfy(state))
     elif isinstance(stmt, pycparser.c_ast.For):
         # TODO
-        pass #print("For")
+        #print("For")
+        state = generate_default_kont_state(state)
+        successors.append(state.kont.satisfy(state))
     elif isinstance(stmt, pycparser.c_ast.FuncCall):
         # TODO
         #print("FuncCall")
+        state = generate_default_kont_state(state)
         if stmt.name.name == "printf":
             id_to_print = stmt.args.exprs[1].name #FIXME should evalueate exp
             address = state.envr.get_address(id_to_print)
@@ -118,105 +159,126 @@ def execute(state):
             print(stmt.name.name)
     elif isinstance(stmt, pycparser.c_ast.FuncDecl):
         # TODO
-        pass #print("FuncDecl")
+        #print("FuncDecl")
+        state = generate_default_kont_state(state)
+        successors.append(state.kont.satisfy(state))
     elif isinstance(stmt, pycparser.c_ast.FuncDef):
         # TODO
-        pass #print("FuncDef")
+        #print("FuncDef")
+        state = generate_default_kont_state(state)
+        successors.append(state.kont.satisfy(state))
     elif isinstance(stmt, pycparser.c_ast.Goto):
         # TODO
-        pass #print("Goto")
+        #print("Goto")
+        state = generate_default_kont_state(state)
+        successors.append(state.kont.satisfy(state))
     elif isinstance(stmt, pycparser.c_ast.ID):
         # TODO
         #print("ID")
+        state = generate_default_kont_state(state)
         name = stmt.name
         address = state.envr.get_address(name)
         value = state.stor.read(address)
-        successors.append(state.kont.satisfy(value, state))
-        return successors
+        successors.append(state.kont.satisfy(state, value))
     elif isinstance(stmt, pycparser.c_ast.IdentifierType):
         # TODO
-        pass #print("IdentifierType")
+        #print("IdentifierType")
+        state = generate_default_kont_state(state)
+        successors.append(state.kont.satisfy(state))
     elif isinstance(stmt, pycparser.c_ast.If):
         # TODO
-        pass #print("If")
+        #print("If")
+        state = generate_default_kont_state(state)
+        successors.append(state.kont.satisfy(state))
     elif isinstance(stmt, pycparser.c_ast.InitList):
         # TODO
-        pass #print("InitList")
+        #print("InitList")
+        state = generate_default_kont_state(state)
+        successors.append(state.kont.satisfy(state))
     elif isinstance(stmt, pycparser.c_ast.Label):
         # TODO
-        pass #print("Label")
+        #print("Label")
+        state = generate_default_kont_state(state)
+        successors.append(state.kont.satisfy(state))
     elif isinstance(stmt, pycparser.c_ast.NamedInitializer):
         # TODO
-        pass #print("NamedInitializer")
+        #print("NamedInitializer")
+        state = generate_default_kont_state(state)
+        successors.append(state.kont.satisfy(state))
     elif isinstance(stmt, pycparser.c_ast.ParamList):
         # TODO
-        pass #print("ParamList")
+        #print("ParamList")
+        state = generate_default_kont_state(state)
+        successors.append(state.kont.satisfy(state))
     elif isinstance(stmt, pycparser.c_ast.PtrDecl):
         # TODO
-        pass #print("PtrDecl")
+        #print("PtrDecl")
+        state = generate_default_kont_state(state)
+        successors.append(state.kont.satisfy(state))
     elif isinstance(stmt, pycparser.c_ast.Return):
         # TODO
         #print("Return")
         exp = stmt.expr
-        #pass exp parrent continuation
-        successors.append(State(Ctrl(exp), state.envr, state.stor, state.kont))
-        return successors
+        successors.append(handle_return(exp, state))
     elif isinstance(stmt, pycparser.c_ast.Struct):
         # TODO
-        pass #print("Struct")
+        #print("Struct")
+        state = generate_default_kont_state(state)
+        successors.append(state.kont.satisfy(state))
     elif isinstance(stmt, pycparser.c_ast.StructRef):
         # TODO
-        pass #print("StructRef")
+        #print("StructRef")
+        state = generate_default_kont_state(state)
+        successors.append(state.kont.satisfy(state))
     elif isinstance(stmt, pycparser.c_ast.Switch):
         # TODO
-        pass #print("Switch")
+        #print("Switch")
+        state = generate_default_kont_state(state)
+        successors.append(state.kont.satisfy(state))
     elif isinstance(stmt, pycparser.c_ast.TernaryOp):
         # TODO
-        pass #print("TernaryOp")
+        #print("TernaryOp")
+        state = generate_default_kont_state(state)
+        successors.append(state.kont.satisfy(state))
     elif isinstance(stmt, pycparser.c_ast.TypeDecl):
         # TODO
-        pass #print("TypeDecl")
+        #print("TypeDecl")
+        state = generate_default_kont_state(state)
+        successors.append(state.kont.satisfy(state))
     elif isinstance(stmt, pycparser.c_ast.Typedef):
         # TODO
-        pass #print("Typedef")
+        #print("Typedef")
+        state = generate_default_kont_state(state)
+        successors.append(state.kont.satisfy(state))
     elif isinstance(stmt, pycparser.c_ast.Typename):
         # TODO
-        pass #print("Typename")
+        #print("Typename")
+        state = generate_default_kont_state(state)
+        successors.append(state.kont.satisfy(state))
     elif isinstance(stmt, pycparser.c_ast.UnaryOp):
         # TODO
-        pass #print("UnaryOp")
+        #print("UnaryOp")
+        state = generate_default_kont_state(state)
+        successors.append(state.kont.satisfy(state))
     elif isinstance(stmt, pycparser.c_ast.Union):
         # TODO
-        pass #print("Union")
+        #print("Union")
+        state = generate_default_kont_state(state)
+        successors.append(state.kont.satisfy(state))
     elif isinstance(stmt, pycparser.c_ast.While):
         # TODO
-        pass #print("While")
+        #print("While")
+        state = generate_default_kont_state(state)
+        successors.append(state.kont.satisfy(state))
     elif isinstance(stmt, pycparser.c_ast.Pragma):
         # TODO
-        pass #print("Pragma")
-    # DEBUG CODE TO REMOVE SOON
-    elif stmt is None:
-        return successors
+        #print("Pragma")
+        state = generate_default_kont_state(state)
+        successors.append(state.kont.satisfy(state))
     else:
         raise ValueError("Unknown C AST object type: {0}".format(stmt))
 
-    new_ctrl = get_next(state.ctrl, state)
-    successors.append(State(new_ctrl, state.envr, state.stor,
-                            state.kont))
-
     return successors
-
-def get_next(ctrl, state):
-    """takes ctrl and returns a Ctrl for the next statment to execute"""
-    if len(ctrl.body.block_items) <= ctrl.index + 1: #we reached the block end
-        if isinstance(state.kont, VoidKont):
-            return state.kont.satisfy()
-        elif isinstance(state.kont, Halt):
-            state.kont.satisfy(generate_constant_value("0"), state) #default return on halt is 0
-        else:
-            print(state.kont)
-            raise Exception("Expected Return Value")
-    return ctrl + 1
 
 def handle_assignment(ident, exp, state):
     """Creates continuation to evalueate exp and assigns resulting value to the
@@ -242,9 +304,26 @@ def handle_decl(type_of, ident, exp, state): # pylint: disable=unused-argument
         new_state = State(state.ctrl, new_envr, state.stor, state.kont)
         return handle_assignment(ident, exp, new_state)
     #case: type_of ident;
-    return State(get_next(state.ctrl, state), new_envr, state.stor, state.kont)
+    return state.kont.satisfy(new_state)
 
+def handle_return(exp, state):
+    """makes a ReturnKont to pass a value to the parrent kont"""
+    if isinstance(state.kont, DefaultKont):
+        returnable_kont = ReturnKont(state.kont.get_returnable())
+    else:
+        returnable_kont = ReturnKont(state.kont)
+    if exp is None:
+        return returnable_kont.satisfy(state)
+    return State(Ctrl(exp), state.envr, state.stor, returnable_kont)
+
+def generate_default_kont_state(state):
+    """If the states continuation requires a return statement we generate this
+    default kont to prevent incorect returns"""
+    if isinstance(state.kont, (Halt, VoidKont)):
+        default_kont = DefaultKont(state)
+        return State(state.ctrl, state.envr, state.stor, default_kont)
+    return state
 
 # imports are down here to allow for circular dependencies between structures.py and interpret.py
-from cesk.structures import State, Ctrl, Envr, AssignKont, Halt, VoidKont # pylint: disable=wrong-import-position
+from cesk.structures import State, Ctrl, Envr, AssignKont, DefaultKont, Halt, ReturnKont, VoidKont # pylint: disable=wrong-import-position
 from cesk.structures import LeftBinopKont # pylint: disable=wrong-import-position

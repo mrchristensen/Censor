@@ -2,7 +2,6 @@
 
 import copy
 import pycparser
-import cesk.values
 # from cesk.interpret import execute #pylint:disable=all
 
 class State: #pylint:disable=too-few-public-methods
@@ -146,13 +145,15 @@ class Stor:
 
 class Kont:
     """Abstract class for polymorphism of continuations"""
-    def satisfy(self, needs, current_state):
+    def satisfy(self, current_state, value):
         pass
 
 class Halt(Kont):
     """Last continuation to execute"""
-    def satisfy(self, value, current_state):
-        exit(value.data)
+    def satisfy(self, current_state, value=None):
+        if value is not None:
+            exit(value.data)
+        exit(0)
 
 class AssignKont(Kont):
     """Continuaton created by assignment requires a Value to assign to an
@@ -164,15 +165,51 @@ class AssignKont(Kont):
         self.ident = ident 
         self.parent_state = parent_state
 
-    def satisfy(self, value, current_state):
+    def satisfy(self, current_state, value):
         address = self.parent_state.envr.get_address(self.ident)
         type_of = self.parent_state.envr.get_type(self.ident)
         new_stor = copy.deepcopy(current_state.stor)
         cast_value = cesk.values.cast(value, type_of)
         new_stor.write(address, cast_value)
-        return State(cesk.interpret.get_next(self.parent_state.ctrl,
-        self.parent_state), self.parent_state.envr,
-            new_stor, self.parent_state.kont)
+        return_state = State(self.parent_state.ctrl, self.parent_state.envr,
+                             new_stor, self.parent_state.kont) 
+        return self.parent_state.kont.satisfy(return_state, value)
+
+class DefaultKont(Kont):
+    """Default continuation satisfy requires no value and puts ctrl to next
+    statement"""
+    parent_state = None
+
+    def __init__(self, parent_state):
+        print(parent_state)
+        self.parent_state = parent_state
+    
+    def __get_next(self, state):
+        """takes state and returns a state with ctrl for the next statment
+        to execute"""
+        ctrl = state.ctrl
+        parent_kont = self.parent_state.kont
+        #if simple incrementing wont work
+        if (ctrl.body is None or
+            len(ctrl.body.block_items) <= ctrl.index + 1):
+            #if the parrent kont can be satisfied without a value
+            if (isinstance(parent_kont, Halt) or 
+                isinstance(parent_kont, VoidKont) or
+                isinstance(parent_kont, DefaultKont)):
+                return parent_kont.satisfy(state)
+            else:
+                raise Exception("Expected return value")
+        return State(ctrl + 1, state.envr, state.stor, state.kont)
+
+    def get_returnable(self):
+        if isinstance(self.parent_state.kont, DefaultKont):
+            return self.parent_state.kont.get_returnable()
+        return self.parent_state.kont
+
+    def satisfy(self, state, value=None):
+        next_from_parent = self.__get_next(self.parent_state)
+        return State(next_from_parent.ctrl, state.envr, state.stor,
+                     next_from_parent.kont)
 
 class LeftBinopKont(Kont):
     """Continuation for the left side of a binary operator"""
@@ -186,12 +223,21 @@ class LeftBinopKont(Kont):
         self.rightExp = rightExp
         self.return_kont = return_kont
 
-    def satisfy(self, value, current_state):
+    def satisfy(self, current_state, value):
         left_result = value
         right_kont = RightBinopKont(left_result, self.operator,
                                     self.return_kont)
         return State(Ctrl(self.rightExp), current_state.envr,
                      current_state.stor, right_kont)
+
+class ReturnKont(Kont): #pylint: disable=too-few-public-methods
+    parent_kont = None
+
+    def __init__(self, parent_kont):
+        self.parent_kont = parent_kont
+
+    def satisfy(self, state, value):
+        self.parent_kont.satisfy(state, value)
 
 class RightBinopKont(Kont):
     """Continuation for the right side of a binary operator"""
@@ -205,25 +251,23 @@ class RightBinopKont(Kont):
         self.operator = operator
         self.return_kont = return_kont
 
-    def satisfy(self, value, current_state):
+    def satisfy(self, current_state, value):
         result = self.left_result.perform_operation(self.operator, value)
-        return self.return_kont.satisfy(result, current_state)
+        return self.return_kont.satisfy(current_state, result)
 
 class VoidKont(Kont):
     """Continuation that does not require a value"""
 
-    next_ctrl = None
     parent_kont = None
 
-    def __init__(self, next_ctrl, parent_kont):
-        self.next_ctrl = next_ctrl
+    def __init__(self, parent_kont):
         self.parent_kont = parent_kont
 
-    def satisfy(self, first, second = None):
-        if second is not None:
+    def satisfy(self, state, value=None):
+        if value is not None:
             raise Exception("'return' with a value in block returning void")
-        state = first
-        return State(next_ctrl, state.envr, state.stor, parent_kont) 
+        return parent_kont.satisfy(state)
 
 # import is down here to allow for circular dependencies between structures.py and interpret.py
+import cesk.values # pylint: disable=wrong-import-position
 import cesk.interpret # pylint: disable=wrong-import-position
