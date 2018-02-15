@@ -27,12 +27,10 @@ def execute(state):
     elif isinstance(stmt, pycparser.c_ast.Assignment):
         # TODO
         #print("Assignment")
-        if stmt.op != '=':
-            raise Exception(stmt.op + " is not yet implemented")
         state = generate_default_kont_state(state)
         ident = stmt.lvalue
         exp = stmt.rvalue
-        successors.append(handle_assignment(ident, exp, state))
+        successors.append(handle_assignment(stmt.op, ident, exp, state))
     elif isinstance(stmt, pycparser.c_ast.BinaryOp):
         # TODO
         #print("BinaryOp")
@@ -280,13 +278,19 @@ def execute(state):
 
     return successors
 
-def handle_assignment(ident, exp, state):
+def handle_assignment(operator, ident, exp, state):
     """Creates continuation to evalueate exp and assigns resulting value to the
     address associated with ident"""
     #pylint: disable=too-many-function-args
-
-    new_ctrl = Ctrl(exp) #build special ctrl for exp
-    new_kont = AssignKont(ident, state)
+    if operator == '=':
+        new_ctrl = Ctrl(exp) #build special ctrl for exp
+        new_kont = AssignKont(ident, state)
+    elif operator == "+=":
+        assign_kont = AssignKont(ident, state)
+        new_kont = LeftBinopKont("+", exp, assign_kont)
+        new_ctrl = Ctrl(ident)
+    else:
+        raise Exception(operator + " is not yet implemented")
     return State(new_ctrl, state.envr, state.stor, new_kont)
 
 def handle_decl(type_of, ident, exp, state): # pylint: disable=unused-argument
@@ -302,7 +306,7 @@ def handle_decl(type_of, ident, exp, state): # pylint: disable=unused-argument
 
     if exp is not None:
         new_state = State(state.ctrl, new_envr, state.stor, state.kont)
-        return handle_assignment(ident, exp, new_state)
+        return handle_assignment("=", ident, exp, new_state)
     #case: type_of ident;
     return state.kont.satisfy(new_state)
 

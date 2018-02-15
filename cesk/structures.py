@@ -33,13 +33,6 @@ class State: #pylint:disable=too-few-public-methods
         """attaches a kont object to the state"""
         self.kont = kont
 
-    def execute(self):
-        """Evaluates the code at ctrl using current state"""
-        successors = cesk.interpret.execute(self)
-        #print("\n\n\tSuccessors:" + ''.join(str(s) for s in successors))
-        for successor in successors:
-            successor.execute()
-
 class Ctrl: #pylint:disable=too-few-public-methods
     """Holds the control pointer or location of the program"""
     index = None
@@ -88,9 +81,9 @@ class Envr:
         "looks up the address associated with an identifier"""
         if (ident in self.map_to_address):
             return self.map_to_address[ident]
-        if (parent is not None):
+        if (self.parent is not None):
             return parent.get_address(ident)
-        return None
+        raise Exception(ident.name + " is not defined in this scope") 
 
     def get_type(self, ident):
         if (ident in self.map_to_type):
@@ -167,10 +160,8 @@ class AssignKont(Kont):
 
     def satisfy(self, current_state, value):
         address = self.parent_state.envr.get_address(self.ident)
-        type_of = self.parent_state.envr.get_type(self.ident)
         new_stor = copy.deepcopy(current_state.stor)
-        cast_value = cesk.values.cast(value, type_of)
-        new_stor.write(address, cast_value)
+        new_stor.write(address, value)
         return_state = State(self.parent_state.ctrl, self.parent_state.envr,
                              new_stor, self.parent_state.kont) 
         return self.parent_state.kont.satisfy(return_state, value)
@@ -181,7 +172,6 @@ class DefaultKont(Kont):
     parent_state = None
 
     def __init__(self, parent_state):
-        print(parent_state)
         self.parent_state = parent_state
     
     def __get_next(self, state):
