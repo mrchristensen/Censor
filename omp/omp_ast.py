@@ -372,11 +372,10 @@ class OmpTaskgroup(Node):
     attr_names = ('pragma', )
 
 class OmpAtomic(Node):
-    __slots__ = ('pragma', 'seq_cst', 'atomic_clause', 'block', 'coord', '__weakref__')
-    def __init__(self, pragma, seq_cst, atomic_clause, block, coord=None):
+    __slots__ = ('pragma', 'clauses', 'block', 'coord', '__weakref__')
+    def __init__(self, pragma, clauses, block, coord=None):
         self.pragma = pragma
-        self.seq_cst = seq_cst
-        self.atomic_clause = atomic_clause
+        self.clauses = clauses
         self.block = block
         self.coord = coord
 
@@ -384,22 +383,20 @@ class OmpAtomic(Node):
         nodelist = []
         return tuple(nodelist)
 
-    attr_names = ('pragma', 'seq_cst', 'atomic_clause', 'block', )
+    attr_names = ('pragma', 'clauses', 'block', )
 
 class OmpFlush(Node):
-    __slots__ = ('pragma', 'id_list', 'coord', '__weakref__')
-    def __init__(self, pragma, id_list, coord=None):
+    __slots__ = ('pragma', 'clauses', 'coord', '__weakref__')
+    def __init__(self, pragma, clauses, coord=None):
         self.pragma = pragma
-        self.id_list = id_list
+        self.clauses = clauses
         self.coord = coord
 
     def children(self):
         nodelist = []
-        for i, child in enumerate(self.id_list or []):
-            nodelist.append(("id_list[%d]" % i, child))
         return tuple(nodelist)
 
-    attr_names = ('pragma', )
+    attr_names = ('pragma', 'clauses', )
 
 class OmpOrdered(Node):
     __slots__ = ('pragma', 'clauses', 'block', 'coord', '__weakref__')
@@ -417,64 +414,54 @@ class OmpOrdered(Node):
     attr_names = ('pragma', 'clauses', )
 
 class OmpCancel(Node):
-    __slots__ = ('pragma', 'construct_type', 'if_clause', 'coord', '__weakref__')
-    def __init__(self, pragma, construct_type, if_clause, coord=None):
+    __slots__ = ('pragma', 'clauses', 'coord', '__weakref__')
+    def __init__(self, pragma, clauses, coord=None):
         self.pragma = pragma
-        self.construct_type = construct_type
-        self.if_clause = if_clause
+        self.clauses = clauses
         self.coord = coord
 
     def children(self):
         nodelist = []
         return tuple(nodelist)
 
-    attr_names = ('pragma', 'construct_type', 'if_clause', )
+    attr_names = ('pragma', 'clauses', )
 
 class OmpCancellationPoint(Node):
-    __slots__ = ('pragma', 'construct_type', 'coord', '__weakref__')
-    def __init__(self, pragma, construct_type, coord=None):
+    __slots__ = ('pragma', 'clauses', 'coord', '__weakref__')
+    def __init__(self, pragma, clauses, coord=None):
         self.pragma = pragma
-        self.construct_type = construct_type
+        self.clauses = clauses
         self.coord = coord
 
     def children(self):
         nodelist = []
         return tuple(nodelist)
 
-    attr_names = ('pragma', 'construct_type', )
+    attr_names = ('pragma', 'clauses', )
 
 class OmpThreadprivate(Node):
-    __slots__ = ('pragma', 'vars', 'coord', '__weakref__')
-    def __init__(self, pragma, vars, coord=None):
+    __slots__ = ('pragma', 'clauses', 'coord', '__weakref__')
+    def __init__(self, pragma, clauses, coord=None):
         self.pragma = pragma
-        self.vars = vars
+        self.clauses = clauses
         self.coord = coord
 
     def children(self):
         nodelist = []
-        for i, child in enumerate(self.vars or []):
-            nodelist.append(("vars[%d]" % i, child))
         return tuple(nodelist)
 
-    attr_names = ('pragma', )
+    attr_names = ('pragma', 'clauses', )
 
 class OmpDeclareReduction(Node):
-    __slots__ = ('pragma', 'reduction_id', 'types', 'combiner', 'initializer', 'coord', '__weakref__')
-    def __init__(self, pragma, reduction_id, types, combiner, initializer, coord=None):
+    __slots__ = ('pragma', 'clauses', 'coord', '__weakref__')
+    def __init__(self, pragma, clauses, coord=None):
         self.pragma = pragma
-        self.reduction_id = reduction_id
-        self.types = types
-        self.combiner = combiner
-        self.initializer = initializer
+        self.clauses = clauses
         self.coord = coord
 
     def children(self):
         nodelist = []
-        if self.reduction_id is not None: nodelist.append(("reduction_id", self.reduction_id))
-        if self.combiner is not None: nodelist.append(("combiner", self.combiner))
-        for i, child in enumerate(self.types or []):
-            nodelist.append(("types[%d]" % i, child))
         return tuple(nodelist)
 
-    attr_names = ('pragma', 'initializer', )
+    attr_names = ('pragma', 'clauses', )
 
