@@ -25,6 +25,7 @@ class PragmaToOmpCritical(PragmaToOmp):
             return node
 
         for index, child in enumerate(node.block_items):
+            self.generic_visit(node)
             if isinstance(child, Pragma) \
             and self.pragma_matches(child.string) \
             and index + 1 != len(node.block_items):
@@ -38,6 +39,5 @@ class PragmaToOmpCritical(PragmaToOmp):
                     coord=child.coord,
                     )
                 node.block_items.pop(index+1)
-                self.visit(node.block_items[index])
 
         return node
