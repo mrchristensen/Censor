@@ -18,7 +18,7 @@ class FirstPrivate():
     """ FirstPrivate
         list of identifiers
 
-        Syntax: private(a, b, c, ...)
+        Syntax: firstprivate(a, b, c, ...)
     """
 
     def __init__(self, *ids):
@@ -32,7 +32,21 @@ class LastPrivate():
     """ LastPrivate
         list of identifiers
 
-        Syntax: private(a, b, c, ...)
+        Syntax: lastprivate(a, b, c, ...)
+    """
+
+    def __init__(self, *ids):
+        self.ids = list(ids)
+
+    def __iter__(self):
+        if self.ids is not None:
+            yield self.ids
+
+class CopyPrivate():
+    """ CopyPrivate
+        list of identifiers
+
+        Syntax: copyprivate(a, b, c, ...)
     """
 
     def __init__(self, *ids):

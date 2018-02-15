@@ -14,7 +14,8 @@ SUITE = unittest.TestLoader().loadTestsFromNames(
         'test_while_to_do_while',
         'test_omp_parallel',
         'test_omp_barrier',
-        'test_omp_master'
+        'test_omp_master',
+        'test_omp_single'
     ]
 )
 TESTRESULT = unittest.TextTestRunner(verbosity=1).run(SUITE)
