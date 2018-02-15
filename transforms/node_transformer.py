@@ -6,9 +6,13 @@ Based on python's NodeTransformer class
 https://github.com/python/cpython/blob/3.0/Lib/ast.py
 """
 
-from pycparser.c_ast import Node, NodeVisitor
+# Importing both generated AST definitions to use in branch conditions
+# We may want to have our omp AST definitions to inherit from pycparsers
+# Node class if this causes any more problems.
+import pycparser.c_ast
+import omp.omp_ast
 
-class NodeTransformer(NodeVisitor):
+class NodeTransformer(pycparser.c_ast.NodeVisitor):
     """Base abstract NodeTransformer class"""
 
     def skip(self, node): #pylint: disable=no-self-use
@@ -27,16 +31,16 @@ class NodeTransformer(NodeVisitor):
                     if self.skip(value):
                         new_values.append(value)
                         continue
-                    elif isinstance(value, Node):
+                    elif isinstance(value, (pycparser.c_ast.Node, omp.omp_ast.Node)):
                         value = self.visit(value)
                         if value is None:
                             continue
-                        elif not isinstance(value, Node):
+                        elif not isinstance(value, (pycparser.c_ast.Node, omp.omp_ast.Node)):
                             new_values.extend(value)
                             continue
                     new_values.append(value)
                 old_value[:] = new_values
-            elif isinstance(old_value, Node):
+            elif isinstance(old_value, (pycparser.c_ast.Node, omp.omp_ast.Node)):
                 new_node = self.visit(old_value)
                 if new_node is None:
                     delattr(node, field)

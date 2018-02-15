@@ -1,4 +1,4 @@
-"""Pragma to OMP For Node transform"""
+"""Pragma to OMP Critical Node transform"""
 
 import re
 from pycparser.c_ast import Pragma
@@ -7,7 +7,7 @@ from omp.clause import Critical, Hint
 from .pragma_to_omp import PragmaToOmp
 
 class PragmaToOmpCritical(PragmaToOmp):
-    """Pragma to OMP For Node transform"""
+    """Pragma to OMP Critical Node transform"""
 
     def __init__(self):
         super().__init__()
@@ -15,7 +15,7 @@ class PragmaToOmpCritical(PragmaToOmp):
             "hint": Hint,
             "critical": Critical
         }
-        self.pattern = re.compile(r'omp +critical *(\(\w+\) +(hint\(\d+\))?)?')
+        self.pattern = re.compile(r'omp +critical *(\(\w+\) +(hint\(\d+\))?)?\s*')
 
     def visit_Compound(self, node): #pylint: disable=invalid-name
         """ Visit each compound node and check it's children for the Pragma

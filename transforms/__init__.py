@@ -9,5 +9,3 @@ def transform(ast):
     for transformer in transformers:
         ast = transformer.visit(ast)
     return ast
-
-__all__ = ["for_to_while", "omp_for"]

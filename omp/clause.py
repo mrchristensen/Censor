@@ -98,12 +98,20 @@ class NoWait():
         pass
 
 class Critical():
-    """Critical Section name"""
+    """ Critical
+        string-expression
+
+        Syntax: critical(name)
+    """
     def __init__(self, name=None):
         self.name = name
 
 class Hint():
-    """Critical section hint"""
+    """ Hint
+        integer-expression
+
+        Syntax: hint(integer)
+    """
     def __init__(self, hint):
         self.hint = hint
 
