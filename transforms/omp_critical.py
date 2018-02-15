@@ -15,7 +15,7 @@ class PragmaToOmpCritical(PragmaToOmp):
             "hint": Hint,
             "critical": Critical
         }
-        self.pattern = re.compile(r'omp +critical *(\(\w+\) +(hint\(\d+\))?)?\s*')
+        self.pattern = re.compile(r'omp +critical.*')
 
     def visit_Compound(self, node): #pylint: disable=invalid-name
         """ Visit each compound node and check it's children for the Pragma
