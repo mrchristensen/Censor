@@ -167,8 +167,7 @@ class OmpSections(Node):
 
     def children(self):
         nodelist = []
-        for i, child in enumerate(self.sections or []):
-            nodelist.append(("sections[%d]" % i, child))
+        if self.sections is not None: nodelist.append(("sections", self.sections))
         return tuple(nodelist)
 
     attr_names = ('pragma', 'clauses', )

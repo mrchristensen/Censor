@@ -18,7 +18,9 @@ SUITE = unittest.TestLoader().loadTestsFromNames(
         'test_omp_single',
         'test_omp_task',
         'test_omp_flush',
-        'test_omp_parallel_for'
+        'test_omp_parallel_for',
+        'test_omp_sections',
+        'test_omp_section'
     ]
 )
 TESTRESULT = unittest.TextTestRunner(verbosity=1).run(SUITE)
