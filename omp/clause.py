@@ -173,3 +173,58 @@ class CopyIn():
     """
     def __init__(self, *ids):
         self.ids = list(ids)
+
+class Final():
+    """ Final
+        scalar-expression
+
+        Syntax: final(scalar)
+    """
+    def __init__(self, scalar):
+        self.scalar = scalar
+
+class Untied():
+    """ Untied
+        No Parameters
+
+        Syntax: untied
+    """
+    def __init__(self):
+        pass
+
+class Mergeable():
+    """ Mergeable
+        No Parameters
+
+        Syntax: mergeable
+    """
+    def __init__(self):
+        pass
+
+class Depend():
+    """ Depend
+        dependency-type: list
+
+        Syntax: depend(dependency-type: list)
+    """
+    def __init__(self, typ, *lst):
+        self.typ = typ
+        self.lst = list(lst)
+
+class Priority():
+    """ Priority
+        priority-value
+
+        Syntax: priority(priority-value)
+    """
+    def __init__(self, value):
+        self.value = value
+
+class Flush():
+    """ Flush
+        ids
+
+        Syntax: flush(ids)
+    """
+    def __init__(self, *ids):
+        self.ids = list(ids)
