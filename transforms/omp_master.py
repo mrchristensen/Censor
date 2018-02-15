@@ -17,11 +17,11 @@ class PragmaToOmpMaster(PragmaToOmp):
         """ Visit each compound node and check it's children for the Pragma
             nodes we want to change. Recursively alter, if found.
         """
+        node = self.generic_visit(node)
         if node.block_items is None:
             return node
 
         for index, child in enumerate(node.block_items):
-            self.generic_visit(node)
             if isinstance(child, Pragma) \
             and self.pragma_matches(child.string) \
             and index + 1 != len(node.block_items):
