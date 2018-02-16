@@ -28,7 +28,7 @@ def execute(state):
         # TODO
         #print("Assignment")
         state = generate_default_kont_state(state)
-        ident = stmt.lvalue
+        ident = stmt.lvalue.name
         exp = stmt.rvalue
         successors.append(handle_assignment(stmt.op, ident, exp, state))
     elif isinstance(stmt, pycparser.c_ast.BinaryOp):
@@ -155,6 +155,7 @@ def execute(state):
             print(value.data)
         else:
             print(stmt.name.name)
+        successors.append(state.kont.satisfy(state))
     elif isinstance(stmt, pycparser.c_ast.FuncDecl):
         # TODO
         #print("FuncDecl")

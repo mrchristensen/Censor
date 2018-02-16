@@ -15,5 +15,5 @@ def main(ast):
     queue = deque([start_state])
     while queue:
         successors = execute(queue.popleft())
-        if successors is not NotImplemented:
-            queue.extend(successors)
+        queue.extend(successors)
+    raise Exception("Execution finished without Halt")

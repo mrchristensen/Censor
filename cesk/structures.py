@@ -83,7 +83,7 @@ class Envr:
             return self.map_to_address[ident]
         if (self.parent is not None):
             return parent.get_address(ident)
-        raise Exception(ident.name + " is not defined in this scope") 
+        raise Exception(ident + " is not defined in this scope") 
 
     def get_type(self, ident):
         if (ident in self.map_to_type):
@@ -132,7 +132,7 @@ class Stor:
         merge value into the existing value.
         """
         if address in self.memory:
-            self.memory[address] = self.memory[address].Merge(value)
+            self.memory[address] = value
         else:
             self.memory[address] = value
 
