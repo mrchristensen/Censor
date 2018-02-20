@@ -201,6 +201,24 @@ class DefaultKont(Kont):
         return State(next_from_parent.ctrl, state.envr, state.stor,
                      next_from_parent.kont)
 
+class IfKont(Kont):
+    """Continuation for if statement, moves ctrl to correct place"""
+    parent_state = None
+    iftrue = None
+    iffalse = None
+
+    def __init__(self, parent_state, iftrue, iffalse):
+        self.parent_state = parent_state
+        self.iftrue = iftrue
+        self.iffalse = iffalse
+
+    def satisfy(self, state, value):
+        if (value.data != 0):
+            new_ctrl = Ctrl(self.iftrue)
+        else:
+            new_ctrl = Ctrl(self.iffalse)
+        return State(new_ctrl, state.envr, state.stor, self.parent_state.kont)
+
 class LeftBinopKont(Kont):
     """Continuation for the left side of a binary operator"""
 

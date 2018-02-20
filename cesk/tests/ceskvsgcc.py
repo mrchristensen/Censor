@@ -19,9 +19,9 @@ class CESKvsGCC(TestCase):
         else:
             print("FAILED: ", path.basename(file_path))
             print("Expected (gcc): ")
-            print(str(gcc_out, 'utf-8'))
+            print(str(gcc_out))
             print("Actual (cesk): ")
-            print(str(cesk_out, 'utf-8'))
+            print(str(cesk_out))
             raise self.failureException()
 
     def assert_all_equal(self, folder):

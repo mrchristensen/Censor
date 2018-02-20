@@ -28,7 +28,7 @@ def execute(state):
         # TODO
         #print("Assignment")
         state = generate_default_kont_state(state)
-        ident = stmt.lvalue.name
+        ident = stmt.lvalue
         exp = stmt.rvalue
         successors.append(handle_assignment(stmt.op, ident, exp, state))
     elif isinstance(stmt, pycparser.c_ast.BinaryOp):
@@ -86,7 +86,7 @@ def execute(state):
         #print("Decl")
         state = generate_default_kont_state(state)
         type_of = stmt.type
-        ident = stmt.name
+        ident = stmt
         exp = stmt.init
         successors.append(handle_decl(type_of, ident, exp, state))
     elif isinstance(stmt, pycparser.c_ast.DeclList):
@@ -188,7 +188,9 @@ def execute(state):
         # TODO
         #print("If")
         state = generate_default_kont_state(state)
-        successors.append(state.kont.satisfy(state))
+        new_kont = IfKont(state, stmt.iftrue, stmt.iffalse)
+        new_ctrl = Ctrl(stmt.cond)
+        successors.append(State(new_ctrl, state.envr, state.stor, new_kont))
     elif isinstance(stmt, pycparser.c_ast.InitList):
         # TODO
         #print("InitList")
@@ -285,10 +287,14 @@ def handle_assignment(operator, ident, exp, state):
     #pylint: disable=too-many-function-args
     if operator == '=':
         new_ctrl = Ctrl(exp) #build special ctrl for exp
-        new_kont = AssignKont(ident, state)
+        new_kont = AssignKont(ident.name, state)
     elif operator == "+=":
-        assign_kont = AssignKont(ident, state)
+        assign_kont = AssignKont(ident.name, state)
         new_kont = LeftBinopKont("+", exp, assign_kont)
+        new_ctrl = Ctrl(ident)
+    elif operator == "*=":
+        assign_kont = AssignKont(ident.name, state)
+        new_kont = LeftBinopKont("*", exp, assign_kont)
         new_ctrl = Ctrl(ident)
     else:
         raise Exception(operator + " is not yet implemented")
@@ -299,11 +305,11 @@ def handle_decl(type_of, ident, exp, state): # pylint: disable=unused-argument
 
     # type_of ident = exp;
     #map new ident
-    if state.envr.is_localy_defined(ident):
-        raise Exception("Error: redefinition of " + ident)
+    if state.envr.is_localy_defined(ident.name):
+        raise Exception("Error: redefinition of " + ident.name)
     new_envr = copy.deepcopy(state.envr)
     new_address = state.stor.get_next_address()
-    new_envr.map_new_identifier(ident, new_address)
+    new_envr.map_new_identifier(ident.name, new_address)
 
     if exp is not None:
         new_state = State(state.ctrl, new_envr, state.stor, state.kont)
@@ -331,4 +337,4 @@ def generate_default_kont_state(state):
 
 # imports are down here to allow for circular dependencies between structures.py and interpret.py
 from cesk.structures import State, Ctrl, Envr, AssignKont, DefaultKont, Halt, ReturnKont, VoidKont # pylint: disable=wrong-import-position
-from cesk.structures import LeftBinopKont # pylint: disable=wrong-import-position
+from cesk.structures import LeftBinopKont, IfKont # pylint: disable=wrong-import-position
