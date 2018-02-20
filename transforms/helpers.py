@@ -16,3 +16,12 @@ def append_statement(compound, stmt):
     if stmt:
         items.append(stmt)
     return Compound(items)
+
+class IncorrectTransformOrder(Exception):
+    """If an AST transform ever realizes it is being called in the wrong
+    order (for example, if it encounters a kind of node that should have
+    already been removed), it raises this exception."""
+
+    def __init__(self, message, node=None):
+        super().__init__(message)
+        self.node = node
