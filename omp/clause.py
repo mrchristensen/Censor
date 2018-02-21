@@ -228,3 +228,75 @@ class Flush():
     """
     def __init__(self, *ids):
         self.ids = list(ids)
+
+class SeqCst():
+    """ SeqCst
+        No parameters
+
+        Syntax: seq_cst
+    """
+    def __init__(self):
+        pass
+
+class Read():
+    """ Read
+        No parameters
+
+        Syntax: write
+    """
+    def __init__(self):
+        pass
+
+class Write():
+    """ Write
+        No parameters
+
+        Syntax: write
+    """
+    def __init__(self):
+        pass
+
+class Update():
+    """ Update
+        No parameters
+
+        Syntax: update
+    """
+    def __init__(self):
+        pass
+
+class Capture():
+    """ Capture
+        No parameters
+
+        Syntax: capture
+    """
+    def __init__(self):
+        pass
+
+class GrainSize():
+    """ GrainSize
+        grain-size
+
+        Syntax: grainsize(grain-size)
+    """
+    def __init__(self, size):
+        self.size = size
+
+class NumTasks():
+    """ NumTasks
+        num-tasks
+
+        Syntax: numtasks(num-tasks)
+    """
+    def __init__(self, num):
+        self.num = num
+
+class NoGroup():
+    """ NoGroup
+        No parameters
+
+        Syntax: nogroup
+    """
+    def __init__(self):
+        pass

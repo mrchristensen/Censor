@@ -451,16 +451,3 @@ class OmpThreadprivate(Node):
 
     attr_names = ('pragma', 'clauses', )
 
-class OmpDeclareReduction(Node):
-    __slots__ = ('pragma', 'clauses', 'coord', '__weakref__')
-    def __init__(self, pragma, clauses, coord=None):
-        self.pragma = pragma
-        self.clauses = clauses
-        self.coord = coord
-
-    def children(self):
-        nodelist = []
-        return tuple(nodelist)
-
-    attr_names = ('pragma', 'clauses', )
-
