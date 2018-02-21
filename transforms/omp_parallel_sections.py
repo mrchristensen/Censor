@@ -2,7 +2,7 @@
 
 import re
 from pycparser.c_ast import Pragma
-from omp.omp_ast import OmpParallel, OmpFor
+from omp.omp_ast import OmpParallel, OmpSections
 import omp.clause as OmpClause
 from .pragma_to_omp import PragmaToOmp
 
@@ -17,23 +17,20 @@ PARALLEL_STR_TO_CLAUSE_TYPE = {
     "reduction": OmpClause.Reduction,
     }
 
-FOR_STR_TO_CLAUSE_TYPE = {
+SECTIONS_STR_TO_CLAUSE_TYPE = {
     "private":	    OmpClause.Private,
     "firstprivate": OmpClause.FirstPrivate,
     "lastprivate": OmpClause.LastPrivate,
     "reduction": OmpClause.Reduction,
-    "schedule": OmpClause.Schedule,
-    "collapse": OmpClause.Collapse,
-    "ordered": OmpClause.Ordered,
     }
 
-class PragmaToOmpParallelFor(PragmaToOmp):
+class PragmaToOmpParallelSections(PragmaToOmp):
     """Pragma to OMP Parallel Node transform"""
 
     def __init__(self):
         super().__init__(
             None, # We override the default transform
-            re.compile(r'omp +parallel +for.*'),
+            re.compile(r'omp +parallel +sections.*'),
             {} # We have to toggle between two mappings for clauses
         )
 
@@ -48,8 +45,8 @@ class PragmaToOmpParallelFor(PragmaToOmp):
                and self.pragma_matches(child.string) \
                and index + 1 < len(node.block_items):
                 next_sibling = node.block_items[index+1]
-                self.str_to_clause_type = FOR_STR_TO_CLAUSE_TYPE
-                for_node = OmpFor(
+                self.str_to_clause_type = SECTIONS_STR_TO_CLAUSE_TYPE
+                sections_node = OmpSections(
                     child.string,
                     self.clause_nodes_from_pragma_string(child.string),
                     next_sibling,
@@ -59,7 +56,7 @@ class PragmaToOmpParallelFor(PragmaToOmp):
                 node.block_items[index] = OmpParallel(
                     child.string,
                     self.clause_nodes_from_pragma_string(child.string),
-                    for_node,
+                    sections_node,
                     child.coord
                 )
                 node.block_items.pop(index+1)
