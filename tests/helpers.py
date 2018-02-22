@@ -40,7 +40,7 @@ class GoldenTestCase(TestCase):
 
     def assert_all_golden(self):
         """Run all test fixtures in censor/tests/fixtures/[module]"""
-        fixtures = get_fixtures('./fixtures/' + self.module)
+        fixtures = sorted(get_fixtures('./fixtures/' + self.module))
         for input_file, golden in fixtures:
             input_c = open(input_file, 'r').read()
             ast = self.parser.parse(input_c)

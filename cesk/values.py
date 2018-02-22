@@ -26,7 +26,7 @@ class ArithmeticValue: #pylint:disable=too-few-public-methods
             method = self.__getattribute__(BINOPS[operator])
             return method(value)
         else:
-            print("Operator not implemented!")
+            raise NotImplementedError()
 
     def get_truth_value(self):
         """Returns a bool denoting what truth value the ArithmeticValue would have
