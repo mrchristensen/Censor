@@ -10,7 +10,7 @@ class PragmaToOmp(NodeTransformer):
 
     def __init__(self, construct, pattern, str_to_clause_type, structured_block=True):
         self.construct = construct
-        self.has_clauses = hasattr(construct, "clauses")
+        self.has_clauses = len(str_to_clause_type) > 0
         self.pattern = pattern
         self.str_to_clause_type = str_to_clause_type
         self.structured_block = structured_block

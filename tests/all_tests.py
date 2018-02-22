@@ -25,7 +25,10 @@ SUITE = unittest.TestLoader().loadTestsFromNames(
         'test_omp_atomic',
         'test_omp_taskloop',
         'test_omp_taskwait',
-        'test_omp_taskgroup'
+        'test_omp_taskgroup',
+        'test_omp_cancel',
+        'test_omp_cancellation_point',
+        'test_omp_threadprivate'
     ]
 )
 TESTRESULT = unittest.TextTestRunner(verbosity=1).run(SUITE)

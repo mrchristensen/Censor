@@ -165,6 +165,10 @@ class Shared():
     def __init__(self, *ids):
         self.ids = list(ids)
 
+    def __iter__(self):
+        if self.ids is not None:
+            yield self.ids
+
 class CopyIn():
     """ CopyIn
         list of identifiers
@@ -173,6 +177,11 @@ class CopyIn():
     """
     def __init__(self, *ids):
         self.ids = list(ids)
+
+    def __iter__(self):
+        if self.ids is not None:
+            yield self.ids
+
 
 class Final():
     """ Final
@@ -211,6 +220,10 @@ class Depend():
         self.typ = typ
         self.lst = list(lst)
 
+    def __iter__(self):
+        if self.lst is not None:
+            yield self.lst
+
 class Priority():
     """ Priority
         priority-value
@@ -228,6 +241,10 @@ class Flush():
     """
     def __init__(self, *ids):
         self.ids = list(ids)
+
+    def __iter__(self):
+        if self.ids is not None:
+            yield self.ids
 
 class SeqCst():
     """ SeqCst
@@ -300,3 +317,52 @@ class NoGroup():
     """
     def __init__(self):
         pass
+
+class Parallel():
+    """ Parallel
+        No parameters
+
+        Syntax: parallel
+    """
+    def __init__(self):
+        pass
+
+class For():
+    """ For
+        No parameters
+
+        Syntax: for
+    """
+    def __init__(self):
+        pass
+
+class Sections():
+    """ Sections
+        No parameters
+
+        Syntax: sections
+    """
+    def __init__(self):
+        pass
+
+class Taskgroup():
+    """ Taskgroup
+        No parameters
+
+        Syntax: taskgroup
+    """
+    def __init__(self):
+        pass
+
+class Threadprivate():
+    """ Threadprivate
+        list
+
+        Syntax: threadprivate(list)
+    """
+    def __init__(self, *ids):
+        self.ids = list(ids)
+
+    def __iter__(self):
+        if self.ids is not None:
+            yield self.ids
