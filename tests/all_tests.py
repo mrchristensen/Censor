@@ -28,7 +28,7 @@ SUITE = unittest.TestLoader().loadTestsFromNames(
         'test_omp_taskgroup',
         'test_omp_cancel',
         'test_omp_cancellation_point',
-        'test_omp_threadprivate'
+        'test_omp_threadprivate',
         'test_insert_explicit_type_casts'
     ]
 )
