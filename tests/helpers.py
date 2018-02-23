@@ -35,6 +35,8 @@ class GoldenTestCase(TestCase):
             )
         stdout, _ = proc.communicate()
         if stdout:
+            print("Actual:\n", str(actual))
+            print("Expected:\n", str(actual))
             msg = "Golden match failed\n" + stdout.decode('utf-8')
             raise self.failureException(msg)
 

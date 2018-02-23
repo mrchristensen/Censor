@@ -1,8 +1,9 @@
 """Makes all typecasts explicit"""
 
 from copy import deepcopy
-from cesk.structures import Envr
+# from cesk.structures import Envr
 from pycparser.c_ast import Cast, TypeDecl, PtrDecl, ArrayDecl, FuncDecl
+from pycparser.c_ast import InitList, Constant
 # from pycparser.c_ast import  BinaryOp, UnaryOp, InitList,  Compound,  Decl,
 # from .helpers import IncorrectTransformOrder
 from .node_transformer import NodeTransformer
@@ -12,6 +13,36 @@ from .node_transformer import NodeTransformer
 # const extern volatile static register
 
 # it already puts the type cast in for structs and unions!!!
+
+class Envr:
+    """Holds the enviorment (a maping of identifiers to addresses)"""
+    parent = None
+
+    def __init__(self, parent=None):
+        self.parent = parent
+        self.map_to_type = {}
+
+    def get_type(self, ident):
+        """returns the type currently associated with the given
+        identifier"""
+        if ident in self.map_to_type: #pylint: disable=no-else-return
+            return self.map_to_type[ident]
+        elif self.parent is not None:
+            return self.parent.get_type(ident)
+        else:
+            return None
+
+    def add(self, ident, type_node):
+        """Add a new identifier to the mapping"""
+        self.map_to_type[ident] = type_node
+
+    def is_defined(self, ident):
+        """returns if a given identifier is defined"""
+        return self.get_type(ident) is not None
+
+    def is_locally_defined(self, ident):
+        """returns if a given identifier is defined in the local scope"""
+        return ident in self.map_to_type
 
 
 class NoCastNeeded(Exception):
@@ -39,26 +70,33 @@ class InsertExplicitTypeCasts(NodeTransformer):
         """Add necessary type casts when the Decl involves an assignment."""
         # print("Decl:\n"); node.show()
         # print("node type:\n"); node.type.show()
+        type_node = deepcopy(node.type)
+        try:
+            ident = remove_identifier(type_node)
+        except NoCastNeeded:
+            print("CAUGHT NOCASTNEEDED")
+            node.init = self.generic_visit(node.init)
 
         # if self.envr.is_localy_defined(ident):
         #     raise Exception("Error: redefinition of " + ident)
 
-        # TODO: put type information into the environment
+        self.envr.add(ident, type_node)
 
         if node.init is None:
             return node
 
-        if isinstance(node.type, TypeDecl):
-            node.init = Cast(node.type.type, self.generic_visit(node.init))
-        elif isinstance(node.type, PtrDecl):
-            type_node = deepcopy(node.type)
-            try:
-                type_node = remove_identifier(type_node)
-                node.init = Cast(type_node, self.generic_visit(node.init))
-            except NoCastNeeded:
-                node.init = self.generic_visit(node.init)
+        if isinstance(node.type, (TypeDecl, PtrDecl)):
+            node.init = Cast(type_node, self.generic_visit(node.init))
         elif isinstance(node.type, ArrayDecl):
-            # don't do any cast, casting to an array type doesn't compile
+            if isinstance(node.init, InitList):
+                annotate_array_initlist(node.init, type_node.type)
+            elif isinstance(node.init, Constant):
+                # TODO: figure out what to do with cases like
+                # char wow[100] = "wow"; where an array is initialized
+                # from a string
+                raise NotImplementedError()
+            else:
+                raise NotImplementedError()
             node.init = self.generic_visit(node.init)
         elif isinstance(node.type, FuncDecl):
             # don't do any cast, casting to a function type doesn't compile,
@@ -91,21 +129,41 @@ class InsertExplicitTypeCasts(NodeTransformer):
         pass
 
 def remove_identifier(node):
-    """Takes in a PtrDecl and removes the identifier, so it can be used
-    for type casting."""
-    if isinstance(node.type, TypeDecl):
+    """Takes in the type attribute of a Decl node and removes the identifier,
+    so it can be used for type casting. Returns the identifier"""
+    if isinstance(node, TypeDecl):
         # remove the identifier, end recursion
-        node.type.declname = None
-        return node
-    elif isinstance(node.type, PtrDecl):
+        ident = node.declname
+        node.declname = None
+        return ident
+    elif isinstance(node, (PtrDecl, ArrayDecl)):
         # recur
-        return PtrDecl(node.quals, remove_identifier(node.type))
-    elif isinstance(node.type, ArrayDecl):
-        raise NoCastNeeded("Array Pointer")
-    elif isinstance(node.type, FuncDecl):
+        return remove_identifier(node.type)
+    elif isinstance(node, FuncDecl):
+        # TODO: figure out what the actual correct implementation is...
         raise NoCastNeeded("Function Pointer")
     else:
         raise NotImplementedError()
+
+def annotate_array_initlist(initlist, type_node):
+    """Takes an initializer list and a TypeDecl node and casts each element
+    of the initializer list to the given type."""
+    # TODO: implement for named initializers
+    # TODO: implement recursively if the elements of the list are also
+    # initializer lists, whether they are for structs, more arrays,
+    # unions, or anything else
+    for i in range(len(initlist.exprs)):
+        initlist.exprs[i] = Cast(type_node, initlist.exprs[i])
+
+
+def annotate_struct_initlist(initlist, type_node):
+    """Takes an initializer list and a TypeDecl node members are cast to the
+    types of the corresponding fields of the struct."""
+    # TODO: implement for named initializers
+    # TODO: implement recursively if the elements of the list are also
+    # initializer lists, whether they are for structs, more arrays,
+    # unions, or anything else
+    return initlist, type_node
 
 def handle_constant(node):
     """Takes a node for a constant expression, returns an appropriately type
