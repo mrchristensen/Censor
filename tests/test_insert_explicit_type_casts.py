@@ -4,7 +4,7 @@ from transforms.insert_explicit_type_casts import InsertExplicitTypeCasts
 from helpers import GoldenTestCase
 
 class TestInsertExplicitTypeCasts(GoldenTestCase):
-    """Test ForToWhile transform"""
+    """Test InsertExplicitTypeCasts transform"""
 
     def setUp(self):
         """Set up test variables needed for GoldenTestCase"""

@@ -29,7 +29,8 @@ SUITE = unittest.TestLoader().loadTestsFromNames(
         'test_omp_cancel',
         'test_omp_cancellation_point',
         'test_omp_threadprivate',
-        'test_insert_explicit_type_casts'
+        'test_insert_explicit_type_casts',
+        'test_remove_compound_assignment'
     ]
 )
 TESTRESULT = unittest.TextTestRunner(verbosity=1).run(SUITE)
