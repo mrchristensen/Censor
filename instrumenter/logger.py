@@ -13,17 +13,18 @@ class Logger():
         self.log_heap_def = ast.ext[0]
         self.log_omp_def = ast.ext[1]
 
-    def log_heap_access(self, mode, var):
+    def log_heap_access(self, mode, index, var):
         """Insert a function call AST for yeti_log_heap_access"""
         return pycparser.c_ast.FuncCall(
             pycparser.c_ast.ID(self.log_heap_def.decl.name),
             pycparser.c_ast.ExprList([
                 pycparser.c_ast.Constant('string', '"' + mode + '"'),
-                pycparser.c_ast.ID(var),
+                pycparser.c_ast.Constant('int', str(index)),
                 pycparser.c_ast.FuncCall(
                     pycparser.c_ast.ID('omp_get_thread_num'),
                     None
-                )
+                ),
+                pycparser.c_ast.Constant('string', '"' + var + '"'),
             ])
         )
 
@@ -37,13 +38,13 @@ class Logger():
             ])
         )
 
-    def log_read(self, var):
+    def log_read(self, index, var):
         """Insert a function call AST to log a read heap access"""
-        return self.log_heap_access('read', var)
+        return self.log_heap_access('read', index, var)
 
-    def log_write(self, var):
+    def log_write(self, index, var):
         """Insert a function call AST to log a write heap access"""
-        return self.log_heap_access('write', var)
+        return self.log_heap_access('write', index, var)
 
     def log_omp_enter(self, construct):
         """Insert a function call AST for entering an omp construct"""
