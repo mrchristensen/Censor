@@ -7,6 +7,7 @@ from pycparser.c_ast import InitList, Constant
 # from pycparser.c_ast import  BinaryOp, UnaryOp, InitList,  Compound,  Decl,
 # from .helpers import IncorrectTransformOrder
 from .node_transformer import NodeTransformer
+from .type_helpers import Envr, remove_identifier
 
 # TODO: take care of modifiers and storage qualifiers correctly
 # modifiers: signed unsigned long short
@@ -14,42 +15,9 @@ from .node_transformer import NodeTransformer
 
 # it already puts the type cast in for structs and unions!!!
 
-class Envr:
-    """Holds the enviorment (a maping of identifiers to addresses)"""
-    parent = None
-
-    def __init__(self, parent=None):
-        self.parent = parent
-        self.map_to_type = {}
-
-    def get_type(self, ident):
-        """returns the type currently associated with the given
-        identifier"""
-        if ident in self.map_to_type: #pylint: disable=no-else-return
-            return self.map_to_type[ident]
-        elif self.parent is not None:
-            return self.parent.get_type(ident)
-        else:
-            return None
-
-    def add(self, ident, type_node):
-        """Add a new identifier to the mapping"""
-        self.map_to_type[ident] = type_node
-
-    def is_defined(self, ident):
-        """returns if a given identifier is defined"""
-        return self.get_type(ident) is not None
-
-    def is_locally_defined(self, ident):
-        """returns if a given identifier is defined in the local scope"""
-        return ident in self.map_to_type
-
-
-class NoCastNeeded(Exception):
-    """PtrDecl nodes are recursively unwrapped to see if the underlying type
-    needs to be given an explicit cast upon assignment. If it turns out to be
-    a pointer to a function or an array type, this exception is raised."""
-    pass
+# TODO: in function calls, the arguments need to be cast to the correct type,
+# as does the return value. So the Environment DEFINITELY needs to store info on
+# types of functions.
 
 class InsertExplicitTypeCasts(NodeTransformer):
     """NodeTransformer to make all typecasts in the program explicit."""
@@ -60,25 +28,19 @@ class InsertExplicitTypeCasts(NodeTransformer):
         """Create a new environment with the current environment as its
         parent so that scoping is handled properly."""
         self.envr = Envr(self.envr)
-        for i in range(len(node.block_items)):
-            node.block_items[i] = self.generic_visit(node.block_items[i])
-
+        retval = self.generic_visit(node)
         self.envr = self.envr.parent
-        return node
+        return retval
 
     def visit_Decl(self, node): #pylint: disable=invalid-name
         """Add necessary type casts when the Decl involves an assignment."""
         # print("Decl:\n"); node.show()
         # print("node type:\n"); node.type.show()
         type_node = deepcopy(node.type)
-        try:
-            ident = remove_identifier(type_node)
-        except NoCastNeeded:
-            print("CAUGHT NOCASTNEEDED")
-            node.init = self.generic_visit(node.init)
+        ident = remove_identifier(type_node)
 
-        # if self.envr.is_localy_defined(ident):
-        #     raise Exception("Error: redefinition of " + ident)
+        if self.envr.is_locally_defined(ident):
+            raise Exception("Error: redefinition of " + ident)
 
         self.envr.add(ident, type_node)
 
@@ -99,6 +61,7 @@ class InsertExplicitTypeCasts(NodeTransformer):
                 raise NotImplementedError()
             node.init = self.generic_visit(node.init)
         elif isinstance(node.type, FuncDecl):
+            # TODO: add type information of the function to the environment
             # don't do any cast, casting to a function type doesn't compile,
             # casting to a function pointer type is undefined behavior
             node.init = self.generic_visit(node.init)
@@ -128,22 +91,9 @@ class InsertExplicitTypeCasts(NodeTransformer):
         the Environment."""
         pass
 
-def remove_identifier(node):
-    """Takes in the type attribute of a Decl node and removes the identifier,
-    so it can be used for type casting. Returns the identifier"""
-    if isinstance(node, TypeDecl):
-        # remove the identifier, end recursion
-        ident = node.declname
-        node.declname = None
-        return ident
-    elif isinstance(node, (PtrDecl, ArrayDecl)):
-        # recur
-        return remove_identifier(node.type)
-    elif isinstance(node, FuncDecl):
-        # TODO: figure out what the actual correct implementation is...
-        raise NoCastNeeded("Function Pointer")
-    else:
-        raise NotImplementedError()
+# def handle_assignment(init, type_node):
+#     """Handle type cast upon assignment whether part of a Decl or not."""
+#     pass
 
 def annotate_array_initlist(initlist, type_node):
     """Takes an initializer list and a TypeDecl node and casts each element
