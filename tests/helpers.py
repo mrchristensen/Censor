@@ -24,31 +24,29 @@ class GoldenTestCase(TestCase):
         self.module = None
         self.transform = None
 
-    def assert_golden(self, f_golden, actual):
+    def assert_golden(self, f_golden, f_input):
         """Compare file contents with a string and print a diff on failure"""
+        input_c = open(f_input, 'r').read()
+        ast = self.parser.parse(input_c)
+        transformed = self.transform.visit(ast)
+        actual = self.generator.visit(transformed)
         temp = tempfile.NamedTemporaryFile(mode='w')
         temp.write(actual)
         temp.flush()
         proc = subprocess.Popen(
-            ['diff', '-u', '-N', '-w', f_golden, temp.name],
+            ['diff', '-u', '-N', '-w', '-B', f_golden, temp.name],
             stdout=subprocess.PIPE
             )
         stdout, _ = proc.communicate()
         if stdout:
-            print("Actual:\n", str(actual))
-            print("Expected:\n", str(actual))
             msg = "Golden match failed\n" + stdout.decode('utf-8')
             raise self.failureException(msg)
 
     def assert_all_golden(self):
         """Run all test fixtures in censor/tests/fixtures/[module]"""
         fixtures = sorted(get_fixtures('./fixtures/' + self.module))
-        for input_file, golden in fixtures:
-            input_c = open(input_file, 'r').read()
-            ast = self.parser.parse(input_c)
-            transformed = self.transform.visit(ast)
-            actual = self.generator.visit(transformed)
-            self.assert_golden(golden, actual)
+        for input_file, golden_file in fixtures:
+            self.assert_golden(golden_file, input_file)
 
 
 def get_fixtures(path):
