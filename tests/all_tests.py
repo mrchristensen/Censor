@@ -30,7 +30,8 @@ SUITE = unittest.TestLoader().loadTestsFromNames(
         'test_transforms.test_omp_cancellation_point',
         'test_transforms.test_omp_threadprivate',
         'test_transforms.test_insert_explicit_type_casts',
-        'test_transforms.test_remove_compound_assignment'
+        'test_transforms.test_remove_compound_assignment',
+        'test_instrumenter.test_logger'
     ]
 )
 TESTRESULT = unittest.TextTestRunner(verbosity=1).run(SUITE)
