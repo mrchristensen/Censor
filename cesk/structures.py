@@ -4,6 +4,12 @@ import copy
 import pycparser
 # from cesk.interpret import execute #pylint:disable=all
 
+def throw(string, state=None, exit_code=0):
+    if state is not None:
+       state.ctrl.stmt().show() 
+    print(string)
+    exit(exit_code)
+
 class State: #pylint:disable=too-few-public-methods
     """Holds a program state"""
     ctrl = None #control
@@ -135,12 +141,12 @@ class Stor:
             self.memory[address] = value
         else:
             self.memory[address] = value
-
+#Base Class
 class Kont:
     """Abstract class for polymorphism of continuations"""
     def satisfy(self, current_state, value):
         pass
-
+#Special Konts
 class Halt(Kont):
     """Last continuation to execute"""
     def satisfy(self, current_state, value=None):
@@ -148,6 +154,32 @@ class Halt(Kont):
             exit(value.data)
         exit(0)
 
+#Function Konts
+
+class FunctionKont(Kont):
+    """Continuation for function"""
+    parent_state = None
+    
+    def __init__(self, parent_state):
+        self.parent_state = parent_state
+
+    def satisfy(self, state, value):
+        if value is None:
+            raise Exception("'return' expected return value")
+        return self.parent_state.kont.satisfy(state, value)
+
+class VoidKont(FunctionKont):
+    """Continuation for function returning void"""
+
+    def __init__(self, parent_state):
+        self.parent_state = parent_state
+
+    def satisfy(self, state, value=None):
+        if value is not None:
+            raise Exception("'return' with a value in block returning void")
+        return self.parent_state.kont.satisfy(state)
+
+#Statement Konts
 class AssignKont(Kont):
     """Continuaton created by assignment requires a Value to assign to an
     address"""
@@ -166,7 +198,7 @@ class AssignKont(Kont):
                              new_stor, self.parent_state.kont) 
         return self.parent_state.kont.satisfy(return_state, value)
 
-class DefaultKont(Kont):
+class DefaultKont(FunctionKont):
     """Default continuation satisfy requires no value and puts ctrl to next
     statement"""
     parent_state = None
@@ -183,21 +215,27 @@ class DefaultKont(Kont):
         if (ctrl.body is None or
             len(ctrl.body.block_items) <= ctrl.index + 1):
             #if the parrent kont can be satisfied without a value
-            if (isinstance(parent_kont, Halt) or 
-                isinstance(parent_kont, VoidKont) or
+            if (isinstance(parent_kont, VoidKont) or
                 isinstance(parent_kont, DefaultKont)):
-                return parent_kont.satisfy(state)
+                new_state = State(self.parent_state.ctrl, state.envr,
+                                  state.stor, parent_kont)
+                return parent_kont.satisfy(new_state)
             else:
-                raise Exception("Expected return value")
+                raise Exception("looks")
+                throw("Exception: Expected return value", state)
         return State(ctrl + 1, state.envr, state.stor, state.kont)
 
     def get_returnable(self):
         if isinstance(self.parent_state.kont, DefaultKont):
-            return self.parent_state.kont.get_returnable()
-        return self.parent_state.kont
+            returnable = self.parent_state.kont.get_returnable()
+        else:
+            returnable = self.parent_state.kont  
+        if not isinstance(returnable, FunctionKont):
+            throw("Exception: Recursive search for FunctionKont failed")
+        return returnable 
 
     def satisfy(self, state, value=None):
-        next_from_parent = self.__get_next(self.parent_state)
+        next_from_parent = self.__get_next(state)
         return State(next_from_parent.ctrl, state.envr, state.stor,
                      next_from_parent.kont)
 
@@ -213,12 +251,22 @@ class IfKont(Kont):
         self.iffalse = iffalse
 
     def satisfy(self, state, value):
-        if (value.data != 0):
+        if (value.get_truth_value()):
             new_ctrl = Ctrl(self.iftrue)
         else:
             new_ctrl = Ctrl(self.iffalse)
         return State(new_ctrl, state.envr, state.stor, self.parent_state.kont)
 
+class ReturnKont(Kont): #pylint: disable=too-few-public-methods
+    parent_kont = None
+
+    def __init__(self, parent_kont):
+        self.parent_kont = parent_kont
+
+    def satisfy(self, state, value):
+        self.parent_kont.satisfy(state, value)
+
+#Expresion Konts
 class LeftBinopKont(Kont):
     """Continuation for the left side of a binary operator"""
 
@@ -238,14 +286,6 @@ class LeftBinopKont(Kont):
         return State(Ctrl(self.rightExp), current_state.envr,
                      current_state.stor, right_kont)
 
-class ReturnKont(Kont): #pylint: disable=too-few-public-methods
-    parent_kont = None
-
-    def __init__(self, parent_kont):
-        self.parent_kont = parent_kont
-
-    def satisfy(self, state, value):
-        self.parent_kont.satisfy(state, value)
 
 class RightBinopKont(Kont):
     """Continuation for the right side of a binary operator"""
@@ -263,18 +303,6 @@ class RightBinopKont(Kont):
         result = self.left_result.perform_operation(self.operator, value)
         return self.return_kont.satisfy(current_state, result)
 
-class VoidKont(Kont):
-    """Continuation that does not require a value"""
-
-    parent_kont = None
-
-    def __init__(self, parent_kont):
-        self.parent_kont = parent_kont
-
-    def satisfy(self, state, value=None):
-        if value is not None:
-            raise Exception("'return' with a value in block returning void")
-        return parent_kont.satisfy(state)
 
 # import is down here to allow for circular dependencies between structures.py and interpret.py
 import cesk.values # pylint: disable=wrong-import-position

@@ -321,8 +321,10 @@ def handle_return(exp, state):
     """makes a ReturnKont to pass a value to the parrent kont"""
     if isinstance(state.kont, DefaultKont):
         returnable_kont = ReturnKont(state.kont.get_returnable())
-    else:
+    elif isinstance(state.kont, FunctionKont):
         returnable_kont = ReturnKont(state.kont)
+    else:
+        raise Exception("Recursive Search for Function Failed")
     if exp is None:
         return returnable_kont.satisfy(state)
     return State(Ctrl(exp), state.envr, state.stor, returnable_kont)
@@ -330,11 +332,11 @@ def handle_return(exp, state):
 def generate_default_kont_state(state):
     """If the states continuation requires a return statement we generate this
     default kont to prevent incorect returns"""
-    if isinstance(state.kont, (Halt, VoidKont)):
+    if isinstance(state.kont, FunctionKont):
         default_kont = DefaultKont(state)
         return State(state.ctrl, state.envr, state.stor, default_kont)
     return state
 
 # imports are down here to allow for circular dependencies between structures.py and interpret.py
-from cesk.structures import State, Ctrl, Envr, AssignKont, DefaultKont, Halt, ReturnKont, VoidKont # pylint: disable=wrong-import-position
-from cesk.structures import LeftBinopKont, IfKont # pylint: disable=wrong-import-position
+from cesk.structures import State, Ctrl, Envr, AssignKont, DefaultKont, ReturnKont # pylint: disable=wrong-import-position
+from cesk.structures import FunctionKont, LeftBinopKont, IfKont # pylint: disable=wrong-import-position

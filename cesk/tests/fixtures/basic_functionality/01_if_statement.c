@@ -50,5 +50,5 @@ int main() {
 
     // should be 1*1*11*23 = 253
     printf("%d\n", prod);
-	return 0;
+    return 0;
 }
