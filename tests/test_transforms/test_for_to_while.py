@@ -8,9 +8,9 @@ class TestForToWhile(GoldenTestCase):
 
     def setUp(self):
         """Set up test variables needed for GoldenTestCase"""
-        self.module = 'for_to_while'
+        self.fixtures = './test_transforms/fixtures/for_to_while'
         self.transform = ForToWhile()
 
     def test_for_to_while(self):
         """Run golden test cases"""
-        self.assert_all_golden()
+        self.assert_all_golden(self.fixtures)

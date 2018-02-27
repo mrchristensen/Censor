@@ -9,9 +9,9 @@ class TestRemoveCompoundAssignment(GoldenTestCase):
 
     def setUp(self):
         """Set up test variables needed for GoldenTestCase"""
-        self.module = 'remove_compound_assignment'
+        self.fixtures = './test_transforms/fixtures/remove_compound_assignment'
         self.transform = RemoveCompoundAssignment()
 
     def test_remove_compound_assignment(self):
         """Run golden test cases"""
-        self.assert_all_golden()
+        self.assert_all_golden(self.fixtures)

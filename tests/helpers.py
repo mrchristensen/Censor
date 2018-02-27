@@ -42,9 +42,9 @@ class GoldenTestCase(TestCase):
             msg = "Golden match failed\n" + stdout.decode('utf-8')
             raise self.failureException(msg)
 
-    def assert_all_golden(self):
+    def assert_all_golden(self, fixtures_dir):
         """Run all test fixtures in censor/tests/fixtures/[module]"""
-        fixtures = sorted(get_fixtures('./fixtures/' + self.module))
+        fixtures = sorted(get_fixtures(fixtures_dir))
         for input_file, golden_file in fixtures:
             self.assert_golden(golden_file, input_file)
 

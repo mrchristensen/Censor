@@ -8,9 +8,9 @@ class TestInsertExplicitTypeCasts(GoldenTestCase):
 
     def setUp(self):
         """Set up test variables needed for GoldenTestCase"""
-        self.module = 'insert_explicit_type_casts'
+        self.fixtures = './test_transforms/fixtures/insert_explicit_type_casts'
         self.transform = InsertExplicitTypeCasts()
 
     def test_insert_explicit_type_casts(self):
         """Run golden test cases"""
-        self.assert_all_golden()
+        self.assert_all_golden(self.fixtures)
