@@ -3,7 +3,7 @@
 from collections import deque
 from pycparser.c_ast import Node
 from utils import find_main
-from cesk.structures import State, Ctrl, Envr, Stor, Halt
+from cesk.structures import State, Ctrl, Envr, Stor, Halt, FunctionKont
 from cesk.interpret import execute
 
 def main(ast):
@@ -11,9 +11,12 @@ def main(ast):
     main_function = find_main(ast)[0]
 
     start_index = 0
-    start_state = State(Ctrl(start_index, main_function), Envr(), Stor(), Halt())
+    halt_state = State(Ctrl(start_index, main_function), Envr(), Stor(), Halt())
+    start_state = State(halt_state.ctrl, halt_state.envr, halt_state.stor,
+                        FunctionKont(halt_state))
     queue = deque([start_state])
     while queue:
-        successors = execute(queue.popleft())
+        next_state = queue.popleft()
+        successors = execute(next_state)
         queue.extend(successors)
     raise Exception("Execution finished without Halt")
