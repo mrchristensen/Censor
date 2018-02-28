@@ -31,7 +31,8 @@ SUITE = unittest.TestLoader().loadTestsFromNames(
         'test_transforms.test_omp_threadprivate',
         'test_transforms.test_insert_explicit_type_casts',
         'test_transforms.test_remove_compound_assignment',
-        'test_instrumenter.test_logger'
+        'test_instrumenter.test_logger',
+        'test_instrumenter.test_instrumenter'
     ]
 )
 TESTRESULT = unittest.TextTestRunner(verbosity=1).run(SUITE)
