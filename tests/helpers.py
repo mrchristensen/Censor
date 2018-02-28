@@ -19,16 +19,11 @@ class GoldenTestCase(TestCase):
         cls.parser = CParser()
         cls.generator = CWithOMPGenerator()
 
-    def setUp(self):
-        """Override to set up test specific variables"""
-        self.module = None
-        self.transform = None
-
-    def assert_golden(self, f_golden, f_input):
-        """Compare file contents with a string and print a diff on failure"""
+    def assert_golden(self, transform, f_golden, f_input):
+        """Compare file contents and print a diff on failure"""
         input_c = open(f_input, 'r').read()
         ast = self.parser.parse(input_c)
-        transformed = self.transform.visit(ast)
+        transformed = transform(ast)
         actual = self.generator.visit(transformed)
         temp = tempfile.NamedTemporaryFile(mode='w')
         temp.write(actual)
@@ -42,11 +37,11 @@ class GoldenTestCase(TestCase):
             msg = "Golden match failed\n" + stdout.decode('utf-8')
             raise self.failureException(msg)
 
-    def assert_all_golden(self, fixtures_dir):
+    def assert_all_golden(self, transform, fixtures_dir):
         """Run all test fixtures in censor/tests/fixtures/[module]"""
         fixtures = sorted(get_fixtures(fixtures_dir))
         for input_file, golden_file in fixtures:
-            self.assert_golden(golden_file, input_file)
+            self.assert_golden(transform, golden_file, input_file)
 
 
 def get_fixtures(path):
