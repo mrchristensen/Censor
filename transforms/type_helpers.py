@@ -31,6 +31,7 @@ class Envr:
 
     def is_locally_defined(self, ident):
         """returns if a given identifier is defined in the local scope"""
+        # self.show()
         return ident in self.map_to_type
 
     def show(self):
@@ -122,7 +123,6 @@ def get_type(expr, env):
         # TODO: if the int is over a certain size, change to long?
         return TypeDecl(None, [], IdentifierType([expr.type]))
     elif isinstance(expr, Cast):
-        # TODO: do any type checking?
         return expr.to_type
     elif isinstance(expr, UnaryOp):
         return get_unop_type(expr, env)

@@ -37,8 +37,16 @@ from .node_transformer import NodeTransformer
 class RemoveCompoundAssignment(NodeTransformer):
     """Transform to remove all compound assignments from the input program."""
 
-    def __init__(self):
-        self.envr = Envr()
+    def __init__(self, envr=None):
+        self.envr = envr
+
+    def visit_FileAST(self, node): #pylint: disable=invalid-name
+        """If there is already an existing environment (e.g. from declarations in
+        other files #include-d into this one, we should use that envirenmont as the
+        global environment. Otherwise, we need to create a global environment."""
+        if self.envr is None:
+            return self.visit_Compound(node)
+        return self.generic_visit(node)
 
     def visit_Compound(self, node): #pylint: disable=invalid-name
         """Create a new environment with the current environment as its

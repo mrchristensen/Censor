@@ -20,7 +20,6 @@ class NodeTransformer(pycparser.c_ast.NodeVisitor):
         return node is None
 
     def generic_visit(self, node):
-        """Generic visit function"""
         for field in node.__class__.__slots__:
             old_value = getattr(node, field, None)
             if self.skip(old_value):
