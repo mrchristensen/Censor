@@ -116,7 +116,10 @@ def get_unop_type(expr, env):
 
 def get_type(expr, env):
     """Takes in an expression and a type environment (map of identifiers to
-    types) and returns a node representing the type of the given expression."""
+    types) and returns a node representing the type of the given expression.
+    NOTE: testing for this method is largely done through the test cases
+    for remove_compound_assignment, which cover needing to calculate the type
+    of many different kinds of expressions."""
     if isinstance(expr, ID):
         return env.get_type(expr.name)
     elif isinstance(expr, Constant):

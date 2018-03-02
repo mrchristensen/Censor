@@ -4,8 +4,8 @@ int main()
   {
     float i = 7.3;
     {
-      float *$2 = &i;
-      *$2 = (*$2) + 3;
+      float *censor01 = &i;
+      *censor01 = (*censor01) + 3;
     }
   }
 }

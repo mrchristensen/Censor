@@ -2,8 +2,7 @@ int main()
 {
   int a = 0;
   {
-    int *$1 = &a;
-    *$1 = (*$1) + 1;
+    int *censor01 = &a;
+    *censor01 = (*censor01) + 1;
   }
 }
- 

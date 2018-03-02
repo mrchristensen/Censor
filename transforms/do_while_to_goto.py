@@ -2,17 +2,18 @@
 
 from pycparser.c_ast import If, Goto, Label
 from .node_transformer import NodeTransformer
-from .helpers import append_statement, IDGenerator
+from .helpers import append_statement
 
 class DoWhileToGoto(NodeTransformer):
     """NodeTransformer to change do-while loops to goto code"""
 
-    def __init__(self):
+    def __init__(self, id_generator):
         self.index = 0
+        self.id_generator = id_generator
 
     def visit_DoWhile(self, node): #pylint: disable=invalid-name
         """Transform a do-while loop to goto code"""
-        label = IDGenerator.get_unique_id()
+        label = self.id_generator.get_unique_id()
         self.index += 1
         node = self.generic_visit(node)
         if_node = If(node.cond, Goto(label), None)

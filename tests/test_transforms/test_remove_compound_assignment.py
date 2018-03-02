@@ -2,6 +2,7 @@
 all compound assignments such as "a += 4.5;"""
 
 from transforms.remove_compound_assignment import RemoveCompoundAssignment
+from transforms.id_generator import IDGenerator
 from helpers import GoldenTestCase
 
 class TestRemoveCompoundAssignment(GoldenTestCase):
@@ -10,10 +11,11 @@ class TestRemoveCompoundAssignment(GoldenTestCase):
     def setUp(self):
         """Set up test variables needed for GoldenTestCase"""
         self.fixtures = './test_transforms/fixtures/remove_compound_assignment'
-        self.transformer = RemoveCompoundAssignment()
+        self.transformer = None
 
     def transform(self, ast):
         """Transform input AST"""
+        self.transformer = RemoveCompoundAssignment(IDGenerator(ast))
         return self.transformer.visit(ast)
 
     def test_remove_compound_assignment(self):

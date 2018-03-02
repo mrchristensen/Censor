@@ -17,6 +17,7 @@ from .omp_barrier import PragmaToOmpBarrier
 from .omp_atomic import PragmaToOmpAtomic
 from .omp_master import PragmaToOmpMaster
 from .omp_single import PragmaToOmpSingle
+from .id_generator import IDGenerator
 
 def transform(ast):
     """Perform each transform in package"""
@@ -37,7 +38,7 @@ def transform(ast):
         PragmaToOmpSingle(),
         ForToWhile(),
         WhileToDoWhile(),
-        DoWhileToGoto()
+        DoWhileToGoto(IDGenerator(ast))
     ]
     for transformer in transformers:
         ast = transformer.visit(ast)

@@ -2,20 +2,20 @@ int main()
 {
   int i = 0;
   int j = 0;
-$1:
+censor01:
   {
   i++;
   j = 0;
-$2:
+censor02:
   {
     j++;
     if (j < 10)
-      goto $2;
+      goto censor02;
 
   }
 
   if (i < 10)
-    goto $1;
+    goto censor01;
 
   }
 

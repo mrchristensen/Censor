@@ -30,15 +30,15 @@ standard-compliant.
 """
 from copy import deepcopy
 from pycparser.c_ast import Decl, UnaryOp, BinaryOp, Assignment, Compound, ID, PtrDecl
-from .helpers import IDGenerator
 from .type_helpers import get_type, Envr, remove_identifier, add_identifier
 from .node_transformer import NodeTransformer
 
 class RemoveCompoundAssignment(NodeTransformer):
     """Transform to remove all compound assignments from the input program."""
 
-    def __init__(self, envr=None):
+    def __init__(self, id_generator, envr=None):
         self.envr = envr
+        self.id_generator = id_generator
 
     def visit_FileAST(self, node): #pylint: disable=invalid-name
         """If there is already an existing environment (e.g. from declarations in
@@ -76,7 +76,7 @@ class RemoveCompoundAssignment(NodeTransformer):
         if node.op == '=':
             return self.generic_visit(node)
 
-        temp_name = IDGenerator.get_unique_id()
+        temp_name = self.id_generator.get_unique_id()
         lvalue_addr = UnaryOp('&', node.lvalue)
 
         lvalue_type = get_type(node.lvalue, self.envr)
