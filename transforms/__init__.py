@@ -18,9 +18,12 @@ from .omp_atomic import PragmaToOmpAtomic
 from .omp_master import PragmaToOmpMaster
 from .omp_single import PragmaToOmpSingle
 from .id_generator import IDGenerator
+# from .remove_compound_assignment import RemoveCompoundAssignment #implementation incomplete
+# from .insert_explicit_type_casts import InsertExplicitTypeCasts #implementation incomplete
 
 def transform(ast):
     """Perform each transform in package"""
+    id_generator = IDGenerator(ast)
     transformers = [
         PragmaToOmpParallelSections(),
         PragmaToOmpParallelFor(),
@@ -38,7 +41,9 @@ def transform(ast):
         PragmaToOmpSingle(),
         ForToWhile(),
         WhileToDoWhile(),
-        DoWhileToGoto(IDGenerator(ast))
+        DoWhileToGoto(id_generator),
+        # RemoveCompoundAssignment(id_generator), # implementation incomplete
+        # InsertExplicitTypeCasts # implementation incopmlete
     ]
     for transformer in transformers:
         ast = transformer.visit(ast)
