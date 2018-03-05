@@ -1,0 +1,3 @@
+[submodule "benchmarks/dataracebench"]
+	path = benchmarks/dataracebench
+	url = https://github.com/LLNL/dataracebench.git
