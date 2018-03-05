@@ -61,8 +61,11 @@ class RemoveCompoundAssignment(NodeTransformer):
         """Visit Decl nodes so that we can save type information about
         identifiers in the environment."""
         # print("visiting decl")
+        # node.show()
         type_node = deepcopy(node.type)
         ident = remove_identifier(type_node)
+
+        # print("---------Type node for " + ident + ":"); type_node.show()
 
         if self.envr.is_locally_defined(ident):
             raise Exception("Error: redefinition of " + ident)
@@ -82,6 +85,7 @@ class RemoveCompoundAssignment(NodeTransformer):
         lvalue_type = get_type(node.lvalue, self.envr)
 
         ptr_to_lvalue = PtrDecl([], add_identifier(lvalue_type, temp_name))
+        # ptr_to_lvalue.show()
         first_line = Decl(temp_name, [], [], [], ptr_to_lvalue, lvalue_addr, None)
 
         dereferenced_temp_name = UnaryOp('*', ID(temp_name))

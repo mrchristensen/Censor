@@ -1,7 +1,6 @@
 """Helpers for working with information about types during AST transformations."""
-
+from copy import deepcopy
 from pycparser.c_ast import * #pylint: disable=wildcard-import, unused-wildcard-import
-
 
 class Envr:
     """Holds the enviorment (a mapping of identifiers to types)"""
@@ -14,6 +13,9 @@ class Envr:
     def get_type(self, ident):
         """Returns the type currently associated with the given
         identifier"""
+        if isinstance(ident, ID):
+            ident = ident.name
+
         if ident in self.map_to_type: #pylint: disable=no-else-return
             return self.map_to_type[ident]
         elif self.parent is not None:
@@ -23,15 +25,20 @@ class Envr:
 
     def add(self, ident, type_node):
         """Add a new identifier to the mapping"""
+        if isinstance(ident, ID):
+            ident = ident.name
         self.map_to_type[ident] = type_node
 
     def is_defined(self, ident):
         """returns if a given identifier is defined"""
+        if isinstance(ident, ID):
+            ident = ident.name
         return self.get_type(ident) is not None
 
     def is_locally_defined(self, ident):
         """returns if a given identifier is defined in the local scope"""
-        # self.show()
+        if isinstance(ident, ID):
+            ident = ident.name
         return ident in self.map_to_type
 
     def show(self):
@@ -39,12 +46,12 @@ class Envr:
         environment."""
         out = "Current:\n"
         for ident in self.map_to_type:
-            out += "\t" + ident
+            out += "\n\t" + ident
         current = self.parent
         while current != None:
             out += "\nParent:\n"
             for ident in current.map_to_type:
-                out += "\t" + ident
+                out += "\n\t" + ident
             current = current.parent
         print(out)
 
@@ -71,24 +78,82 @@ def add_identifier(node, ident):
         return node
     elif isinstance(node, (PtrDecl, ArrayDecl, FuncDecl)):
         # recur
-        return remove_identifier(node.type)
+        node.type = add_identifier(node.type, ident)
+        return node
     else:
         raise NotImplementedError()
 
-def resolve_types(left, right):
+def is_integral(type_node):
+    """Returns if the given type node describes an integral type."""
+    # TODO: Add support for user-defined integral types that are
+    # defined through typedef's
+    if isinstance(type_node, TypeDecl):
+        if isinstance(type_node.type, IdentifierType):
+            return 'int' in type_node.type.names or 'char' in type_node.type.names
+        return False
+    elif isinstance(type_node, IdentifierType):
+        return 'int' in type_node.names or 'char' in type_node.type.names
+    return False
+
+def is_float(type_node):
+    """Returns if the given type node describes an integral type."""
+    # TODO: Add support for user-defined floating types that are
+    # defined through typedef's
+    if isinstance(type_node, TypeDecl):
+        if isinstance(type_node.type, IdentifierType):
+            return 'float' in type_node.type.names or 'double' in type_node.type.names
+        return False
+    elif isinstance(type_node, IdentifierType):
+        return 'float' in type_node.type.names or 'double' in type_node.type.names
+    return False
+
+def is_ptr(type_node):
+    """Returns if the given type node describes a pointer type."""
+    return isinstance(type_node, PtrDecl)
+
+def resolve_integral_types(left, right):
+    """Given two integral types, figure out what types they should be cast to
+    when a binary operation is performed on two objects with the given types"""
+    # TODO
+    left = right
+    return left
+
+def resolve_floating_types(left, right):
+    """Given two integral types, figure out what types they should be cast to
+    when a binary operation is performed on two objects with the given types"""
+    # TODO
+    left = right
+    return left
+
+def resolve_types(left, right): # pylint: disable=too-many-return-statements
     """Given two types, figure out what types they should be cast to when
-    a binary operation is performed on two objects with the given types"""
-    # do something pointless so that pylint doesn't complain about
-    # unused arguments
-    right = left
-    return right
+    a binary operation is performed on two objects with the given types
+    The rules implemented here come directly from the c spec:
+    http://www.open-std.org/jtc1/sc22/WG14/www/docs/n1256.pdf
+    section, 6.3.1.8 Usual arithmetic conversions, p. 44.
+    """
+    if is_ptr(left) and is_integral(right):
+        return left
+    elif is_integral(left) and is_ptr(right):
+        return right
+    elif is_ptr(left) and is_ptr(right):
+        return TypeDecl(None, [], IdentifierType(['int']))
+    elif is_float(left) and is_integral(right):
+        return left
+    elif is_integral(left) and is_float(right):
+        return right
+    elif is_float(left) and is_float(right):
+        return resolve_floating_types(left, right)
+    elif is_integral(left) and is_integral(right):
+        return resolve_integral_types(left, right)
+    raise NotImplementedError()
 
 def get_binop_type(expr, env):
     """Takes in a BinaryOp node and a type environment (map of identifiers to
     types) and returns a node representing the type of the given expression."""
     if expr.op in ['<', '<=', '==', '>', '>=', '!=', '&&', '||']:
         return TypeDecl(None, [], IdentifierType(['int']))
-    elif expr.op in ['%', '*', '+', '–', '/', '^', '|', '&', '<<', '>>']:
+    elif expr.op in ['%', '*', '+', '-', '/', '^', '|', '&', '<<', '>>']:
         left_type = get_type(expr.left, env)
         right_type = get_type(expr.right, env)
         return resolve_types(left_type, right_type)
@@ -104,7 +169,7 @@ def get_unop_type(expr, env):
     elif expr.op in ['++', '--', '+', '-', '~']:
         return get_type(expr.expr, env)
     elif expr.op == '&':
-        return PtrDecl([], get_type(expr.expr, env))
+        return PtrDecl([], get_type_helper(expr.expr, env))
     elif expr.op == '*':
         type_of_operand = get_type(expr.expr, env)
         if not isinstance(type_of_operand, PtrDecl):
@@ -113,13 +178,17 @@ def get_unop_type(expr, env):
     else:
         raise NotImplementedError()
 
-
 def get_type(expr, env):
     """Takes in an expression and a type environment (map of identifiers to
-    types) and returns a node representing the type of the given expression.
+    types) and returns a new node representing the type of the given expression.
     NOTE: testing for this method is largely done through the test cases
     for remove_compound_assignment, which cover needing to calculate the type
     of many different kinds of expressions."""
+    return deepcopy(get_type_helper(expr, env))
+
+def get_type_helper(expr, env): # pylint: disable=too-many-return-statements
+    """Does all of the actual work for get_type, but returns a reference to
+    a node that is currently in the AST."""
     if isinstance(expr, ID):
         return env.get_type(expr.name)
     elif isinstance(expr, Constant):
@@ -132,7 +201,10 @@ def get_type(expr, env):
     elif isinstance(expr, BinaryOp):
         return get_binop_type(expr, env)
     elif isinstance(expr, StructRef):
+        # expr.show()
         raise NotImplementedError()
+    elif isinstance(expr, ArrayRef):
+        return env.get_type(expr.name).type
     else:
         raise NotImplementedError()
     return expr.type

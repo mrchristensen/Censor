@@ -8,3 +8,4 @@ lextab.py
 yacctab.py
 .tags
 **/*.pyc
+.vscode
