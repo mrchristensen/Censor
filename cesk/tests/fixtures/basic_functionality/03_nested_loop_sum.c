@@ -9,7 +9,7 @@ int main() {
     int sum = 0;    
     outer: 
         inner: 
-            sum += m[i][j];
+            sum = sum + m[i][j];
             ++i;
             if (i < dim) {
                 goto inner;

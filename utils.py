@@ -15,7 +15,7 @@ def find_main(ast):
     if len(mains) == 1:
         return Function(mains[0])
     else:
-        raise ValueError
+        raise Exception("No main function found")
 
 def is_main(ext):
     """Determines if an AST object is a FuncDef named main."""

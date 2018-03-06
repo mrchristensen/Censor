@@ -1,13 +1,13 @@
 """Starts the CESK machine"""
 
 from collections import deque
-from pycparser.c_ast import Node
 from utils import find_main
 from cesk.structures import State, Ctrl, Envr, Stor, Halt, FunctionKont
-from cesk.interpret import execute
+from cesk.interpret import execute, LinkParent
 
 def main(ast):
-    """Is a stub"""
+    """Injects execution into main funciton and maintains work queue"""
+    ast = LinkParent().visit(ast)
     main_function = find_main(ast)[0]
 
     start_index = 0

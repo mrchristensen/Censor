@@ -17,35 +17,35 @@ int main() {
 
     if (0 < 1) {
         // should end up here
-        prod *= a;
+        prod = prod * a;
     }
     else if (0) {
-        prod *= b;
+        prod = prod * b;
     }
     else {
-        prod *= c;
+        prod = prod * c;
     }
     
     if (0 > 1) {
-        prod *= d;
+        prod = prod * d;
     }
     else if (1) {
         // should end up here
-        prod *= e;
+        prod = prod * e;
     }
     else {
-        prod *= f;
+        prod = prod * f;
     }
 
     if (0 > 1) {
-        prod *= g;
+        prod = prod * g;
     }
     else if (0) {
-        prod *= h;
+        prod = prod * h;
     }
     else {
         // should end up here
-        prod *= i;
+        prod = prod * i;
     }
 
     // should be 1*1*11*23 = 253

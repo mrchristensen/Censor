@@ -17,5 +17,6 @@ int main() {
     rectangle *a = makeRectangle(2, 4);
 	int x = a->x;
     printf("%d\n", x);
+    return 0;
 }
 
