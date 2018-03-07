@@ -14,15 +14,15 @@ class TestLogger(unittest.TestCase):
 
     def test_log_read(self):
         """Make sure log read heap access works"""
-        ast = self.logger.log_read(1, 'x')
+        ast = self.logger.log_read('x')
         func_call = self.c_gen.visit(ast)
-        self.assertEqual('yeti_log_heap_access("read", 1, omp_get_thread_num(), "x")', func_call)
+        self.assertEqual('yeti_log_heap_access("read", x, omp_get_thread_num(), "x")', func_call)
 
     def test_log_write(self):
         """Make sure log write heap access works"""
-        ast = self.logger.log_write(1, 'x')
+        ast = self.logger.log_write('x')
         func_call = self.c_gen.visit(ast)
-        self.assertEqual('yeti_log_heap_access("write", 1, omp_get_thread_num(), "x")', func_call)
+        self.assertEqual('yeti_log_heap_access("write", x, omp_get_thread_num(), "x")', func_call)
 
     def test_log_omp_enter(self):
         """Make sure log omp enter works"""

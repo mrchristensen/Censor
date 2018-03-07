@@ -1,5 +1,5 @@
-void yeti_log_heap_access(char* mode, char* var, int index, int thread_num) {
-  printf("%s, %d, %d, %s\n", mode, index, thread_num, var);
+void yeti_log_heap_access(char* mode, void* var, int thread_num, char* name) {
+  printf("%s, %p, %d, %s\n", mode, var, thread_num, name);
 }
 
 void yeti_log_omp(char* action, char* construct) {
