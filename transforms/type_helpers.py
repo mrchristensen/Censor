@@ -58,10 +58,16 @@ class Envr:
 def remove_identifier(node):
     """Takes in the type attribute of a Decl node and removes the identifier,
     so it can be used for type casting. Returns the identifier"""
+    # node.show()
     if isinstance(node, TypeDecl):
         # remove the identifier, end recursion
         ident = node.declname
         node.declname = None
+        return ident
+    elif isinstance(node, (Struct, Union)):
+        # remove the identifier, end recursion
+        ident = node.name
+        node.name = None
         return ident
     elif isinstance(node, (PtrDecl, ArrayDecl, FuncDecl)):
         # recur
@@ -73,8 +79,12 @@ def add_identifier(node, ident):
     """Given a node that could be used as the type attribute of a Decl, attach
     the given identifier to it."""
     if isinstance(node, TypeDecl):
-        # remove the identifier, end recursion
+        # add the identifier, end recursion
         node.declname = ident
+        return node
+    elif isinstance(node, (Struct, Union)):
+        # add the identifier, end recursion
+        node.name = ident
         return node
     elif isinstance(node, (PtrDecl, ArrayDecl, FuncDecl)):
         # recur
@@ -87,12 +97,13 @@ def is_integral(type_node):
     """Returns if the given type node describes an integral type."""
     # TODO: Add support for user-defined integral types that are
     # defined through typedef's
+    integral_ids = ['int', 'char', 'short']
     if isinstance(type_node, TypeDecl):
         if isinstance(type_node.type, IdentifierType):
-            return 'int' in type_node.type.names or 'char' in type_node.type.names
+            return bool([i for i in integral_ids if i in type_node.type.names])
         return False
     elif isinstance(type_node, IdentifierType):
-        return 'int' in type_node.names or 'char' in type_node.type.names
+        return bool([i for i in integral_ids if i in type_node.type.names])
     return False
 
 def is_float(type_node):
@@ -190,6 +201,8 @@ def get_type_helper(expr, env): # pylint: disable=too-many-return-statements
     """Does all of the actual work for get_type, but returns a reference to
     a node that is currently in the AST."""
     if isinstance(expr, ID):
+        # TODO: if its a function, get the return type
+        # TODO: make it actually work for typedefs
         return env.get_type(expr.name)
     elif isinstance(expr, Constant):
         # TODO: if the int is over a certain size, change to long?
@@ -201,8 +214,17 @@ def get_type_helper(expr, env): # pylint: disable=too-many-return-statements
     elif isinstance(expr, BinaryOp):
         return get_binop_type(expr, env)
     elif isinstance(expr, StructRef):
-        # expr.show()
-        raise NotImplementedError()
+        if expr.type == ".":
+            struct_type_string = env.get_type(expr.name).type.name
+        else:
+            struct_type_string = env.get_type(expr.name).type.type.name
+
+        struct_type = env.get_type(struct_type_string)
+        for decl in struct_type.decls:
+            if decl.name == expr.field.name:
+                return decl.type
+        raise Exception("Struct " + struct_type_string +
+                        "doesn't have field " + expr.field.name)
     elif isinstance(expr, ArrayRef):
         return env.get_type(expr.name).type
     else:

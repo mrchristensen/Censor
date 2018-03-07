@@ -25,8 +25,6 @@ int a = 1;
 We can do this because any lvalue in C can be resolved to an address except
 for two cases: variables marked as register, which we can, as an
 implementation, safely ignore, and bit-fields, which we do not support.
-TODO: see if bit-fields can be ignored by an implementation that is still
-standard-compliant.
 """
 from copy import deepcopy
 from pycparser.c_ast import Decl, UnaryOp, BinaryOp, Assignment, Compound, ID, PtrDecl
@@ -44,6 +42,7 @@ class RemoveCompoundAssignment(NodeTransformer):
         """If there is already an existing environment (e.g. from declarations in
         other files #include-d into this one, we should use that envirenmont as the
         global environment. Otherwise, we need to create a global environment."""
+        # node.show()
         if self.envr is None:
             return self.visit_Compound(node)
         return self.generic_visit(node)
