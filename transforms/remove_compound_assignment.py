@@ -38,11 +38,16 @@ class RemoveCompoundAssignment(NodeTransformer):
         self.envr = envr
         self.id_generator = id_generator
 
+    def visit_Typedef(self, node): #pylint: disable=invalid-name
+        """Add typedefs to the type environment."""
+        self.envr.add(node.name, node.type)
+        return self.generic_visit(node)
+
     def visit_FileAST(self, node): #pylint: disable=invalid-name
         """If there is already an existing environment (e.g. from declarations in
         other files #include-d into this one, we should use that envirenmont as the
         global environment. Otherwise, we need to create a global environment."""
-        # node.show()
+        # node.show(); print("-----------------------")
         if self.envr is None:
             return self.visit_Compound(node)
         return self.generic_visit(node)

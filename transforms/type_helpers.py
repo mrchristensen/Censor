@@ -1,6 +1,6 @@
 """Helpers for working with information about types during AST transformations."""
 from copy import deepcopy
-from pycparser.c_ast import * #pylint: disable=wildcard-import, unused-wildcard-import
+from pycparser.c_ast import * # pylint: disable=wildcard-import, unused-wildcard-import
 
 class Envr:
     """Holds the enviorment (a mapping of identifiers to types)"""
@@ -16,7 +16,7 @@ class Envr:
         if isinstance(ident, ID):
             ident = ident.name
 
-        if ident in self.map_to_type: #pylint: disable=no-else-return
+        if ident in self.map_to_type: # pylint: disable=no-else-return
             return self.map_to_type[ident]
         elif self.parent is not None:
             return self.parent.get_type(ident)
@@ -27,6 +27,17 @@ class Envr:
         """Add a new identifier to the mapping"""
         if isinstance(ident, ID):
             ident = ident.name
+
+        # if the type is actually a typedef for another type, map the
+        # identifier directly to the other type
+        # CANT do this because if the originial type is declared incline,
+        # if isinstance(type_node, TypeDecl) and isinstance(type_node.type, IdentifierType):
+        #     if len(type_node.type.names) == 1:
+        #         type_name = type_node.type.names[0]
+        #         if self.is_defined(type_name):
+        #             self.map_to_type[ident] = self.get_type(type_name)
+        #             return
+
         self.map_to_type[ident] = type_node
 
     def is_defined(self, ident):
@@ -100,10 +111,11 @@ def is_integral(type_node):
     integral_ids = ['int', 'char', 'short']
     if isinstance(type_node, TypeDecl):
         if isinstance(type_node.type, IdentifierType):
+        #     if len(type_node.type.names) == 1:
             return bool([i for i in integral_ids if i in type_node.type.names])
         return False
-    elif isinstance(type_node, IdentifierType):
-        return bool([i for i in integral_ids if i in type_node.type.names])
+    # elif isinstance(type_node, IdentifierType):
+    #     return bool([i for i in integral_ids if i in type_node.names])
     return False
 
 def is_float(type_node):
@@ -157,6 +169,10 @@ def resolve_types(left, right): # pylint: disable=too-many-return-statements
         return resolve_floating_types(left, right)
     elif is_integral(left) and is_integral(right):
         return resolve_integral_types(left, right)
+    print("---left:")
+    left.show()
+    print("---right:")
+    right.show()
     raise NotImplementedError()
 
 def get_binop_type(expr, env):
@@ -189,6 +205,27 @@ def get_unop_type(expr, env):
     else:
         raise NotImplementedError()
 
+def get_structref_type(expr, env):
+    """Resolve the type of a StructRef node."""
+    type_decl = env.get_type(expr.name)
+    if isinstance(type_decl, PtrDecl):
+        type_decl = type_decl.type
+
+    struct_type = type_decl.type
+    if isinstance(struct_type, IdentifierType):
+        struct_type = env.get_type(struct_type.names[0]).type
+
+    # if you have the name of the struct but not its field declarations, go find them
+    if struct_type.decls is None:
+        struct_type_string = struct_type.name
+        struct_type = env.get_type(struct_type_string)
+
+    for decl in struct_type.decls:
+        if decl.name == expr.field.name:
+            return decl.type
+    raise Exception("Struct " + struct_type_string +
+                    "doesn't have field " + expr.field.name)
+
 def get_type(expr, env):
     """Takes in an expression and a type environment (map of identifiers to
     types) and returns a new node representing the type of the given expression.
@@ -214,17 +251,7 @@ def get_type_helper(expr, env): # pylint: disable=too-many-return-statements
     elif isinstance(expr, BinaryOp):
         return get_binop_type(expr, env)
     elif isinstance(expr, StructRef):
-        if expr.type == ".":
-            struct_type_string = env.get_type(expr.name).type.name
-        else:
-            struct_type_string = env.get_type(expr.name).type.type.name
-
-        struct_type = env.get_type(struct_type_string)
-        for decl in struct_type.decls:
-            if decl.name == expr.field.name:
-                return decl.type
-        raise Exception("Struct " + struct_type_string +
-                        "doesn't have field " + expr.field.name)
+        return get_structref_type(expr, env)
     elif isinstance(expr, ArrayRef):
         return env.get_type(expr.name).type
     else:
