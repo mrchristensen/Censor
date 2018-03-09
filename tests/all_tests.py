@@ -32,6 +32,7 @@ SUITE = unittest.TestLoader().loadTestsFromNames(
         'test_transforms.test_id_generator',
         'test_transforms.test_remove_compound_assignment',
         'test_transforms.test_insert_explicit_type_casts',
+        'test_transforms.test_type_cast_returns',
         'test_instrumenter.test_logger',
         'test_instrumenter.test_instrumenter'
     ]
