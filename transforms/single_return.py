@@ -1,6 +1,4 @@
-"""
-Adds explicit type casts to all return statements
-"""
+"""Transform all functions to contain only a single return statement."""
 from copy import deepcopy
 from pycparser.c_ast import Return, Label, Goto, Decl, Assignment, Compound, ID
 from pycparser.c_ast import IdentifierType
@@ -9,8 +7,7 @@ from .node_transformer import NodeTransformer
 from .helpers import append_statement, prepend_statement
 
 class SingleReturn(NodeTransformer):
-    """Transform to remove all compound assignments from the input program."""
-
+    """Transform all functions to contain only a single return statement."""
     def __init__(self, id_generator):
         self.return_type = None
         self.retval_id = None
@@ -21,7 +18,6 @@ class SingleReturn(NodeTransformer):
         """Keep track of the return type of the function definition we
         are currently parsing."""
         self.return_type = deepcopy(node.decl.type.type)
-        # self.return_type.show()
         remove_identifier(self.return_type)
         self.return_label = self.id_generator.get_unique_id()
 

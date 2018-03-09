@@ -1,13 +1,9 @@
 """Makes all typecasts explicit"""
-
-from copy import deepcopy
-# from cesk.structures import Envr
 from pycparser.c_ast import Cast, TypeDecl, PtrDecl, ArrayDecl, FuncDecl
 from pycparser.c_ast import InitList, Constant
 # from pycparser.c_ast import  BinaryOp, UnaryOp, InitList,  Compound,  Decl,
 # from .helpers import IncorrectTransformOrder
 from .node_transformer import NodeTransformer
-from .type_helpers import Envr, remove_identifier
 
 # TODO: take care of modifiers and storage qualifiers correctly
 # modifiers: signed unsigned long short
@@ -21,28 +17,25 @@ from .type_helpers import Envr, remove_identifier
 
 class InsertExplicitTypeCasts(NodeTransformer):
     """NodeTransformer to make all typecasts in the program explicit."""
-    def __init__(self):
-        self.envr = Envr()
+    def __init__(self, environments):
+        self.environments = environments
+        self.envr = environments["GLOBAL"]
 
     def visit_Compound(self, node): #pylint: disable=invalid-name
-        """Create a new environment with the current environment as its
-        parent so that scoping is handled properly."""
-        self.envr = Envr(self.envr)
+        """Reassign the environment to be the environment of the current
+        compound block."""
+        parent = self.envr
+        self.envr = self.environments[node]
         retval = self.generic_visit(node)
-        self.envr = self.envr.parent
+        self.envr = parent
         return retval
 
     def visit_Decl(self, node): #pylint: disable=invalid-name
         """Add necessary type casts when the Decl involves an assignment."""
         # print("Decl:\n"); node.show()
         # print("node type:\n"); node.type.show()
-        type_node = deepcopy(node.type)
-        ident = remove_identifier(type_node)
-
-        if self.envr.is_locally_defined(ident):
-            raise Exception("Error: redefinition of " + ident)
-
-        self.envr.add(ident, type_node)
+        ident = node.name
+        type_node = self.envr.get_type(ident)
 
         if node.init is None:
             return node
