@@ -27,13 +27,20 @@ of your current scope.
 # TODO: support Enum declarations
 
 from copy import deepcopy
-from pycparser.c_ast import NodeVisitor
+from .node_transformer import NodeTransformer
 from .type_helpers import Envr, remove_identifier
 
-class TypeEnvironmentCalculator(NodeVisitor):
+class TypeEnvironmentCalculator(NodeTransformer):
     """Aggregate type information for all of the scopes in the AST,
     return a dictionary mapping Compound nodes to the environment
-    representing their scope."""
+    representing their scope.
+    NOTE: It would make more technical sense for TypeEnvironmentCalculator to
+    inherit directly from NodeVisitor (instead of NodeTransformer), because
+    it is not actually changing any nodes. However, it inherits from
+    NodeTranformer for now because it needs to be able to handle both
+    pycparser.c_ast.Node and omp.omp_ast.Node. If we ever figure out a way
+    for all the nodes to be the same type, this should solve the problem.
+    """
     def __init__(self):
         self.envr = None
         self.environemnts = None
