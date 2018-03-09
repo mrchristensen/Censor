@@ -1,18 +1,20 @@
 """Test """
 
-from transforms.type_cast_returns import TypeCastReturns
+from transforms.single_return import SingleReturn
+from transforms.id_generator import IDGenerator
 from helpers import GoldenTestCase
 
-class TestRemoveCompoundAssignment(GoldenTestCase):
+class TestSingleReturn(GoldenTestCase):
     """Test RemoveCompoundAssignment transform"""
 
     def setUp(self):
         """Set up test variables needed for GoldenTestCase"""
-        self.fixtures = './test_transforms/fixtures/type_cast_returns'
-        self.transformer = TypeCastReturns()
+        self.fixtures = './test_transforms/fixtures/single_return'
+        self.transformer = None
 
     def transform(self, ast):
         """Transform input AST"""
+        self.transformer = SingleReturn(IDGenerator(ast))
         return self.transformer.visit(ast)
 
     def test_remove_compound_assignment(self):

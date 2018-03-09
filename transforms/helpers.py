@@ -13,8 +13,25 @@ def append_statement(compound, stmt):
             items = compound.block_items
     elif compound:
         items = [compound]
+
     if stmt:
         items.append(stmt)
+    return Compound(items)
+
+def prepend_statement(compound, stmt):
+    """
+    Given two nodes, returns a new Compound node
+    with the second node as the first node in the block
+    """
+    items = []
+    if isinstance(compound, Compound):
+        if compound.block_items:
+            items = compound.block_items
+    elif compound:
+        items = [compound]
+
+    if stmt:
+        items.insert(0, stmt)
     return Compound(items)
 
 class IncorrectTransformOrder(Exception):

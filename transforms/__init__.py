@@ -20,7 +20,7 @@ from .omp_single import PragmaToOmpSingle
 from .id_generator import IDGenerator
 # from .remove_compound_assignment import RemoveCompoundAssignment #implementation incomplete
 # from .insert_explicit_type_casts import InsertExplicitTypeCasts #implementation incomplete
-from .type_cast_returns import TypeCastReturns
+from .single_return import SingleReturn
 
 def transform(ast):
     """Perform each transform in package"""
@@ -45,7 +45,7 @@ def transform(ast):
         DoWhileToGoto(id_generator),
         # RemoveCompoundAssignment(id_generator), # implementation incomplete
         # InsertExplicitTypeCasts # implementation incopmlete
-        TypeCastReturns()
+        SingleReturn(id_generator),
     ]
     for transformer in transformers:
         ast = transformer.visit(ast)
