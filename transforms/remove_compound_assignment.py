@@ -26,57 +26,26 @@ We can do this because any lvalue in C can be resolved to an address except
 for two cases: variables marked as register, which we can, as an
 implementation, safely ignore, and bit-fields, which we do not support.
 """
-from copy import deepcopy
 from pycparser.c_ast import Decl, UnaryOp, BinaryOp, Assignment, Compound, ID, PtrDecl
-from .type_helpers import get_type, Envr, remove_identifier, add_identifier
+from .type_helpers import get_type, add_identifier
 from .node_transformer import NodeTransformer
 
 class RemoveCompoundAssignment(NodeTransformer):
     """Transform to remove all compound assignments from the input program."""
 
-    def __init__(self, id_generator, envr=None):
-        self.envr = envr
+    def __init__(self, id_generator, environments):
+        self.environments = environments
+        self.envr = environments["GLOBAL"]
         self.id_generator = id_generator
 
-    def visit_Typedef(self, node): #pylint: disable=invalid-name
-        """Add typedefs to the type environment."""
-        self.envr.add(node.name, node.type)
-        return self.generic_visit(node)
-
-    def visit_FileAST(self, node): #pylint: disable=invalid-name
-        """If there is already an existing environment (e.g. from declarations in
-        other files #include-d into this one, we should use that envirenmont as the
-        global environment. Otherwise, we need to create a global environment."""
-        # node.show(); print("-----------------------")
-        if self.envr is None:
-            return self.visit_Compound(node)
-        return self.generic_visit(node)
-
     def visit_Compound(self, node): #pylint: disable=invalid-name
-        """Create a new environment with the current environment as its
-        parent so that scoping is handled properly."""
-        # print("visiting compound")
-        self.envr = Envr(self.envr)
+        """Reassign the environment to be the environment of the current
+        compound block."""
+        parent = self.envr
+        self.envr = self.environments[node]
         retval = self.generic_visit(node)
-        self.envr = self.envr.parent
+        self.envr = parent
         return retval
-
-    def visit_Decl(self, node): #pylint: disable=invalid-name
-        """Visit Decl nodes so that we can save type information about
-        identifiers in the environment."""
-        # print("visiting decl")
-        # node.show()
-        type_node = deepcopy(node.type)
-        ident = remove_identifier(type_node)
-
-        # print("---------Type node for " + ident + ":"); type_node.show()
-
-        if self.envr.is_locally_defined(ident):
-            raise Exception("Error: redefinition of " + ident)
-
-        self.envr.add(ident, type_node)
-        # self.envr.show()
-        return self.generic_visit(node)
 
     def visit_Assignment(self, node): #pylint: disable=invalid-name
         """Visit all Assignment nodes and get rid of the compound ones."""

@@ -28,9 +28,9 @@ class Envr:
         if isinstance(ident, ID):
             ident = ident.name
 
-        # if the type is actually a typedef for another type, map the
-        # identifier directly to the other type
-        # CANT do this because if the originial type is declared incline,
+        # # if the type is actually a typedef for another type, map the
+        # # identifier directly to the other type
+        # # CANT do this because if the originial type is declared incline,
         # if isinstance(type_node, TypeDecl) and isinstance(type_node.type, IdentifierType):
         #     if len(type_node.type.names) == 1:
         #         type_name = type_node.type.names[0]
