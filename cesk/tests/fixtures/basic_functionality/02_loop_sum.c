@@ -5,9 +5,9 @@ int main() {
 	int i = 1;
 
 	int sum = 0;
-	loop: 
+	loop:
 		sum = sum + i;
-		++i;
+		i = i + 1;
 	if (i <= 10) {
 		goto loop;
 	}	

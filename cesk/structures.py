@@ -59,9 +59,12 @@ class Ctrl: #pylint:disable=too-few-public-methods
             elif(isinstance(second, pycparser.c_ast.Compound)):
                 self.construct_body(first, second)
             else:
-                raise Exception("Bad Ctrl init")
-        else:
+                raise Exception("Ctrl init body not Compound or Function: " +
+                                str(second))
+        elif first is not None:
             self.construct_node(first)
+        else:
+            raise Exception("None None Ctrl init")
 
     def __add__(self, offset):
         """Returns the location in the same function with the line number offset
@@ -78,20 +81,23 @@ class Ctrl: #pylint:disable=too-few-public-methods
 
 class Envr:
     """Holds the enviorment (a maping of identifiers to addresses)"""
-    map_to_address = {} #A set of IdToAddr mappings
-    map_to_type = {}
-    parent = None
+    counter = 0;
 
     def __init__(self, parent = None):
+        self.map_to_address = {} #A set of IdToAddr mappings
+        self.map_to_type = {}
         self.parent = parent
+        self.id = Envr.counter
+        Envr.counter = Envr.counter + 1
 
     def get_address(self, ident):
         "looks up the address associated with an identifier"""
         if (ident in self.map_to_address):
             return self.map_to_address[ident]
         if (self.parent is not None):
-            return parent.get_address(ident)
-        raise Exception(ident + " is not defined in this scope") 
+            return self.parent.get_address(ident)
+        raise Exception(ident + " is not defined in this scope: " +
+                        str(self.id)) 
 
     def get_type(self, ident):
         if (ident in self.map_to_type):
@@ -172,7 +178,7 @@ class FunctionKont(Kont):
             #don't return out of function without return
             new_state = State(self.parent_state.ctrl, state.envr, state.stor,
                               self.parent_state.kont)
-            return get_next(new_state)
+            return cesk.interpret.get_next(new_state)
         return self.parent_state.kont.satisfy(state, value)
 
 class VoidKont(FunctionKont):
@@ -188,7 +194,7 @@ class VoidKont(FunctionKont):
             #don't return out of function without return
             new_state = State(self.parent_state.ctrl, state.envr, state.stor,
                               self.parent_state.kont)
-            return get_next(new_state)
+            return cesk.interpret.get_next(new_state)
         return self.parent_state.kont.satisfy(state)
 
 #Statement Konts
@@ -229,8 +235,10 @@ class IfKont(Kont):
     def satisfy(self, state, value):
         if (value.get_truth_value()):
             new_ctrl = Ctrl(self.iftrue)
-        else:
+        elif self.iffalse is not None:
             new_ctrl = Ctrl(self.iffalse)
+        else:
+            return cesk.interpret.get_next(self.parent_state)
         return State(new_ctrl, state.envr, state.stor, self.parent_state.kont)
 
 class ReturnKont(Kont): #pylint: disable=too-few-public-methods
@@ -285,7 +293,7 @@ class RightBinopKont(Kont):
             #don't return out of function without return
             new_state = State(self.parent_state.ctrl, state.envr, state.stor,
                               self.parent_state.kont)
-            return get_next(new_state)
+            return cesk.interpret.get_next(new_state)
         return self.return_kont.satisfy(current_state, result)
 
 # import is down here to allow for circular dependencies between structures.py and interpret.py

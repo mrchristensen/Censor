@@ -2,7 +2,7 @@
 
 
 int main() {
-    
+
     int m[3][3] = {{1,2,3},{4,5,6},{7,8,9}};
     int i = 0, j = 0;
     int dim = 3;
@@ -10,12 +10,12 @@ int main() {
     outer: 
         inner: 
             sum = sum + m[i][j];
-            ++i;
+            i = i + 1;
             if (i < dim) {
                 goto inner;
             }
         i = 0;
-        ++j;
+        j = j + 1;
         if (j < dim) {
             goto outer; 
         }

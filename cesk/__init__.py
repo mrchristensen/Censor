@@ -3,15 +3,15 @@
 from collections import deque
 from utils import find_main
 from cesk.structures import State, Ctrl, Envr, Stor, Halt, FunctionKont
-from cesk.interpret import execute, LinkParent
+from cesk.interpret import execute, LinkSearch
 
 def main(ast):
     """Injects execution into main funciton and maintains work queue"""
-    ast = LinkParent().visit(ast)
+    ast = LinkSearch().visit(ast)
     main_function = find_main(ast)[0]
 
-    start_index = 0
-    halt_state = State(Ctrl(start_index, main_function), Envr(), Stor(), Halt())
+    start_ctrl = Ctrl(main_function.body)
+    halt_state = State(start_ctrl, Envr(), Stor(), Halt())
     start_state = State(halt_state.ctrl, halt_state.envr, halt_state.stor,
                         FunctionKont(halt_state))
     queue = deque([start_state])

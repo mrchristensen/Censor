@@ -1,37 +1,44 @@
 """Functions to interpret c code directly"""
 
-import copy
 import pycparser
 from cesk.values import generate_constant_value
 
-class LinkParent(pycparser.c_ast.NodeVisitor):
+class LinkSearch(pycparser.c_ast.NodeVisitor):
     """NodeTransformer to link children nodes to parents"""
     parent_lut = {}
     index_lut = {}
+    label_lut = {}
+    envr_lut = {}
 
     def generic_visit(self, node):
+
+        if isinstance(node, pycparser.c_ast.Label):
+            if node.name in LinkSearch.label_lut:
+                raise Exception("Duplicate label name")
+            LinkSearch.label_lut[node.name] = node
+
         for i, child in enumerate(node):
             if isinstance(child, pycparser.c_ast.Node):
-                if child in LinkParent.parent_lut:
+                if child in LinkSearch.parent_lut:
                     raise Exception("Node duplicated in tree")
-                LinkParent.parent_lut[child] = node
-                LinkParent.index_lut[child] = i
+                LinkSearch.parent_lut[child] = node
+                LinkSearch.index_lut[child] = i
                 self.visit(child)
-        if not node in LinkParent.parent_lut:
-            LinkParent.parent_lut[node] = None
-            LinkParent.index_lut[node] = 0
+        if not node in LinkSearch.parent_lut:
+            LinkSearch.parent_lut[node] = None
+            LinkSearch.index_lut[node] = 0
         return node
 
 def execute(state):
     # pylint: disable=too-many-return-statements
     # pylint: disable=too-many-branches
     # pylint: disable=too-many-statements
+    # pylint: disable=too-many-locals
     # pylint: disable=fixme
     """Takes a state evaluates the stmt from ctrl and returns a set of
     states"""
     successors = []
     stmt = state.ctrl.stmt()
-
     if isinstance(stmt, pycparser.c_ast.ArrayDecl):
         # TODO
         #print("ArrayDecl")
@@ -68,7 +75,11 @@ def execute(state):
         # TODO
         #print("Compound")
         new_ctrl = Ctrl(0, stmt)
-        new_envr = Envr(state.envr) #make blank env at head of linked list
+        if stmt in LinkSearch.envr_lut:
+            new_envr = LinkSearch.envr_lut[stmt]
+        else:
+            new_envr = Envr(state.envr) #make blank env at head of linked list
+            LinkSearch.envr_lut[stmt] = new_envr
         if stmt.block_items is None:
             successors.append(get_next(state))
         else:
@@ -165,7 +176,16 @@ def execute(state):
     elif isinstance(stmt, pycparser.c_ast.Goto):
         # TODO
         #print("Goto")
-        successors.append(get_next(state))
+        label_to = LinkSearch.label_lut[stmt.name]
+        body = label_to
+        while not isinstance(body, pycparser.c_ast.Compound):
+            index = LinkSearch.index_lut[body]
+            body = LinkSearch.parent_lut[body]
+        new_ctrl = Ctrl(index, body)
+        new_envr = state.envr
+        if body in LinkSearch.envr_lut:
+            new_envr = LinkSearch.envr_lut[body]
+        successors.append(State(new_ctrl, new_envr, state.stor, state.kont))
     elif isinstance(stmt, pycparser.c_ast.ID):
         # TODO
         #print("ID")
@@ -193,7 +213,12 @@ def execute(state):
     elif isinstance(stmt, pycparser.c_ast.Label):
         # TODO
         #print("Label")
-        successors.append(get_next(state))
+        body = stmt
+        while not isinstance(body, pycparser.c_ast.Compound):
+            body = LinkSearch.parent_lut[body]
+        LinkSearch.envr_lut[body] = state.envr
+        new_ctrl = Ctrl(stmt.stmt)
+        successors.append(State(new_ctrl, state.envr, state.stor, state.kont))
     elif isinstance(stmt, pycparser.c_ast.NamedInitializer):
         # TODO
         #print("NamedInitializer")
@@ -273,12 +298,11 @@ def handle_assignment(operator, ident, exp, state):
 
 def handle_decl(type_of, ident, exp, state): # pylint: disable=unused-argument
     """Maps the identifier to a new address and passes assignment part"""
-
     # type_of ident = exp;
     #map new ident
     if state.envr.is_localy_defined(ident.name):
         raise Exception("Error: redefinition of " + ident.name)
-    new_envr = copy.deepcopy(state.envr)
+    new_envr = state.envr
     new_address = state.stor.get_next_address()
     new_envr.map_new_identifier(ident.name, new_address)
 
@@ -307,25 +331,34 @@ def get_next(state): #pylint: disable=inconsistent-return-statements
     """takes state and returns a state with ctrl for the next statment
     to execute"""
     ctrl = state.ctrl
-    if ctrl.body is not None:
-        if ctrl.index + 1 < len(ctrl.body.block_items):
-            new_ctrl = ctrl + 1
-            return State(new_ctrl, state.envr, state.stor, state.kont)
-        parent = LinkParent.parent_lut[ctrl.body]
-        parent_index = LinkParent.index_lut[ctrl.body]
-        while not isinstance(parent, pycparser.c_ast.Compound):
-            parent_index = LinkParent.index_lut[parent]
-            parent = LinkParent.parent_lut[parent]
-            if parent is None:
-                if isinstance(state.kont, VoidKont):
-                    return state.kont.satisfy()
-                else:
-                    raise Exception("Excpected Return Statememnt")
+    if not isinstance(state.kont, FunctionKont):
+        print(Exception("CESK error: called get_next in bad context"))
+        print("You are probably trying to get a value from somthing that " +
+              "is not implemented. Defaulting to 0")
+        state.kont.satisfy(state, generate_constant_value("0"))
 
-        new_ctrl = Ctrl(parent_index + 1, parent)
+    if ctrl.body is not None and ctrl.index + 1 < len(ctrl.body.block_items):
+        new_ctrl = ctrl + 1
         return State(new_ctrl, state.envr, state.stor, state.kont)
+
+    if ctrl.node is not None:
+        parent = LinkSearch.parent_lut[ctrl.node]
+        parent_index = LinkSearch.index_lut[ctrl.node]
     else:
-        raise Exception("Called get_next outside of compound block")
+        parent = LinkSearch.parent_lut[ctrl.body]
+        parent_index = LinkSearch.index_lut[ctrl.body]
+
+    while not isinstance(parent, pycparser.c_ast.Compound):
+        parent_index = LinkSearch.index_lut[parent]
+        parent = LinkSearch.parent_lut[parent]
+        if parent is None:
+            if isinstance(state.kont, VoidKont):
+                return state.kont.satisfy()
+            else:
+                raise Exception("Excpected Return Statememnt")
+    new_ctrl = Ctrl(parent_index + 1, parent)
+    new_envr = LinkSearch.envr_lut[parent] #set environment to parent scope
+    return State(new_ctrl, new_envr, state.stor, state.kont)
 
 # imports are down here to allow for circular dependencies between structures.py and interpret.py
 
