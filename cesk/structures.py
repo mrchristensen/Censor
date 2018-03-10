@@ -287,14 +287,14 @@ class RightBinopKont(Kont):
         self.operator = operator
         self.return_kont = return_kont
 
-    def satisfy(self, current_state, value):
+    def satisfy(self, state, value):
         result = self.left_result.perform_operation(self.operator, value)
         if isinstance(self.parent_state.kont, FunctionKont):
             #don't return out of function without return
             new_state = State(self.parent_state.ctrl, state.envr, state.stor,
                               self.parent_state.kont)
             return cesk.interpret.get_next(new_state)
-        return self.return_kont.satisfy(current_state, result)
+        return self.return_kont.satisfy(state, result)
 
 # import is down here to allow for circular dependencies between structures.py and interpret.py
 import cesk.values # pylint: disable=wrong-import-position

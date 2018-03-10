@@ -3,11 +3,10 @@
 
 int main() {
         {	
-	return 5;
 	   {
 	    return 2;
 	   }
+	   return 3;
 	}
-	return 3;
         return 0;
 }

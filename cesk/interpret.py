@@ -356,9 +356,9 @@ def get_next(state): #pylint: disable=inconsistent-return-statements
                 return state.kont.satisfy()
             else:
                 raise Exception("Excpected Return Statememnt")
-    new_ctrl = Ctrl(parent_index + 1, parent)
+    parent_ctrl = Ctrl(parent_index, parent)
     new_envr = LinkSearch.envr_lut[parent] #set environment to parent scope
-    return State(new_ctrl, new_envr, state.stor, state.kont)
+    return get_next(State(parent_ctrl, new_envr, state.stor, state.kont))
 
 # imports are down here to allow for circular dependencies between structures.py and interpret.py
 
