@@ -9,11 +9,12 @@ class Instrumenter(NodeTransformer): #pylint: disable=too-many-public-methods
     def __init__(self):
         self.logger = Logger()
 
-    def instrument_omp_log(self, compound, construct):
+    def instrument_omp_log(self, block, construct):
         """Add sandwiching log statements at the beginning and end of an omp structured block"""
-        compound.block_items.insert(0, self.logger.log_omp_enter(construct))
-        compound.block_items.append(self.logger.log_omp_exit(construct))
-        return compound
+        block = ensure_compound(block)
+        block.block_items.insert(0, self.logger.log_omp_enter(construct))
+        block.block_items.append(self.logger.log_omp_exit(construct))
+        return block
 
     def visit_FileAST(self, node): #pylint: disable=invalid-name
         """visit_FileAST"""
@@ -28,7 +29,7 @@ class Instrumenter(NodeTransformer): #pylint: disable=too-many-public-methods
     def visit_OmpParallel(self, node): #pylint: disable=invalid-name
         """visit_OmpParallel"""
         node = self.generic_visit(node)
-        node.block = self.instrument_omp_log(ensure_compound(node.block), 'parallel')
+        node.block = self.instrument_omp_log(node.block, 'parallel')
         return node
 
     def visit_OmpFor(self, node): #pylint: disable=invalid-name
