@@ -2,7 +2,17 @@
 
 from helpers import GoldenTestCase
 from instrumenter.instrumenter import Instrumenter
-from transforms import transform
+from transforms.omp_parallel import PragmaToOmpParallel
+
+TRANSFORMS = [
+    PragmaToOmpParallel()
+]
+
+def transform_omp(ast):
+    """Transform Pragmas to Omp Nodes"""
+    for transform in TRANSFORMS:
+        ast = transform.visit(ast)
+    return ast
 
 class TestInstrumenter(GoldenTestCase):
     """Test Instrumenter"""
@@ -14,7 +24,7 @@ class TestInstrumenter(GoldenTestCase):
 
     def transform(self, ast):
         """Transform input AST"""
-        return self.instrumenter.visit(transform(ast))
+        return self.instrumenter.visit(transform_omp(ast))
 
     def test_fixtures(self):
         """Test all golden files"""
