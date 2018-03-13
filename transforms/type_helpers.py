@@ -240,7 +240,7 @@ def get_type_helper(expr, env): # pylint: disable=too-many-return-statements
     """Does all of the actual work for get_type, but returns a reference to
     a node that is currently in the AST."""
     if isinstance(expr, TypeDecl):
-        return expr 
+        return expr
     elif isinstance(expr, ID):
         # TODO: make it actually work for typedefs
         return env.get_type(expr.name)

@@ -67,7 +67,12 @@ class InsertExplicitTypeCasts(NodeTransformer):
         """Add all necessary typecasts to aribitrary arithmetic expressions."""
         # NOTE: the only time we need to deal with UnaryOp nodes is when they are
         # recursively nested inside a binaryOp node. Or a decl.
-        return self.generic_visit(node)
+
+        # recursively visit children and perform needed type annotations
+        self.generic_visit(node)
+
+        # resolve types for the given operation
+        return
 
     def visit_InitList(self, node): #pylint: disable=invalid-name
         """Add necessary typecasts to expressions inside of an initializer list
