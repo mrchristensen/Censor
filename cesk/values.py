@@ -131,6 +131,10 @@ def generate_default_value(typedecl): #pylint: disable=unused-argument
     # TODO
     return Integer(0, 'int')
 
+def generate_pointer_value(address):
+    """Given a address (int) package it into a pointer"""
+    return Integer(address, 'int')
+
 def cast(value, typedeclt): #pylint: disable=unused-argument
     """Casts the given value a  a value of the given type."""
     #TODO

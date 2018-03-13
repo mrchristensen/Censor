@@ -1,7 +1,7 @@
 """Functions to interpret c code directly"""
 
 import pycparser
-from cesk.values import generate_constant_value
+from cesk.values import generate_constant_value, generate_pointer_value
 
 class LinkSearch(pycparser.c_ast.NodeVisitor):
     """NodeTransformer to link children nodes to parents"""
@@ -46,13 +46,27 @@ def execute(state):
     elif isinstance(stmt, pycparser.c_ast.ArrayRef):
         # TODO
         #print("ArrayRef")
-        successors.append(get_next(state))
+        name = stmt.name.name
+        index = generate_constant_value(stmt.subscript.value).data
+        start_address = state.envr.get_address(name)
+        address = start_address + index
+        value = state.stor.read(address)
+        successors.append(state.kont.satisfy(state, value))
     elif isinstance(stmt, pycparser.c_ast.Assignment):
         # TODO
         #print("Assignment")
-        ident = stmt.lvalue
         exp = stmt.rvalue
-        successors.append(handle_assignment(stmt.op, ident, exp, state))
+        if isinstance(stmt.lvalue, pycparser.c_ast.ID):
+            ident = stmt.lvalue
+            address = state.envr.get_address(ident.name)
+        elif isinstance(stmt.lvalue, pycparser.c_ast.ArrayRef):
+            array = stmt.lvalue
+            start_address = state.envr.get_address(array.name.name)
+            index = generate_constant_value(array.subscript.value).data
+            address = start_address + index
+        else:
+            raise Exception("unsuported assign lvalue: " + str(stmt.lvalue))
+        successors.append(handle_assignment(stmt.op, address, exp, state))
     elif isinstance(stmt, pycparser.c_ast.BinaryOp):
         # TODO
         #print("BinaryOp")
@@ -104,10 +118,7 @@ def execute(state):
     elif isinstance(stmt, pycparser.c_ast.Decl):
         # TODO
         #print("Decl")
-        type_of = stmt.type
-        ident = stmt
-        exp = stmt.init
-        successors.append(handle_decl(type_of, ident, exp, state))
+        successors.append(handle_decl(stmt, state))
     elif isinstance(stmt, pycparser.c_ast.DeclList):
         # TODO
         #print("DeclList")
@@ -192,6 +203,8 @@ def execute(state):
         name = stmt.name
         address = state.envr.get_address(name)
         value = state.stor.read(address)
+        if value is None:
+            raise Exception(name + ": " + str(state.stor.memory))
         if isinstance(state.kont, FunctionKont): #dont return to function
             successors.append(get_next(state))
         else:
@@ -267,7 +280,9 @@ def execute(state):
     elif isinstance(stmt, pycparser.c_ast.UnaryOp):
         # TODO
         #print("UnaryOp")
-        successors.append(get_next(state))
+        opr = stmt.op
+        expr = stmt.expr
+        successors.append(handle_unary_op(opr, expr, state))
     elif isinstance(stmt, pycparser.c_ast.Union):
         # TODO
         #print("Union")
@@ -285,34 +300,53 @@ def execute(state):
 
     return successors
 
-def handle_assignment(operator, ident, exp, state):
+def handle_assignment(operator, address, exp, state):
     """Creates continuation to evalueate exp and assigns resulting value to the
     address associated with ident"""
     #pylint: disable=too-many-function-args
     if operator == '=':
         new_ctrl = Ctrl(exp) #build special ctrl for exp
-        new_kont = AssignKont(ident.name, state)
+        new_kont = AssignKont(address, state)
     else:
         raise Exception(operator + " is not yet implemented")
     return State(new_ctrl, state.envr, state.stor, new_kont)
 
-def handle_decl(type_of, ident, exp, state): # pylint: disable=unused-argument
+def handle_decl(decl, state):
     """Maps the identifier to a new address and passes assignment part"""
-    # type_of ident = exp;
-    #map new ident
-    if state.envr.is_localy_defined(ident.name):
-        raise Exception("Error: redefinition of " + ident.name)
+    name = decl.name
     new_envr = state.envr
-    new_address = state.stor.get_next_address()
-    new_envr.map_new_identifier(ident.name, new_address)
+    if state.envr.is_localy_defined(name):
+        raise Exception("Error: redefinition of " + name)
 
-    if exp is not None:
-        new_state = State(state.ctrl, new_envr, state.stor, state.kont)
-        return handle_assignment("=", ident, exp, new_state)
-    #case: type_of ident;
-    if isinstance(state.kont, FunctionKont): #dont return to function
-        return get_next(state)
-    return state.kont.satisfy(state)
+    if isinstance(decl.type, pycparser.c_ast.TypeDecl):
+        new_address = state.stor.get_next_address()
+        new_envr.map_new_identifier(name, new_address)
+        exp = decl.init
+        if exp is not None:
+            return handle_assignment("=", new_address, exp, state)
+        if isinstance(state.kont, FunctionKont): #dont return to function
+            return get_next(state)
+        return state.kont.satisfy(state)
+
+    elif isinstance(decl.type, pycparser.c_ast.ArrayDecl):
+        array = decl.type
+        length = generate_constant_value(array.dim.value).data
+        new_address = state.stor.allocate_array(length)
+        new_envr.map_new_identifier(name, new_address)
+        if decl.init is not None:
+            raise Exception("array init not yet implemented")
+    else:
+        raise Exception("Declarations of " + str(decl.type) +
+                        " are not yet implemented")
+
+    return get_next(State(state.ctrl, new_envr, state.stor, state.kont))
+
+def handle_unary_op(opr, expr, state):
+    """decodes and evaluates unary_ops"""
+    if opr == "&":
+        address = state.envr.get_address(expr)
+        return state.kont.satisfy(state, generate_pointer_value(address))
+    raise Exception(opr + " is not yet implemented")
 
 def handle_return(exp, state):
     """makes a ReturnKont to pass a value to the parrent kont"""

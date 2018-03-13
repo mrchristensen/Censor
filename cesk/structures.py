@@ -96,7 +96,7 @@ class Envr:
             return self.map_to_address[ident]
         if (self.parent is not None):
             return self.parent.get_address(ident)
-        raise Exception(ident + " is not defined in this scope: " +
+        raise Exception(ident.name + " is not defined in this scope: " +
                         str(self.id)) 
 
     def get_type(self, ident):
@@ -133,6 +133,13 @@ class Stor:
         """returns the next available storage address"""
         self.address_counter += 1
         return self.address_counter - 1
+
+    def allocate_array(self, length):
+        """Moves the address counter to leave room for an array and returns
+        start"""
+        start_address = self.address_counter
+        self.address_counter = self.address_counter + length
+        return start_address
 
     def read(self, address):
         """Read the contents of the store at address. Returns None if undefined.
@@ -201,17 +208,14 @@ class VoidKont(FunctionKont):
 class AssignKont(Kont):
     """Continuaton created by assignment requires a Value to assign to an
     address"""
-    ident = None
-    parent_state = None
 
-    def __init__(self, ident, parent_state):
-        self.ident = ident 
+    def __init__(self, address, parent_state):
+        self.address = address 
         self.parent_state = parent_state
 
     def satisfy(self, state, value):
-        address = self.parent_state.envr.get_address(self.ident)
         new_stor = copy.deepcopy(state.stor)
-        new_stor.write(address, value)
+        new_stor.write(self.address, value)
         if isinstance(self.parent_state.kont, FunctionKont):
             #don't return out of function without return
             new_state = State(self.parent_state.ctrl, state.envr, new_stor,
