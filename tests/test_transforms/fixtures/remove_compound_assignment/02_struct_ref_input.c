@@ -1,8 +1,9 @@
-
 struct rectangle {
     int x;
     int y;
 };
+
+typedef struct rectangle rect;
 
 union Data {
     int i;
@@ -10,10 +11,10 @@ union Data {
 };
 
 int main() {
-    struct rectangle rect = {0,0};
-    rect.x += 1;
+    rect r = {0,0};
+    r.x += 1;
 
-    struct rectangle *p = &rect;
+    struct rectangle *p = &r;
     p->y += 1;
 
     union Data d;

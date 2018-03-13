@@ -1,4 +1,14 @@
-"""AST source to source transformations"""
+"""
+AST source to source transformations
+
+Some transforms must be done before others to ensure correctness.
+transform1 < transform2 should be read as "transform1 must be performed
+before transform2." The ordering is as follows:
+
+RemoveCompoundAssignment < InsertExplicitTypeCasts
+InsertExplicitTypeCasts < ThreePlaceOperations
+
+"""
 
 # imports for transforms
 from .do_while_to_goto import DoWhileToGoto
@@ -20,6 +30,7 @@ from .omp_master import PragmaToOmpMaster
 from .omp_single import PragmaToOmpSingle
 from .remove_compound_assignment import RemoveCompoundAssignment
 # from .insert_explicit_type_casts import InsertExplicitTypeCasts #implementation incomplete
+# from .three_place_operations import ThreePlaceOperations #implementation incomplete
 from .single_return import SingleReturn
 
 # other imports
@@ -36,28 +47,28 @@ def transform(ast):
     # should be different
     type_env_calc = TypeEnvironmentCalculator()
     transformer_generators = [
-        lambda: PragmaToOmpParallelSections(), # pylint: disable=unnecessary-lambda
-        lambda: PragmaToOmpParallelFor(), # pylint: disable=unnecessary-lambda
-        lambda: PragmaToOmpParallel(), # pylint: disable=unnecessary-lambda
-        lambda: PragmaToOmpFor(), # pylint: disable=unnecessary-lambda
-        lambda: PragmaToOmpSections(), # pylint: disable=unnecessary-lambda
-        lambda: PragmaToOmpSection(), # pylint: disable=unnecessary-lambda
-        lambda: PragmaToOmpTask(), # pylint: disable=unnecessary-lambda
-        lambda: PragmaToOmpTaskgroup(), # pylint: disable=unnecessary-lambda
-        lambda: PragmaToOmpTaskwait(), # pylint: disable=unnecessary-lambda
-        lambda: PragmaToOmpCritical(), # pylint: disable=unnecessary-lambda
-        lambda: PragmaToOmpBarrier(), # pylint: disable=unnecessary-lambda
-        lambda: PragmaToOmpAtomic(), # pylint: disable=unnecessary-lambda
-        lambda: PragmaToOmpMaster(), # pylint: disable=unnecessary-lambda
-        lambda: PragmaToOmpSingle(), # pylint: disable=unnecessary-lambda
-        lambda: ForToWhile(), # pylint: disable=unnecessary-lambda
-        lambda: WhileToDoWhile(), # pylint: disable=unnecessary-lambda
+        lambda: PragmaToOmpParallelSections(),
+        lambda: PragmaToOmpParallelFor(),
+        lambda: PragmaToOmpParallel(),
+        lambda: PragmaToOmpFor(),
+        lambda: PragmaToOmpSections(),
+        lambda: PragmaToOmpSection(),
+        lambda: PragmaToOmpTask(),
+        lambda: PragmaToOmpTaskgroup(),
+        lambda: PragmaToOmpTaskwait(),
+        lambda: PragmaToOmpCritical(),
+        lambda: PragmaToOmpBarrier(),
+        lambda: PragmaToOmpAtomic(),
+        lambda: PragmaToOmpMaster(),
+        lambda: PragmaToOmpSingle(),
+        lambda: ForToWhile(),
+        lambda: WhileToDoWhile(),
         lambda: DoWhileToGoto(id_generator),
         lambda: RemoveCompoundAssignment(id_generator,
                                          type_env_calc.get_environments(ast)),
-        # lambda: InsertExplicitTypeCasts(type_env_calc.get_environments(ast)), # implementation incopmlete
+        # lambda: InsertExplicitTypeCasts(type_env_calc.get_environments(ast)),
         # lambda: ThreePlaceOperations(id_generator,
-        #                              type_env_calc.get_environments(ast)), # implementation incopmlete
+        #                              type_env_calc.get_environments(ast)),
         lambda: SingleReturn(id_generator),
     ]
     for generator in transformer_generators:

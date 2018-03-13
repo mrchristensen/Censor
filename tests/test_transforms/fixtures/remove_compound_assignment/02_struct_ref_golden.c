@@ -3,26 +3,24 @@ struct rectangle
   int x;
   int y;
 };
-
+typedef struct rectangle rect;
 union Data
 {
-    int i;
-    float f;
+  int i;
+  float f;
 };
-
 int main()
 {
-  struct rectangle rect = {0, 0};
+  rect r = {0, 0};
   {
-    int *censor01 = &rect.x;
+    int *censor01 = &r.x;
     *censor01 = (*censor01) + 1;
   }
-  struct rectangle *p = &rect;
+  struct rectangle *p = &r;
   {
     int *censor02 = &p->y;
     *censor02 = (*censor02) + 1;
   }
-
   union Data d;
   d.i = 1;
   {
@@ -34,6 +32,6 @@ int main()
     float *censor04 = &dp->f;
     *censor04 = (*censor04) + 1;
   }
-
   return 0;
 }
+
