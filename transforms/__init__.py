@@ -55,7 +55,9 @@ def transform(ast):
         lambda: DoWhileToGoto(id_generator),
         lambda: RemoveCompoundAssignment(id_generator,
                                          type_env_calc.get_environments(ast)),
-        # lambda: InsertExplicitTypeCasts # implementation incopmlete
+        # lambda: InsertExplicitTypeCasts(type_env_calc.get_environments(ast)), # implementation incopmlete
+        # lambda: ThreePlaceOperations(id_generator,
+        #                              type_env_calc.get_environments(ast)), # implementation incopmlete
         lambda: SingleReturn(id_generator),
     ]
     for generator in transformer_generators:

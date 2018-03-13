@@ -69,7 +69,6 @@ class Envr:
 def remove_identifier(node):
     """Takes in the type attribute of a Decl node and removes the identifier,
     so it can be used for type casting. Returns the identifier"""
-    # node.show()
     if isinstance(node, TypeDecl):
         # remove the identifier, end recursion
         ident = node.declname
@@ -207,7 +206,10 @@ def get_unop_type(expr, env):
 
 def get_structref_type(expr, env):
     """Resolve the type of a StructRef node."""
-    type_decl = env.get_type(expr.name)
+    # find the type of whatever is on the left of the . or ->
+    type_decl = get_type_helper(expr.name, env)
+
+    # go look up the type, see what the type of the given field is
     if isinstance(type_decl, PtrDecl):
         type_decl = type_decl.type
 
@@ -237,8 +239,9 @@ def get_type(expr, env):
 def get_type_helper(expr, env): # pylint: disable=too-many-return-statements
     """Does all of the actual work for get_type, but returns a reference to
     a node that is currently in the AST."""
-    if isinstance(expr, ID):
-        # TODO: if its a function, get the return type
+    if isinstance(expr, TypeDecl):
+        return expr
+    elif isinstance(expr, ID):
         # TODO: make it actually work for typedefs
         return env.get_type(expr.name)
     elif isinstance(expr, Constant):
@@ -253,7 +256,10 @@ def get_type_helper(expr, env): # pylint: disable=too-many-return-statements
     elif isinstance(expr, StructRef):
         return get_structref_type(expr, env)
     elif isinstance(expr, ArrayRef):
-        return env.get_type(expr.name).type
+        return get_type_helper(expr.name, env).type
+    elif isinstance(expr, FuncCall):
+        # TODO: if its a function call, get the return type
+        raise NotImplementedError()
     else:
         raise NotImplementedError()
     return expr.type

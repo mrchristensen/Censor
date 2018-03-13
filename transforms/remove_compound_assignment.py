@@ -49,6 +49,7 @@ class RemoveCompoundAssignment(NodeTransformer):
 
     def visit_Assignment(self, node): #pylint: disable=invalid-name
         """Visit all Assignment nodes and get rid of the compound ones."""
+        # print("----------------"); node.show()
         if node.op == '=':
             return self.generic_visit(node)
 

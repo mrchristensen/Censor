@@ -54,7 +54,6 @@ class InsertExplicitTypeCasts(NodeTransformer):
                 raise NotImplementedError()
             node.init = self.generic_visit(node.init)
         elif isinstance(node.type, FuncDecl):
-            # TODO: add type information of the function to the environment
             # don't do any cast, casting to a function type doesn't compile,
             # casting to a function pointer type is undefined behavior
             node.init = self.generic_visit(node.init)
@@ -62,15 +61,18 @@ class InsertExplicitTypeCasts(NodeTransformer):
             raise NotImplementedError()
 
         node.type = self.generic_visit(node.type)
-        if node.bitsize is not None:
-            node.bitsize = self.generic_visit(node.bitsize)
         return node
 
     def visit_BinaryOp(self, node): #pylint: disable=invalid-name
         """Add all necessary typecasts to aribitrary arithmetic expressions."""
         # NOTE: the only time we need to deal with UnaryOp nodes is when they are
         # recursively nested inside a binaryOp node. Or a decl.
-        return self.generic_visit(node)
+
+        # recursively visit children and perform needed type annotations
+        self.generic_visit(node)
+
+        # resolve types for the given operation
+        return
 
     def visit_InitList(self, node): #pylint: disable=invalid-name
         """Add necessary typecasts to expressions inside of an initializer list
