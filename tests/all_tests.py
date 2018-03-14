@@ -7,6 +7,7 @@ sys.path[0:0] = ['.', '..']
 
 SUITE = unittest.TestLoader().loadTestsFromNames(
     [
+        'test_transforms.test_node_transformer',
         'test_transforms.test_for_to_while',
         'test_transforms.test_omp_for',
         'test_transforms.test_omp_critical',
