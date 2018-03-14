@@ -17,10 +17,9 @@ class ForToWhile(NodeTransformer):
         stmt = transform_loop_statement(node.stmt, node.next)
         if node.init is None:
             return While(cond, stmt, node.coord)
-        return Compound([
-            node.init,
-            While(cond, stmt, node.coord)
-            ])
+        items = node.init.decls
+        items.append(While(cond, stmt, node.coord))
+        return Compound(items, node.coord)
 
 def transform_loop_condition(cond):
     """Transform empty for loop condition to a truthy value for while loop"""

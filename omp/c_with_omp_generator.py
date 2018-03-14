@@ -10,10 +10,6 @@ class CWithOMPGenerator(CGenerator):
         but modified to return a value from each visit method, using string
         accumulation in generic_visit.
     """
-    def visit_DeclList(self, n):
-        """Add semicolon to the end of DeclList"""
-        return super().visit_DeclList(n) + ';'
-
     def visit_OmpFor(self, n):
         """Return pragman string"""
         return '#pragma ' + n.pragma + '\n' + self.generic_visit(n)
