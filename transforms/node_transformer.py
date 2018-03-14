@@ -12,10 +12,24 @@ https://github.com/python/cpython/blob/3.0/Lib/ast.py
 import pycparser.c_ast
 import omp.omp_ast
 
+CAN_BE_COMPOUND = [
+    (pycparser.c_ast.While, 'stmt'),
+    (pycparser.c_ast.DoWhile, 'stmt'),
+    (pycparser.c_ast.For, 'stmt'),
+    (pycparser.c_ast.If, 'iftrue'),
+    (pycparser.c_ast.If, 'iffalse')
+]
 
 def is_node(node):
     """Return true if object is an instance of Node"""
     return isinstance(node, (pycparser.c_ast.Node, omp.omp_ast.Node))
+
+def can_be_compound(node, field):
+    """Return true if the node can have a compound at field"""
+    for klass, attr in CAN_BE_COMPOUND:
+        if isinstance(node, klass) and attr == field:
+            return True
+    return False
 
 class NodeTransformer(pycparser.c_ast.NodeVisitor):
     """
@@ -48,9 +62,10 @@ class NodeTransformer(pycparser.c_ast.NodeVisitor):
         if new_node is None:
             delattr(node, field)
         elif isinstance(new_node, list):
-            # We could check to make sure that `node` can accept
-            # a Compound at `field`. `node` should be a While, For, DoWhile etc
-            setattr(node, field, pycparser.c_ast.Compound(new_node))
+            if can_be_compound(node, field):
+                setattr(node, field, pycparser.c_ast.Compound(new_node))
+            else:
+                raise ValueError
         else:
             setattr(node, field, new_node)
         return node
