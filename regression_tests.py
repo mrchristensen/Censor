@@ -76,7 +76,6 @@ def _test_file(test_file, options=Options()):
     ast = pycparser.parse_file(
         test_file, use_cpp=True, cpp_path='gcc',
         cpp_args=pycparser_args)
-    ast.show()
 
     # setup gcc arguments
     gcc_args = []
