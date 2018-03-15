@@ -43,7 +43,7 @@ class SingleReturn(NodeTransformer):
             return goto
 
         assignment = Assignment("=", ID(self.retval_id), node.expr)
-        return Compound([assignment, goto])
+        return [assignment, goto]
 
 
 def is_void(return_type):

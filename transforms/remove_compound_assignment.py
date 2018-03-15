@@ -66,4 +66,4 @@ class RemoveCompoundAssignment(NodeTransformer):
         operation = BinaryOp(node.op[:-1], dereferenced_temp_name, node.rvalue)
         second_line = Assignment('=', dereferenced_temp_name, operation)
 
-        return Compound([first_line, second_line])
+        return [first_line, second_line]
