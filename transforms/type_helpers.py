@@ -2,6 +2,9 @@
 from copy import deepcopy
 from pycparser.c_ast import * # pylint: disable=wildcard-import, unused-wildcard-import
 
+
+# TODO: support Enum declarations
+
 class Envr:
     """Holds the enviorment (a mapping of identifiers to types)"""
     parent = None
@@ -106,15 +109,14 @@ def add_identifier(node, ident):
 def is_integral(type_node):
     """Returns if the given type node describes an integral type."""
     # TODO: Add support for user-defined integral types that are
-    # defined through typedef's
+    # defined through typedef's or enums
     integral_ids = ['int', 'char', 'short']
     if isinstance(type_node, TypeDecl):
         if isinstance(type_node.type, IdentifierType):
-        #     if len(type_node.type.names) == 1:
             return bool([i for i in integral_ids if i in type_node.type.names])
         return False
-    # elif isinstance(type_node, IdentifierType):
-    #     return bool([i for i in integral_ids if i in type_node.names])
+    elif isinstance(type_node, IdentifierType):
+        return bool([i for i in integral_ids if i in type_node.names])
     return False
 
 def is_float(type_node):

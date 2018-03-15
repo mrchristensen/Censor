@@ -24,7 +24,6 @@ def visit_Compound(self, node):
 in your visit_Compound, and then self.envr will always be the environment
 of your current scope.
 """
-# TODO: support Enum declarations
 
 from copy import deepcopy
 from .node_transformer import NodeTransformer
@@ -68,11 +67,25 @@ class TypeEnvironmentCalculator(NodeTransformer):
         self.envr = self.envr.parent
         return retval
 
+    def visit_FuncDef(self, node): # pylint: disable=invalid-name
+        """Create a new environment for the scope of the function. Add the
+        function parameters to this scope, then handle the body."""
+        self.envr = Envr(self.envr)
+
+        func_decl = node.decl.type
+        if func_decl.args != None:
+            func_decl.args = self.visit(func_decl.args)
+        node.body = self.generic_visit(node.body)
+
+        self.environemnts[node.body] = self.envr
+        self.envr = self.envr.parent
+        return node
+
+
     def visit_Decl(self, node): # pylint: disable=invalid-name
         """Visit Decl nodes so that we can save type information about
         identifiers in the environment."""
-        # print("---visiting decl---")
-        # node.show()
+        # print("---visiting decl---"); node.show()
         type_node = deepcopy(node.type)
         ident = remove_identifier(type_node)
 
@@ -80,4 +93,4 @@ class TypeEnvironmentCalculator(NodeTransformer):
             raise Exception("Error: redefinition of " + ident)
 
         self.envr.add(ident, type_node)
-        return self.generic_visit(node)
+        return node
