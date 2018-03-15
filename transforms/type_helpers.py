@@ -77,7 +77,7 @@ def remove_identifier(node):
         ident = node.declname
         node.declname = None
         return ident
-    elif isinstance(node, (Struct, Union)):
+    elif isinstance(node, (Struct, Union, Enum)):
         # remove the identifier, end recursion
         ident = node.name
         node.name = None
@@ -95,7 +95,7 @@ def add_identifier(node, ident):
         # add the identifier, end recursion
         node.declname = ident
         return node
-    elif isinstance(node, (Struct, Union)):
+    elif isinstance(node, (Struct, Union, Enum)):
         # add the identifier, end recursion
         node.name = ident
         return node
