@@ -260,8 +260,8 @@ def get_type_helper(expr, env): # pylint: disable=too-many-return-statements
     elif isinstance(expr, ArrayRef):
         return get_type_helper(expr.name, env).type
     elif isinstance(expr, FuncCall):
-        # TODO: if its a function call, get the return type
-        raise NotImplementedError()
+        func_decl = env.get_type(expr.name)
+        return func_decl.type
     else:
         raise NotImplementedError()
     return expr.type
