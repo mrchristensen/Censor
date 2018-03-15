@@ -1,6 +1,6 @@
 """Transform all functions to contain only a single return statement."""
 from copy import deepcopy
-from pycparser.c_ast import Return, Label, Goto, Decl, Assignment, Compound, ID
+from pycparser.c_ast import Return, Label, Goto, Decl, Assignment, ID
 from pycparser.c_ast import IdentifierType
 from .type_helpers import remove_identifier, add_identifier
 from .node_transformer import NodeTransformer

@@ -224,6 +224,9 @@ def get_structref_type(expr, env):
         struct_type_string = struct_type.name
         struct_type = env.get_type(struct_type_string)
 
+    if isinstance(struct_type, TypeDecl):
+        struct_type = struct_type.type
+
     for decl in struct_type.decls:
         if decl.name == expr.field.name:
             return decl.type

@@ -26,7 +26,7 @@ We can do this because any lvalue in C can be resolved to an address except
 for two cases: variables marked as register, which we can, as an
 implementation, safely ignore, and bit-fields, which we do not support.
 """
-from pycparser.c_ast import Decl, UnaryOp, BinaryOp, Assignment, Compound, ID, PtrDecl
+from pycparser.c_ast import Decl, UnaryOp, BinaryOp, Assignment, ID, PtrDecl
 from .type_helpers import get_type, add_identifier
 from .node_transformer import NodeTransformer
 
