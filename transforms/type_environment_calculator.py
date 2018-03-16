@@ -56,7 +56,7 @@ class TypeEnvironmentCalculator(NodeTransformer):
     def visit_Typedef(self, node): # pylint: disable=invalid-name
         """Add typedefs to the type environment."""
         self.envr.add(node.name, node.type)
-        return self.generic_visit(node)
+        return node
 
     def visit_Compound(self, node): # pylint: disable=invalid-name
         """Create a new environment with the current environment as its
@@ -68,8 +68,9 @@ class TypeEnvironmentCalculator(NodeTransformer):
         return retval
 
     def visit_FuncDef(self, node): # pylint: disable=invalid-name
-        """Create a new environment for the scope of the function. Add the
+        """Add Create a new environment for the scope of the function. Add the
         function parameters to this scope, then handle the body."""
+        node.decl = self.visit(node.decl)
         self.envr = Envr(self.envr)
 
         func_decl = node.decl.type
@@ -85,7 +86,6 @@ class TypeEnvironmentCalculator(NodeTransformer):
     def visit_Decl(self, node): # pylint: disable=invalid-name
         """Visit Decl nodes so that we can save type information about
         identifiers in the environment."""
-        # print("---visiting decl---"); node.show()
         type_node = deepcopy(node.type)
         ident = remove_identifier(type_node)
 

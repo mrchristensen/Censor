@@ -6,7 +6,7 @@ int main()
   a = (float) (((long double) b) + c);
   b = (double) (((long double) a) + c);
   c = (long double) (b + ((double) a));
-  a = (float) (a + a);
+  a = a + a;
   a = (float) (((long double) (((double) a) + b)) + (c + ((long double) a)));
 
   int i;

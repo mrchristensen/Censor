@@ -143,7 +143,7 @@ def get_integral_range(type_node):
 
 def is_signed(int_range):
     """Takes a Range, says if that Range represents a signed integral type."""
-    return not int_range.r.min == 0
+    return not int_range.min == 0
 
 def resolve_integral_types(left, right):
     """Given two integral types, figure out what types they should be cast to
@@ -155,18 +155,18 @@ def resolve_integral_types(left, right):
 
     if l_range == r_range:
         return Side.NOCAST
-    elif is_signed(left) == is_signed(right):
+    elif is_signed(l_range) == is_signed(r_range):
         if l_range.max > r_range.max:
             return Side.LEFT
         else:
             return Side.RIGHT
-    elif is_signed(left) and l_range.max > (r_range.max - r_range.min):
+    elif not is_signed(l_range) and l_range.max >= (r_range.max - r_range.min):
         return Side.LEFT
-    elif is_signed(right) and r_range.max > (l_range.max - l_range.min):
+    elif not is_signed(r_range) and r_range.max >= (l_range.max - l_range.min):
         return Side.RIGHT
-    elif is_signed(left) and l_range.max < r_range.max:
+    elif is_signed(l_range) and l_range.max >= r_range.max:
         return Side.LEFT
-    elif is_signed(right) and r_range.max > (l_range.max - l_range.min):
+    elif is_signed(r_range) and r_range.max >= l_range.max:
         return Side.RIGHT
     else:
         # Technically, there is an extra case in the C spec here:
@@ -278,7 +278,9 @@ def get_structref_type(expr, env):
 
     for decl in struct_type.decls:
         if decl.name == expr.field.name:
-            return decl.type
+            ret = deepcopy(decl.type)
+            remove_identifier(ret)
+            return ret
     raise Exception("Struct " + struct_type_string +
                     "doesn't have field " + expr.field.name)
 

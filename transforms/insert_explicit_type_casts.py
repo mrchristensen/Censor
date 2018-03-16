@@ -3,17 +3,10 @@ from pycparser.c_ast import Cast, TypeDecl, PtrDecl, ArrayDecl, FuncDecl
 from pycparser.c_ast import InitList, Constant
 # from pycparser.c_ast import  BinaryOp, UnaryOp, InitList,  Compound,  Decl,
 from .node_transformer import NodeTransformer
-from .type_helpers import Side, get_type, resolve_types
+from .type_helpers import Side, get_type, resolve_types, is_float, is_integral
 
-# TODO: take care of modifiers and storage qualifiers correctly
-# modifiers: signed unsigned long short
+# TODO: take care of storage qualifiers correctly
 # const extern volatile static register
-
-# it already puts the type cast in for structs and unions!!!
-
-# TODO: in function calls, the arguments need to be cast to the correct type,
-# as does the return value. So the Environment DEFINITELY needs to store info on
-# types of functions.
 
 class InsertExplicitTypeCasts(NodeTransformer):
     """NodeTransformer to make all typecasts in the program explicit."""
@@ -41,7 +34,7 @@ class InsertExplicitTypeCasts(NodeTransformer):
             return node
 
         if isinstance(node.type, (TypeDecl, PtrDecl)):
-            node.init = Cast(type_node, self.generic_visit(node.init))
+            node.init = Cast(type_node, self.visit(node.init))
         elif isinstance(node.type, ArrayDecl):
             if isinstance(node.init, InitList):
                 annotate_array_initlist(node.init, type_node.type)
@@ -93,12 +86,23 @@ class InsertExplicitTypeCasts(NodeTransformer):
     def visit_Assignment(self, node): #pylint: disable=invalid-name
         """Add a type cast based on type info about the lvalue stored in
         the Environment."""
+        # print("---------"); node.show()
         self.generic_visit(node)
         lvalue_type = get_type(node.lvalue, self.env)
+        # TODO: annotate inside of initializer list if used here
         # TODO: if we ever implement a method to do a full comparison as node
         # equality, don't do the cast if get_type(lvalue) == get_type(rvalue)
+        if is_integral(lvalue_type) or is_float(lvalue_type):
+            rvalue_type = get_type(node.rvalue, self.env)
+            if resolve_types(lvalue_type, rvalue_type) == Side.NOCAST:
+                return node
         node.rvalue = Cast(lvalue_type, node.rvalue)
         return node
+
+    def visit_FuncCall(self, node): #pylint: disable=invalid-name
+        """Put explicit type casts in front of each parameter in the call."""
+        # TODO uh...actually implement it
+        return self.generic_visit(node)
 
 # def handle_assignment(init, type_node):
 #     """Handle type cast upon assignment whether part of a Decl or not."""
