@@ -1,13 +1,13 @@
 enum Color
 {
   RED,
-  YELLOW,
+  YELLOW = 2,
   BLUE
 };
 typedef enum
 {
   LEFT,
-  RIGHT,
+  RIGHT = 2,
   FORWARD,
   BACKWARD
 } Direction;

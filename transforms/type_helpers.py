@@ -1,9 +1,15 @@
 """Helpers for working with information about types during AST transformations."""
 from copy import deepcopy
+from enum import Enum
 from pycparser.c_ast import * # pylint: disable=wildcard-import, unused-wildcard-import
+from cesk.limits import RANGES
 
-
-# TODO: support Enum declarations
+class Side(Enum):
+    """Return type of function asking which type of a binary operand that
+    both sides should be cast to."""
+    LEFT = 1
+    RIGHT = 2
+    NOCAST = 3
 
 class Envr:
     """Holds the enviorment (a mapping of identifiers to types)"""
@@ -30,16 +36,6 @@ class Envr:
         """Add a new identifier to the mapping"""
         if isinstance(ident, ID):
             ident = ident.name
-
-        # # if the type is actually a typedef for another type, map the
-        # # identifier directly to the other type
-        # # CANT do this because if the originial type is declared incline,
-        # if isinstance(type_node, TypeDecl) and isinstance(type_node.type, IdentifierType):
-        #     if len(type_node.type.names) == 1:
-        #         type_name = type_node.type.names[0]
-        #         if self.is_defined(type_name):
-        #             self.map_to_type[ident] = self.get_type(type_name)
-        #             return
 
         self.map_to_type[ident] = type_node
 
@@ -135,19 +131,69 @@ def is_ptr(type_node):
     """Returns if the given type node describes a pointer type."""
     return isinstance(type_node, PtrDecl)
 
+def get_integral_range(type_node):
+    """Takes in a type_node describing an integral type and returns the range
+    of integers that the given integral type can represent, e.g.
+    get_integral_range(TypeDecl(None, [],
+                    IdentifierType(['char'])) == Range(-127,127)"""
+    # TODO: Add support for user-defined integral types that are
+    # defined through typedef's or enums
+    type_string = " ".join(type_node.type.names)
+    return RANGES[type_string]
+
+def is_signed(int_range):
+    """Takes a Range, says if that Range represents a signed integral type."""
+    return not int_range.r.min == 0
+
 def resolve_integral_types(left, right):
     """Given two integral types, figure out what types they should be cast to
     when a binary operation is performed on two objects with the given types"""
-    # TODO
+    # TODO Add support for user-defined integral types that are
+    # defined through typedef's or enums
+    l_range = get_integral_range(left)
+    r_range = get_integral_range(right)
+
+    if l_range == r_range:
+        return Side.NOCAST
+    elif is_signed(left) == is_signed(right):
+        if l_range.max > r_range.max:
+            return Side.LEFT
+        else:
+            return Side.RIGHT
+    elif is_signed(left) and l_range.max > (r_range.max - r_range.min):
+        return Side.LEFT
+    elif is_signed(right) and r_range.max > (l_range.max - l_range.min):
+        return Side.RIGHT
+    elif is_signed(left) and l_range.max < r_range.max:
+        return Side.LEFT
+    elif is_signed(right) and r_range.max > (l_range.max - l_range.min):
+        return Side.RIGHT
+    else:
+        # Technically, there is an extra case in the C spec here:
+        # "Otherwise, both operands are converted to the unsigned integer type
+        # corresponding to the type of the operand with signed integer type."
+        # As an implementation, we don't want to have to deal with that, so
+        # cesk.limits.py should be set up so that this case is never reached.
+        raise Exception("Incorrect integer Limits!")
+
+
     left = right
-    return left
+    return Side.LEFT
 
 def resolve_floating_types(left, right):
     """Given two integral types, figure out what types they should be cast to
     when a binary operation is performed on two objects with the given types"""
-    # TODO
-    left = right
-    return left
+    # TODO support for typedef defined floating types
+    # TODO support for complex floating types
+    if left.type.names == right.type.names:
+        return Side.NOCAST
+    elif 'long' in left.type.names:
+        return Side.LEFT
+    elif 'long' in right.type.names:
+        return Side.RIGHT
+    elif 'double' in left.type.names:
+        return Side.LEFT
+    return Side.RIGHT
 
 def resolve_types(left, right): # pylint: disable=too-many-return-statements
     """Given two types, figure out what types they should be cast to when
@@ -157,15 +203,15 @@ def resolve_types(left, right): # pylint: disable=too-many-return-statements
     section, 6.3.1.8 Usual arithmetic conversions, p. 44.
     """
     if is_ptr(left) and is_integral(right):
-        return left
+        return Side.LEFT
     elif is_integral(left) and is_ptr(right):
-        return right
+        return Side.RIGHT
     elif is_ptr(left) and is_ptr(right):
         return TypeDecl(None, [], IdentifierType(['int']))
     elif is_float(left) and is_integral(right):
-        return left
+        return Side.LEFT
     elif is_integral(left) and is_float(right):
-        return right
+        return Side.RIGHT
     elif is_float(left) and is_float(right):
         return resolve_floating_types(left, right)
     elif is_integral(left) and is_integral(right):
@@ -184,7 +230,10 @@ def get_binop_type(expr, env):
     elif expr.op in ['%', '*', '+', '-', '/', '^', '|', '&', '<<', '>>']:
         left_type = get_type(expr.left, env)
         right_type = get_type(expr.right, env)
-        return resolve_types(left_type, right_type)
+        if resolve_types(left_type, right_type) == Side.LEFT:
+            return left_type
+        else:
+            return right_type
     else:
         raise NotImplementedError()
 

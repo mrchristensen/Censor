@@ -2,8 +2,8 @@
 from pycparser.c_ast import Cast, TypeDecl, PtrDecl, ArrayDecl, FuncDecl
 from pycparser.c_ast import InitList, Constant
 # from pycparser.c_ast import  BinaryOp, UnaryOp, InitList,  Compound,  Decl,
-# from .helpers import IncorrectTransformOrder
 from .node_transformer import NodeTransformer
+from .type_helpers import Side, get_type, resolve_types
 
 # TODO: take care of modifiers and storage qualifiers correctly
 # modifiers: signed unsigned long short
@@ -19,15 +19,15 @@ class InsertExplicitTypeCasts(NodeTransformer):
     """NodeTransformer to make all typecasts in the program explicit."""
     def __init__(self, environments):
         self.environments = environments
-        self.envr = environments["GLOBAL"]
+        self.env = environments["GLOBAL"]
 
     def visit_Compound(self, node): #pylint: disable=invalid-name
         """Reassign the environment to be the environment of the current
         compound block."""
-        parent = self.envr
-        self.envr = self.environments[node]
+        parent = self.env
+        self.env = self.environments[node]
         retval = self.generic_visit(node)
-        self.envr = parent
+        self.env = parent
         return retval
 
     def visit_Decl(self, node): #pylint: disable=invalid-name
@@ -35,7 +35,7 @@ class InsertExplicitTypeCasts(NodeTransformer):
         # print("Decl:\n"); node.show()
         # print("node type:\n"); node.type.show()
         ident = node.name
-        type_node = self.envr.get_type(ident)
+        type_node = self.env.get_type(ident)
 
         if node.init is None:
             return node
@@ -69,10 +69,19 @@ class InsertExplicitTypeCasts(NodeTransformer):
         # recursively nested inside a binaryOp node. Or a decl.
 
         # recursively visit children and perform needed type annotations
-        self.generic_visit(node)
+        node = self.generic_visit(node)
 
         # resolve types for the given operation
-        return
+        left_type = get_type(node.left, self.env)
+        right_type = get_type(node.right, self.env)
+        cast_to = resolve_types(left_type, right_type)
+
+        if cast_to == Side.LEFT:
+            node.right = Cast(left_type, node.right)
+        elif cast_to == Side.RIGHT:
+            node.left = Cast(right_type, node.left)
+
+        return node
 
     def visit_InitList(self, node): #pylint: disable=invalid-name
         """Add necessary typecasts to expressions inside of an initializer list
@@ -84,7 +93,12 @@ class InsertExplicitTypeCasts(NodeTransformer):
     def visit_Assignment(self, node): #pylint: disable=invalid-name
         """Add a type cast based on type info about the lvalue stored in
         the Environment."""
-        pass
+        self.generic_visit(node)
+        lvalue_type = get_type(node.lvalue, self.env)
+        # TODO: if we ever implement a method to do a full comparison as node
+        # equality, don't do the cast if get_type(lvalue) == get_type(rvalue)
+        node.rvalue = Cast(lvalue_type, node.rvalue)
+        return node
 
 # def handle_assignment(init, type_node):
 #     """Handle type cast upon assignment whether part of a Decl or not."""

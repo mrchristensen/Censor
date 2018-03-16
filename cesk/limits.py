@@ -1,6 +1,7 @@
 """Concrete values for macros that would be accesed through <limits.h> in C.
 From the C99 standard: "Their implementation-defined values shall be equal or
 greater in magnitude (absolute value) to those shown, with the same sign."""
+from collections import namedtuple
 
 CHAR_BIT = 8
 SCHAR_MIN = -127 # −(2^7 − 1)
@@ -21,3 +22,19 @@ ULONG_MAX = 4294967295 # 2^32^− 1
 LLONG_MIN = -9223372036854775807 # −(2^63 − 1)
 LLONG_MAX = +9223372036854775807 # 2^63 − 1
 ULLONG_MAX = 18446744073709551615 # 2^64 − 1
+
+Range = namedtuple('Range', ['min', 'max'])
+
+RANGES = {
+    "char": Range(CHAR_MIN, CHAR_MAX),
+    "unsigned char": Range(0, UCHAR_MAX),
+    "signed char": Range(SCHAR_MIN, SCHAR_MAX),
+    "short": Range(SHRT_MIN, SHRT_MAX),
+    "unsigned short": Range(0, USHRT_MAX),
+    "int": Range(INT_MIN, INT_MAX),
+    "unsigned int": Range(0, UINT_MAX),
+    "long int": Range(LONG_MIN, LONG_MAX),
+    "unsigned long int": Range(0, ULONG_MAX),
+    "long long int": Range(LLONG_MIN, LLONG_MAX),
+    "unsigned long long int": Range(0, ULLONG_MAX)
+}
