@@ -1,5 +1,4 @@
 """Functions to interpret c code directly"""
-
 import pycparser
 from cesk.values import generate_constant_value, generate_pointer_value
 
@@ -318,7 +317,8 @@ def handle_decl(decl, state):
     if state.envr.is_localy_defined(name):
         raise Exception("Error: redefinition of " + name)
 
-    if isinstance(decl.type, pycparser.c_ast.TypeDecl):
+    if (isinstance(decl.type, (pycparser.c_ast.TypeDecl,
+                               pycparser.c_ast.PtrDecl))): #pointers are just int
         new_address = state.stor.get_next_address()
         new_envr.map_new_identifier(name, new_address)
         exp = decl.init
@@ -344,9 +344,22 @@ def handle_decl(decl, state):
 def handle_unary_op(opr, expr, state):
     """decodes and evaluates unary_ops"""
     if opr == "&":
-        address = state.envr.get_address(expr)
+        if isinstance(expr, pycparser.c_ast.ID):
+            ident = expr.name
+            address = state.envr.get_address(ident)
+        elif isinstance(expr, pycparser.c_ast.ArrayRef):
+            raise Exception("Arrays are not yet fully implemented")
+        else:
+            raise Exception("& operator not implemented for " + str(expr))
         return state.kont.satisfy(state, generate_pointer_value(address))
-    raise Exception(opr + " is not yet implemented")
+
+    elif opr == "*":
+        address = state.stor.read(state.envr.get_address(expr.name)).data
+        value = state.stor.read(address)
+        return state.kont.satisfy(state, value)
+    else:
+        raise Exception(opr + " is not yet implemented")
+
 
 def handle_return(exp, state):
     """makes a ReturnKont to pass a value to the parrent kont"""

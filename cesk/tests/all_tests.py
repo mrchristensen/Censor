@@ -8,6 +8,7 @@ sys.path[0:0] = ['.', '..']
 SUITE = unittest.TestLoader().loadTestsFromNames(
     [
         'basic_functionality',
+        'continuation_edge_cases'
     ]
 )
 TESTRESULT = unittest.TextTestRunner(verbosity=1).run(SUITE)
