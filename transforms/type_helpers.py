@@ -145,7 +145,7 @@ def is_signed(int_range):
     """Takes a Range, says if that Range represents a signed integral type."""
     return not int_range.min == 0
 
-def resolve_integral_types(left, right):
+def resolve_integral_types(left, right): # pylint: disable=too-many-return-statements
     """Given two integral types, figure out what types they should be cast to
     when a binary operation is performed on two objects with the given types"""
     # TODO Add support for user-defined integral types that are
@@ -241,7 +241,6 @@ def get_unop_type(expr, env):
     """Takes in a UnaryOp node and a type environment (map of identifiers to
     types) and returns a node representing the type of the given expression."""
     if expr.op == 'sizeof' or expr.op == '!':
-        # TODO: type check the expression?
         return TypeDecl(None, [], IdentifierType(['int']))
     elif expr.op in ['++', '--', '+', '-', '~']:
         return get_type(expr.expr, env)
@@ -260,7 +259,6 @@ def get_structref_type(expr, env):
     # find the type of whatever is on the left of the . or ->
     type_decl = get_type_helper(expr.name, env)
 
-    # go look up the type, see what the type of the given field is
     if isinstance(type_decl, PtrDecl):
         type_decl = type_decl.type
 
@@ -281,8 +279,7 @@ def get_structref_type(expr, env):
             ret = deepcopy(decl.type)
             remove_identifier(ret)
             return ret
-    raise Exception("Struct " + struct_type_string +
-                    "doesn't have field " + expr.field.name)
+    raise Exception("Struct doesn't have field " + expr.field.name)
 
 def get_type(expr, env):
     """Takes in an expression and a type environment (map of identifiers to
@@ -299,7 +296,15 @@ def get_type_helper(expr, env): # pylint: disable=too-many-return-statements
         return expr
     elif isinstance(expr, ID):
         # TODO: make it actually work for typedefs
-        return env.get_type(expr.name)
+        type_node = env.get_type(expr.name)
+        if type_node and isinstance(type_node.type, Struct):
+            struct_type = type_node.type
+            # if you have the name of the struct but not its field declarations,
+            # go find them
+            if struct_type.decls is None:
+                struct_type_string = struct_type.name
+                type_node.type = env.get_type(struct_type_string)
+        return type_node
     elif isinstance(expr, Constant):
         # TODO: if the int is over a certain size, change to long?
         return TypeDecl(None, [], IdentifierType([expr.type]))

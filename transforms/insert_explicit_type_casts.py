@@ -1,9 +1,11 @@
 """Makes all typecasts explicit"""
+from copy import deepcopy
 from pycparser.c_ast import Cast, TypeDecl, PtrDecl, ArrayDecl, FuncDecl
-from pycparser.c_ast import InitList, Constant
+from pycparser.c_ast import InitList, Constant, Struct, ID
 # from pycparser.c_ast import  BinaryOp, UnaryOp, InitList,  Compound,  Decl,
 from .node_transformer import NodeTransformer
 from .type_helpers import Side, get_type, resolve_types, is_float, is_integral
+from .type_helpers import remove_identifier
 
 # TODO: take care of storage qualifiers correctly
 # const extern volatile static register
@@ -27,15 +29,19 @@ class InsertExplicitTypeCasts(NodeTransformer):
         """Add necessary type casts when the Decl involves an assignment."""
         # print("Decl:\n"); node.show()
         # print("node type:\n"); node.type.show()
-        ident = node.name
-        type_node = self.env.get_type(ident)
+        type_node = get_type(ID(node.name), self.env)
 
         if node.init is None:
             return node
 
-        if isinstance(node.type, (TypeDecl, PtrDecl)):
+        node.init = self.generic_visit(node.init)
+
+        if isinstance(type_node, TypeDecl) and isinstance(type_node.type, Struct):
+            if isinstance(node.init, InitList):
+                annotate_struct_initlist(node.init, type_node.type)
+        elif isinstance(type_node, (TypeDecl, PtrDecl)):
             node.init = Cast(type_node, self.visit(node.init))
-        elif isinstance(node.type, ArrayDecl):
+        elif isinstance(type_node, ArrayDecl):
             if isinstance(node.init, InitList):
                 annotate_array_initlist(node.init, type_node.type)
             elif isinstance(node.init, Constant):
@@ -45,11 +51,10 @@ class InsertExplicitTypeCasts(NodeTransformer):
                 raise NotImplementedError()
             else:
                 raise NotImplementedError()
-            node.init = self.generic_visit(node.init)
-        elif isinstance(node.type, FuncDecl):
+        elif isinstance(type_node, FuncDecl):
             # don't do any cast, casting to a function type doesn't compile,
             # casting to a function pointer type is undefined behavior
-            node.init = self.generic_visit(node.init)
+            pass
         else:
             raise NotImplementedError()
 
@@ -117,6 +122,7 @@ def annotate_array_initlist(initlist, type_node):
     # unions, or anything else
     for i in range(len(initlist.exprs)):
         initlist.exprs[i] = Cast(type_node, initlist.exprs[i])
+    return initlist
 
 
 def annotate_struct_initlist(initlist, type_node):
@@ -126,6 +132,10 @@ def annotate_struct_initlist(initlist, type_node):
     # TODO: implement recursively if the elements of the list are also
     # initializer lists, whether they are for structs, more arrays,
     # unions, or anything else
+    for i in range(len(initlist.exprs)):
+        cast_to = deepcopy(type_node.decls[i].type)
+        remove_identifier(cast_to)
+        initlist.exprs[i] = Cast(cast_to, initlist.exprs[i])
     return initlist, type_node
 
 def handle_constant(node):

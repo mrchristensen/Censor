@@ -4,4 +4,4 @@ struct rectangle
     int y;
 };
 
-struct rectangle r = {(int)2.5,(int)4.5};
+struct rectangle r = {(int)2.5,(int)4.3};
