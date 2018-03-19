@@ -137,8 +137,3 @@ def annotate_struct_initlist(initlist, type_node):
         remove_identifier(cast_to)
         initlist.exprs[i] = Cast(cast_to, initlist.exprs[i])
     return initlist, type_node
-
-def handle_constant(node):
-    """Takes a node for a constant expression, returns an appropriately type
-    casted version of the same node"""
-    return node
