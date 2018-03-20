@@ -1,16 +1,19 @@
 """
-FlattenNode AST transform
+LiftNode AST transform
 """
 
 from .node_transformer import NodeTransformer
 
-class FlattenNode(NodeTransformer):
+class LiftNode(NodeTransformer):
     """
-    Generic node transformer for taking one node and replacing
-    it with a many nodes. It works by defining 'visit_Compound' method
-    to visit each scope and an 'insert_into_scope'
-    method that you can call during any visit and the nodes will
-    be inserted into the current scope above the node you are visiting.
+    Generic node transformer for inserting nodes into the current scope
+    you are visiting while transforming the AST. It works by defining a
+    visit method for the Compound blocks and defining an 'insert_into_scope'
+    method that you can call at any time to have nodes inserted into the current
+    scope above the node you are currently transforming.
+
+    This is useful for cases where lists cannot be returned from the visit method
+    because there is no way to make all nodes direct children of a compound block.
     """
 
     def __init__(self, id_generator, environments):

@@ -1,22 +1,22 @@
-"""Test FlattenStructRefs transform"""
+"""Test LiftToCompoundBlock transform"""
 
 from helpers import GoldenTestCase
-from transforms.flatten_refs import FlattenRefs
+from transforms.lift_to_compound_block import LiftToCompoundBlock
 from transforms.id_generator import IDGenerator
 from transforms.type_environment_calculator import TypeEnvironmentCalculator
 
 class TestFlattenStructRefs(GoldenTestCase):
-    """Test FlattenStructRefs transform"""
+    """Test LiftToCompoundBlock transform"""
 
     def setUp(self):
         """Set up test cases"""
-        self.fixtures = './test_transforms/fixtures/flatten_refs'
+        self.fixtures = './test_transforms/fixtures/lift_to_compound_block'
         self.transformer = None
 
     def transform(self, ast):
         """Transform input AST"""
         environments = TypeEnvironmentCalculator().get_environments(ast)
-        self.transformer = FlattenRefs(IDGenerator(ast), environments)
+        self.transformer = LiftToCompoundBlock(IDGenerator(ast), environments)
         return self.transformer.visit(ast)
 
     def test_fixtures(self):

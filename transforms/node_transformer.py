@@ -20,10 +20,6 @@ CAN_BE_COMPOUND = [
     (pycparser.c_ast.If, 'iffalse')
 ]
 
-def is_node(node):
-    """Return true if object is an instance of Node"""
-    return isinstance(node, (pycparser.c_ast.Node, omp.omp_ast.Node))
-
 def can_be_compound(node, field):
     """Return true if the node can have a compound at field"""
     for klass, attr in CAN_BE_COMPOUND:
@@ -52,7 +48,7 @@ class NodeTransformer(pycparser.c_ast.NodeVisitor):
                 continue
             elif isinstance(old_value, list):
                 old_value[:] = self.visit_list(old_value)
-            elif is_node(old_value):
+            elif self.is_node(old_value):
                 node = self.visit_node(node, field, old_value)
         return node
 
@@ -77,7 +73,7 @@ class NodeTransformer(pycparser.c_ast.NodeVisitor):
             if self.skip(value):
                 new_values.append(value)
                 continue
-            elif is_node(value):
+            elif self.is_node(value):
                 value = self.visit(value)
                 if value is None:
                     continue
@@ -86,3 +82,7 @@ class NodeTransformer(pycparser.c_ast.NodeVisitor):
                     continue
             new_values.append(value)
         return new_values
+
+    def is_node(self, node): # pylint: disable=no-self-use
+        """Return true if object is an instance of Node"""
+        return isinstance(node, (pycparser.c_ast.Node, omp.omp_ast.Node))
