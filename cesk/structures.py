@@ -2,6 +2,7 @@
 
 import copy
 import pycparser
+from cesk.values import generate_default_value
 # from cesk.interpret import execute #pylint:disable=all
 
 def throw(string, state=None, exit_code=0):
@@ -146,7 +147,9 @@ class Stor:
         """
         if address in self.memory:
             return self.memory[address]
-        return None
+        if address < self.address_counter:
+            return generate_default_value("int")
+        raise Exception("ERROR: tried to access an unalocated address")
 
     def write(self, address, value):
         """Write value to the store at address. If there is an existing value,

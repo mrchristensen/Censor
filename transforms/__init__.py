@@ -5,6 +5,7 @@ Some transforms must be done before others to ensure correctness.
 transform1 < transform2 should be read as "transform1 must be performed
 before transform2." The ordering is as follows:
 
+RemoveInitLists < InsertExplicitTypeCasts
 RemoveCompoundAssignment < InsertExplicitTypeCasts
 InsertExplicitTypeCasts < ThreePlaceOperations
 
@@ -29,7 +30,8 @@ from .omp_atomic import PragmaToOmpAtomic
 from .omp_master import PragmaToOmpMaster
 from .omp_single import PragmaToOmpSingle
 from .remove_compound_assignment import RemoveCompoundAssignment
-# from .insert_explicit_type_casts import InsertExplicitTypeCasts #implementation incomplete
+# from .remove_init_lists import RemoveInitLists #implementation incomplete
+from .insert_explicit_type_casts import InsertExplicitTypeCasts
 # from .three_place_operations import ThreePlaceOperations #implementation incomplete
 from .single_return import SingleReturn
 
@@ -66,7 +68,8 @@ def transform(ast):
         lambda: DoWhileToGoto(id_generator),
         lambda: RemoveCompoundAssignment(id_generator,
                                          type_env_calc.get_environments(ast)),
-        # lambda: InsertExplicitTypeCasts(type_env_calc.get_environments(ast)),
+        # lambda: RemoveInitLists(type_env_calc.get_environments(ast)),
+        lambda: InsertExplicitTypeCasts(type_env_calc.get_environments(ast)),
         # lambda: ThreePlaceOperations(id_generator,
         #                              type_env_calc.get_environments(ast)),
         lambda: SingleReturn(id_generator),

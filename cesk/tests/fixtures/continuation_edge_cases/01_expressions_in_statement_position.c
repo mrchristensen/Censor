@@ -1,8 +1,10 @@
+#include <stdio.h>
+
 int main() {
    int x = 3;
    1;
    1+1;
    x; 
-   return 4;
+   printf("%d\n", x);
    return 0;
 }
