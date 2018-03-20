@@ -38,7 +38,8 @@ class TypeEnvironmentCalculator(NodeTransformer):
     it is not actually changing any nodes. However, it inherits from
     NodeTranformer for now because it needs to be able to handle both
     pycparser.c_ast.Node and omp.omp_ast.Node. If we ever figure out a way
-    for all the nodes to be the same type, this should solve the problem.
+    for all the nodes to be the same type, this should inherit from
+    NodeVisitor.
     """
     def __init__(self):
         self.envr = None
