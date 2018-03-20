@@ -1,8 +1,8 @@
 int main()
 {
   char a = (char) 0;
-  short b = (short) 0;
-  int c = (int) 0;
+  short b = 0;
+  int c = 0;
   unsigned char d = (unsigned char) 0;
   unsigned short f = (unsigned short) 0;
   unsigned int g = (unsigned int) 0;

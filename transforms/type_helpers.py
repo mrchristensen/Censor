@@ -176,7 +176,6 @@ def resolve_integral_types(left, right): # pylint: disable=too-many-return-state
         # cesk.limits.py should be set up so that this case is never reached.
         raise Exception("Incorrect integer Limits!")
 
-
     left = right
     return Side.LEFT
 
@@ -292,6 +291,7 @@ def get_type(expr, env):
 def get_type_helper(expr, env): # pylint: disable=too-many-return-statements
     """Does all of the actual work for get_type, but returns a reference to
     a node that is currently in the AST."""
+    # print("---getting type of node of type", type(expr))
     if isinstance(expr, TypeDecl):
         return expr
     elif isinstance(expr, ID):

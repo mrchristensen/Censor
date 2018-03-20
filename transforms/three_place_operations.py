@@ -28,4 +28,13 @@ class ThreePlaceOperations(NodeTransformer):
     """Transform that will reduce all arithmetic expressions to simple three
     place expressions."""
     def __init__(self, id_generator, environments):
-        pass
+        self.environments = environments
+        self.envr = environments["GLOBAL"]
+        self.id_generator = id_generator
+
+    def visit_Binop(self, node): #pylint: disable=invalid-name
+        """For each operand of the binary operation that isn't a simple id,
+        function call, or constant (or an id, function call, or constant wrapped
+        by a Cast) simplify the computation recursively onto the previous lines,
+        so that none of the lines have to be evaluated recursively"""
+        return self.generic_visit(node)

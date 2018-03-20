@@ -12,7 +12,7 @@ typedef struct {
 } triangle;
 
 double diag(rectangle r) {
-    double d = r.x * r.x + r.y*r.y;
+    int d = r.x * r.x + r.y*r.y;
     return sqrt(d);
 }
 
