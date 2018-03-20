@@ -9,18 +9,14 @@ a += 4.5;
 However, if the program is transformed to
 
 int a = 1;
-{
-    int* $1 = &a;
-    *$1 = *$1 + 4.5;
-}
+int* $1 = &a;
+*$1 = *$1 + 4.5;
 
-then it can be annotated with explicit type casts as follow:
+then it can be annotated with explicit type casts as follows:
 
 int a = 1;
-{
-    int* $1 = &a;
-    *$1 = (int) ((float)*$1 + (float)4.5);
-}
+int* $1 = &a;
+*$1 = (int) ((float)*$1 + (float)4.5);
 
 We can do this because any lvalue in C can be resolved to an address except
 for two cases: variables marked as register, which we can, as an
@@ -49,7 +45,6 @@ class RemoveCompoundAssignment(NodeTransformer):
 
     def visit_Assignment(self, node): #pylint: disable=invalid-name
         """Visit all Assignment nodes and get rid of the compound ones."""
-        # print("----------------"); node.show()
         if node.op == '=':
             return self.generic_visit(node)
 
@@ -59,7 +54,6 @@ class RemoveCompoundAssignment(NodeTransformer):
         lvalue_type = get_type(node.lvalue, self.envr)
 
         ptr_to_lvalue = PtrDecl([], add_identifier(lvalue_type, temp_name))
-        # ptr_to_lvalue.show()
         first_line = Decl(temp_name, [], [], [], ptr_to_lvalue, lvalue_addr, None)
 
         dereferenced_temp_name = UnaryOp('*', ID(temp_name))

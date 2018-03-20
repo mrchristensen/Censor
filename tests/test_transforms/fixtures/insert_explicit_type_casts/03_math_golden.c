@@ -11,16 +11,16 @@ typedef struct
 } triangle;
 double diag(rectangle r)
 {
-  double d = (double) (((long int) (r.x * r.x)) + (r.y * r.y));
-  return sqrt(d);
+  int d = (int) (((long int) (r.x * r.x)) + (r.y * r.y));
+  return sqrt((double) d);
 }
 
 double sqrt(double x)
 {
-  int i = (int) 0;
+  int i = 0;
   double v = (double) 0;
   double n = (double) 0;
-  int grenze = (int) 12;
+  int grenze = 12;
   double z = (double) 10;
   for (i = 1; i < (grenze + 1); i++)
   {
@@ -49,6 +49,6 @@ int main()
   triangle t;
   t.side1 = (float) r.x;
   t.side2 = (double) r.y;
-  t.side3 = diag(r);
+  t.side3 = diag((rectangle) r);
   return 0;
 }
