@@ -71,25 +71,25 @@ class InsertExplicitTypeCasts(NodeTransformer):
 
         return self.generic_visit(node)
 
-    def handle_assignment(self, type_node, init):
+    def handle_assignment(self, type_node, rvalue):
         """Handle type cast upon assignment whether part of a Decl or not."""
-        if init is None:
-            return init
+        if rvalue is None:
+            return rvalue
 
-        init = self.generic_visit(init)
+        rvalue = self.generic_visit(rvalue)
 
         if isinstance(type_node, TypeDecl) and isinstance(type_node.type, Struct):
             # TODO: uncomment once RemoveInitLists is implemented
             # raise IncorrectTransformOrder("RemoveInitLists must be done first.", node)
             pass
         elif isinstance(type_node, (TypeDecl, PtrDecl)):
-            init = self.cast_if_needed(type_node, self.visit(init))
+            rvalue = self.cast_if_needed(type_node, self.visit(rvalue))
         elif isinstance(type_node, ArrayDecl):
-            if isinstance(init, InitList):
+            if isinstance(rvalue, InitList):
                 # TODO: uncomment once RemoveInitLists is implemented
                 # raise IncorrectTransformOrder("RemoveInitLists must be done first.", node)
                 pass
-            elif isinstance(init, Constant):
+            elif isinstance(rvalue, Constant):
                 # TODO: figure out what to do with cases like
                 # char wow[100] = "wow"; where an array is initialized
                 # from a string
@@ -102,7 +102,7 @@ class InsertExplicitTypeCasts(NodeTransformer):
             pass
         else:
             raise NotImplementedError()
-        return init
+        return rvalue
 
     def cast_if_needed(self, type_node, expr):
         """Decides if it is necessary to cast the given expr to the given type,

@@ -9,6 +9,8 @@ RemoveInitLists < InsertExplicitTypeCasts
 RemoveCompoundAssignment < InsertExplicitTypeCasts
 InsertExplicitTypeCasts < ThreePlaceOperations
 
+transforms that pull computations out of
+if-checks, array refs, and FunctionCalls < ThreePlaceOperations
 """
 
 # imports for transforms
@@ -32,7 +34,7 @@ from .omp_single import PragmaToOmpSingle
 from .remove_compound_assignment import RemoveCompoundAssignment
 # from .remove_init_lists import RemoveInitLists #implementation incomplete
 from .insert_explicit_type_casts import InsertExplicitTypeCasts
-# from .three_place_operations import ThreePlaceOperations #implementation incomplete
+# from .three_place_operations import ThreePlaceOperations
 from .single_return import SingleReturn
 
 # other imports
@@ -70,6 +72,8 @@ def transform(ast):
                                          type_env_calc.get_environments(ast)),
         # lambda: RemoveInitLists(type_env_calc.get_environments(ast)),
         lambda: InsertExplicitTypeCasts(type_env_calc.get_environments(ast)),
+        # TODO: Use ThreePlaceOperations once we have transforms that pull
+        # computations out of if-checks, array refs, and FunctionCalls
         # lambda: ThreePlaceOperations(id_generator,
         #                              type_env_calc.get_environments(ast)),
         lambda: SingleReturn(id_generator),

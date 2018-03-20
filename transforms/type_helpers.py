@@ -309,7 +309,13 @@ def get_type_helper(expr, env): # pylint: disable=too-many-return-statements
         # TODO: if the int is over a certain size, change to long?
         return TypeDecl(None, [], IdentifierType([expr.type]))
     elif isinstance(expr, Cast):
-        return expr.to_type
+        if isinstance(expr.to_type, Typename):
+            # TODO: the Typename node has a quals attribute for extra
+            # qualifiers. Are these ever important? I don't even know
+            # why the Typename node exists in the first place...
+            return expr.to_type.type
+        else:
+            return expr.to_type
     elif isinstance(expr, UnaryOp):
         return get_unop_type(expr, env)
     elif isinstance(expr, BinaryOp):

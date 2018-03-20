@@ -4,21 +4,21 @@ To use this for a transform that needs type information about Unions,
 Structs, Typedefs, and identifiers, have
 
 def __init__(self, environments):
-    self.evironments = environments
-    self.envr = environments["GLOBAL"]
+    self.environments = environments
+    self.env = environments["GLOBAL"]
     .
     .
     .
 in your __init__, and
 
 def visit_Compound(self, node):
-    parent = self.envr
-    self.envr = self.evironments[node]
+    parent = self.env
+    self.env = self.environments[node]
     # DO whatever you want to visit the children of the compound
     .
     .
     .
-    self.envr = parent
+    self.env = parent
     return retval
 
 in your visit_Compound, and then self.envr will always be the environment
