@@ -35,6 +35,10 @@ class Logger():
             pycparser.c_ast.ExprList([
                 pycparser.c_ast.Constant('string', '"' + action + '"'),
                 pycparser.c_ast.Constant('string', '"' + construct + '"'),
+                pycparser.c_ast.FuncCall(
+                    pycparser.c_ast.ID('omp_get_thread_num'),
+                    None
+                ),
             ])
         )
 

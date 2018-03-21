@@ -28,10 +28,10 @@ class TestLogger(unittest.TestCase):
         """Make sure log omp enter works"""
         ast = self.logger.log_omp_enter('parallel')
         func_call = self.c_gen.visit(ast)
-        self.assertEqual('yeti_log_omp("enter", "parallel")', func_call)
+        self.assertEqual('yeti_log_omp("enter", "parallel", omp_get_thread_num())', func_call)
 
     def test_log_omp_exit(self):
         """Make sure log omp exit works"""
         ast = self.logger.log_omp_exit('parallel')
         func_call = self.c_gen.visit(ast)
-        self.assertEqual('yeti_log_omp("exit", "parallel")', func_call)
+        self.assertEqual('yeti_log_omp("exit", "parallel", omp_get_thread_num())', func_call)

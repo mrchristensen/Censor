@@ -288,7 +288,7 @@ def get_type(expr, env):
     of many different kinds of expressions."""
     return deepcopy(get_type_helper(expr, env))
 
-def get_type_helper(expr, env): # pylint: disable=too-many-return-statements
+def get_type_helper(expr, env): # pylint: disable=too-many-return-statements,too-many-branches
     """Does all of the actual work for get_type, but returns a reference to
     a node that is currently in the AST."""
     # print("---getting type of node of type", type(expr))
