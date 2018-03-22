@@ -46,6 +46,8 @@ class LiftToCompoundBlock(LiftNode):
     the type of the node and creating a new Decl. They are just lifted into the current scope
     and replaced by their lvalue.
 
+    UnaryOp Nodes are also a special case because they only need to be lifted if they mutate.
+
     Dependencies:
     This transform will only work properly if all 'else if' nodes have already been transformed to
     have their own scope so that statements in their conditions are only evaluated if the are
@@ -85,6 +87,8 @@ class LiftToCompoundBlock(LiftNode):
         klass = value.__class__.__name__
         if klass in self.ptr_class_names:
             return self.lift_to_ptr(node, field, value)
+        elif isinstance(value, UnaryOp):
+            return self.lift_unaryop(node, field, value)
         elif isinstance(value, Assignment):
             return self.lift_assignment(node, field, value)
         elif isinstance(node, Assignment):
@@ -122,5 +126,14 @@ class LiftToCompoundBlock(LiftNode):
         """Lift node to compound block"""
         self.insert_into_scope(value)
         ref = deepcopy(value.lvalue)
+        setattr(node, field, ref)
+        return node
+
+    def lift_unaryop(self, node, field, value):
+        """Lift node to compound block"""
+        if value.op not in ['++', '--', 'p++', '--']:
+            return node
+        self.insert_into_scope(value)
+        ref = deepcopy(value.expr)
         setattr(node, field, ref)
         return node
