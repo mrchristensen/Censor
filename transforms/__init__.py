@@ -5,7 +5,14 @@ Some transforms must be done before others to ensure correctness.
 transform1 < transform2 should be read as "transform1 must be performed
 before transform2." The ordering is as follows:
 
+PragmaToOmpParallelFor < PragmaToOmpParallel
+PragmaToOmpParallelSections < PragmaToOmpParallel
+PragmaToOmpFor < ForToWhile
 RemoveInitLists < InsertExplicitTypeCasts
+ForToWhile < WhileToDoWhile
+WhileToDoWhile < DoWhileToGoto
+DoWhileToGoto < LiftToCompoundBlock
+LiftToCompoundBlock < RemoveCompoundAssignment
 RemoveCompoundAssignment < InsertExplicitTypeCasts
 InsertExplicitTypeCasts < ThreePlaceOperations
 
@@ -32,6 +39,7 @@ from .omp_atomic import PragmaToOmpAtomic
 from .omp_master import PragmaToOmpMaster
 from .omp_single import PragmaToOmpSingle
 from .remove_compound_assignment import RemoveCompoundAssignment
+from .lift_to_compound_block import LiftToCompoundBlock
 # from .remove_init_lists import RemoveInitLists #implementation incomplete
 from .insert_explicit_type_casts import InsertExplicitTypeCasts
 # from .three_place_operations import ThreePlaceOperations
@@ -68,6 +76,7 @@ def transform(ast):
         lambda: ForToWhile(),
         lambda: WhileToDoWhile(),
         lambda: DoWhileToGoto(id_generator),
+        lambda: LiftToCompoundBlock(id_generator, type_env_calc.get_environments(ast)),
         lambda: RemoveCompoundAssignment(id_generator,
                                          type_env_calc.get_environments(ast)),
         # lambda: RemoveInitLists(type_env_calc.get_environments(ast)),
