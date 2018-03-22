@@ -11,16 +11,15 @@ int main()
     {
       int (*censor01)[3] = &matrix[i];
       int *censor02 = &(*censor01)[j];
-      int censor03 = t + (*censor02);
-      t = censor03;
+      t = t + (*censor02);
       j++;
-      int censor04 = j < 10;
-      if (censor04)
+      int censor03 = j < 10;
+      if (censor03)
         goto INNER;
 
       i++;
-      int censor05 = i < 10;
-      if (censor05)
+      int censor04 = i < 10;
+      if (censor04)
         goto OUTER;
 
     }

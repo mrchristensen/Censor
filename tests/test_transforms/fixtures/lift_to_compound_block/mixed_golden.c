@@ -1,3 +1,4 @@
+
 struct rects
 {
   int x[10];
@@ -14,23 +15,20 @@ int main()
   INNER:
     {
       int (*censor01)[10] = &r->x;
-      int censor02 = i + 1;
-      i = censor02;
-      int *censor03 = &(*censor01)[i];
-      int censor04 = t + (*censor03);
-      int (*censor05)[10] = &r->y;
-      int censor06 = j + 1;
-      j = censor06;
-      int *censor07 = &(*censor05)[j];
-      int censor08 = censor04 + (*censor07);
-      t = censor08;
-      int censor09 = j < 10;
-      if (censor09)
+      i = i + 1;
+      int *censor02 = &(*censor01)[i];
+      int censor03 = t + (*censor02);
+      int (*censor04)[10] = &r->y;
+      j = j + 1;
+      int *censor05 = &(*censor04)[j];
+      t = censor03 + (*censor05);
+      int censor06 = j < 10;
+      if (censor06)
         goto INNER;
 
       i++;
-      int censor010 = i < 10;
-      if (censor010)
+      int censor07 = i < 10;
+      if (censor07)
         goto OUTER;
 
     }

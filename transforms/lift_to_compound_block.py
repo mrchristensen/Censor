@@ -3,7 +3,7 @@ LiftToCompoundBlock Transform
 """
 
 from copy import deepcopy
-from pycparser.c_ast import Compound, UnaryOp, PtrDecl, Decl, ID
+from pycparser.c_ast import Compound, UnaryOp, PtrDecl, Decl, ID, Assignment
 from .lift_node import LiftNode
 from .type_helpers import get_type, add_identifier
 
@@ -82,14 +82,15 @@ class LiftToCompoundBlock(LiftNode):
     def lift_field(self, node, field):
         """Lift field value to compound block if necessary"""
         value = getattr(node, field, None)
-        if value is None:
-            return node
-        if value.__class__.__name__ in self.ptr_class_names:
+        klass = value.__class__.__name__
+        if klass in self.ptr_class_names:
             return self.lift_to_ptr(node, field, value)
-        elif value.__class__.__name__ in self.value_class_names:
-            return self.lift_to_value(node, field, value)
-        elif value.__class__.__name__ == 'Assignment':
+        elif isinstance(value, Assignment):
             return self.lift_assignment(node, field, value)
+        elif isinstance(node, Assignment):
+            return node
+        elif klass in self.value_class_names:
+            return self.lift_to_value(node, field, value)
 
         return node
 
