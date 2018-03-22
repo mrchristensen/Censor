@@ -9,22 +9,50 @@ from .type_helpers import get_type, add_identifier
 
 class LiftToCompoundBlock(LiftNode):
     """
-    Transform to lift nodes from problematic places in the AST to
-    the nearest Compound block. Examples of nodes that need to be lifted
+    This transform uses the LiftNode base class to enforce a simply structured AST.
+    It defines an array of class names to search for. It performs a depth first search
+    so it transforms the most deeply nested node first. This should ensure that things are
+    done in the right order.
 
-    - FuncCall
-    - StructRef
-    - ArrayRef
-    - Assignment
-    - BinaryOp
+    When it sees a node that matches a class name it is looking for it checks to see if it's
+    direct parent is a Compound node. If it isn't then the node needs to be replaced by an ID.
+    It creates a new Decl node for the new ID and inserts it into the current scope.
 
-    These nodes will be assigned an identifier in the Compound block which
-    will be used to replace the node in its original position.
+    At the end of the transform all nodes with class names in the array searched for will be
+    direct children of Assignment nodes which are direct children of a Compound block.
 
-    This has the extra affect of flattening nodes that can be nested in themselves
-    like the StructRef, ArrayRef, and Assignment nodes
-    TODO: Decide whether to use this transformation only for struct and array references
-    or to use it for assignments, binary ops and other things like we are currently
+    Examples:
+
+    if (a < b)... becomes
+
+    int censor01 = a < b;
+    if (censor1)...
+
+    obj->x[3].prop = a + b + c; becomes
+
+    struct object (*censor01)[5] = &obj->x;
+    struct object *censor2 = &(*censor01)[3];
+    int *censor03 = &(*censor02).prop;
+    int censor04 = a + b;
+    int censor05 = censor04 + c;
+    *censor03 = censor05;
+
+    Special considerations:
+    Pointers are always created for StructRef and ArrayRef nodes. This is because ArrayRef nodes
+    always need to be replaced by a pointer and I couldn't find an easy way to determine if the
+    property referenced in a StructRef was an array or not.
+
+    Assignment nodes are a special case because they don't require the same process of finding
+    the type of the node and creating a new Decl. They are just lifted into the current scope
+    and replaced by their lvalue.
+
+    Dependencies:
+    This transform will only work properly if all 'else if' nodes have already been transformed to
+    have their own scope so that statements in their conditions are only evaluated if the are
+    reached.
+
+    This transform will also break if a Label node only has one statement and it has parts that need
+    to be lifted. The problem is fixed if the label's child is a Compound block.
     """
 
     def __init__(self, id_generator, environments):
