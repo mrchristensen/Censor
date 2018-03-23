@@ -27,6 +27,10 @@ class LiftNode(NodeTransformer):
         """Insert nodes into scope above current index"""
         self.inserts.insert(0, (self.index, nodes))
 
+    def append_to_scope(self, *nodes):
+        """Append nodes to scope below current index"""
+        self.inserts.insert(0, (self.index + 1, nodes))
+
     def visit_Compound(self, node): # pylint: disable=invalid-name
         """Visit scope"""
         parent_env = self.envr

@@ -131,9 +131,12 @@ class LiftToCompoundBlock(LiftNode):
 
     def lift_unaryop(self, node, field, value):
         """Lift node to compound block"""
-        if value.op not in ['++', '--', 'p++', '--']:
+        if value.op not in ['++', '--', 'p++', 'p--']:
             return node
-        self.insert_into_scope(value)
+        if 'p' in value.op:
+            self.append_to_scope(value)
+        else:
+            self.insert_into_scope(value)
         ref = deepcopy(value.expr)
         setattr(node, field, ref)
         return node
