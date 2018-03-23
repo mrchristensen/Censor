@@ -26,8 +26,53 @@ of your current scope.
 """
 
 from copy import deepcopy
+from pycparser.c_ast import ID
 from .node_transformer import NodeTransformer
-from .type_helpers import Envr, remove_identifier
+from .type_helpers import remove_identifier
+
+class Envr:
+    """Holds the enviorment (a mapping of identifiers to types)"""
+    parent = None
+
+    def __init__(self, parent=None):
+        self.parent = parent
+        self.map_to_type = {}
+
+    def get_type(self, ident):
+        """Returns the type currently associated with the given
+        identifier"""
+        if isinstance(ident, ID):
+            ident = ident.name
+
+        if ident in self.map_to_type:
+            return self.map_to_type[ident]
+        elif self.parent is not None:
+            return self.parent.get_type(ident)
+        else:
+            raise Exception("Undefined Identifier " + ident)
+
+    def add(self, ident, type_node):
+        """Add a new identifier to the mapping"""
+        if isinstance(ident, ID):
+            ident = ident.name
+        if ident in self.map_to_type:
+            raise Exception("Redefinition of " + ident)
+
+        self.map_to_type[ident] = type_node
+
+    def show(self):
+        """Prints to the console all the identifiers being kept in the
+        environment."""
+        out = "Current:\n"
+        for ident in self.map_to_type:
+            out += "\n\t" + ident
+        current = self.parent
+        while current != None:
+            out += "\nParent:\n"
+            for ident in current.map_to_type:
+                out += "\n\t" + ident
+            current = current.parent
+        print(out)
 
 class TypeEnvironmentCalculator(NodeTransformer):
     """Aggregate type information for all of the scopes in the AST,
@@ -89,9 +134,6 @@ class TypeEnvironmentCalculator(NodeTransformer):
         identifiers in the environment."""
         type_node = deepcopy(node.type)
         ident = remove_identifier(type_node)
-
-        if self.envr.is_locally_defined(ident):
-            raise Exception("Error: redefinition of " + ident)
 
         self.envr.add(ident, type_node)
         return node

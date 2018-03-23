@@ -1,5 +1,5 @@
 """
-Both for implenting certain transforms (e.g. inserting explicit type casts)
+Both for implementing certain transforms (e.g. inserting explicit type casts)
 and for doing the interpreting, dealing with initializer lists like
 
 int a[3] = {1, 3, 7};
@@ -12,12 +12,37 @@ a[0] = 1;
 a[1] = 3;
 a[2] = 7;
 
-Compound initializers will also be removed. If the array is declared as a
-global, it will be initialized at the begining of the main function. If is
-declared global after the main function, the declaration will be moved to just
-above the main function so that is can be initialized at the begining of the
-main function. We don't need to worry about moving the declaration because
-anything in the init list will be a compile time constant.
+This is great, but we can't do it for globally declared arrays/structs because
+a[0] = 1; can't exist at the global scope. So a program with globally
+initialized objects, like this:
+
+int a[2] = {1,3};
+int main() {
+    .
+    .
+}
+int b[2] = {2,4};
+.
+
+will be transformed into this:
+
+int a[2] = {1,3};
+void censorXXINIT_GLOBALS();
+int main() {
+    censorXXINIT_GLOBALS();
+    .
+    .
+}
+
+int b[2] = {2,4};
+.
+.
+void censorXXINIT_GLOBALS() {
+    a[0] = 1;
+    a[1] = 3;
+    b[0] = 2;
+    b[1] = 4;
+}
 """
 # TODO: figure out what to do with cases like
 # char wow[100] = "wow"; where an array is initialized

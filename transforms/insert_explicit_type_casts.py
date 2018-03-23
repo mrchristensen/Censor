@@ -3,7 +3,7 @@ from pycparser.c_ast import Cast, TypeDecl, PtrDecl, ArrayDecl, FuncDecl
 from pycparser.c_ast import InitList, Constant, Struct, ID
 # from .helpers import IncorrectTransformOrder
 from .node_transformer import NodeTransformer
-from .type_helpers import Side, get_type, resolve_types, is_float, is_integral
+from .type_helpers import Side, get_type, resolve_types, cast_if_needed
 from .type_helpers import remove_identifier
 
 # NOTE: return statements are note type casted because
@@ -28,9 +28,9 @@ class InsertExplicitTypeCasts(NodeTransformer):
 
     def visit_Decl(self, node): #pylint: disable=invalid-name
         """Add necessary type casts when the Decl involves an assignment."""
-        type_node = get_type(ID(node.name), self.env)
-
-        node.init = self.handle_assignment(type_node, node.init)
+        if node.init:
+            type_node = get_type(ID(node.name), self.env)
+            node.init = self.handle_assignment(type_node, node.init)
         node.type = self.generic_visit(node.type)
         return node
 
@@ -67,14 +67,12 @@ class InsertExplicitTypeCasts(NodeTransformer):
         for i, arg in enumerate(args):
             arg_type = get_type(formal_args[i].type, self.env)
             remove_identifier(arg_type)
-            args[i] = self.cast_if_needed(arg_type, arg)
+            args[i] = cast_if_needed(arg_type, arg, self.env)
 
         return self.generic_visit(node)
 
     def handle_assignment(self, type_node, rvalue):
         """Handle type cast upon assignment whether part of a Decl or not."""
-        if rvalue is None:
-            return rvalue
 
         rvalue = self.generic_visit(rvalue)
 
@@ -83,7 +81,7 @@ class InsertExplicitTypeCasts(NodeTransformer):
             # raise IncorrectTransformOrder("RemoveInitLists must be done first.", node)
             pass
         elif isinstance(type_node, (TypeDecl, PtrDecl)):
-            rvalue = self.cast_if_needed(type_node, self.visit(rvalue))
+            rvalue = cast_if_needed(type_node, self.visit(rvalue), self.env)
         elif isinstance(type_node, ArrayDecl):
             if isinstance(rvalue, InitList):
                 # TODO: uncomment once RemoveInitLists is implemented
@@ -103,16 +101,3 @@ class InsertExplicitTypeCasts(NodeTransformer):
         else:
             raise NotImplementedError()
         return rvalue
-
-    def cast_if_needed(self, type_node, expr):
-        """Decides if it is necessary to cast the given expr to the given type,
-        or if the types are already unified."""
-        # TODO: currently, this function can only decide if two types are unified
-        # if they are integral or floating types. If we ever have a deep compare
-        # method than can decide equality of any arbitrary ast nodes, we should
-        # use that to decide type unification over all types
-        if is_integral(type_node) or is_float(type_node):
-            expr_type = get_type(expr, self.env)
-            if resolve_types(type_node, expr_type) == Side.NOCAST:
-                return expr
-        return Cast(type_node, expr)
