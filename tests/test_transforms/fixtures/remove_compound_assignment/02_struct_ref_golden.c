@@ -3,7 +3,7 @@ struct rectangle
   int x;
   int y;
 };
-typedef struct rectangle rect;
+typedef struct rectangle rectangle;
 union Data
 {
   int i;
@@ -11,7 +11,7 @@ union Data
 };
 int main()
 {
-  rect r = {0, 0};
+  rectangle r = {0, 0};
 
   int *censor01 = &r.x;
   *censor01 = (*censor01) + 1;

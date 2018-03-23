@@ -26,7 +26,7 @@ of your current scope.
 """
 
 from copy import deepcopy
-from pycparser.c_ast import ID
+from pycparser.c_ast import ID, Struct, Union, Enum
 from .node_transformer import NodeTransformer
 from .type_helpers import remove_identifier
 
@@ -134,6 +134,9 @@ class TypeEnvironmentCalculator(NodeTransformer):
         identifiers in the environment."""
         type_node = deepcopy(node.type)
         ident = remove_identifier(type_node)
+
+        if isinstance(type_node, (Struct, Union, Enum)):
+            ident = type(type_node).__name__ + " " + ident
 
         self.envr.add(ident, type_node)
         return node

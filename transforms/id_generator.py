@@ -27,6 +27,7 @@ class IDCollector(NodeVisitor):
          a string."""
         if node.name is not None:
             self.ids.add(node.name)
+
     def visit_Label(self, node): # pylint: disable=invalid-name
         """Whenever it sees a Label, it adds the identifier to the set as
         a string."""

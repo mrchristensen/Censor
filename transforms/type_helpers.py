@@ -114,7 +114,7 @@ def _get_type_helper(expr, env): # pylint: disable=too-many-return-statements,to
             # if you have the name of the struct but not its field declarations,
             # go find them
             if struct_type.decls is None:
-                struct_type_string = struct_type.name
+                struct_type_string = type(struct_type).__name__ + " " + struct_type.name
                 type_node.type = env.get_type(struct_type_string)
         return type_node
     elif isinstance(expr, Constant):
@@ -281,7 +281,7 @@ def _get_structref_type(expr, env):
 
     # if you have the name of the struct but not its field declarations, go find them
     if struct_type.decls is None:
-        struct_type_string = struct_type.name
+        struct_type_string = type(struct_type).__name__ + " " + struct_type.name
         struct_type = env.get_type(struct_type_string)
 
     if isinstance(struct_type, TypeDecl):

@@ -3,7 +3,7 @@ struct rectangle {
     int y;
 };
 
-typedef struct rectangle rect;
+typedef struct rectangle rectangle;
 
 union Data {
     int i;
@@ -11,7 +11,7 @@ union Data {
 };
 
 int main() {
-    rect r = {0,0};
+    rectangle r = {0,0};
     r.x += 1;
 
     struct rectangle *p = &r;
