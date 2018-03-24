@@ -97,7 +97,9 @@ class Envr:
             return self.map_to_address[ident]
         if (self.parent is not None):
             return self.parent.get_address(ident)
-        raise Exception(ident.name + " is not defined in this scope: " +
+        while not isinstance(ident, str):
+            ident = ident.name
+        raise Exception(ident + " is not defined in this scope: " +
                         str(self.id)) 
 
     def get_type(self, ident):
@@ -146,10 +148,13 @@ class Stor:
         """Read the contents of the store at address. Returns None if undefined.
         """
         if address in self.memory:
+            #print(str(self.memory[address]) + " read from " + str(address))
             return self.memory[address]
         if address < self.address_counter:
+            print("Returned default value of 0 for unititalized address")
             return generate_default_value("int")
-        raise Exception("ERROR: tried to access an unalocated address")
+        raise Exception("ERROR: tried to access an unalocated address: " +
+                         str(address))
 
     def write(self, address, value):
         """Write value to the store at address. If there is an existing value,
@@ -159,6 +164,7 @@ class Stor:
             self.memory[address] = value
         else:
             self.memory[address] = value
+        #print(str(self.memory[address]) + " writen to " + str(address))
 #Base Class
 class Kont:
     """Abstract class for polymorphism of continuations"""

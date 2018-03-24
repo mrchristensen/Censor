@@ -1,6 +1,6 @@
 """Functions to interpret c code directly"""
 import pycparser
-from cesk.values import generate_constant_value, generate_pointer_value
+from cesk.values import Pointer, generate_constant_value, generate_pointer_value
 
 class LinkSearch(pycparser.c_ast.NodeVisitor):
     """NodeTransformer to link children nodes to parents"""
@@ -41,13 +41,28 @@ def execute(state):
     if isinstance(stmt, pycparser.c_ast.ArrayDecl):
         # TODO
         #print("ArrayDecl")
-        successors.append(get_next(state))
+        raise Exception("ArrayDecl should have been found as a child of Decl")
     elif isinstance(stmt, pycparser.c_ast.ArrayRef):
         # TODO
         #print("ArrayRef")
         name = stmt.name.name
-        index = generate_constant_value(stmt.subscript.value).data
-        start_address = state.envr.get_address(name)
+        if not isinstance(name, str):
+            raise Exception("Nested ArraysRefs are not yet implemented")
+        else:
+            if isinstance(stmt.subscript, pycparser.c_ast.ID):
+                address = state.envr.get_address(stmt.subscript.name)
+                index = state.stor.read(address)
+            elif isinstance(stmt.subscript, pycparser.c_ast.Constant):
+                index = generate_constant_value(stmt.subscript.value).data
+            else:
+                raise Exception("Array subscripts of type " + str(stmt.subscript) +
+                                "are not yet implemented")
+            pointer_address = state.envr.get_address(name)
+            pointer = state.stor.read(pointer_address)
+        if isinstance(pointer, Pointer):
+            start_address = pointer.data
+        else:
+            raise Exception(name + " is not an array nor pointer nor vector" + str(pointer))
         address = start_address + index
         value = state.stor.read(address)
         successors.append(state.kont.satisfy(state, value))
@@ -60,8 +75,12 @@ def execute(state):
             address = state.envr.get_address(ident.name)
         elif isinstance(stmt.lvalue, pycparser.c_ast.ArrayRef):
             array = stmt.lvalue
-            start_address = state.envr.get_address(array.name.name)
+            name = array.name
+            while not isinstance(name, str):
+                name = name.name
             index = generate_constant_value(array.subscript.value).data
+            pointer = state.envr.get_address(name)
+            start_address = state.stor.read(pointer).data
             address = start_address + index
         else:
             raise Exception("unsuported assign lvalue: " + str(stmt.lvalue))
@@ -313,14 +332,13 @@ def handle_assignment(operator, address, exp, state):
 def handle_decl(decl, state):
     """Maps the identifier to a new address and passes assignment part"""
     name = decl.name
-    new_envr = state.envr
     if state.envr.is_localy_defined(name):
         raise Exception("Error: redefinition of " + name)
 
     if (isinstance(decl.type, (pycparser.c_ast.TypeDecl,
                                pycparser.c_ast.PtrDecl))): #pointers are just int
         new_address = state.stor.get_next_address()
-        new_envr.map_new_identifier(name, new_address)
+        state.envr.map_new_identifier(name, new_address)
         exp = decl.init
         if exp is not None:
             return handle_assignment("=", new_address, exp, state)
@@ -329,17 +347,46 @@ def handle_decl(decl, state):
         return state.kont.satisfy(state)
 
     elif isinstance(decl.type, pycparser.c_ast.ArrayDecl):
-        array = decl.type
-        length = generate_constant_value(array.dim.value).data
-        new_address = state.stor.allocate_array(length)
-        new_envr.map_new_identifier(name, new_address)
+        ref_address = handle_decl_array(decl.type, state)
+        state.envr.map_new_identifier(decl.name, ref_address)
         if decl.init is not None:
+            ## TODO if init evaluates to an address don't allocate just assign
             raise Exception("array init not yet implemented")
+        if isinstance(state.kont, FunctionKont): #dont return to function
+            return get_next(state)
+        return state.kont.satisfy(state)
+
     else:
         raise Exception("Declarations of " + str(decl.type) +
                         " are not yet implemented")
 
-    return get_next(State(state.ctrl, new_envr, state.stor, state.kont))
+    return get_next(state)
+
+def handle_decl_array(array, state):
+    """Recursivly Allocates arrays of arrays. Returns a pointer to the first"""
+    if isinstance(array.type, pycparser.c_ast.ArrayDecl):
+        length = generate_constant_value(array.dim.value).data
+        if length < 1:
+            raise Exception("Non-positive Array Sizes are not supported")
+        ref_address = state.stor.get_next_address()
+        data_address = state.stor.allocate_array(length)
+        pointer = generate_pointer_value(data_address)
+        state.stor.write(ref_address, pointer)
+        for index in range(0, length):
+            datum_address = handle_decl_array(array.type, state)
+            datum_value = generate_pointer_value(datum_address)
+            state.stor.write(data_address + index, datum_value)
+        return ref_address
+
+    elif isinstance(array.type, pycparser.c_ast.TypeDecl):
+        length = generate_constant_value(array.dim.value).data
+        ref_address = state.stor.get_next_address()
+        data_address = state.stor.allocate_array(length)
+        state.stor.write(ref_address, generate_pointer_value(data_address))
+        return ref_address
+    else:
+        raise Exception("Declarations of " + str(array.type) +
+                        " are not yet implemented")
 
 def handle_unary_op(opr, expr, state):
     """decodes and evaluates unary_ops"""
