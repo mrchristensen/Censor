@@ -14,10 +14,6 @@ WhileToDoWhile < DoWhileToGoto
 DoWhileToGoto < LiftToCompoundBlock
 LiftToCompoundBlock < RemoveCompoundAssignment
 RemoveCompoundAssignment < InsertExplicitTypeCasts
-InsertExplicitTypeCasts < ThreePlaceOperations
-
-transforms that pull computations out of
-if-checks, array refs, and FunctionCalls < ThreePlaceOperations
 """
 
 # imports for transforms

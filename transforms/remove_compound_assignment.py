@@ -22,8 +22,8 @@ We can do this because any lvalue in C can be resolved to an address except
 for two cases: variables marked as register, which we can, as an
 implementation, safely ignore, and bit-fields, which we do not support.
 """
-from pycparser.c_ast import Decl, UnaryOp, BinaryOp, Assignment, ID, PtrDecl
-from .type_helpers import get_type, add_identifier
+from pycparser.c_ast import UnaryOp, BinaryOp, Assignment, ID
+from .type_helpers import make_temp_ptr
 from .node_transformer import NodeTransformer
 
 class RemoveCompoundAssignment(NodeTransformer):
@@ -31,16 +31,16 @@ class RemoveCompoundAssignment(NodeTransformer):
 
     def __init__(self, id_generator, environments):
         self.environments = environments
-        self.envr = environments["GLOBAL"]
+        self.env = environments["GLOBAL"]
         self.id_generator = id_generator
 
     def visit_Compound(self, node): #pylint: disable=invalid-name
         """Reassign the environment to be the environment of the current
         compound block."""
-        parent = self.envr
-        self.envr = self.environments[node]
+        parent = self.env
+        self.env = self.environments[node]
         retval = self.generic_visit(node)
-        self.envr = parent
+        self.env = parent
         return retval
 
     def visit_Assignment(self, node): #pylint: disable=invalid-name
@@ -48,15 +48,9 @@ class RemoveCompoundAssignment(NodeTransformer):
         if node.op == '=':
             return self.generic_visit(node)
 
-        temp_name = self.id_generator.get_unique_id()
-        lvalue_addr = UnaryOp('&', node.lvalue)
+        first_line = make_temp_ptr(node.lvalue, self.id_generator, self.env)
 
-        lvalue_type = get_type(node.lvalue, self.envr)
-
-        ptr_to_lvalue = PtrDecl([], add_identifier(lvalue_type, temp_name))
-        first_line = Decl(temp_name, [], [], [], ptr_to_lvalue, lvalue_addr, None)
-
-        dereferenced_temp_name = UnaryOp('*', ID(temp_name))
+        dereferenced_temp_name = UnaryOp('*', ID(first_line.name))
         operation = BinaryOp(node.op[:-1], dereferenced_temp_name, node.rvalue)
         second_line = Assignment('=', dereferenced_temp_name, operation)
 

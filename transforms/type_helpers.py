@@ -19,6 +19,26 @@ def get_type(expr, env):
     of many different kinds of expressions."""
     return deepcopy(_get_type_helper(expr, env))
 
+def make_temp_ptr(lvalue_expr, id_generator, env):
+    """Given an lvalue, this function will return a Decl node representing a
+    declaration of a new unique identifier, and assigning the address of the
+    given lvalue to that unique idenitfier. This is very useful when you need
+    a temp variable while simplifying complicated expressions in the AST."""
+    temp_name = id_generator.get_unique_id()
+    lvalue_addr = UnaryOp('&', lvalue_expr)
+    lvalue_type = get_type(lvalue_expr, env)
+    ptr_to_lvalue = PtrDecl([], add_identifier(lvalue_type, temp_name))
+    return Decl(temp_name, [], [], [], ptr_to_lvalue, lvalue_addr, None)
+
+def make_temp_value(expr, id_generator, env):
+    """Given an expression, this function will return a Decl node representing
+    a declaration of a new unique identifier, and assigning the expression
+    to that unique idenitfier. This is very useful when you need
+    a temp variable while simplifying complicated expressions in the AST."""
+    name = id_generator.get_unique_id()
+    typ = get_type(expr, env)
+    return Decl(name, [], [], [], add_identifier(typ, name), expr, None)
+
 def cast_if_needed(type_node, expr, env):
     """Decides if it is necessary to cast the given expr to the given type,
     or if the types are already unified."""
