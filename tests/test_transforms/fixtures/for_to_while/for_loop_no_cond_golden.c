@@ -3,7 +3,7 @@ int main()
   int j = 0;
   {
     int i = 0;
-    while (true)
+    while (1)
     {
       if (i == 10)
         break;
@@ -13,4 +13,3 @@ int main()
 
   }
 }
-

@@ -1,6 +1,6 @@
 """AST transform that transforms a for loop to a while loop"""
 
-from pycparser.c_ast import While, Compound, ID, DoWhile
+from pycparser.c_ast import While, Compound, Constant, DoWhile
 from .omp_for import PragmaToOmpFor
 from .node_transformer import NodeTransformer
 from .helpers import append_statement
@@ -25,7 +25,7 @@ class ForToWhile(NodeTransformer):
 def transform_loop_condition(cond):
     """Transform empty for loop condition to a truthy value for while loop"""
     if cond is None:
-        return ID("true")
+        return Constant('int', '1')
     return cond
 
 def transform_loop_statement(stmt, inc):
