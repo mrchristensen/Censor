@@ -5,6 +5,7 @@ from utils import find_main
 from cesk.structures import State, Ctrl, Envr, Stor, Halt, FunctionKont
 from cesk.interpret import execute, LinkSearch
 
+
 def main(ast):
     """Injects execution into main funciton and maintains work queue"""
     ast = LinkSearch().visit(ast)
