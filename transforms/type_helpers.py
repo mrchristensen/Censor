@@ -109,13 +109,18 @@ def _get_type_helper(expr, env): # pylint: disable=too-many-return-statements,to
     elif isinstance(expr, ID):
         # TODO: make it actually work for typedefs
         type_node = env.get_type(expr.name)
-        if type_node and isinstance(type_node.type, Struct):
+        if type_node and isinstance(type_node.type, (Struct, Union)):
             struct_type = type_node.type
             # if you have the name of the struct but not its field declarations,
             # go find them
             if struct_type.decls is None:
                 struct_type_string = type(struct_type).__name__ + " " + struct_type.name
                 type_node.type = env.get_type(struct_type_string)
+        elif type_node and isinstance(type_node.type, Enum):
+            # TODO: if you have the name of the enum but not its field declarations,
+            # go find them
+            # IS THIS CASE REALLY NEEDED?
+            pass
         return type_node
     elif isinstance(expr, Constant):
         # TODO: if the int is over a certain size, change to long?
