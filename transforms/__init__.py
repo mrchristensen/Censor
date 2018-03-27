@@ -20,6 +20,7 @@ RemoveCompoundAssignment < InsertExplicitTypeCasts
 from .do_while_to_goto import DoWhileToGoto
 from .while_to_do_while import WhileToDoWhile
 from .for_to_while import ForToWhile
+from .if_goto import IfToIfGoto
 from .omp_parallel_for import PragmaToOmpParallelFor
 from .omp_parallel_sections import PragmaToOmpParallelSections
 from .omp_parallel import PragmaToOmpParallel
@@ -68,6 +69,7 @@ def transform(ast):
         lambda: PragmaToOmpAtomic(),
         lambda: PragmaToOmpMaster(),
         lambda: PragmaToOmpSingle(),
+        lambda: IfToIfGoto(id_generator),
         lambda: ForToWhile(),
         lambda: WhileToDoWhile(),
         lambda: DoWhileToGoto(id_generator),
