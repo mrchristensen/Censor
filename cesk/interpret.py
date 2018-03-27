@@ -51,7 +51,7 @@ def execute(state):
         else:
             if isinstance(stmt.subscript, pycparser.c_ast.ID):
                 address = state.envr.get_address(stmt.subscript.name)
-                index = state.stor.read(address)
+                index = state.stor.read(address).data
             elif isinstance(stmt.subscript, pycparser.c_ast.Constant):
                 index = generate_constant_value(stmt.subscript.value).data
             else:
@@ -187,6 +187,9 @@ def execute(state):
         # TODO
         #print("FuncCall")
         if stmt.name.name == "printf":
+            if not isinstance(stmt.args.exprs[1], pycparser.c_ast.ID):
+                raise Exception("printf test stub only supports ID not " +
+                                str(stmt.args.exprs[1]))
             id_to_print = stmt.args.exprs[1].name #FIXME should evalueate exp
             address = state.envr.get_address(id_to_print)
             value = state.stor.read(address)
