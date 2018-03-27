@@ -1,6 +1,6 @@
 """Makes all typecasts explicit"""
 from pycparser.c_ast import Cast, TypeDecl, PtrDecl, ArrayDecl, FuncDecl
-from pycparser.c_ast import InitList, Constant, Struct, ID
+from pycparser.c_ast import InitList, Constant, Struct, ID, EllipsisParam
 # from .helpers import IncorrectTransformOrder
 from .node_transformer import NodeTransformer
 from .type_helpers import Side, get_type, resolve_types, cast_if_needed
@@ -64,10 +64,14 @@ class InsertExplicitTypeCasts(NodeTransformer):
         func_type = get_type(node.name, self.env)
         formal_args = func_type.args.params
         args = node.args.exprs
+        rest_args = False
         for i, arg in enumerate(args):
-            arg_type = get_type(formal_args[i].type, self.env)
-            remove_identifier(arg_type)
-            args[i] = cast_if_needed(arg_type, arg, self.env)
+            if rest_args or isinstance(formal_args[i], EllipsisParam):
+                rest_args = True
+            else:
+                arg_type = get_type(formal_args[i].type, self.env)
+                remove_identifier(arg_type)
+                args[i] = cast_if_needed(arg_type, arg, self.env)
 
         return self.generic_visit(node)
 

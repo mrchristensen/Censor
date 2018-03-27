@@ -123,8 +123,8 @@ def resolve_types(left, right): # pylint: disable=too-many-return-statements
 def _get_type_helper(expr, env): # pylint: disable=too-many-return-statements,too-many-branches
     """Does all of the actual work for get_type, but returns a reference to
     a node that is currently in the AST."""
-    # print("---getting type of node of type", type(expr))
-    if isinstance(expr, TypeDecl):
+    print("---getting type of node of type", type(expr))
+    if isinstance(expr, (TypeDecl, PtrDecl)):
         return expr
     elif isinstance(expr, ID):
         # TODO: make it actually work for typedefs
