@@ -2,7 +2,6 @@
 *.sw?
 *.iml
 pycparser
-fake_libc_include
 __pycache__
 lextab.py
 yacctab.py
