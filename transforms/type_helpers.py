@@ -157,6 +157,8 @@ def _get_type_helper(expr, env): # pylint: disable=too-many-return-statements,to
         return _get_unop_type(expr, env)
     elif isinstance(expr, BinaryOp):
         return _get_binop_type(expr, env)
+    elif isinstance(expr, TernaryOp):
+        return _get_ternary_type(expr, env)
     elif isinstance(expr, StructRef):
         return _get_structref_type(expr, env)
     elif isinstance(expr, ArrayRef):
@@ -259,6 +261,12 @@ def _resolve_floating_types(left, right):
     elif 'double' in left.type.names:
         return Side.LEFT
     return Side.RIGHT
+
+def _get_ternary_type(expr, env):
+    """Takes a TernaryOp node and a type environment and returns
+    a node representing the type of the given expression"""
+    # TODO make this robust
+    return get_type(expr.iftrue, env)
 
 def _get_binop_type(expr, env):
     """Takes in a BinaryOp node and a type environment (map of identifiers to
