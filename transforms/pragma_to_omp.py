@@ -3,6 +3,7 @@
 import re
 from pycparser.c_ast import Pragma
 from .node_transformer import NodeTransformer
+from .helpers import ensure_compound
 
 class PragmaToOmp(NodeTransformer):
     """ Base class for Pragma to OMP Node transforms, defining commonly used.
@@ -90,7 +91,7 @@ class PragmaToOmp(NodeTransformer):
                         node.block_items[index] = self.construct(child.string, child.coord)
                 elif index + 1 < len(node.block_items):
                     # Get structured block for this omp construct and check for clauses
-                    next_sibling = node.block_items[index+1]
+                    next_sibling = ensure_compound(node.block_items[index+1])
                     if self.has_clauses:
                         node.block_items[index] = self.construct(
                             child.string,

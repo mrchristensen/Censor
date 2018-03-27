@@ -62,7 +62,7 @@ class TestOmpParallelSections(unittest.TestCase):
 
         self.assertEqual(0, len(pv.nodes))
         self.assertEqual(2, len(ov.nodes))
-        self.assertEqual(ov.nodes[1], ov.nodes[0].block)
+        self.assertEqual(ov.nodes[1], ov.nodes[0].block.block_items[0])
         self.assertEqual(child, ov.nodes[1].sections)
 
 
@@ -88,7 +88,7 @@ class TestOmpParallelSections(unittest.TestCase):
 
         self.assertEqual(0, len(pv.nodes))
         self.assertEqual(2, len(ov.nodes))
-        self.assertEqual(ov.nodes[1], ov.nodes[0].block)
+        self.assertEqual(ov.nodes[1], ov.nodes[0].block.block_items[0])
         self.assertEqual(child, ov.nodes[1].sections)
         self.assertEqual(10, ov.nodes[0].clauses[0].scalar)
         self.assertEqual(['i'], ov.nodes[1].clauses[0].ids)
@@ -114,8 +114,8 @@ class TestOmpParallelSections(unittest.TestCase):
 
         self.assertEqual(0, len(pv.nodes))
         self.assertEqual(2, len(ov.nodes))
-        self.assertEqual(ov.nodes[1], ov.nodes[0].block)
-        self.assertEqual(child, ov.nodes[1].sections)
+        self.assertEqual(ov.nodes[1], ov.nodes[0].block.block_items[0])
+        self.assertEqual(child, ov.nodes[1].sections.block_items[0])
         self.assertEqual(ov.nodes[0].clauses[0].scalar, 10)
         self.assertEqual(ov.nodes[0].clauses[1].num, 4)
         self.assertEqual(ov.nodes[0].clauses[2].state, 'shared')

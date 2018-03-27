@@ -58,7 +58,7 @@ class TestOmpCritical(unittest.TestCase):
 
         self.assertEqual(0, len(pv.nodes))
         self.assertEqual(1, len(ov.nodes))
-        self.assertEqual(child, ov.nodes[0].block)
+        self.assertEqual(child, ov.nodes[0].block.block_items[0])
         self.assertEqual(ov.nodes[0].clauses[0].name, None)
 
 
@@ -106,6 +106,7 @@ class TestOmpCritical(unittest.TestCase):
 
         self.assertEqual(0, len(pv.nodes))
         self.assertEqual(1, len(ov.nodes))
-        self.assertTrue(isinstance(ov.nodes[0].block, pycparser.c_ast.UnaryOp))
+        self.assertTrue(isinstance(ov.nodes[0].block, pycparser.c_ast.Compound))
+        self.assertTrue(isinstance(ov.nodes[0].block.block_items[0], pycparser.c_ast.UnaryOp))
         self.assertEqual(ov.nodes[0].clauses[0].name, "name")
         self.assertEqual(ov.nodes[0].clauses[1].hint, 0)

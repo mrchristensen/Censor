@@ -5,6 +5,7 @@ from pycparser.c_ast import Pragma
 from omp.omp_ast import OmpParallel, OmpSections
 import omp.clause as OmpClause
 from .pragma_to_omp import PragmaToOmp
+from .helpers import ensure_compound
 
 PARALLEL_STR_TO_CLAUSE_TYPE = {
     "if": OmpClause.If,
@@ -44,13 +45,18 @@ class PragmaToOmpParallelSections(PragmaToOmp):
             if isinstance(child, Pragma) \
                and self.pragma_matches(child.string) \
                and index + 1 < len(node.block_items):
-                next_sibling = node.block_items[index+1]
+                # We wrap the children in a compound block because
+                # then we can easily visit scopes by only visiting
+                # Compound nodes
+                next_sibling = ensure_compound(node.block_items[index+1])
                 self.str_to_clause_type = SECTIONS_STR_TO_CLAUSE_TYPE
-                sections_node = OmpSections(
-                    child.string,
-                    self.clause_nodes_from_pragma_string(child.string),
-                    next_sibling,
-                    child.coord
+                sections_node = ensure_compound(
+                    OmpSections(
+                        child.string,
+                        self.clause_nodes_from_pragma_string(child.string),
+                        next_sibling,
+                        child.coord
+                        )
                     )
                 self.str_to_clause_type = PARALLEL_STR_TO_CLAUSE_TYPE
                 node.block_items[index] = OmpParallel(

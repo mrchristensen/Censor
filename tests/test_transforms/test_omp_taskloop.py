@@ -58,7 +58,7 @@ class TestOmpTaskloop(unittest.TestCase):
 
         self.assertEqual(0, len(pv.nodes))
         self.assertEqual(1, len(ov.nodes))
-        self.assertEqual(child, ov.nodes[0].loops)
+        self.assertEqual(child, ov.nodes[0].loops.block_items[0])
 
 
     def test_clauses_one(self):
@@ -83,7 +83,7 @@ class TestOmpTaskloop(unittest.TestCase):
 
         self.assertEqual(0, len(pv.nodes))
         self.assertEqual(1, len(ov.nodes))
-        self.assertEqual(child, ov.nodes[0].loops)
+        self.assertEqual(child, ov.nodes[0].loops.block_items[0])
         self.assertEqual(ov.nodes[0].clauses[0].scalar, 10)
 
     def test_clauses_many(self):
@@ -106,7 +106,7 @@ class TestOmpTaskloop(unittest.TestCase):
 
         self.assertEqual(0, len(pv.nodes))
         self.assertEqual(1, len(ov.nodes))
-        self.assertEqual(child, ov.nodes[0].loops)
+        self.assertEqual(child, ov.nodes[0].loops.block_items[0])
         self.assertEqual(ov.nodes[0].clauses[0].scalar, 10)
         self.assertEqual(ov.nodes[0].clauses[1].state, 'shared')
         self.assertEqual(ov.nodes[0].clauses[2].ids, ['a'])

@@ -104,7 +104,7 @@ class TestOmpTask(unittest.TestCase):
 
         self.assertEqual(0, len(pv.nodes))
         self.assertEqual(1, len(ov.nodes))
-        self.assertTrue(isinstance(ov.nodes[0].block, pycparser.c_ast.FuncCall))
+        self.assertTrue(isinstance(ov.nodes[0].block.block_items[0], pycparser.c_ast.FuncCall))
         self.assertEqual(ov.nodes[0].clauses[0].scalar, 10)
         self.assertEqual(ov.nodes[0].clauses[1].state, 'shared')
         self.assertEqual(ov.nodes[0].clauses[2].ids, ['a'])

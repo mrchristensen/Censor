@@ -105,6 +105,6 @@ class TestOmpAtomic(unittest.TestCase):
 
         self.assertEqual(0, len(pv.nodes))
         self.assertEqual(1, len(ov.nodes))
-        self.assertEqual(child, ov.nodes[0].block)
+        self.assertEqual(child, ov.nodes[0].block.block_items[0])
         self.assertTrue(isinstance(ov.nodes[0].clauses[1], omp.clause.Write))
         self.assertTrue(isinstance(ov.nodes[0].clauses[0], omp.clause.SeqCst))

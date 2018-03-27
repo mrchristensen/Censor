@@ -2,37 +2,35 @@
 
 from pycparser.c_ast import Compound
 
+def ensure_compound(node):
+    """Wrap an AST node in a compound block if necessary"""
+    if node is None:
+        return Compound([])
+    if isinstance(node, Compound):
+        if node.block_items is None:
+            node.block_items = []
+        return node
+    return Compound([node])
+
 def append_statement(compound, stmt):
     """
     Given two nodes, returns a new Compound node
     with the second node as the last node in the block
     """
-    items = []
-    if isinstance(compound, Compound):
-        if compound.block_items:
-            items = compound.block_items
-    elif compound:
-        items = [compound]
-
+    compound = ensure_compound(compound)
     if stmt:
-        items.append(stmt)
-    return Compound(items)
+        compound.block_items.append(stmt)
+    return compound
 
 def prepend_statement(compound, stmt):
     """
     Given two nodes, returns a new Compound node
     with the second node as the first node in the block
     """
-    items = []
-    if isinstance(compound, Compound):
-        if compound.block_items:
-            items = compound.block_items
-    elif compound:
-        items = [compound]
-
+    compound = ensure_compound(compound)
     if stmt:
-        items.insert(0, stmt)
-    return Compound(items)
+        compound.block_items.insert(0, stmt)
+    return compound
 
 class IncorrectTransformOrder(Exception):
     """If an AST transform ever realizes it is being called in the wrong
