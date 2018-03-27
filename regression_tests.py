@@ -47,12 +47,13 @@ def _preserve_include_postprocess(test_file):
             ['sed', '-rf', inserting_sed, test_file],
             stdout=subprocess.PIPE
         )
-        subprocess.run(
+        deleting = subprocess.Popen(
             ['sed', '-rf', deleting_sed],
             stdin=inserting.stdout,
             stdout=out_file
         )
         inserting.communicate()
+        deleting.wait()
 
     return out_path
 
