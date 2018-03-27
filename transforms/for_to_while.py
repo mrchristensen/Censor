@@ -1,6 +1,7 @@
 """AST transform that transforms a for loop to a while loop"""
 
-from pycparser.c_ast import While, Compound, Constant, DoWhile
+from pycparser.c_ast import While, Compound, Constant, DoWhile, DeclList
+from pycparser.c_ast import Assignment, ExprList
 from .omp_for import PragmaToOmpFor
 from .node_transformer import NodeTransformer
 from .helpers import append_statement
@@ -18,7 +19,16 @@ class ForToWhile(NodeTransformer):
         stmt = transform_loop_statement(node.stmt, node.next)
         if node.init is None:
             return While(cond, stmt, node.coord)
-        items = node.init.decls
+        items = []
+        if isinstance(node.init, DeclList):
+            items = node.init.decls
+        elif isinstance(node.init, Assignment):
+            items.append(node.init)
+        elif isinstance(node.init, ExprList):
+            items = node.init.exprs
+        else:
+            raise NotImplementedError("Unexpected for initializer.")
+
         items.append(While(cond, stmt, node.coord))
         return Compound(items, node.coord)
 
