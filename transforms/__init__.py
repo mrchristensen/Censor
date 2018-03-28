@@ -13,6 +13,8 @@ ForToWhile < WhileToDoWhile
 WhileToDoWhile < DoWhileToGoto
 DoWhileToGoto < LiftToCompoundBlock
 LiftToCompoundBlock < RemoveCompoundAssignment
+TernaryToIf < InsertExplicitTypeCasts
+TernaryToIf < LiftToCompoundBlock
 RemoveCompoundAssignment < InsertExplicitTypeCasts
 """
 
@@ -21,6 +23,7 @@ from .do_while_to_goto import DoWhileToGoto
 from .while_to_do_while import WhileToDoWhile
 from .for_to_while import ForToWhile
 from .if_goto import IfToIfGoto
+from .ternary_to_if import TernaryToIf
 from .omp_parallel_for import PragmaToOmpParallelFor
 from .omp_parallel_sections import PragmaToOmpParallelSections
 from .omp_parallel import PragmaToOmpParallel
@@ -75,6 +78,7 @@ def get_transformer_generators(ast):
         lambda: ForToWhile(),
         lambda: WhileToDoWhile(),
         lambda: DoWhileToGoto(id_generator),
+        lambda: TernaryToIf(id_generator, type_env_calc.get_environments(ast)),
         lambda: LiftToCompoundBlock(id_generator, type_env_calc.get_environments(ast)),
         lambda: RemoveCompoundAssignment(id_generator,
                                          type_env_calc.get_environments(ast)),
