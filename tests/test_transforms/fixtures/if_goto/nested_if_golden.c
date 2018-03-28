@@ -9,7 +9,10 @@ int main()
             i = 20;
             goto censor01;
         }
-        i = 30;
+
+        {
+          i = 30;
+        }
 censor01:
 
 

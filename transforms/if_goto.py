@@ -55,8 +55,8 @@ class IfToIfGoto(NodeTransformer):
             return [If(node.cond, true_branch, None)]
         if isinstance(false_branch, If):
             false_branch = self.mangle_if(false_branch, end_label)
-            return [If(node.cond, true_branch, None)] + false_branch
-        elif isinstance(false_branch, Compound):
-            return [If(node.cond, true_branch, None)] + false_branch.block_items
-        else:
             return [If(node.cond, true_branch, None), false_branch]
+        elif isinstance(false_branch, Compound):
+            return [If(node.cond, true_branch, None), false_branch]
+        else:
+            return [If(node.cond, true_branch, None), Compound([false_branch])]

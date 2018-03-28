@@ -7,17 +7,21 @@ int main()
       goto censor02;
   }
 
-  if (true)
   {
-      i = 20;
-      goto censor01;
+    if (true)
+    {
+        i = 20;
+        goto censor01;
+    }
+
+    {
+      i = 30;
+    }
+    censor01:
+
+
   }
-
-  i = 30;
-censor01:
-
-
-censor02:
+  censor02:
 
 
   return 0;

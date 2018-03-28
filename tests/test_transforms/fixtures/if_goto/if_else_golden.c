@@ -6,7 +6,9 @@ int main()
       i = 10;
       goto censor01;
   }
-  i = 20;
+  {
+    i = 20;
+  }
 censor01:
   return 0;
 }
