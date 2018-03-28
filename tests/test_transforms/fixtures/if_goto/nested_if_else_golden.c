@@ -7,16 +7,16 @@ int main()
         if (true)
         {
             i = 20;
-            goto censor01;
+            goto censor01_ENDIF;
         }
 
         {
             i = 30;
         }
-censor01:
+censor01_ENDIF:
 
 
-        goto censor03;
+        goto censor03_ENDIF;
     }
 
     {
@@ -24,17 +24,17 @@ censor01:
         if (true)
         {
             i = 50;
-            goto censor02;
+            goto censor02_ENDIF;
         }
 
         {
             i = 60;
         }
-censor02:
+censor02_ENDIF:
 
 
     }
-censor03:
+censor03_ENDIF:
 
     return 0;
 }

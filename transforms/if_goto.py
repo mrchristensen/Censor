@@ -38,7 +38,7 @@ class IfToIfGoto(NodeTransformer):
         if node.iffalse is None:
             return self.generic_visit(node)
 
-        end_label = self.id_gen.get_unique_id()
+        end_label = self.id_gen.get_unique_id() + "_ENDIF"
         return self.mangle_if(node, end_label) + [Label(end_label, None)]
 
     def mangle_if(self, node, end_label):
