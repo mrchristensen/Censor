@@ -123,7 +123,6 @@ def resolve_types(left, right): # pylint: disable=too-many-return-statements
 def _get_type_helper(expr, env): # pylint: disable=too-many-return-statements,too-many-branches
     """Does all of the actual work for get_type, but returns a reference to
     a node that is currently in the AST."""
-    print("---getting type of node of type", type(expr))
     if isinstance(expr, (TypeDecl, PtrDecl)):
         return expr
     elif isinstance(expr, ID):
@@ -195,6 +194,10 @@ def _is_float(type_node):
         return 'float' in type_node.type.names or 'double' in type_node.type.names
     return False
 
+def _is_arithmetic_type(typ):
+    """Returns true if the type node is an arithmetic type"""
+    return _is_float(typ) or _is_integral(typ)
+
 def _is_ptr(type_node):
     """Returns if the given type node describes a pointer type."""
     return isinstance(type_node, PtrDecl)
@@ -264,9 +267,22 @@ def _resolve_floating_types(left, right):
 
 def _get_ternary_type(expr, env):
     """Takes a TernaryOp node and a type environment and returns
-    a node representing the type of the given expression"""
-    # TODO make this robust
-    return get_type(expr.iftrue, env)
+    a node representing the type of the given expression.
+    If the two sides of the ternary operator have arithmetic types
+    then the two types are resolved as if there were an operator between them.
+    Otherwise the types must be the same so just return the type of one side.
+    See http://www.open-std.org/jtc1/sc22/WG14/www/docs/n1256.pdf
+    section, 6.3.1.8 Usual arithmetic conversions, p. 90."""
+    # TODO There might be some corner cases with pointers and type qualifiers
+    left_type = get_type(expr.iftrue, env)
+    right_type = get_type(expr.iffalse, env)
+    if _is_arithmetic_type(left_type) and _is_arithmetic_type(right_type):
+        if resolve_types(left_type, right_type) == Side.LEFT:
+            return left_type
+        else:
+            return right_type
+    else:
+        return get_type(expr.iftrue, env)
 
 def _get_binop_type(expr, env):
     """Takes in a BinaryOp node and a type environment (map of identifiers to
