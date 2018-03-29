@@ -5,6 +5,5 @@ int main() {
     a = 1;
   b = (b - a) > 2 ? 3 : b - a + 2;
   char* str1 = "string1";
-  char* str2;
-  str2 = str1[0] == 's' ? str1 : str2;
+  char* str2 = str1[0] == 's' ? str1 : "string2";
 }

@@ -16,11 +16,10 @@ int main()
     censor02 = (b - a) + 2;
   b = censor02;
   char* str1 = "string1";
-  char* str2;
   char* censor03;
   if (str1[0] == 's')
     censor03 = str1;
   else
-    censor03 = str2;
-  str2 = censor03;
+    censor03 = "string2";
+  char* str2 = censor03;
 }

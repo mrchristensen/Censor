@@ -143,6 +143,8 @@ def _get_type_helper(expr, env): # pylint: disable=too-many-return-statements,to
         return type_node
     elif isinstance(expr, Constant):
         # TODO: if the int is over a certain size, change to long?
+        if expr.type == 'string':
+            return PtrDecl([], TypeDecl(None, [], IdentifierType(['char'])))
         return TypeDecl(None, [], IdentifierType([expr.type]))
     elif isinstance(expr, Cast):
         if isinstance(expr.to_type, Typename):
