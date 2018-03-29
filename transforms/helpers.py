@@ -1,6 +1,7 @@
 """Helper functions for node transformers"""
 
 from pycparser.c_ast import Compound
+from transforms.node_transformer import NodeTransformer
 
 def ensure_compound(node):
     """Wrap an AST node in a compound block if necessary"""
@@ -31,6 +32,19 @@ def prepend_statement(compound, stmt):
     if stmt:
         compound.block_items.insert(0, stmt)
     return compound
+
+class WithParent(NodeTransformer): # pylint: disable=too-few-public-methods
+    """Node transformer that keeps track of parent nodes"""
+    def __init__(self):
+        self.parent = None
+
+    def generic_visit(self, node):
+        """Visit each child and set parent"""
+        old_parent = self.parent
+        self.parent = node
+        node = super().generic_visit(node)
+        self.parent = old_parent
+        return node
 
 class IncorrectTransformOrder(Exception):
     """If an AST transform ever realizes it is being called in the wrong

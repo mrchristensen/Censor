@@ -1,7 +1,7 @@
 """Instrumenter class for traversing anc instrumenting an AST"""
 from transforms.node_transformer import NodeTransformer
+from transforms.helpers import ensure_compound
 from utils import is_main
-from .helpers import ensure_compound
 from .logger import Logger
 
 class Instrumenter(NodeTransformer): #pylint: disable=too-many-public-methods
