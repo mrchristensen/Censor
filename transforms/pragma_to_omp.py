@@ -91,7 +91,9 @@ class PragmaToOmp(NodeTransformer):
                         node.block_items[index] = self.construct(child.string, child.coord)
                 elif index + 1 < len(node.block_items):
                     # Get structured block for this omp construct and check for clauses
-                    next_sibling = ensure_compound(node.block_items[index+1])
+                    next_sibling = node.block_items[index+1]
+                    if 'omp for' not in child.string:
+                        next_sibling = ensure_compound(next_sibling)
                     if self.has_clauses:
                         node.block_items[index] = self.construct(
                             child.string,
