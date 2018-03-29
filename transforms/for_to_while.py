@@ -2,7 +2,7 @@
 
 from pycparser.c_ast import While, Compound, Constant, DoWhile, DeclList
 from pycparser.c_ast import Assignment, ExprList
-from .omp_for import PragmaToOmpFor
+from omp.omp_ast import OmpFor
 from .node_transformer import NodeTransformer
 from .helpers import append_statement
 
@@ -10,7 +10,7 @@ class ForToWhile(NodeTransformer):
     """NodeTransformer to change for loops to while loops"""
 
     def skip(self, node):
-        return node is None or isinstance(node, PragmaToOmpFor)
+        return node is None or isinstance(node, OmpFor)
 
     def visit_For(self, node): #pylint: disable=invalid-name
         """Transform a for loop to a while loop"""
