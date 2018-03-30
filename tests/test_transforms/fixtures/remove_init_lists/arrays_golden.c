@@ -1,4 +1,4 @@
-int global[10] = {1, 2, 3, 4, 5, 6};
+int global[10];
 void censor01_INIT_GLOBALS();
 int main()
 {
