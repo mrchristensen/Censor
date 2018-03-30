@@ -10,8 +10,8 @@ class CESKvsGCC(TestCase):
     gives the same output under gcc and under our CESK interpreter.
     """
     def assert_same_output(self, file_path):
-        """asserts that a c file will have the same output under gcc and under our
-        cesk interpreter"""
+        """asserts that a c file will have the same output under gcc and under
+        our cesk interpreter"""
         gcc_out = run_c(file_path)
         cesk_out = run_c_cesk(file_path)
         if gcc_out == cesk_out:
@@ -25,16 +25,19 @@ class CESKvsGCC(TestCase):
             raise self.failureException()
 
     def assert_all_equal(self, folder):
-        """asserts that an entire folder full of c files will have the same output
-        under gcc and under our cesk interpreter"""
-        files = sorted([path.join(folder, f) for f in listdir(folder) if f.endswith('.c')])
+        """asserts that an entire folder full of c files will have the same
+        output under gcc and under our cesk interpreter"""
+        files = sorted([path.join(folder, f) for f in listdir(folder)
+                        if f.endswith('.c')])
         for file in files:
             self.assert_same_output(file)
 
 
 def run_c_cesk(file_path):
-    """runs a c source file using the cesk tool, returns stdout as a byte string."""
-    stdout = subprocess.check_output(['python3', '../../main.py', '-t', 'cesk', file_path])
+    """runs a c source file using the cesk tool, returns stdout as a byte
+    string."""
+    stdout = subprocess.check_output(['python3', '../../main.py',
+                                      '-t', 'cesk', file_path])
     return stdout
 
 def run_c(file_path):

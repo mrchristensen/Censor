@@ -13,7 +13,8 @@ class TernaryToIf(LiftNode):
 
     def visit_TernaryOp(self, node): # pylint: disable=invalid-name
         """Transform Ternary to If"""
-        # TODO currently not supporting the use of unitialized ids in the ternary operator
+        # TODO currently not supporting the use of unitialized ids in the
+        # ternary operator
         # gcc only throws a warning if you write something like this
         # char* str = expr ? expr : str;
         # even though the 'str' id might be used unitialized.

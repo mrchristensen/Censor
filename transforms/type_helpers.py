@@ -1,4 +1,7 @@
-"""Helpers for working with information about types during AST transformations."""
+"""
+Helpers for working with information about types during AST
+transformations.
+"""
 from copy import deepcopy
 from enum import Enum
 from pycparser.c_ast import * # pylint: disable=wildcard-import, unused-wildcard-import
@@ -133,11 +136,12 @@ def _get_type_helper(expr, env): # pylint: disable=too-many-return-statements,to
             # if you have the name of the struct but not its field declarations,
             # go find them
             if struct_type.decls is None:
-                struct_type_string = type(struct_type).__name__ + " " + struct_type.name
+                struct_type_string = type(struct_type).__name__  \
+                                    + " " + struct_type.name
                 type_node.type = env.get_type(struct_type_string)
         elif type_node and isinstance(type_node.type, Enum):
-            # TODO: if you have the name of the enum but not its field declarations,
-            # go find them
+            # TODO: if you have the name of the enum but not its field
+            # declarations, go find them
             # IS THIS CASE REALLY NEEDED?
             pass
         return type_node
@@ -190,10 +194,12 @@ def _is_float(type_node):
     # defined through typedef's
     if isinstance(type_node, TypeDecl):
         if isinstance(type_node.type, IdentifierType):
-            return 'float' in type_node.type.names or 'double' in type_node.type.names
+            return 'float' in type_node.type.names or \
+                    'double' in type_node.type.names
         return False
     elif isinstance(type_node, IdentifierType):
-        return 'float' in type_node.type.names or 'double' in type_node.type.names
+        return 'float' in type_node.type.names or \
+                'double' in type_node.type.names
     return False
 
 def _is_arithmetic_type(typ):
@@ -338,7 +344,8 @@ def _get_structref_type(expr, env):
     if isinstance(struct_type, IdentifierType):
         struct_type = env.get_type(struct_type.names[0]).type
 
-    # if you have the name of the struct but not its field declarations, go find them
+    # if you have the name of the struct but not its field declarations,
+    # go find them
     if struct_type.decls is None:
         struct_type_string = type(struct_type).__name__ + " " + struct_type.name
         struct_type = env.get_type(struct_type_string)

@@ -10,7 +10,8 @@ class Instrumenter(NodeTransformer): #pylint: disable=too-many-public-methods
         self.logger = Logger()
 
     def instrument_omp_log(self, block, construct):
-        """Add sandwiching log statements at the beginning and end of an omp structured block"""
+        """Add sandwiching log statements at the beginning and end of an omp
+        structured block"""
         block = ensure_compound(block)
         block.block_items.insert(0, self.logger.log_omp_enter(construct))
         block.block_items.append(self.logger.log_omp_exit(construct))

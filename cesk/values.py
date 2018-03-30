@@ -29,8 +29,8 @@ class ArithmeticValue: #pylint:disable=too-few-public-methods
             raise NotImplementedError()
 
     def get_truth_value(self):
-        """Returns a bool denoting what truth value the ArithmeticValue would have
-        if it were inside of an if statement in C"""
+        """Returns a bool denoting what truth value the ArithmeticValue would
+        have if it were inside of an if statement in C"""
         return bool(self.data)
 
     def __add__(self, other):

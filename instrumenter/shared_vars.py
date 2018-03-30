@@ -30,7 +30,8 @@ class SharedVars():
         self.vars.update(ids)
 
     def contains(self, ident):
-        """Return true if ident resolves to a shared variable in the current scope"""
+        """Return true if ident resolves to a shared variable in the current
+        scope"""
         if isinstance(ident, ID):
             ident = ident.name
         return ident in self.vars
@@ -73,30 +74,33 @@ class SharedVarsVisitor(WithParent):
     because it needs to support Omp* nodes.
 
     It assumes that the AST has been transformed to the point that every scope
-    we need to visit is a Compound node. For nodes are always wrapped by a Compound
-    It works by visiting each scope and updating some state along the way:
+    we need to visit is a Compound node. For nodes are always wrapped by a
+    Compound It works by visiting each scope and updating some state along the
+    way:
 
     locals:         A set of locally defined identifiers
     aliases:        A set of ids that alias shared variables
-    scopes:         The result. A map from Compound nodes to sets of shared variables
+    scopes:         The result. A map from Compound nodes to sets of shared
+                    variables
     made_private:   A set of identifiers that have been made private by OpenMP
-                    data sharing attribute clauses. This is wiped clean when a new
-                    thread team is spawned. (OmpParallel)
+                    data sharing attribute clauses. This is wiped clean when a
+                    new thread team is spawned. (OmpParallel)
 
-    If an identifier in the scope references a variable that is not locally defined
-    and has not been made private then it is shared.
-    If a variable is locally defined but it is an alias of a shared variable then it
-    is shared as well.
-    If a variable is not locally defined but is a function parameter and is being
-    referenced in the outermost scope of the function body then it is shared if it
-    was shared in the caller's scope and is passed as a pointer.
+    If an identifier in the scope references a variable that is not locally
+    defined and has not been made private then it is shared.
+    If a variable is locally defined but it is an alias of a shared variable
+    then it is shared as well.
+    If a variable is not locally defined but is a function parameter and is
+    being referenced in the outermost scope of the function body then it is
+    shared if it was shared in the caller's scope and is passed as a pointer.
 
-    We don't have to worry about whether we are in a parallel region or not because
-    the information we gather will only be used later by an Instrumenter class that
-    takes care of that logic.
+    We don't have to worry about whether we are in a parallel region or not
+    because the information we gather will only be used later by an
+    Instrumenter class that takes care of that logic.
     """
     #TODO: handle function arguments
-    #TODO: collect information about which functions are called in parallel regions
+    #TODO: collect information about which functions are called in parallel
+    #regions
 
     def __init__(self):
         super().__init__()

@@ -55,14 +55,15 @@ def execute(state):
             elif isinstance(stmt.subscript, pycparser.c_ast.Constant):
                 index = generate_constant_value(stmt.subscript.value).data
             else:
-                raise Exception("Array subscripts of type " + str(stmt.subscript) +
-                                "are not yet implemented")
+                raise Exception("Array subscripts of type " +
+                                str(stmt.subscript) + "are not yet implemented")
             pointer_address = state.envr.get_address(name)
             pointer = state.stor.read(pointer_address)
         if isinstance(pointer, Pointer):
             start_address = pointer.data
         else:
-            raise Exception(name + " is not an array nor pointer nor vector" + str(pointer))
+            raise Exception(name + " is not an array nor pointer nor vector" +
+                            str(pointer))
         address = start_address + index
         value = state.stor.read(address)
         successors.append(state.kont.satisfy(state, value))
@@ -339,7 +340,7 @@ def handle_decl(decl, state):
         raise Exception("Error: redefinition of " + name)
 
     if (isinstance(decl.type, (pycparser.c_ast.TypeDecl,
-                               pycparser.c_ast.PtrDecl))): #pointers are just int
+                               pycparser.c_ast.PtrDecl))):#pointers are ints
         new_address = state.stor.get_next_address()
         state.envr.map_new_identifier(name, new_address)
         exp = decl.init
@@ -353,7 +354,8 @@ def handle_decl(decl, state):
         ref_address = handle_decl_array(decl.type, state)
         state.envr.map_new_identifier(decl.name, ref_address)
         if decl.init is not None:
-            ## TODO if init evaluates to an address don't allocate just assign
+            ## TODO if init evaluates to an address don't allocate just
+            # assign
             raise Exception("array init not yet implemented")
         if isinstance(state.kont, FunctionKont): #dont return to function
             return get_next(state)
@@ -457,8 +459,8 @@ def get_next(state): #pylint: disable=inconsistent-return-statements
     new_envr = LinkSearch.envr_lut[parent] #set environment to parent scope
     return get_next(State(parent_ctrl, new_envr, state.stor, state.kont))
 
-# imports are down here to allow for circular dependencies between structures.py and interpret.py
-
+# imports are down here to allow for circular dependencies between
+# structures.py and interpret.py
 from cesk.structures import State, Ctrl, Envr, AssignKont, ReturnKont # pylint: disable=wrong-import-position
 from cesk.structures import FunctionKont, LeftBinopKont, IfKont, VoidKont # pylint: disable=wrong-import-position
 from cesk.structures import throw # pylint: disable=wrong-import-position

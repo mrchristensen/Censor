@@ -16,11 +16,13 @@ class TestOmpParallelSections(unittest.TestCase):
             self.nodes = []
 
         def visit_Pragma(self, node):
-            """Collect nodes, does not recurse as Pragma nodes have no children"""
+            """Collect nodes, does not recurse as Pragma nodes have no
+            children"""
             self.nodes.append(node)
 
     class OmpParallelSectionsVisitor(omp.omp_ast.NodeVisitor):
-        """OmpParallelSections node visitor; recursibely collect all OmpParallelSections nodes"""
+        """OmpParallelSections node visitor; recursibely collect all
+        OmpParallelSections nodes"""
 
         def __init__(self):
             self.nodes = []

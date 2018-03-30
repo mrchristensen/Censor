@@ -1,15 +1,17 @@
 """
 This transform uses the LiftNode base class to enforce a simply structured AST.
-It defines an array of class names to search for. It performs a depth first search
-so it transforms the most deeply nested node first. This should ensure that things are
-done in the right order.
+It defines an array of class names to search for. It performs a depth first
+search so it transforms the most deeply nested node first. This should ensure
+that things are done in the right order.
 
-When it sees a node that matches a class name it is looking for it checks to see if it's
-direct parent is a Compound node. If it isn't then the node needs to be replaced by an ID.
-It creates a new Decl node for the new ID and inserts it into the current scope.
+When it sees a node that matches a class name it is looking for it checks to
+see if it's direct parent is a Compound node. If it isn't then the node needs
+to be replaced by an ID. It creates a new Decl node for the new ID and inserts
+it into the current scope.
 
-At the end of the transform all nodes with class names in the array searched for will be
-direct children of Assignment nodes which are direct children of a Compound block.
+At the end of the transform all nodes with class names in the array searched
+for will be direct children of Assignment nodes which are direct children of
+a Compound block.
 
 Examples:
 
@@ -28,23 +30,26 @@ int censor05 = censor04 + c;
 *censor03 = censor05;
 
 Special considerations:
-Pointers are always created for StructRef and ArrayRef nodes. This is because ArrayRef nodes
-always need to be replaced by a pointer and I couldn't find an easy way to determine if the
-property referenced in a StructRef was an array or not.
+Pointers are always created for StructRef and ArrayRef nodes. This is because
+ArrayRef nodes always need to be replaced by a pointer and I couldn't find an
+easy way to determine if the property referenced in a StructRef was an array
+or not.
 
-Assignment nodes are a special case because they don't require the same process of finding
-the type of the node and creating a new Decl. They are just lifted into the current scope
-and replaced by their lvalue.
+Assignment nodes are a special case because they don't require the same process
+of finding the type of the node and creating a new Decl. They are just lifted
+into the current scope and replaced by their lvalue.
 
-UnaryOp Nodes are also a special case because they only need to be lifted if they mutate.
+UnaryOp Nodes are also a special case because they only need to be lifted if
+they mutate.
 
 Dependencies:
-This transform will only work properly if all 'else if' nodes have already been transformed to
-have their own scope so that statements in their conditions are only evaluated if the are
-reached.
+This transform will only work properly if all 'else if' nodes have already been
+transformed to have their own scope so that statements in their conditions are
+only evaluated if the are reached.
 
-This transform will also break if a Label node only has one statement and it has parts that need
-to be lifted. The problem is fixed if the label's child is a Compound block.
+This transform will also break if a Label node only has one statement and it
+has parts that need to be lifted. The problem is fixed if the label's child
+is a Compound block.
 """
 
 from copy import deepcopy

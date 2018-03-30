@@ -16,11 +16,13 @@ class TestOmpTaskloop(unittest.TestCase):
             self.nodes = []
 
         def visit_Pragma(self, node):
-            """Collect nodes, does not recurse as Pragma nodes have no children"""
+            """Collect nodes, does not recurse as Pragma nodes have no
+            children"""
             self.nodes.append(node)
 
     class OmpTaskloopVisitor(omp.omp_ast.NodeVisitor):
-        """OmpTaskloop node visitor; recursibely collect all OmpTaskloop nodes"""
+        """OmpTaskloop node visitor; recursibely collect all OmpTaskloop
+        nodes"""
 
         def __init__(self):
             self.nodes = []

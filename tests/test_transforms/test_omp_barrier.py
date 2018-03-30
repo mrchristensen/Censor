@@ -16,7 +16,8 @@ class TestOmpBarrier(unittest.TestCase):
             self.nodes = []
 
         def visit_Pragma(self, node):
-            """Collect nodes, does not recurse as Pragma nodes have no children"""
+            """Collect nodes, does not recurse as Pragma nodes have no
+            children"""
             self.nodes.append(node)
 
     class OmpBarrierVisitor(omp.omp_ast.NodeVisitor):

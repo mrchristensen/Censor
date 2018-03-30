@@ -50,8 +50,9 @@ class TestSharedVars(unittest.TestCase):
 
     def test_parallel_with_private(self):
         """Simple test case with some private clauses.
-        Note: technically these firstprivate and lastprivate aren't used correctly here
-        because the variables are used unitialized but it doesn't matter for the test.
+        Note: technically these firstprivate and lastprivate aren't used
+        correctly here because the variables are used unitialized but it
+        doesn't matter for the test.
         """
         c_source = '''
         int main() {

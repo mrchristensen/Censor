@@ -17,7 +17,8 @@ class TestRemoveCompoundAssignment(GoldenTestCase):
     def transform(self, ast):
         """Transform input AST"""
         environments = TypeEnvironmentCalculator().get_environments(ast)
-        self.transformer = RemoveCompoundAssignment(IDGenerator(ast), environments)
+        self.transformer = RemoveCompoundAssignment(IDGenerator(ast),
+                                                    environments)
         return self.transformer.visit(ast)
 
     def test_remove_compound_assignment(self):
