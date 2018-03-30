@@ -8,7 +8,7 @@ class TestDataRaceBench(RegressionTestCase): #pylint: disable=no-name-in-module
 
     def setUp(self): #pylint: disable=invalid-name
         """Setup"""
-        self.fixtures = '../dataracebench/micro-benchmarks'
+        self.fixtures = '../dataracebench/micro-benchmarks/no'
         self.includes = ['../dataracebench/micro-benchmarks',
                          '../dataracebench/micro-benchmarks/utilities']
         self.add_flags = [
