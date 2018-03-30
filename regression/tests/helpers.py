@@ -9,16 +9,14 @@ from omp.c_with_omp_generator import CWithOMPGenerator
 
 import pycparser
 
+# Pylint doesn't like the way things are set up but doing it any different
+# breaks stuff
+#pylint: disable=no-member
 class RegressionTestCase(TestCase):
     """
     Unit test base class for using golden files.
     Provides a method to compare file contents with a string and print a diff
     """
-
-    def __init__(self):
-        super().__init__()
-        self.includes = []
-        self.add_flags = []
 
     @classmethod
     def setUpClass(cls):
