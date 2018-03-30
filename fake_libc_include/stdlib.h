@@ -6,3 +6,7 @@ extern void *calloc (size_t __nmemb, size_t __size);
 extern void *realloc (void *__ptr, size_t __size);
 
 extern void free (void *__ptr);
+
+extern double atof (const char *__nptr);
+extern int atoi (const char *__nptr);
+extern long int atol (const char *__nptr);
