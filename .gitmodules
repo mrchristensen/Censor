@@ -1,3 +1,0 @@
-[submodule "regression/dataracebench"]
-	path = regression/dataracebench
-	url = https://github.com/LLNL/dataracebench.git
