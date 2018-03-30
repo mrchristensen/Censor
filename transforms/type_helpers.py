@@ -284,7 +284,15 @@ def _get_ternary_type(expr, env):
         else:
             return right_type
     else:
-        return get_type(expr.iftrue, env)
+        if _is_nullptr_const(expr.iftrue):
+            return get_type(expr.iffalse, env)
+        else:
+            return get_type(expr.iftrue, env)
+
+def _is_nullptr_const(node):
+    """Returns a boolean representing whether or not the given node could be
+    interpreted as a nullptr constant."""
+    return isinstance(node, Constant) and node.value == 0
 
 def _get_binop_type(expr, env):
     """Takes in a BinaryOp node and a type environment (map of identifiers to

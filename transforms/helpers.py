@@ -7,11 +7,12 @@ def ensure_compound(node):
     """Wrap an AST node in a compound block if necessary"""
     if node is None:
         return Compound([])
-    if isinstance(node, Compound):
+    elif isinstance(node, Compound):
         if node.block_items is None:
             node.block_items = []
         return node
-    return Compound([node])
+    else:
+        return Compound([node])
 
 def append_statement(compound, stmt):
     """
