@@ -24,5 +24,5 @@ class TestDataRaceBench(RegressionTestCase): #pylint: disable=no-name-in-module
         """
         for fixture in get_fixtures(self.fixtures):
             with self.subTest(msg=fixture):
-                print("Testing fixture: " + fixture)
+                print('.', end='', flush=True)
                 self.assert_same_output_individual(ForToWhile().visit, fixture)
