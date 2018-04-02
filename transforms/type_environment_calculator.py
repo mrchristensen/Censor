@@ -26,7 +26,7 @@ of your current scope.
 """
 
 from copy import deepcopy
-from pycparser.c_ast import ID, Struct, Union, Enum
+from pycparser.c_ast import ID, Struct, Union, Enum, FuncDecl
 from .node_transformer import NodeTransformer
 from .type_helpers import remove_identifier
 
@@ -89,6 +89,7 @@ class TypeEnvironmentCalculator(NodeTransformer):
     def __init__(self):
         self.envr = None
         self.environemnts = None
+        self.declared_not_defined = None
 
     def get_environments(self, ast):
         """Aggregate type information for all of the scopes in the AST,
@@ -96,6 +97,7 @@ class TypeEnvironmentCalculator(NodeTransformer):
         representing their scope."""
         self.envr = Envr()
         self.environemnts = {"GLOBAL": self.envr}
+        self.declared_not_defined = set()
         self.visit(ast)
         return self.environemnts
 
@@ -116,7 +118,13 @@ class TypeEnvironmentCalculator(NodeTransformer):
     def visit_FuncDef(self, node): # pylint: disable=invalid-name
         """Add Create a new environment for the scope of the function. Add the
         function parameters to this scope, then handle the body."""
-        node.decl = self.visit(node.decl)
+        if node.decl.name in self.declared_not_defined:
+            self.declared_not_defined.remove(node.decl.name)
+        else:
+            type_node = deepcopy(node.decl.type)
+            ident = remove_identifier(type_node)
+            self.envr.add(ident, type_node)
+
         self.envr = Envr(self.envr)
 
         func_decl = node.decl.type
@@ -128,7 +136,6 @@ class TypeEnvironmentCalculator(NodeTransformer):
         self.envr = self.envr.parent
         return node
 
-
     def visit_Decl(self, node): # pylint: disable=invalid-name
         """Visit Decl nodes so that we can save type information about
         identifiers in the environment."""
@@ -139,4 +146,8 @@ class TypeEnvironmentCalculator(NodeTransformer):
             ident = type(type_node).__name__ + " " + ident
 
         self.envr.add(ident, type_node)
+
+        if isinstance(type_node, FuncDecl):
+            self.declared_not_defined.add(node.name)
+
         return node

@@ -84,6 +84,8 @@ class RemoveInitLists(NodeTransformer):
         self.id_generator = id_generator
 
     def visit_Compound(self, node): # pylint: disable=invalid-name
+        """Reassign the environment to be the environment of the current
+        compound block."""
         parent = self.env
         self.env = self.environments[node]
         retval = self.generic_visit(node)
@@ -122,8 +124,6 @@ class RemoveInitLists(NodeTransformer):
             node.ext.insert(main_index, init_globals_decl)
             node.ext.append(init_globals_def)
 
-        # FIXME
-        # return self.generic_visit(node)
         return node
 
     def visit_Decl(self, node): # pylint: disable=invalid-name,no-self-use
