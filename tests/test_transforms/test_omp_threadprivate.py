@@ -16,11 +16,13 @@ class TestOmpThreadprivate(unittest.TestCase):
             self.nodes = []
 
         def visit_Pragma(self, node):
-            """Collect nodes, does not recurse as Pragma nodes have no children"""
+            """Collect nodes, does not recurse as Pragma nodes have no
+            children"""
             self.nodes.append(node)
 
     class OmpThreadprivateVisitor(omp.omp_ast.NodeVisitor):
-        """OmpThreadprivate node visitor; recursibely collect all OmpThreadprivate nodes"""
+        """OmpThreadprivate node visitor; recursibely collect all
+        OmpThreadprivate nodes"""
 
         def __init__(self):
             self.nodes = []

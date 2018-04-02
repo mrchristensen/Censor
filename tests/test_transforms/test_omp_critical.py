@@ -16,11 +16,13 @@ class TestOmpCritical(unittest.TestCase):
             self.nodes = []
 
         def visit_Pragma(self, node):
-            """Collect nodes, does not recurse as Pragma nodes have no children"""
+            """Collect nodes, does not recurse as Pragma nodes have no
+            children"""
             self.nodes.append(node)
 
     class OmpCriticalVisitor(omp.omp_ast.NodeVisitor):
-        """OmpCritical node visitor; recursibely collect all OmpCritical nodes"""
+        """OmpCritical node visitor; recursibely collect all OmpCritical
+        nodes"""
 
         def __init__(self):
             self.nodes = []
@@ -58,7 +60,7 @@ class TestOmpCritical(unittest.TestCase):
 
         self.assertEqual(0, len(pv.nodes))
         self.assertEqual(1, len(ov.nodes))
-        self.assertEqual(child, ov.nodes[0].block)
+        self.assertEqual(child, ov.nodes[0].block.block_items[0])
         self.assertEqual(ov.nodes[0].clauses[0].name, None)
 
 
@@ -106,6 +108,8 @@ class TestOmpCritical(unittest.TestCase):
 
         self.assertEqual(0, len(pv.nodes))
         self.assertEqual(1, len(ov.nodes))
-        self.assertTrue(isinstance(ov.nodes[0].block, pycparser.c_ast.UnaryOp))
+        self.assertTrue(isinstance(ov.nodes[0].block, pycparser.c_ast.Compound))
+        self.assertTrue(isinstance(ov.nodes[0].block.block_items[0],
+                                   pycparser.c_ast.UnaryOp))
         self.assertEqual(ov.nodes[0].clauses[0].name, "name")
         self.assertEqual(ov.nodes[0].clauses[1].hint, 0)

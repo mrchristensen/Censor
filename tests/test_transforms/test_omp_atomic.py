@@ -16,7 +16,8 @@ class TestOmpAtomic(unittest.TestCase):
             self.nodes = []
 
         def visit_Pragma(self, node):
-            """Collect nodes, does not recurse as Pragma nodes have no children"""
+            """Collect nodes, does not recurse as Pragma nodes have no
+            children"""
             self.nodes.append(node)
 
     class OmpAtomicVisitor(omp.omp_ast.NodeVisitor):
@@ -105,6 +106,6 @@ class TestOmpAtomic(unittest.TestCase):
 
         self.assertEqual(0, len(pv.nodes))
         self.assertEqual(1, len(ov.nodes))
-        self.assertEqual(child, ov.nodes[0].block)
+        self.assertEqual(child, ov.nodes[0].block.block_items[0])
         self.assertTrue(isinstance(ov.nodes[0].clauses[1], omp.clause.Write))
         self.assertTrue(isinstance(ov.nodes[0].clauses[0], omp.clause.SeqCst))

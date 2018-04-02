@@ -1,7 +1,7 @@
 """Instrumenter class for traversing anc instrumenting an AST"""
 from transforms.node_transformer import NodeTransformer
+from transforms.helpers import ensure_compound
 from utils import is_main
-from .helpers import ensure_compound
 from .logger import Logger
 
 class Instrumenter(NodeTransformer): #pylint: disable=too-many-public-methods
@@ -10,7 +10,8 @@ class Instrumenter(NodeTransformer): #pylint: disable=too-many-public-methods
         self.logger = Logger()
 
     def instrument_omp_log(self, block, construct):
-        """Add sandwiching log statements at the beginning and end of an omp structured block"""
+        """Add sandwiching log statements at the beginning and end of an omp
+        structured block"""
         block = ensure_compound(block)
         block.block_items.insert(0, self.logger.log_omp_enter(construct))
         block.block_items.append(self.logger.log_omp_exit(construct))

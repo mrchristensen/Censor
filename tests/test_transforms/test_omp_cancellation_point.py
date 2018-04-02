@@ -16,11 +16,13 @@ class TestOmpCancellationPoint(unittest.TestCase):
             self.nodes = []
 
         def visit_Pragma(self, node):
-            """Collect nodes, does not recurse as Pragma nodes have no children"""
+            """Collect nodes, does not recurse as Pragma nodes have no
+            children"""
             self.nodes.append(node)
 
     class OmpCancellationPointVisitor(omp.omp_ast.NodeVisitor):
-        """OmpCancellationPoint node visitor; recursibely collect all OmpCancel nodes"""
+        """OmpCancellationPoint node visitor; recursibely collect all OmpCancel
+        nodes"""
 
         def __init__(self):
             self.nodes = []

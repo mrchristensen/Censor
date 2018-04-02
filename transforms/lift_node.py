@@ -12,8 +12,9 @@ class LiftNode(NodeTransformer):
     method that you can call at any time to have nodes inserted into the current
     scope above the node you are currently transforming.
 
-    This is useful for cases where lists cannot be returned from the visit method
-    because there is no way to make all nodes direct children of a compound block.
+    This is useful for cases where lists cannot be returned from the visit
+    method because there is no way to make all nodes direct children of a
+    compound block.
     """
 
     def __init__(self, id_generator, environments):

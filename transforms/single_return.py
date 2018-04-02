@@ -37,7 +37,8 @@ class SingleReturn(NodeTransformer):
         return node
 
     def visit_Return(self, node): # pylint: disable=invalid-name
-        """Assign the return variable, then goto the return statement at the end."""
+        """Assign the return variable, then goto the return statement at the
+        end."""
         goto = Goto(self.return_label)
         if is_void(self.return_type):
             return goto

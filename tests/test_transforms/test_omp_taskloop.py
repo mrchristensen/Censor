@@ -16,11 +16,13 @@ class TestOmpTaskloop(unittest.TestCase):
             self.nodes = []
 
         def visit_Pragma(self, node):
-            """Collect nodes, does not recurse as Pragma nodes have no children"""
+            """Collect nodes, does not recurse as Pragma nodes have no
+            children"""
             self.nodes.append(node)
 
     class OmpTaskloopVisitor(omp.omp_ast.NodeVisitor):
-        """OmpTaskloop node visitor; recursibely collect all OmpTaskloop nodes"""
+        """OmpTaskloop node visitor; recursibely collect all OmpTaskloop
+        nodes"""
 
         def __init__(self):
             self.nodes = []
@@ -58,7 +60,7 @@ class TestOmpTaskloop(unittest.TestCase):
 
         self.assertEqual(0, len(pv.nodes))
         self.assertEqual(1, len(ov.nodes))
-        self.assertEqual(child, ov.nodes[0].loops)
+        self.assertEqual(child, ov.nodes[0].loops.block_items[0])
 
 
     def test_clauses_one(self):
@@ -83,7 +85,7 @@ class TestOmpTaskloop(unittest.TestCase):
 
         self.assertEqual(0, len(pv.nodes))
         self.assertEqual(1, len(ov.nodes))
-        self.assertEqual(child, ov.nodes[0].loops)
+        self.assertEqual(child, ov.nodes[0].loops.block_items[0])
         self.assertEqual(ov.nodes[0].clauses[0].scalar, 10)
 
     def test_clauses_many(self):
@@ -106,7 +108,7 @@ class TestOmpTaskloop(unittest.TestCase):
 
         self.assertEqual(0, len(pv.nodes))
         self.assertEqual(1, len(ov.nodes))
-        self.assertEqual(child, ov.nodes[0].loops)
+        self.assertEqual(child, ov.nodes[0].loops.block_items[0])
         self.assertEqual(ov.nodes[0].clauses[0].scalar, 10)
         self.assertEqual(ov.nodes[0].clauses[1].state, 'shared')
         self.assertEqual(ov.nodes[0].clauses[2].ids, ['a'])
