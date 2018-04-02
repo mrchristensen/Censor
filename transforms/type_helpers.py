@@ -128,6 +128,8 @@ def _get_type_helper(expr, env): # pylint: disable=too-many-return-statements,to
     a node that is currently in the AST."""
     if isinstance(expr, (TypeDecl, PtrDecl)):
         return expr
+    elif isinstance(expr, str):
+        return _get_type_helper(ID(expr), env)
     elif isinstance(expr, ID):
         # TODO: make it actually work for typedefs
         type_node = env.get_type(expr.name)
@@ -172,7 +174,7 @@ def _get_type_helper(expr, env): # pylint: disable=too-many-return-statements,to
         func_decl = env.get_type(expr.name)
         return func_decl.type
     else:
-        raise NotImplementedError()
+        raise NotImplementedError("Have note implemented get_type for node type: " + type(expr).__name__)
     return expr.type
 
 def _is_integral(type_node):

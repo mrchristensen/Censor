@@ -3,7 +3,10 @@ void censor01_INIT_GLOBALS();
 int main()
 {
   censor01_INIT_GLOBALS();
-  int s[10] = {1, 2, 3};
+  int s[10];
+  s[0] = 1;
+  s[1] = 2;
+  s[2] = 3;
 }
 
 int b[10];

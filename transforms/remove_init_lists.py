@@ -46,24 +46,27 @@ void censorXX_INIT_GLOBALS() {
 """
 from pycparser.c_ast import Decl, FuncDef, FuncDecl, FuncCall, IdentifierType
 from pycparser.c_ast import Compound, ExprList, TypeDecl, ID, ArrayDecl
-from pycparser.c_ast import ArrayRef, Assignment, Constant
+from pycparser.c_ast import ArrayRef, Assignment, Constant, Struct, StructRef
 from .node_transformer import NodeTransformer
 from .helpers import prepend_statement
+from .type_helpers import get_type
 
+# NOTE: currently, the only parts of this implemented are the really basic
+# cases, see the tests to see what exaclty
 
-# On implementation:
+# NOTES on implementation:
 # The hard parts are going to be things like
 #   int e[10][10] = {1, 2, 3, 4, 5};
 #   int d[10][10] = {[2] = {1, 2, 3}, {4, 5, 6}};
 #   int a[4][4] = {{{1},{2}}};
-#   int a[4][4] = {1,2, 3, 4, 5,6, 7};
-
+#   int a[4][4] = {1, 2, 3, 4, 5, 6, 7};
+#   int g[][3] = {1,2,3,4,5,6};
+# (and many analagous thing that can be done for structs)
 # or struct and array initializer lists arbitrarily nested inside one another.
-# Really, to implement this, you need a full understanding of the grammar of
-# initializers, which is in the spec
+# Really, to implement this, you need a full understanding of the grammar AND
+# the semantics of initializers, which is in the spec
 # http://www.open-std.org/jtc1/sc22/WG14/www/docs/n1256.pdf
 # on pages 125 - 130 (yes, its long)
-
 
 # TODO: figure out what to do with cases like
 # char wow[100] = "wow"; where an array is initialized
@@ -80,6 +83,13 @@ class RemoveInitLists(NodeTransformer):
         self.env = environments["GLOBAL"]
         self.id_generator = id_generator
 
+    def visit_Compound(self, node): # pylint: disable=invalid-name
+        parent = self.env
+        self.env = self.environments[node]
+        retval = self.generic_visit(node)
+        self.env = parent
+        return retval
+
     def visit_FileAST(self, node): # pylint: disable=invalid-name
         """Insert function declaration, definition, and call for initializing
         globals."""
@@ -94,19 +104,23 @@ class RemoveInitLists(NodeTransformer):
         main_index = None
         inits = []
         for i, decl in enumerate(node.ext):
+            node.ext[i] = self.generic_visit(decl)
             if is_main(decl):
                 main_index = i
-                prepend_statement(decl.body, init_globals_call)
             elif isinstance(decl, Decl):
                 if isinstance(decl.type, ArrayDecl):
-                    # or if its a typedecl and typedecl.type is a Struct
-                    inits += flatten_init(decl)
+                    inits += flatten_array_init(decl)
+                    decl.init = None
+                elif isinstance(decl.type, TypeDecl) and \
+                            isinstance(decl.type.type, Struct):
+                    inits += flatten_struct_init(decl, self.env)
                     decl.init = None
 
-        init_globals_def.body.block_items = inits
-
-        node.ext.insert(main_index, init_globals_decl)
-        node.ext.append(init_globals_def)
+        if inits:
+            prepend_statement(node.ext[main_index].body, init_globals_call)
+            init_globals_def.body.block_items = inits
+            node.ext.insert(main_index, init_globals_decl)
+            node.ext.append(init_globals_def)
 
         # FIXME
         # return self.generic_visit(node)
@@ -114,24 +128,44 @@ class RemoveInitLists(NodeTransformer):
 
     def visit_Decl(self, node): # pylint: disable=invalid-name,no-self-use
         """Flatten initializer lists that happen in non-global scope."""
-        retval = [node]
         if isinstance(node.type, ArrayDecl) and node.init:
-            # or if its a typedecl and typedecl.type is a Struct
-            retval += flatten_init(node)
+            retval = [node]
+            retval += flatten_array_init(node)
             node.init = None
-        return retval
+            return retval
+        elif isinstance(node.type, TypeDecl) and \
+            isinstance(node.type.type, Struct) and node.init:
+            retval = [node]
+            retval += flatten_struct_init(node, self.env)
+            node.init = None
+            return retval
+        else:
+            return node
 
 def is_main(node):
     """Determines if an AST object is a FuncDef named main."""
     return isinstance(node, FuncDef) and node.decl.name == 'main'
 
-def flatten_init(decl):
+def flatten_array_init(decl):
     """Takes a Decl with an initializer list, returns a list of assignment
     nodes that take care of the initialization."""
     inits = []
-    for j, init in enumerate(decl.init.exprs):
-        index = Constant(IdentifierType(["int"]), str(j))
+    for i, init in enumerate(decl.init.exprs):
+        index = Constant(IdentifierType(["int"]), str(i))
         lvalue = ArrayRef(ID(decl.name), index)
-        assign = Assignment("=", lvalue, init)
-        inits.append(assign)
+        assignment = Assignment("=", lvalue, init)
+        inits.append(assignment)
+    return inits
+
+def flatten_struct_init(decl, env):
+    """Takes a Decl with an initializer list, returns a list of assignment
+    nodes that take care of the initialization."""
+    typ = get_type(decl.name, env)
+    fields = typ.type.decls
+    inits = []
+    for i, init in enumerate(decl.init.exprs):
+        field = ID(fields[i].name)
+        lvalue = StructRef(ID(decl.name), ".", field)
+        assignment = Assignment("=", lvalue, init)
+        inits.append(assignment)
     return inits
