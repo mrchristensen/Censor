@@ -1,6 +1,7 @@
 """
-Helpers for working with information about types during AST
-transformations.
+Helpers for working with information about types during AST transformations.
+All references to the c specification refer to the version here:
+    http://www.open-std.org/jtc1/sc22/WG14/www/docs/n1256.pdf
 """
 from copy import deepcopy
 from enum import Enum
@@ -95,8 +96,7 @@ def add_identifier(node, ident):
 def resolve_types(left, right): # pylint: disable=too-many-return-statements
     """Given two types, figure out what types they should be cast to when
     a binary operation is performed on two objects with the given types
-    The rules implemented here come directly from the c spec:
-    http://www.open-std.org/jtc1/sc22/WG14/www/docs/n1256.pdf
+    The rules implemented here come directly from the c spec,
     section, 6.3.1.8 Usual arithmetic conversions, p. 44.
     """
     if _is_ptr(left) and _is_integral(right):
@@ -226,7 +226,9 @@ def _is_signed(int_range):
 
 def _resolve_integral_types(left, right): # pylint: disable=too-many-return-statements
     """Given two integral types, figure out what types they should be cast to
-    when a binary operation is performed on two objects with the given types"""
+    when a binary operation is performed on two objects with the given types.
+    For the rationale, see c spec, section, 6.3.1.8 Usual arithmetic
+    conversions, p. 44."""
     # TODO Add support for user-defined integral types that are
     # defined through typedef's or enums
     l_range = _get_integral_range(left)
@@ -255,12 +257,11 @@ def _resolve_integral_types(left, right): # pylint: disable=too-many-return-stat
         # cesk.limits.py should be set up so that this case is never reached.
         raise Exception("Incorrect integer Limits!")
 
-    left = right
-    return Side.LEFT
-
 def _resolve_floating_types(left, right):
     """Given two integral types, figure out what types they should be cast to
-    when a binary operation is performed on two objects with the given types"""
+    when a binary operation is performed on two objects with the given types.
+    For the rationale, see c spec, section, 6.3.1.8 Usual arithmetic
+    conversions, p. 44."""
     # TODO support for typedef defined floating types
     # TODO support for complex floating types
     if left.type.names == right.type.names:
@@ -279,8 +280,7 @@ def _get_ternary_type(expr, env):
     If the two sides of the ternary operator have arithmetic types
     then the two types are resolved as if there were an operator between them.
     Otherwise the types must be the same so just return the type of one side.
-    See http://www.open-std.org/jtc1/sc22/WG14/www/docs/n1256.pdf
-    section, 6.3.1.8 Usual arithmetic conversions, p. 90."""
+    See the c spec, p. 90. for Ternarys, p. 44 about binary operations"""
     # TODO There might be some corner cases with pointers and type qualifiers
     left_type = get_type(expr.iftrue, env)
     right_type = get_type(expr.iffalse, env)
