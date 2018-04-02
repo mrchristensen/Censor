@@ -114,9 +114,83 @@ class Float(ArithmeticValue):  #pylint:disable=too-few-public-methods
         return Float(self.data / other.data, self.type_of)
 
 
-class Pointer(Integer):  #pylint:disable=too-few-public-methods
+class ReferenceValue(ArithmeticValue): #pylint:disable=all
+    """Abstract Class for polymorphism between Arrays, Pointers, ect."""
+
+    def dereference(self, stor):
+        pass
+
+    def index(self, stor, list_of_index):
+        pass
+
+    def index_for_address(self, stor, list_of_index):
+        pass
+
+
+class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
     """Concrete implementation of a Pointer to any type."""
-    pass
+
+    def __init__(self, address):
+        self.address = int(address)
+
+    def dereference(self, stor):
+        """Reads the address the pointer points to and returns value"""
+        return stor.read(self.address)
+
+    def index(self, stor, list_of_index):
+        """Reads the address with a given offset from the pointer"""
+        return stor.read(self.index_for_address(list_of_index))
+
+    def index_for_address(self, list_with_offset):
+        """Finds the address with a given offset from the pointer"""
+        if len(list_with_offset) != 1:
+            raise Exception("Invalid ArrayRef on Pointer")
+        offset = list_with_offset[0]
+        return self.address + offset
+
+    def __add__(self, other):
+        if isinstance(other, Integer):
+            return Pointer(self.address +  other.data)
+        else:
+            raise Exception("Pointers can only be added to int")
+
+    def __sub__(self, other):
+        if isinstance(other, Integer):
+            return Pointer(self.address - other.data)
+        else:
+            raise Exception("Pointers can only be subtracted by int")
+
+class Array(ReferenceValue):
+    """Concrete implementation of an Array of data"""
+
+    def __init__(self, start_address, list_of_sizes):
+        self.start_address = start_address
+        self.list_of_sizes = list_of_sizes
+
+    def dereference(self, stor):
+        """Reads the first item of the array"""
+        return stor.read(self.start_address)
+
+    def index(self, stor, list_of_index):
+        """Gets the object at a given index of an array. A[1][2]...[n]"""
+        address = self.index_for_address(list_of_index)
+        if len(self.list_of_sizes) > len(list_of_index):
+            remaining_sizes = self.list_of_sizes[-len(list_of_index):]
+            return generate_array(address, remaining_sizes)
+
+        return stor.read(address)
+
+    def index_for_address(self, list_of_index):
+        """Calculates stride and finds the address for a given index"""
+        if len(self.list_of_sizes) < len(list_of_index):
+            raise Exception("Invalid ArrayRef on Array")
+        offset = 0
+        for i in range(len(list_of_index)):
+            stride = 1
+            for j in range(i+1, len(self.list_of_sizes)):
+                stride = stride * self.list_of_sizes[j]
+            offset = offset + list_of_index[i] * stride
+        return self.start_address + offset
 
 def generate_constant_value(value):
     """Given a string, parse it as a constant value."""
@@ -133,7 +207,10 @@ def generate_default_value(typedecl): #pylint: disable=unused-argument
 
 def generate_pointer_value(address):
     """Given a address (int) package it into a pointer"""
-    return Pointer(address, 'int')
+    return Pointer(address)
+
+def generate_array(start_address, list_of_sizes):
+    return Array(start_address, list_of_sizes)
 
 def cast(value, typedeclt): #pylint: disable=unused-argument
     """Casts the given value a  a value of the given type."""

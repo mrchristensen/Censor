@@ -1,6 +1,7 @@
 """Holds the data structures for the CESK machine"""
 
 import copy
+import sys
 import pycparser
 from cesk.values import generate_default_value
 # from cesk.interpret import execute #pylint:disable=all
@@ -10,6 +11,11 @@ def throw(string, state=None, exit_code=0):
        state.ctrl.stmt().show() 
     print(string)
     exit(exit_code)
+
+class bcolors:
+    BLUE = '\033[94m'
+    GREEN = '\033[92m'
+    RED = '\033[93m'
 
 class State: #pylint:disable=too-few-public-methods
     """Holds a program state"""
@@ -93,6 +99,9 @@ class Envr:
 
     def get_address(self, ident):
         "looks up the address associated with an identifier"""
+        #print("Looking up " + ident + " in scope " + str(self.id))
+        while not isinstance(ident, str):
+            ident = ident.name
         if (ident in self.map_to_address):
             return self.map_to_address[ident]
         if (self.parent is not None):
@@ -151,7 +160,7 @@ class Stor:
             #print(str(self.memory[address]) + " read from " + str(address))
             return self.memory[address]
         if address < self.address_counter:
-            print("Returned default value of 0 for unititalized address")
+            #print("Returned default value of 0 for unititalized address")
             return generate_default_value("int")
         raise Exception("ERROR: tried to access an unalocated address: " +
                          str(address))
@@ -165,6 +174,14 @@ class Stor:
         else:
             self.memory[address] = value
         #print(str(self.memory[address]) + " writen to " + str(address))
+
+    def print_memory_visualization(self):
+        for (address, value) in self.memeory:
+            if isinstance(value, values.Integer):
+                print (bcolor.GREEN + str(value))
+            else:
+                print( value)
+        
 #Base Class
 class Kont:
     """Abstract class for polymorphism of continuations"""
