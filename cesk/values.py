@@ -130,40 +130,58 @@ class ReferenceValue(ArithmeticValue): #pylint:disable=all
 class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
     """Concrete implementation of a Pointer to any type."""
 
-    def __init__(self, address):
+    def __init__(self, address, holding_stor):
         self.address = int(address)
+        self.holding_stor = holding_stor
 
-    def dereference(self, stor):
+    def __hash__(self):
+        return self.address
+    
+    def __eq__(self, other):
+        if not isinstance(other, ReferenceValue):
+            return Integer(0, 'int')
+        return Integer(int(self.address == other.address), 'int')
+
+    def dereference(self):
         """Reads the address the pointer points to and returns value"""
-        return stor.read(self.address)
+        return self.holding_stor.read_refactor(self.address)
 
     def index(self, stor, list_of_index):
         """Reads the address with a given offset from the pointer"""
-        return stor.read(self.index_for_address(list_of_index))
+        return self.index_for_address(list_of_index).dereference()
 
     def index_for_address(self, list_with_offset):
         """Finds the address with a given offset from the pointer"""
         if len(list_with_offset) != 1:
             raise Exception("Invalid ArrayRef on Pointer")
         offset = list_with_offset[0]
-        return self.address + offset
+        return self.holding_stor.add_offset_to_pointer(self, offset)
 
     def __add__(self, other):
         if isinstance(other, Integer):
-            return Pointer(self.address +  other.data)
+            offset = other.data
+        elif isinstance(other, int):
+            offset = other
         else:
             raise Exception("Pointers can only be added to int")
+        return self.holding_stor.add_offset_to_pointer(self, offset)
 
     def __sub__(self, other):
         if isinstance(other, Integer):
-            return Pointer(self.address - other.data)
+            offset = -1 * other.data
+        elif isinstance(other, int):
+            offset = -1 * other
         else:
             raise Exception("Pointers can only be subtracted by int")
+        return self.holding_stor.add_offset_to_pointer(self, offset)
 
 class Array(ReferenceValue):
     """Concrete implementation of an Array of data"""
 
     def __init__(self, start_address, list_of_sizes):
+        if not isinstance(start_address, ReferenceValue):
+            raise Exception("start_address should be Pointer not " +
+                            str(start_address));
         self.start_address = start_address
         self.list_of_sizes = list_of_sizes
 
@@ -178,13 +196,14 @@ class Array(ReferenceValue):
             remaining_sizes = self.list_of_sizes[-len(list_of_index):]
             return generate_array(address, remaining_sizes)
 
-        return stor.read(address)
+        return address.dereference()
 
     def index_for_address(self, list_of_index):
         """Calculates stride and finds the address for a given index"""
         if len(self.list_of_sizes) < len(list_of_index):
             raise Exception("Invalid ArrayRef on Array")
         offset = 0
+        #TODO give a nice comment here
         for i in range(len(list_of_index)):
             stride = 1
             for j in range(i+1, len(self.list_of_sizes)):
@@ -205,11 +224,12 @@ def generate_default_value(typedecl): #pylint: disable=unused-argument
     # TODO
     return Integer(0, 'int')
 
-def generate_pointer_value(address):
+def generate_pointer_value(address, stor):
     """Given a address (int) package it into a pointer"""
-    return Pointer(address)
+    return Pointer(address, stor)
 
 def generate_array(start_address, list_of_sizes):
+    #TODO this does not properly handle graph based stor
     return Array(start_address, list_of_sizes)
 
 def cast(value, typedeclt): #pylint: disable=unused-argument

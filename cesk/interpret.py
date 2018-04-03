@@ -2,7 +2,7 @@
 from functools import reduce
 import pycparser
 from cesk.values import ReferenceValue, generate_constant_value
-from cesk.values import generate_pointer_value, generate_array
+from cesk.values import generate_array
 
 class LinkSearch(pycparser.c_ast.NodeVisitor):
     """NodeTransformer to link children nodes to parents"""
@@ -51,7 +51,7 @@ def execute(state):
         while not isinstance(stmt, pycparser.c_ast.ID):
             if isinstance(stmt.subscript, pycparser.c_ast.ID):
                 address = state.envr.get_address(stmt.subscript.name)
-                index = state.stor.read(address).data
+                index = address.dereference().data
             elif isinstance(stmt.subscript, pycparser.c_ast.Constant):
                 index = generate_constant_value(stmt.subscript.value).data
             else:
@@ -61,7 +61,7 @@ def execute(state):
             stmt = stmt.name
         name = stmt.name
         pointer_address = state.envr.get_address(name)
-        pointer = state.stor.read(pointer_address)
+        pointer = pointer_address.dereference()
         if isinstance(pointer, ReferenceValue):
             value = pointer.index(state.stor, list_of_index)
         else:
@@ -81,7 +81,7 @@ def execute(state):
             while not isinstance(array, pycparser.c_ast.ID):
                 if isinstance(array.subscript, pycparser.c_ast.ID):
                     address = state.envr.get_address(array.subscript.name)
-                    index = state.stor.read(address).data
+                    index = address.dereference().data
                 elif isinstance(array.subscript, pycparser.c_ast.Constant):
                     index = generate_constant_value(array.subscript.value).data
                 else:
@@ -91,7 +91,7 @@ def execute(state):
                 list_of_index.insert(0, index)
                 array = array.name
             name = array.name
-            pointer = state.stor.read(state.envr.get_address(name))
+            pointer = state.envr.get_address(name).dereference()
             address = pointer.index_for_address(list_of_index)
         else:
             raise Exception("unsuported assign lvalue: " + str(stmt.lvalue))
@@ -203,7 +203,7 @@ def execute(state):
                                 str(stmt.args.exprs[1]))
             id_to_print = stmt.args.exprs[1].name #FIXME should evalueate exp
             address = state.envr.get_address(id_to_print)
-            value = state.stor.read(address)
+            value = address.dereference()
             print(value.data)
         else:
             print(stmt.name.name)
@@ -234,7 +234,7 @@ def execute(state):
         #print("ID")
         name = stmt.name
         address = state.envr.get_address(name)
-        value = state.stor.read(address)
+        value = address.dereference()
         if value is None:
             raise Exception(name + ": " + str(state.stor.memory))
         if isinstance(state.kont, FunctionKont): #dont return to function
@@ -401,19 +401,21 @@ def handle_decl_array(array, list_of_sizes, state):
         raise Exception("Declarations of " + str(array.type) +
                         " are not yet implemented")
 
-def handle_unary_op(opr, expr, state):
+def handle_unary_op(opr, expr, state): #pylint: disable=inconsistent-return-statements
     """decodes and evaluates unary_ops"""
     if opr == "&":
         if isinstance(expr, pycparser.c_ast.ID):
             ident = expr.name
             address = state.envr.get_address(ident)
+            value = address
+            return state.kont.satisfy(state, value)
         elif isinstance(expr, pycparser.c_ast.ArrayRef):
             array = expr
             list_of_index = []
             while not isinstance(array, pycparser.c_ast.ID):
                 if isinstance(array.subscript, pycparser.c_ast.ID):
                     address = state.envr.get_address(array.subscript.name)
-                    index = state.stor.read(address).data
+                    index = address.dereference().data
                 elif isinstance(array.subscript, pycparser.c_ast.Constant):
                     index = generate_constant_value(array.subscript.value).data
                 else:
@@ -423,17 +425,15 @@ def handle_unary_op(opr, expr, state):
                 list_of_index.insert(0, index)
                 array = array.name
             name = array.name
-            pointer = state.stor.read(state.envr.get_address(name))
-            address = pointer.index_for_address(list_of_index)
-            value = generate_pointer_value(address)
+            pointer = state.envr.get_address(name).dereference()
+            value = pointer.index_for_address(list_of_index)
             return state.kont.satisfy(state, value)
         else:
             raise Exception("& operator not implemented for " + str(expr))
-        return state.kont.satisfy(state, generate_pointer_value(address))
 
     elif opr == "*":
-        pointer = state.stor.read(state.envr.get_address(expr.name))
-        value = pointer.dereference(state.stor)
+        pointer = state.envr.get_address(expr.name).dereference()
+        value = pointer.dereference()
         return state.kont.satisfy(state, value)
     else:
         raise Exception(opr + " is not yet implemented")
