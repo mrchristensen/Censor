@@ -1,4 +1,21 @@
-"""SharedVars helpers"""
+"""
+SharedVars helpers
+
+It has been decided that these helpers are a premature optimization.
+The original idea was that Instrumenter would inherit from the WithSharedVars
+class which exposes an is_shared method. This method would return whether an
+identifier referenced a shared variable in the current scope. This would allow us
+to only instrument the code for variables that were actually shared.
+
+The problem is aliasing. There is nothing stopping a programmer from aliasing a private
+variable from a shared thus allowing other threads to mutate its thread local copy.
+The same problem applies the other way around. If a private variable aliases a shared one
+we would need to log reads and writes to it as well.
+
+We could do some points-to analysis to find these edge cases and include them in the
+set of identifiers to be instrumented but it would be a lot of work before we even know
+if it would help in a significant way.
+"""
 
 from pycparser.c_ast import ID, Compound, NodeVisitor, DeclList, Assignment, For
 from omp.omp_ast import OmpParallel
@@ -17,6 +34,15 @@ def private_ids(omp):
                 if isinstance(clause, clause_klass):
                     ids.extend(clause.ids)
     return ids
+
+def find_iteration_variable(node):
+    """Finds the id for the iteration variable in For node"""
+    if isinstance(node.init, DeclList):
+        return node.init.decls[0].name
+    elif isinstance(node.init, Assignment):
+        return node.init.lvalue.name
+    else:
+        raise NotImplementedError
 
 class SharedVars():
     """Holds the environment of shared variables"""
@@ -37,17 +63,30 @@ class SharedVars():
 
 class DeclVisitor(NodeVisitor):
     """Used to update state: locals"""
-    def __init__(self):
+    def __init__(self, whitelist):
         self.locals = set()
+        self.whitelist = whitelist
 
     def skip(self, node): # pylint: disable=no-self-use
         """Only visit current scope"""
         return node is None or isinstance(node, (For, Compound))
 
+    def node_is_private(self, node): # pylint: disable=no-self-use, unused-argument
+        """Return False if the node could return a reference to shared memory"""
+        #return node.name in self.whitelist
+        return True
+
     def visit_Decl(self, node): # pylint: disable=invalid-name
         """Update state: locals, aliases"""
-        #TODO: update aliases
-        self.locals.add(node.name)
+        if self.node_is_private(node.init):
+            self.locals.add(node.name)
+
+    def visit_Assignment(self, node): # pylint: disable=invalid-name
+        """Remove an ID from locals if it is assigned to a shared variable"""
+        #if self.node_is_private(node.lvalue) and not self.node_is_private(node.rvalue):
+        #    self.locals.remove(node.lvalue.name)
+        #    self.whitelist.remove(node.lvalue.name)
+        pass
 
 class IDVisitor(NodeVisitor):
     """Used to update state: scope"""
@@ -63,15 +102,6 @@ class IDVisitor(NodeVisitor):
         """Update state: shared"""
         if node.name not in self.whitelist:
             self.shared.add(node.name)
-
-def find_iteration_variable(node):
-    """Finds the id for the iteration variable in For node"""
-    if isinstance(node.init, DeclList):
-        return node.init.decls[0].name
-    elif isinstance(node.init, Assignment):
-        return node.init.lvalue.name
-    else:
-        raise NotImplementedError
 
 class SharedVarsVisitor(WithParent):
     """
@@ -107,8 +137,6 @@ class SharedVarsVisitor(WithParent):
     Instrumenter class that takes care of that logic.
     """
     #TODO: handle function arguments
-    #TODO: collect information about which functions are called in parallel
-    #regions
 
     def __init__(self):
         super().__init__()
@@ -124,7 +152,7 @@ class SharedVarsVisitor(WithParent):
 
     def update_locals(self, *nodes):
         """Constructs a DeclVisitor and visits nodes to update locals"""
-        decl_visitor = DeclVisitor()
+        decl_visitor = DeclVisitor(self.made_private)
         for node in nodes:
             decl_visitor.visit(node)
         self.locals.update(decl_visitor.locals)
