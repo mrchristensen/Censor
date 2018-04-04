@@ -7,7 +7,8 @@ sys.path[0:0] = ['.', '..', '../..']
 
 SUITE = unittest.TestLoader().loadTestsFromNames(
     [
-        'test_dataracebench'
+        #'test_dataracebench',
+        'test_basic'
     ]
 )
 TESTRESULT = unittest.TextTestRunner(verbosity=1).run(SUITE)

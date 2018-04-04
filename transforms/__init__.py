@@ -45,10 +45,49 @@ from .single_return import SingleReturn
 from .id_generator import IDGenerator
 from .type_environment_calculator import TypeEnvironmentCalculator
 
-def get_transformer_generators(ast):
-    """ Return setup tranformer_generators.
-        Separation of this into a method is helpful in regression tests.
+def get_transformers_omp():
+    """ Return transformer constructor-dependency function tuple for all omp
+        transforms.
     """
+    yield (PragmaToOmpParallelSections, lambda ast: [])
+    yield (PragmaToOmpParallelFor, lambda ast: [])
+    yield (PragmaToOmpParallel, lambda ast: [])
+    yield (PragmaToOmpFor, lambda ast: [])
+    yield (PragmaToOmpSections, lambda ast: [])
+    yield (PragmaToOmpSection, lambda ast: [])
+    yield (PragmaToOmpTask, lambda ast: [])
+    yield (PragmaToOmpTaskgroup, lambda ast: [])
+    yield (PragmaToOmpTaskwait, lambda ast: [])
+    yield (PragmaToOmpCritical, lambda ast: [])
+    yield (PragmaToOmpBarrier, lambda ast: [])
+    yield (PragmaToOmpAtomic, lambda ast: [])
+    yield (PragmaToOmpMaster, lambda ast: [])
+    yield (PragmaToOmpSingle, lambda ast: [])
+
+def get_transformers(id_gen_func, type_env_func):
+    """ Return transformer constructor-dependency function tuple for all
+        non-omp transforms.
+    """
+    yield (IfToIfGoto, lambda ast: [id_gen_func(ast)])
+    yield (ForToWhile, lambda ast: [])
+    yield (WhileToDoWhile, lambda ast: [])
+    yield (DoWhileToGoto, lambda ast: [id_gen_func(ast)])
+    yield (LiftToCompoundBlock,
+           lambda ast: [id_gen_func(ast), type_env_func(ast)])
+    yield (RemoveCompoundAssignment,
+           lambda ast: [id_gen_func(ast), type_env_func(ast)])
+    #yield RemoveInitLists(type_env_calc.get_environments(ast)),
+    yield (InsertExplicitTypeCasts, lambda ast: [type_env_func(ast)])
+    yield (SingleReturn, lambda ast: [id_gen_func(ast)])
+
+def get_all_transformers(id_gen_func, type_env_func):
+    """ Return all transformer constructor-dependency function tuples.
+    """
+    yield from get_transformers_omp()
+    yield from get_transformers(id_gen_func, type_env_func)
+
+def transform(ast):
+    """Perform each transform in package"""
     # one id_generator must be passed to all transforms, to
     # ensure unique ids across transforms
     id_generator = IDGenerator(ast)
@@ -56,37 +95,12 @@ def get_transformer_generators(ast):
     # for a transform, because the AST changes and so the type environments
     # should be different
     type_env_calc = TypeEnvironmentCalculator()
-    return [
-        lambda: PragmaToOmpParallelSections(),
-        lambda: PragmaToOmpParallelFor(),
-        lambda: PragmaToOmpParallel(),
-        lambda: PragmaToOmpFor(),
-        lambda: PragmaToOmpSections(),
-        lambda: PragmaToOmpSection(),
-        lambda: PragmaToOmpTask(),
-        lambda: PragmaToOmpTaskgroup(),
-        lambda: PragmaToOmpTaskwait(),
-        lambda: PragmaToOmpCritical(),
-        lambda: PragmaToOmpBarrier(),
-        lambda: PragmaToOmpAtomic(),
-        lambda: PragmaToOmpMaster(),
-        lambda: PragmaToOmpSingle(),
-        lambda: IfToIfGoto(id_generator),
-        lambda: ForToWhile(),
-        lambda: WhileToDoWhile(),
-        lambda: DoWhileToGoto(id_generator),
-        lambda: LiftToCompoundBlock(id_generator, type_env_calc.get_environments(ast)),
-        lambda: RemoveCompoundAssignment(id_generator,
-                                         type_env_calc.get_environments(ast)),
-        # lambda: RemoveInitLists(type_env_calc.get_environments(ast)),
-        lambda: InsertExplicitTypeCasts(type_env_calc.get_environments(ast)),
-        lambda: SingleReturn(id_generator),
-    ]
 
-def transform(ast):
-    """Perform each transform in package"""
-    transformer_generators = get_transformer_generators(ast)
-    for generator in transformer_generators:
-        transformer = generator()
+    id_gen_func = lambda ast: id_generator # same id generator across all
+    type_env_func = type_env_calc.get_environments
+
+    for (constructor, dep_func) in (
+            get_all_transformers(id_gen_func, type_env_func)):
+        transformer = constructor(*dep_func(ast))
         ast = transformer.visit(ast)
     return ast

@@ -6,6 +6,8 @@ from os import listdir
 from os.path import join
 from unittest import TestCase
 from omp.c_with_omp_generator import CWithOMPGenerator
+from transforms import get_transformers_omp, get_transformers
+from transforms import IDGenerator, TypeEnvironmentCalculator
 
 import pycparser
 
@@ -22,7 +24,8 @@ class RegressionTestCase(TestCase):
     def setUpClass(cls):
         cls.generator = CWithOMPGenerator()
 
-    def assert_same_output_individual(self, transform, f_input):
+    def assert_same_output(self,
+                           transform_step_func, f_input):
         """ Compare output of original and transformed c programs and print a
             diff on failure
         """
@@ -41,61 +44,95 @@ class RegressionTestCase(TestCase):
                       *[''.join(['-I', include]) for include in self.includes]
                      ])
 
-        actual = self.generator.visit(
-            transform(ast)
-        )
+        ast = transform_step_func(ast)
+
+        actual = self.generator.visit(ast)
+
         temp.write(actual)
         temp.flush()
 
         _preserve_include_postprocess(temp_name)
-        actual_out = self.run_c(temp_name)
 
-        temp_actual_out = tempfile.NamedTemporaryFile(mode='w')
-        temp_actual_out.write(actual_out)
-        temp_actual_out.flush()
-
-        expected_out = self.run_c(f_input)
-        temp_expected_out = tempfile.NamedTemporaryFile(mode='w')
-        temp_expected_out.write(expected_out)
-        temp_expected_out.flush()
-
-        stdout, _ = subprocess.Popen(
-            ['diff', '-u', '-N', '-w', '-B',
-             temp_expected_out.name, temp_actual_out.name],
-            stdout=subprocess.PIPE
-        ).communicate()
-        if stdout:
+        res = _compile_and_diff_results(f_input, temp_name,
+                                        self.includes, self.add_flags)
+        if res:
             msg = (
                 "Same output assertion failed\n"
                 + "Input file: " + f_input + "\n"
-                + stdout.decode('utf-8')[:1024])
+                + res.decode('utf-8')[:1024])
             raise self.failureException(msg)
 
-    def assert_all_same(self, transform, fixtures_dir):
-        """Run all test fixtures in censor/tests/fixtures/[module]"""
-        fixtures = sorted(get_fixtures(fixtures_dir))
-        for input_file in fixtures:
-            self.assert_same_output_individual(transform, input_file)
-
-    def run_c(self, path):
-        """ compiles and runs a c source file and returns stdout
-            as a byte string.
+    def assert_individual_non_omp(self):
+        """ Test all non-omp transfomrations independently.
         """
-        out_path = join(tempfile.gettempdir(), "censor_out")
-        subprocess.check_output(
-            ['gcc', path, '-o', out_path,
-             *[''.join(['-I', include]) for include in self.includes],
-             *self.add_flags,
-             '-fopenmp']
-        )
-        stdout = subprocess.check_output([out_path])
-        return stdout.decode()
+        id_gen_func = lambda ast: IDGenerator(ast)
+        type_env_func = TypeEnvironmentCalculator().get_environments
+
+        for fixture in get_fixtures(self.fixtures):
+            for (constructor, deps) in get_transformers(id_gen_func,
+                                                        type_env_func):
+                with self.subTest(msg=fixture + ":" + constructor.__name__):
+                    self.assert_same_output(
+                        # Since the lambda created here will be executed before the values
+                        # `constructor` and `deps` change, we can safely ignore cell-var-from-loop
+                        lambda ast: constructor(*deps(ast)).visit(ast), #pylint: disable=cell-var-from-loop
+                        fixture
+                    )
+                    print('.', end='', flush=True)
+
+    def assert_all_omp(self):
+        """ Test all omp transformations (all at once).
+        """
+        def runall(ast):
+            """ Used to run all transforms in parallel.
+            """
+            for (constructor, deps) in get_transformers_omp():
+                ast = constructor(*deps(ast)).visit(ast)
+            return ast
+
+        for fixture in get_fixtures(self.fixtures):
+            self.assert_same_output(runall, fixture)
+            print('.', end='', flush=True)
 
 
 def get_fixtures(path):
     """Retrieve test fixtures"""
     return [join(path, f) for f in listdir(path) if f.endswith('.c')]
 
+
+def _compile_and_diff_results(expected, actual, includes, add_flags):
+    actual_out = _run_c(actual, includes, add_flags)
+
+    temp_actual_out = tempfile.NamedTemporaryFile(mode='w')
+    temp_actual_out.write(actual_out)
+    temp_actual_out.flush()
+
+    expected_out = _run_c(expected, includes, add_flags)
+    temp_expected_out = tempfile.NamedTemporaryFile(mode='w')
+    temp_expected_out.write(expected_out)
+    temp_expected_out.flush()
+
+    stdout, _ = subprocess.Popen(
+        ['diff', '-u', '-N', '-w', '-B',
+         temp_expected_out.name, temp_actual_out.name],
+        stdout=subprocess.PIPE
+    ).communicate()
+    return stdout
+
+
+def _run_c(path, includes, add_flags):
+    """ compiles and runs a c source file and returns stdout
+        as a byte string.
+    """
+    out_path = join(tempfile.gettempdir(), "censor_out")
+    subprocess.check_output(
+        ['gcc', path, '-o', out_path,
+         *[''.join(['-I', include]) for include in includes],
+         *add_flags
+        ]
+    )
+    stdout = subprocess.check_output([out_path])
+    return stdout.decode()
 
 def _preserve_include_preprocess(path):
     """ Run sed on source file to preserve includes through gcc preprocessing
