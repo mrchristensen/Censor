@@ -16,3 +16,4 @@ class TestBasic(RegressionTestCase): #pylint: disable=no-name-in-module
         """
         self.assert_individual_non_omp()
         self.assert_all_omp()
+        self.assert_same_output_series()

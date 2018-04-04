@@ -76,7 +76,7 @@ def get_transformers(id_gen_func, type_env_func):
            lambda ast: [id_gen_func(ast), type_env_func(ast)])
     yield (RemoveCompoundAssignment,
            lambda ast: [id_gen_func(ast), type_env_func(ast)])
-    #yield RemoveInitLists(type_env_calc.get_environments(ast)),
+    #yield (RemoveInitLists, [type_env_func(ast)])
     yield (InsertExplicitTypeCasts, lambda ast: [type_env_func(ast)])
     yield (SingleReturn, lambda ast: [id_gen_func(ast)])
 

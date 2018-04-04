@@ -24,38 +24,22 @@ class RegressionTestCase(TestCase):
     def setUpClass(cls):
         cls.generator = CWithOMPGenerator()
 
-    def assert_same_output(self,
-                           transform_step_func, f_input):
-        """ Compare output of original and transformed c programs and print a
-            diff on failure
+    def assert_same_output_ast(self, ast, f_input):
+        """ Compile ast and run and compare against results of f_input
         """
-        temp_name = tempfile.gettempdir() + r'/temp.c'
-        temp = open(temp_name, 'w')
-        temp.write(open(f_input, 'r').read())
-        temp.flush()
-
-        _preserve_include_preprocess(temp_name)
-
-        ast = pycparser.parse_file(
-            temp_name, use_cpp=True, cpp_path='gcc',
-            cpp_args=['-nostdinc',
-                      '-E',
-                      ''.join(['-I', '../../fake_libc_include']),
-                      *[''.join(['-I', include]) for include in self.includes]
-                     ])
-
-        ast = transform_step_func(ast)
+        temp = tempfile.NamedTemporaryFile()
 
         actual = self.generator.visit(ast)
 
-        temp.write(actual)
+        temp.write(bytes(actual, 'utf-8'))
         temp.flush()
 
-        _preserve_include_postprocess(temp_name)
+        _preserve_include_postprocess(temp.name)
 
-        res = _compile_and_diff_results(f_input, temp_name,
+        res = _compile_and_diff_results(f_input, temp.name,
                                         self.includes, self.add_flags)
         if res:
+            print('F', end='', flush=True)
             msg = (
                 "Same output assertion failed\n"
                 + "Input file: " + f_input + "\n"
@@ -69,36 +53,85 @@ class RegressionTestCase(TestCase):
         type_env_func = TypeEnvironmentCalculator().get_environments
 
         for fixture in get_fixtures(self.fixtures):
+            temp = _temp_copy(fixture)
+
+            _preserve_include_preprocess(temp.name)
+
             for (constructor, deps) in get_transformers(id_gen_func,
                                                         type_env_func):
                 with self.subTest(msg=fixture + ":" + constructor.__name__):
-                    self.assert_same_output(
-                        # Since the lambda created here will be executed before the values
-                        # `constructor` and `deps` change, we can safely ignore cell-var-from-loop
-                        lambda ast: constructor(*deps(ast)).visit(ast), #pylint: disable=cell-var-from-loop
-                        fixture
-                    )
+                    ast = _parse_ast_from_file(temp.name, self.includes)
+                    test_ast = constructor(*deps(ast)).visit(ast)
+                    self.assert_same_output_ast(test_ast, fixture)
                     print('.', end='', flush=True)
 
     def assert_all_omp(self):
         """ Test all omp transformations (all at once).
         """
-        def runall(ast):
-            """ Used to run all transforms in parallel.
-            """
+        for fixture in get_fixtures(self.fixtures):
+            temp = _temp_copy(fixture)
+
+            _preserve_include_preprocess(temp.name)
+            ast = _parse_ast_from_file(temp.name, self.includes)
+
             for (constructor, deps) in get_transformers_omp():
                 ast = constructor(*deps(ast)).visit(ast)
-            return ast
+
+            self.assert_same_output_ast(ast, fixture)
+            print('.', end='', flush=True)
+
+    def assert_same_output_series(self):
+        """ Test comination of all transforms gives expected output
+        """
+        type_env_func = TypeEnvironmentCalculator().get_environments
 
         for fixture in get_fixtures(self.fixtures):
-            self.assert_same_output(runall, fixture)
-            print('.', end='', flush=True)
+            print("\nTesting fixture: " + fixture)
+
+            temp = _temp_copy(fixture)
+
+            _preserve_include_preprocess(temp.name)
+            ast = _parse_ast_from_file(temp.name, self.includes)
+
+            id_gen = IDGenerator(ast)
+            id_gen_func = lambda ast: id_gen #pylint: disable=cell-var-from-loop
+
+            with self.subTest(msg=fixture + ": all transforms in series"):
+
+                for (constructor, deps) in get_transformers(id_gen_func,
+                                                            type_env_func):
+                    print(
+                        "\tTesting "
+                        + constructor.__name__
+                        + '... ',
+                        end='',
+                        flush=True
+                    )
+                    ast = constructor(*deps(ast)).visit(ast)
+                    self.assert_same_output_ast(ast, fixture)
+                    print('Good', flush=True)
+
 
 
 def get_fixtures(path):
     """Retrieve test fixtures"""
     return [join(path, f) for f in listdir(path) if f.endswith('.c')]
 
+def _parse_ast_from_file(path, includes):
+    return pycparser.parse_file(
+        path, use_cpp=True, cpp_path='gcc',
+        cpp_args=['-nostdinc',
+                  '-E',
+                  '-x', 'c',
+                  ''.join(['-I', '../../fake_libc_include']),
+                  *[''.join(['-I', include]) for include in includes]
+                 ])
+
+def _temp_copy(path):
+    temp = tempfile.NamedTemporaryFile()
+    temp.write(open(path, 'rb').read())
+    temp.flush()
+    return temp
 
 def _compile_and_diff_results(expected, actual, includes, add_flags):
     actual_out = _run_c(actual, includes, add_flags)
@@ -125,12 +158,24 @@ def _run_c(path, includes, add_flags):
         as a byte string.
     """
     out_path = join(tempfile.gettempdir(), "censor_out")
-    subprocess.check_output(
-        ['gcc', path, '-o', out_path,
+    res = subprocess.run(
+        ['gcc', '-x', 'c', path, '-o', out_path,
          *[''.join(['-I', include]) for include in includes],
          *add_flags
-        ]
+        ],
+        stderr=subprocess.PIPE
     )
+    if res.returncode != 0:
+        print('F', end='', flush=True)
+        msg = (
+            "Compilation failed!\n"
+            + "Input file: " + path + "\n"
+            + "Contents:\n\n"
+            + open(path, 'r').read()
+            + "\n\n"
+            + res.stderr.decode('utf-8'))
+        raise TestCase.failureException(msg)
+
     stdout = subprocess.check_output([out_path])
     return stdout.decode()
 
