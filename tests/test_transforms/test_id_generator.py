@@ -3,6 +3,7 @@
 from unittest import TestCase
 from pycparser.c_parser import CParser
 from transforms.id_generator import IDGenerator
+from helpers import get_fixture
 
 
 class TestIDGenerator(TestCase):
@@ -14,10 +15,10 @@ class TestIDGenerator(TestCase):
 
     def test1(self):
         """Testing file without any ids with the prefix 'censor'"""
-        file_path = './test_transforms/fixtures/id_generator/small_input.c'
+        file_path = '/test_transforms/fixtures/id_generator/small_input.c'
         parser = CParser()
 
-        input_c = open(file_path, 'r').read()
+        input_c = open(get_fixture(file_path), 'r').read()
         ast = parser.parse(input_c)
 
         gen = IDGenerator(ast)
@@ -26,10 +27,10 @@ class TestIDGenerator(TestCase):
 
     def test2(self):
         """Testing file with ids with the prefix 'censor'"""
-        file_path = './test_transforms/fixtures/id_generator/big_input.c'
+        file_path = '/test_transforms/fixtures/id_generator/big_input.c'
         parser = CParser()
 
-        input_c = open(file_path, 'r').read()
+        input_c = open(get_fixture(file_path), 'r').read()
         ast = parser.parse(input_c)
         gen = IDGenerator(ast)
         self.assertEqual(gen.get_unique_id(), 'censor61')

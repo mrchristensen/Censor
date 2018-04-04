@@ -11,7 +11,7 @@ class TestRemoveCompoundAssignment(GoldenTestCase):
 
     def setUp(self):
         """Set up test variables needed for GoldenTestCase"""
-        self.fixtures = './test_transforms/fixtures/remove_compound_assignment'
+        self.fixtures = '/test_transforms/fixtures/remove_compound_assignment'
         self.transformer = None
 
     def transform(self, ast):

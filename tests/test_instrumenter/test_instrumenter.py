@@ -16,10 +16,22 @@ def transform_omp(ast):
 
 class TestInstrumenter(GoldenTestCase):
     """Test Instrumenter"""
+    #TODO test these cases where OpenMP pragmas cause
+    # implicit references to variables
+    # if
+    # num_threads
+    # schedule
+    # final
+    # firstprivate
+    # lastprivate
+    # linear
+    # reduction
+    # copyprivate
+    # map (may cause a reference)
 
     def setUp(self): #pylint: disable=invalid-name
         """Set up test case"""
-        self.fixtures = './test_instrumenter/fixtures/instrumenter'
+        self.fixtures = '/test_instrumenter/fixtures/instrumenter'
         self.instrumenter = Instrumenter()
 
     def transform(self, ast):

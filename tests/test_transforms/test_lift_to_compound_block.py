@@ -10,7 +10,7 @@ class TestFlattenStructRefs(GoldenTestCase):
 
     def setUp(self):
         """Set up test cases"""
-        self.fixtures = './test_transforms/fixtures/lift_to_compound_block'
+        self.fixtures = '/test_transforms/fixtures/lift_to_compound_block'
         self.transformer = None
 
     def transform(self, ast):

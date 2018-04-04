@@ -10,7 +10,7 @@ class TestRemoveInitLists(GoldenTestCase):
 
     def setUp(self):
         """Set up test variables needed for GoldenTestCase"""
-        self.fixtures = './test_transforms/fixtures/remove_init_lists'
+        self.fixtures = '/test_transforms/fixtures/remove_init_lists'
         self.transformer = None
 
     def transform(self, ast):

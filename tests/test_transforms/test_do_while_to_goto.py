@@ -9,7 +9,7 @@ class TestDoWhileToGoto(GoldenTestCase):
 
     def setUp(self):
         """Set up test variables needed for GoldenTestCase"""
-        self.fixtures = './test_transforms/fixtures/do_while_to_goto'
+        self.fixtures = '/test_transforms/fixtures/do_while_to_goto'
         self.transformer = None
 
     def transform(self, ast):

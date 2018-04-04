@@ -9,7 +9,7 @@ class TestSingleReturn(GoldenTestCase):
 
     def setUp(self):
         """Set up test variables needed for GoldenTestCase"""
-        self.fixtures = './test_transforms/fixtures/single_return'
+        self.fixtures = '/test_transforms/fixtures/single_return'
         self.transformer = None
 
     def transform(self, ast):

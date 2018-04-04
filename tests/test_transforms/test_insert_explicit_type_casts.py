@@ -9,7 +9,7 @@ class TestInsertExplicitTypeCasts(GoldenTestCase):
 
     def setUp(self):
         """Set up test variables needed for GoldenTestCase"""
-        self.fixtures = './test_transforms/fixtures/insert_explicit_type_casts'
+        self.fixtures = '/test_transforms/fixtures/insert_explicit_type_casts'
         self.transformer = None
 
     def transform(self, ast):

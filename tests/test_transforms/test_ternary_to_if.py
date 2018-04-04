@@ -10,7 +10,7 @@ class TestTernaryToIf(GoldenTestCase):
 
     def setUp(self):
         """Set up test variables needed for GoldenTestCase"""
-        self.fixtures = './test_transforms/fixtures/ternary_to_if'
+        self.fixtures = '/test_transforms/fixtures/ternary_to_if'
         self.transformer = None
 
     def transform(self, ast):

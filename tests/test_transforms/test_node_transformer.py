@@ -27,7 +27,7 @@ class TestNodeTransformer(GoldenTestCase):
 
     def setUp(self): #pylint: disable=invalid-name
         """Set up test case"""
-        self.fixtures = './test_transforms/fixtures/node_transformer'
+        self.fixtures = '/test_transforms/fixtures/node_transformer'
         self.transformer = self.TestTransform()
 
     def transform(self, ast):
