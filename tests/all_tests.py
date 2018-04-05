@@ -38,6 +38,7 @@ SUITE = unittest.TestLoader().loadTestsFromNames(
         'test_transforms.test_lift_to_compound_block',
         'test_transforms.test_ternary_to_if',
         'test_transforms.test_remove_init_lists',
+        'test_transforms.test_omp_not_implemented',
         'test_instrumenter.test_logger',
         'test_instrumenter.test_shared_vars',
         'test_instrumenter.test_instrumenter'

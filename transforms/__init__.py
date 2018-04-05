@@ -38,6 +38,7 @@ from .omp_barrier import PragmaToOmpBarrier
 from .omp_atomic import PragmaToOmpAtomic
 from .omp_master import PragmaToOmpMaster
 from .omp_single import PragmaToOmpSingle
+from .omp_not_implemented import OmpNotImplemented
 from .remove_compound_assignment import RemoveCompoundAssignment
 from .lift_to_compound_block import LiftToCompoundBlock
 # from .remove_init_lists import RemoveInitLists #implementation incomplete
@@ -66,6 +67,7 @@ def get_transformers_omp():
     yield (PragmaToOmpAtomic, lambda ast: [])
     yield (PragmaToOmpMaster, lambda ast: [])
     yield (PragmaToOmpSingle, lambda ast: [])
+    yield (OmpNotImplemented, lambda ast: [])
 
 def get_transformers(id_gen_func, type_env_func):
     """ Return transformer constructor-dependency function tuple for all
