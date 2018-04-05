@@ -36,10 +36,13 @@ class LiftNode(NodeTransformer):
         """Visit scope"""
         parent_env = self.envr
         self.envr = self.environments[node]
-        for i, item in enumerate(node.block_items):
-            self.index = i
-            item = self.visit(item)
+        if node.block_items is not None:
+            for i, item in enumerate(node.block_items):
+                self.index = i
+                item = self.visit(item)
         self.index = 0
+        if self.inserts and node.block_items is None:
+            raise ValueError
         for i, inserts in self.inserts:
             if i < len(node.block_items):
                 node.block_items[i:i] = inserts

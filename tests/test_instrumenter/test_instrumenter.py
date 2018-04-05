@@ -3,6 +3,8 @@
 from helpers import GoldenTestCase
 from instrumenter.instrumenter import Instrumenter
 from transforms.omp_parallel import PragmaToOmpParallel
+from transforms.id_generator import IDGenerator
+from transforms.type_environment_calculator import TypeEnvironmentCalculator
 
 TRANSFORMS = [
     PragmaToOmpParallel()
@@ -32,10 +34,13 @@ class TestInstrumenter(GoldenTestCase):
     def setUp(self): #pylint: disable=invalid-name
         """Set up test case"""
         self.fixtures = '/test_instrumenter/fixtures/instrumenter'
-        self.instrumenter = Instrumenter()
+        self.instrumenter = None
 
     def transform(self, ast):
         """Transform input AST"""
+        id_generator = IDGenerator(ast)
+        environments = TypeEnvironmentCalculator().get_environments(ast)
+        self.instrumenter = Instrumenter(id_generator, environments)
         return self.instrumenter.visit(transform_omp(ast))
 
     def test_fixtures(self):

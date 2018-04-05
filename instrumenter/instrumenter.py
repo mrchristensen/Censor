@@ -1,12 +1,13 @@
 """Instrumenter class for traversing anc instrumenting an AST"""
-from transforms.node_transformer import NodeTransformer
+from transforms.lift_node import LiftNode
 from transforms.helpers import ensure_compound
 from utils import is_main
 from .logger import Logger
 
-class Instrumenter(NodeTransformer): #pylint: disable=too-many-public-methods
+class Instrumenter(LiftNode): #pylint: disable=too-many-public-methods
     """Instrumenter class"""
-    def __init__(self):
+    def __init__(self, id_generator, environments):
+        super().__init__(id_generator, environments)
         self.logger = Logger()
 
     def instrument_omp_log(self, block, construct):
@@ -36,7 +37,8 @@ class Instrumenter(NodeTransformer): #pylint: disable=too-many-public-methods
     def visit_OmpFor(self, node): #pylint: disable=invalid-name
         """visit_OmpFor"""
         node = self.generic_visit(node)
-        node.block = self.instrument_omp_log(node.loops, 'for')
+        self.insert_into_scope(self.logger.log_omp_enter('for'))
+        self.append_to_scope(self.logger.log_omp_exit('for'))
         return node
 
     def visit_OmpSections(self, node): #pylint: disable=invalid-name
