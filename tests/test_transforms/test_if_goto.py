@@ -9,7 +9,7 @@ class TestIfToIfGoto(GoldenTestCase):
 
     def setUp(self):
         """Setup"""
-        self.fixtures = './test_transforms/fixtures/if_goto'
+        self.fixtures = '/test_transforms/fixtures/if_goto'
         self.transformer = None
 
     def transform(self, ast):

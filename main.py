@@ -3,7 +3,6 @@
 import argparse
 import sys
 from os import path
-from transforms import transform
 
 import yeti
 
@@ -41,8 +40,6 @@ def main():
                   ''.join(['-I', dir_name]),
                   ''.join(['-I', dir_name, '/utilities'])
                  ])
-    ast.show()
-    ast = transform(ast)
     if args.tool == "censor":
         censor.main(ast)
     elif args.tool == "yeti":

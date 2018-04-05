@@ -5,12 +5,12 @@ from transforms.id_generator import IDGenerator
 from transforms.type_environment_calculator import TypeEnvironmentCalculator
 from helpers import GoldenTestCase
 
-class TestDoWhileToGoto(GoldenTestCase):
-    """Test DoWhileToGoto transform"""
+class TestTernaryToIf(GoldenTestCase):
+    """Test TernaryToIf transform"""
 
     def setUp(self):
         """Set up test variables needed for GoldenTestCase"""
-        self.fixtures = './test_transforms/fixtures/ternary_to_if'
+        self.fixtures = '/test_transforms/fixtures/ternary_to_if'
         self.transformer = None
 
     def transform(self, ast):

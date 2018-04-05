@@ -16,7 +16,8 @@ class TestOmpTask(unittest.TestCase):
             self.nodes = []
 
         def visit_Pragma(self, node):
-            """Collect nodes, does not recurse as Pragma nodes have no children"""
+            """Collect nodes, does not recurse as Pragma nodes have no
+            children"""
             self.nodes.append(node)
 
     class OmpTaskVisitor(omp.omp_ast.NodeVisitor):
@@ -104,7 +105,8 @@ class TestOmpTask(unittest.TestCase):
 
         self.assertEqual(0, len(pv.nodes))
         self.assertEqual(1, len(ov.nodes))
-        self.assertTrue(isinstance(ov.nodes[0].block.block_items[0], pycparser.c_ast.FuncCall))
+        self.assertTrue(isinstance(ov.nodes[0].block.block_items[0],
+                                   pycparser.c_ast.FuncCall))
         self.assertEqual(ov.nodes[0].clauses[0].scalar, 10)
         self.assertEqual(ov.nodes[0].clauses[1].state, 'shared')
         self.assertEqual(ov.nodes[0].clauses[2].ids, ['a'])

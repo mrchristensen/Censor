@@ -9,13 +9,15 @@ class PragmaToOmp(NodeTransformer):
     """ Base class for Pragma to OMP Node transforms, defining commonly used.
     """
 
-    def __init__(self, construct, pattern, str_to_clause_type, structured_block=True):
+    def __init__(self, construct, pattern, str_to_clause_type,
+                 structured_block=True):
         self.construct = construct
         self.has_clauses = len(str_to_clause_type) > 0
         self.pattern = pattern
         self.str_to_clause_type = str_to_clause_type
         self.structured_block = structured_block
-        self.clause_pattern = re.compile(r'(\w+\((?:[\w+-\\*\\|\\^&]+:\s*)?\w+(?:,\s*\w+)*\)|\w+)')
+        pattern = r'(\w+\((?:[\w+-\\*\\|\\^&]+:\s*)?\w+(?:,\s*\w+)*\)|\w+)'
+        self.clause_pattern = re.compile(pattern)
 
     def parse_clauses(self, clause_strs):
         """ Parse pragma strings to generate Omp Clause Nodes.
@@ -32,8 +34,8 @@ class PragmaToOmp(NodeTransformer):
 
     @staticmethod
     def parse_clause(clause):
-        """ Parse individual clause into lists where first element is clause name
-            and following are arguments.
+        """ Parse individual clause into lists where first element is clause
+        name and following are arguments.
         """
         clause = "".join(clause.split()) # Removes whitespace
         delimiters = "():,"
@@ -80,7 +82,8 @@ class PragmaToOmp(NodeTransformer):
         for index, child in enumerate(node.block_items):
             if isinstance(child, Pragma) and self.pragma_matches(child.string):
                 if not self.structured_block:
-                    # No block of code to subsume. Just check if we need to parse clauses
+                    # No block of code to subsume. Just check if we need to
+                    # parse clauses
                     if self.has_clauses:
                         node.block_items[index] = self.construct(
                             child.string,
@@ -88,10 +91,14 @@ class PragmaToOmp(NodeTransformer):
                             child.coord
                         )
                     else:
-                        node.block_items[index] = self.construct(child.string, child.coord)
+                        node.block_items[index] = self.construct(child.string,
+                                                                 child.coord)
                 elif index + 1 < len(node.block_items):
-                    # Get structured block for this omp construct and check for clauses
-                    next_sibling = ensure_compound(node.block_items[index+1])
+                    # Get structured block for this omp construct and check
+                    # for clauses
+                    next_sibling = node.block_items[index+1]
+                    if 'omp for' not in child.string:
+                        next_sibling = ensure_compound(next_sibling)
                     if self.has_clauses:
                         node.block_items[index] = self.construct(
                             child.string,

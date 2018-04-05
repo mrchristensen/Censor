@@ -9,7 +9,8 @@ class TestNodeTransformer(GoldenTestCase):
     class TestTransform(NodeTransformer):
         """
         Test transform to make sure base class handles lists
-        See fixtures for test case (it is contrived but verifies the functionality)
+        See fixtures for test case (it is contrived but verifies the
+        functionality)
         """
         def visit_FuncDef(self, node): #pylint: disable=invalid-name
             """Visit FileAST"""
@@ -26,7 +27,7 @@ class TestNodeTransformer(GoldenTestCase):
 
     def setUp(self): #pylint: disable=invalid-name
         """Set up test case"""
-        self.fixtures = './test_transforms/fixtures/node_transformer'
+        self.fixtures = '/test_transforms/fixtures/node_transformer'
         self.transformer = self.TestTransform()
 
     def transform(self, ast):

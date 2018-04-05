@@ -8,7 +8,7 @@ class TestWhileToDoWhile(GoldenTestCase):
 
     def setUp(self):
         """Set up test variables needed for GoldenTestCase"""
-        self.fixtures = './test_transforms/fixtures/while_to_do_while'
+        self.fixtures = '/test_transforms/fixtures/while_to_do_while'
         self.transformer = WhileToDoWhile()
 
     def transform(self, ast):

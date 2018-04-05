@@ -16,22 +16,26 @@ class TestLogger(unittest.TestCase):
         """Make sure log read heap access works"""
         ast = self.logger.log_read('x')
         func_call = self.c_gen.visit(ast)
-        self.assertEqual('yeti_log_heap_access("read", x, omp_get_thread_num(), "x")', func_call)
+        output = 'yeti_log_heap_access("read", x, omp_get_thread_num(), "x")'
+        self.assertEqual(output, func_call)
 
     def test_log_write(self):
         """Make sure log write heap access works"""
         ast = self.logger.log_write('x')
         func_call = self.c_gen.visit(ast)
-        self.assertEqual('yeti_log_heap_access("write", x, omp_get_thread_num(), "x")', func_call)
+        output = 'yeti_log_heap_access("write", x, omp_get_thread_num(), "x")'
+        self.assertEqual(output, func_call)
 
     def test_log_omp_enter(self):
         """Make sure log omp enter works"""
         ast = self.logger.log_omp_enter('parallel')
         func_call = self.c_gen.visit(ast)
-        self.assertEqual('yeti_log_omp("enter", "parallel", omp_get_thread_num())', func_call)
+        output = 'yeti_log_omp("enter", "parallel", omp_get_thread_num())'
+        self.assertEqual(output, func_call)
 
     def test_log_omp_exit(self):
         """Make sure log omp exit works"""
         ast = self.logger.log_omp_exit('parallel')
         func_call = self.c_gen.visit(ast)
-        self.assertEqual('yeti_log_omp("exit", "parallel", omp_get_thread_num())', func_call)
+        output = 'yeti_log_omp("exit", "parallel", omp_get_thread_num())'
+        self.assertEqual(output, func_call)

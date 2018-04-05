@@ -1,8 +1,9 @@
 """Holds the data structures for the CESK machine"""
 
 import copy
+import sys
 import pycparser
-from cesk.values import generate_default_value
+from cesk.values import ReferenceValue, generate_default_value, generate_pointer_value
 # from cesk.interpret import execute #pylint:disable=all
 
 def throw(string, state=None, exit_code=0):
@@ -10,6 +11,11 @@ def throw(string, state=None, exit_code=0):
        state.ctrl.stmt().show() 
     print(string)
     exit(exit_code)
+
+class bcolors:
+    BLUE = '\033[94m'
+    GREEN = '\033[92m'
+    RED = '\033[93m'
 
 class State: #pylint:disable=too-few-public-methods
     """Holds a program state"""
@@ -93,6 +99,9 @@ class Envr:
 
     def get_address(self, ident):
         "looks up the address associated with an identifier"""
+        #print("Looking up " + ident + " in scope " + str(self.id))
+        while not isinstance(ident, str):
+            ident = ident.name
         if (ident in self.map_to_address):
             return self.map_to_address[ident]
         if (self.parent is not None):
@@ -124,34 +133,64 @@ class Envr:
 class Stor:
     """Represents the contents of memory at a moment in time."""
     address_counter = 1 # start at 1 so that 0 can be nullptr
-    memory = {}
 
-    def __init__(self, memory=None):
-        if memory is None:
+    def __init__(self, to_copy=None):
+        if to_copy is None:
             self.memory = {}
+            self.succ_map = {}
+            self.pred_map = {}
+        elif isinstance(to_copy, Stor):
+            self.memory = to_copy.memory
+            self.succ_map = to_copy.succ_map
+            self.pred_map = to_copy.pred_map
         else:
-            self.memory = memory
+            raise Exception("Stor Copy Constructor Expects a Stor Object")
 
     def get_next_address(self):
         """returns the next available storage address"""
+        pointer = generate_pointer_value(self.address_counter, self);
+        self.succ_map[pointer] = None
+        self.pred_map[pointer] = None
         self.address_counter += 1
-        return self.address_counter - 1
+        return pointer 
 
     def allocate_array(self, length):
         """Moves the address counter to leave room for an array and returns
         start"""
         start_address = self.address_counter
-        self.address_counter = self.address_counter + length
-        return start_address
+        start_pointer = generate_pointer_value(self.address_counter, self);
 
-    def read(self, address):
+        self.pred_map[start_pointer] = None
+        last_pointer = start_pointer
+        while self.address_counter < (start_address + length):
+            self.address_counter += 1
+            new_pointer = generate_pointer_value(self.address_counter, self);
+            self.pred_map[new_pointer] = last_pointer
+            self.succ_map[last_pointer] = new_pointer
+            last_pointer = new_pointer
+        self.succ_map[last_pointer] = None
+            
+        return start_pointer
+
+    def add_offset_to_pointer(self, pointer, offset):
+        new_pointer = pointer
+        if offset > 0:
+            for _ in range(offset):
+                new_pointer = self.succ_map[new_pointer]
+        else:
+            for _ in range(abs(offset)):
+                new_pointer = self.pred_map[new_pointer]
+        return new_pointer
+            
+
+    def read_refactor(self, address):
         """Read the contents of the store at address. Returns None if undefined.
         """
         if address in self.memory:
             #print(str(self.memory[address]) + " read from " + str(address))
             return self.memory[address]
         if address < self.address_counter:
-            print("Returned default value of 0 for unititalized address")
+            #print("Returned default value of 0 for unititalized address")
             return generate_default_value("int")
         raise Exception("ERROR: tried to access an unalocated address: " +
                          str(address))
@@ -160,11 +199,21 @@ class Stor:
         """Write value to the store at address. If there is an existing value,
         merge value into the existing value.
         """
+        if not isinstance(address, ReferenceValue):
+            raise Exception("Address should not be " + str(address))
         if address in self.memory:
             self.memory[address] = value
         else:
             self.memory[address] = value
         #print(str(self.memory[address]) + " writen to " + str(address))
+
+    def print_memory_visualization(self):
+        for (address, value) in self.memeory:
+            if isinstance(value, values.Integer):
+                print (bcolor.GREEN + str(value))
+            else:
+                print( value)
+        
 #Base Class
 class Kont:
     """Abstract class for polymorphism of continuations"""
@@ -219,11 +268,13 @@ class AssignKont(Kont):
     address"""
 
     def __init__(self, address, parent_state):
+        if not isinstance(address, ReferenceValue):
+            raise Exception("Address should not be " + str(address))
         self.address = address 
         self.parent_state = parent_state
 
     def satisfy(self, state, value):
-        new_stor = copy.deepcopy(state.stor)
+        new_stor = state.stor
         new_stor.write(self.address, value)
         if isinstance(self.parent_state.kont, FunctionKont):
             #don't return out of function without return

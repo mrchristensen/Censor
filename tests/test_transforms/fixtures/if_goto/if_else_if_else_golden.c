@@ -4,20 +4,24 @@ int main()
   if (true)
   {
       i = 10;
-      goto censor02;
+      goto censor02_ENDIF;
   }
 
-  if (true)
   {
-      i = 20;
-      goto censor01;
+    if (true)
+    {
+        i = 20;
+        goto censor01_ENDIF;
+    }
+
+    {
+      i = 30;
+    }
+    censor01_ENDIF:
+
+
   }
-
-  i = 30;
-censor01:
-
-
-censor02:
+  censor02_ENDIF:
 
 
   return 0;

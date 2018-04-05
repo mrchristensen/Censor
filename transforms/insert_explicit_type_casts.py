@@ -80,16 +80,19 @@ class InsertExplicitTypeCasts(NodeTransformer):
 
         rvalue = self.generic_visit(rvalue)
 
-        if isinstance(type_node, TypeDecl) and isinstance(type_node.type, Struct):
+        if isinstance(type_node, TypeDecl) and \
+            isinstance(type_node.type, Struct):
             # TODO: uncomment once RemoveInitLists is implemented
-            # raise IncorrectTransformOrder("RemoveInitLists must be done first.", node)
+            # raise IncorrectTransformOrder(
+            #   "RemoveInitLists must be done first.", node)
             pass
         elif isinstance(type_node, (TypeDecl, PtrDecl)):
             rvalue = cast_if_needed(type_node, self.visit(rvalue), self.env)
         elif isinstance(type_node, ArrayDecl):
             if isinstance(rvalue, InitList):
                 # TODO: uncomment once RemoveInitLists is implemented
-                # raise IncorrectTransformOrder("RemoveInitLists must be done first.", node)
+                # raise IncorrectTransformOrder(
+                #   "RemoveInitLists must be done first.", node)
                 pass
             elif isinstance(rvalue, Constant):
                 # TODO: figure out what to do with cases like

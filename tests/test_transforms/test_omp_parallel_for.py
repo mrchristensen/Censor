@@ -16,11 +16,13 @@ class TestOmpParallelFor(unittest.TestCase):
             self.nodes = []
 
         def visit_Pragma(self, node):
-            """Collect nodes, does not recurse as Pragma nodes have no children"""
+            """Collect nodes, does not recurse as Pragma nodes have no
+            children"""
             self.nodes.append(node)
 
     class OmpParallelForVisitor(omp.omp_ast.NodeVisitor):
-        """OmpParallelFor node visitor; recursibely collect all OmpParallelFor nodes"""
+        """OmpParallelFor node visitor; recursibely collect all
+        OmpParallelFor nodes"""
 
         def __init__(self):
             self.nodes = []
@@ -64,7 +66,7 @@ class TestOmpParallelFor(unittest.TestCase):
         self.assertEqual(0, len(pv.nodes))
         self.assertEqual(2, len(ov.nodes))
         self.assertEqual(ov.nodes[1], ov.nodes[0].block.block_items[0])
-        self.assertEqual(child, ov.nodes[1].loops.block_items[0])
+        self.assertEqual(child, ov.nodes[1].loops)
 
 
     def test_clauses_one(self):
@@ -91,7 +93,7 @@ class TestOmpParallelFor(unittest.TestCase):
         self.assertEqual(0, len(pv.nodes))
         self.assertEqual(2, len(ov.nodes))
         self.assertEqual(ov.nodes[1], ov.nodes[0].block.block_items[0])
-        self.assertEqual(child, ov.nodes[1].loops.block_items[0])
+        self.assertEqual(child, ov.nodes[1].loops)
         self.assertEqual(10, ov.nodes[0].clauses[0].scalar)
         self.assertEqual('static', ov.nodes[1].clauses[0].kind)
 
@@ -117,7 +119,7 @@ class TestOmpParallelFor(unittest.TestCase):
         self.assertEqual(0, len(pv.nodes))
         self.assertEqual(2, len(ov.nodes))
         self.assertEqual(ov.nodes[1], ov.nodes[0].block.block_items[0])
-        self.assertEqual(child, ov.nodes[1].loops.block_items[0])
+        self.assertEqual(child, ov.nodes[1].loops)
         self.assertEqual(ov.nodes[0].clauses[0].scalar, 10)
         self.assertEqual(ov.nodes[0].clauses[1].num, 4)
         self.assertEqual(ov.nodes[0].clauses[2].state, 'shared')

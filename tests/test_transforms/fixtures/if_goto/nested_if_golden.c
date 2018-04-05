@@ -7,10 +7,13 @@ int main()
         if (true)
         {
             i = 20;
-            goto censor01;
+            goto censor01_ENDIF;
         }
-        i = 30;
-censor01:
+
+        {
+          i = 30;
+        }
+censor01_ENDIF:
 
 
     }

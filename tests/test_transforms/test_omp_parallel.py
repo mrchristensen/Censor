@@ -16,11 +16,13 @@ class TestOmpParallel(unittest.TestCase):
             self.nodes = []
 
         def visit_Pragma(self, node):
-            """Collect nodes, does not recurse as Pragma nodes have no children"""
+            """Collect nodes, does not recurse as Pragma nodes have no
+            children"""
             self.nodes.append(node)
 
     class OmpParallelVisitor(omp.omp_ast.NodeVisitor):
-        """OmpParallel node visitor; recursibely collect all OmpParallel nodes"""
+        """OmpParallel node visitor; recursibely collect all OmpParallel
+        nodes"""
 
         def __init__(self):
             self.nodes = []
@@ -104,7 +106,8 @@ class TestOmpParallel(unittest.TestCase):
 
         self.assertEqual(0, len(pv.nodes))
         self.assertEqual(1, len(ov.nodes))
-        self.assertTrue(isinstance(ov.nodes[0].block.block_items[0], pycparser.c_ast.FuncCall))
+        self.assertTrue(isinstance(ov.nodes[0].block.block_items[0],
+                                   pycparser.c_ast.FuncCall))
         self.assertEqual(ov.nodes[0].clauses[0].scalar, 10)
         self.assertEqual(ov.nodes[0].clauses[1].num, 4)
         self.assertEqual(ov.nodes[0].clauses[2].state, 'shared')

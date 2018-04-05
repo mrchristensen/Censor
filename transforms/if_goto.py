@@ -38,7 +38,7 @@ class IfToIfGoto(NodeTransformer):
         if node.iffalse is None:
             return self.generic_visit(node)
 
-        end_label = self.id_gen.get_unique_id()
+        end_label = self.id_gen.get_unique_id() + "_ENDIF"
         return self.mangle_if(node, end_label) + [Label(end_label, None)]
 
     def mangle_if(self, node, end_label):
@@ -55,8 +55,8 @@ class IfToIfGoto(NodeTransformer):
             return [If(node.cond, true_branch, None)]
         if isinstance(false_branch, If):
             false_branch = self.mangle_if(false_branch, end_label)
-            return [If(node.cond, true_branch, None)] + false_branch
-        elif isinstance(false_branch, Compound):
-            return [If(node.cond, true_branch, None)] + false_branch.block_items
-        else:
             return [If(node.cond, true_branch, None), false_branch]
+        elif isinstance(false_branch, Compound):
+            return [If(node.cond, true_branch, None), false_branch]
+        else:
+            return [If(node.cond, true_branch, None), Compound([false_branch])]

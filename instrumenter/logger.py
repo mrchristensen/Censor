@@ -6,7 +6,8 @@ import pycparser
 LOGGER_C_FILE = 'logger.c'
 
 class Logger():
-    """Class to provide AST function definitions for logging to be inserted when instrumenting"""
+    """Class to provide AST function definitions for logging to be inserted
+    when instrumenting"""
 
     def __init__(self):
         ast = pycparser.parse_file(path.dirname(__file__) + '/' + LOGGER_C_FILE)

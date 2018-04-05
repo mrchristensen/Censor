@@ -4,9 +4,11 @@ int main()
   if (true)
   {
       i = 10;
-      goto censor01;
+      goto censor01_ENDIF;
   }
-  i = 20;
-censor01:
+  {
+    i = 20;
+  }
+censor01_ENDIF:
   return 0;
 }

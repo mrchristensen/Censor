@@ -1,4 +1,8 @@
-"""Helpers for working with information about types during AST transformations."""
+"""
+Helpers for working with information about types during AST transformations.
+All references to the c specification refer to the version here:
+    http://www.open-std.org/jtc1/sc22/WG14/www/docs/n1256.pdf
+"""
 from copy import deepcopy
 from enum import Enum
 from pycparser.c_ast import * # pylint: disable=wildcard-import, unused-wildcard-import
@@ -92,8 +96,7 @@ def add_identifier(node, ident):
 def resolve_types(left, right): # pylint: disable=too-many-return-statements
     """Given two types, figure out what types they should be cast to when
     a binary operation is performed on two objects with the given types
-    The rules implemented here come directly from the c spec:
-    http://www.open-std.org/jtc1/sc22/WG14/www/docs/n1256.pdf
+    The rules implemented here come directly from the c spec,
     section, 6.3.1.8 Usual arithmetic conversions, p. 44.
     """
     if _is_ptr(left) and _is_integral(right):
@@ -123,27 +126,16 @@ def resolve_types(left, right): # pylint: disable=too-many-return-statements
 def _get_type_helper(expr, env): # pylint: disable=too-many-return-statements,too-many-branches
     """Does all of the actual work for get_type, but returns a reference to
     a node that is currently in the AST."""
-    print("---getting type of node of type", type(expr))
     if isinstance(expr, (TypeDecl, PtrDecl)):
         return expr
+    elif isinstance(expr, str):
+        return _get_type_helper(ID(expr), env)
     elif isinstance(expr, ID):
-        # TODO: make it actually work for typedefs
-        type_node = env.get_type(expr.name)
-        if type_node and isinstance(type_node.type, (Struct, Union)):
-            struct_type = type_node.type
-            # if you have the name of the struct but not its field declarations,
-            # go find them
-            if struct_type.decls is None:
-                struct_type_string = type(struct_type).__name__ + " " + struct_type.name
-                type_node.type = env.get_type(struct_type_string)
-        elif type_node and isinstance(type_node.type, Enum):
-            # TODO: if you have the name of the enum but not its field declarations,
-            # go find them
-            # IS THIS CASE REALLY NEEDED?
-            pass
-        return type_node
+        return _get_id_type(expr, env)
     elif isinstance(expr, Constant):
         # TODO: if the int is over a certain size, change to long?
+        if expr.type == 'string':
+            return PtrDecl([], TypeDecl(None, [], IdentifierType(['char'])))
         return TypeDecl(None, [], IdentifierType([expr.type]))
     elif isinstance(expr, Cast):
         if isinstance(expr.to_type, Typename):
@@ -167,8 +159,22 @@ def _get_type_helper(expr, env): # pylint: disable=too-many-return-statements,to
         func_decl = env.get_type(expr.name)
         return func_decl.type
     else:
-        raise NotImplementedError()
+        raise NotImplementedError("Have not implemented get_type" +
+                                  "for node type: " + type(expr).__name__)
     return expr.type
+
+def _get_id_type(expr, env):
+    # TODO: make it actually work for typedefs
+    type_node = env.get_type(expr.name)
+    if type_node and isinstance(type_node.type, (Struct, Union)):
+        struct_type = type_node.type
+        # if you have the name of the struct but not its field declarations,
+        # go find them
+        if struct_type.decls is None:
+            struct_type_string = type(struct_type).__name__  \
+                                + " " + struct_type.name
+            type_node.type = env.get_type(struct_type_string)
+    return type_node
 
 def _is_integral(type_node):
     """Returns if the given type node describes an integral type."""
@@ -189,11 +195,17 @@ def _is_float(type_node):
     # defined through typedef's
     if isinstance(type_node, TypeDecl):
         if isinstance(type_node.type, IdentifierType):
-            return 'float' in type_node.type.names or 'double' in type_node.type.names
+            return 'float' in type_node.type.names or \
+                    'double' in type_node.type.names
         return False
     elif isinstance(type_node, IdentifierType):
-        return 'float' in type_node.type.names or 'double' in type_node.type.names
+        return 'float' in type_node.type.names or \
+                'double' in type_node.type.names
     return False
+
+def _is_arithmetic_type(typ):
+    """Returns true if the type node is an arithmetic type"""
+    return _is_float(typ) or _is_integral(typ)
 
 def _is_ptr(type_node):
     """Returns if the given type node describes a pointer type."""
@@ -215,7 +227,9 @@ def _is_signed(int_range):
 
 def _resolve_integral_types(left, right): # pylint: disable=too-many-return-statements
     """Given two integral types, figure out what types they should be cast to
-    when a binary operation is performed on two objects with the given types"""
+    when a binary operation is performed on two objects with the given types.
+    For the rationale, see c spec, section, 6.3.1.8 Usual arithmetic
+    conversions, p. 44."""
     # TODO Add support for user-defined integral types that are
     # defined through typedef's or enums
     l_range = _get_integral_range(left)
@@ -244,12 +258,11 @@ def _resolve_integral_types(left, right): # pylint: disable=too-many-return-stat
         # cesk.limits.py should be set up so that this case is never reached.
         raise Exception("Incorrect integer Limits!")
 
-    left = right
-    return Side.LEFT
-
 def _resolve_floating_types(left, right):
     """Given two integral types, figure out what types they should be cast to
-    when a binary operation is performed on two objects with the given types"""
+    when a binary operation is performed on two objects with the given types.
+    For the rationale, see c spec, section, 6.3.1.8 Usual arithmetic
+    conversions, p. 44."""
     # TODO support for typedef defined floating types
     # TODO support for complex floating types
     if left.type.names == right.type.names:
@@ -264,9 +277,29 @@ def _resolve_floating_types(left, right):
 
 def _get_ternary_type(expr, env):
     """Takes a TernaryOp node and a type environment and returns
-    a node representing the type of the given expression"""
-    # TODO make this robust
-    return get_type(expr.iftrue, env)
+    a node representing the type of the given expression.
+    If the two sides of the ternary operator have arithmetic types
+    then the two types are resolved as if there were an operator between them.
+    Otherwise the types must be the same so just return the type of one side.
+    See the c spec, p. 90. for Ternarys, p. 44 about binary operations"""
+    # TODO There might be some corner cases with pointers and type qualifiers
+    left_type = get_type(expr.iftrue, env)
+    right_type = get_type(expr.iffalse, env)
+    if _is_arithmetic_type(left_type) and _is_arithmetic_type(right_type):
+        if resolve_types(left_type, right_type) == Side.LEFT:
+            return left_type
+        else:
+            return right_type
+    else:
+        if _is_nullptr_const(expr.iftrue):
+            return get_type(expr.iffalse, env)
+        else:
+            return get_type(expr.iftrue, env)
+
+def _is_nullptr_const(node):
+    """Returns a boolean representing whether or not the given node could be
+    interpreted as a nullptr constant."""
+    return isinstance(node, Constant) and node.value == 0
 
 def _get_binop_type(expr, env):
     """Takes in a BinaryOp node and a type environment (map of identifiers to
@@ -312,7 +345,8 @@ def _get_structref_type(expr, env):
     if isinstance(struct_type, IdentifierType):
         struct_type = env.get_type(struct_type.names[0]).type
 
-    # if you have the name of the struct but not its field declarations, go find them
+    # if you have the name of the struct but not its field declarations,
+    # go find them
     if struct_type.decls is None:
         struct_type_string = type(struct_type).__name__ + " " + struct_type.name
         struct_type = env.get_type(struct_type_string)
