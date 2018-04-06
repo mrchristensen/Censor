@@ -1,6 +1,6 @@
 """Test LiftToCompoundBlock transform"""
 
-from helpers import GoldenTestCase
+from tests.helpers import GoldenTestCase
 from transforms.lift_to_compound_block import LiftToCompoundBlock
 from transforms.id_generator import IDGenerator
 from transforms.type_environment_calculator import TypeEnvironmentCalculator

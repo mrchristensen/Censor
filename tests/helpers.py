@@ -23,7 +23,8 @@ class GoldenTestCase(TestCase):
 
     def assert_golden(self, transform, f_golden, f_input):
         """Compare file contents and print a diff on failure"""
-        input_c = open(CWD + f_input, 'r').read()
+        with open(CWD + f_input, 'r') as input_c_file:
+            input_c = input_c_file.read()
         ast = self.parser.parse(input_c)
         transformed = transform(ast)
         actual = self.generator.visit(transformed)

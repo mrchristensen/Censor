@@ -5,11 +5,11 @@ import tempfile
 from os import listdir
 from os.path import join
 from unittest import TestCase
+import pycparser
 from omp.c_with_omp_generator import CWithOMPGenerator
 from transforms import get_transformers_omp, get_transformers
 from transforms import IDGenerator, TypeEnvironmentCalculator
 
-import pycparser
 
 # Pylint doesn't like the way things are set up but doing it any different
 # breaks stuff

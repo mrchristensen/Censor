@@ -34,6 +34,8 @@ class LiftNode(NodeTransformer):
 
     def visit_Compound(self, node): # pylint: disable=invalid-name
         """Visit scope"""
+        parent_inserts = self.inserts
+        self.inserts = []
         parent_env = self.envr
         self.envr = self.environments[node]
         if node.block_items is not None:
@@ -48,6 +50,6 @@ class LiftNode(NodeTransformer):
                 node.block_items[i:i] = inserts
             else:
                 node.block_items.extend(inserts)
-        self.inserts = []
+        self.inserts = parent_inserts
         self.envr = parent_env
         return node
