@@ -14,7 +14,7 @@ int main()
             i = 30;
         }
 censor01_ENDIF:
-
+    (void ) 0;
 
         goto censor03_ENDIF;
     }
@@ -31,10 +31,12 @@ censor01_ENDIF:
             i = 60;
         }
 censor02_ENDIF:
+    (void ) 0;
 
 
     }
 censor03_ENDIF:
+    (void ) 0;
 
     return 0;
 }

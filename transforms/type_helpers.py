@@ -119,6 +119,10 @@ def resolve_types(left, right): # pylint: disable=too-many-return-statements
     right.show()
     raise NotImplementedError()
 
+# statement representing a no-op in C. See
+# https://stackoverflow.com/questions/7978620/whats-a-portable-way-to-implement-no-op-statement-in-c
+NO_OP = Cast(Typename(None, [], IdentifierType(['void'])),
+             Constant('int', '0'))
 
 
 ## Private helper functions that shouldn't be called from outside this file ##

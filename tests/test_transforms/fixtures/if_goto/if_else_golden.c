@@ -10,5 +10,7 @@ int main()
     i = 20;
   }
 censor01_ENDIF:
+  (void ) 0;
+
   return 0;
 }

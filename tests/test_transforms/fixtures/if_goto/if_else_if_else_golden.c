@@ -18,10 +18,12 @@ int main()
       i = 30;
     }
     censor01_ENDIF:
+      (void ) 0;
 
 
   }
   censor02_ENDIF:
+    (void ) 0;
 
 
   return 0;

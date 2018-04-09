@@ -78,12 +78,12 @@ def get_transformers(id_gen_func, type_env_func):
     yield (WhileToDoWhile, lambda ast: [])
     yield (DoWhileToGoto, lambda ast: [id_gen_func(ast)])
     yield (TernaryToIf, lambda ast: [id_gen_func(ast), type_env_func(ast)])
-    yield (LiftToCompoundBlock,
-           lambda ast: [id_gen_func(ast), type_env_func(ast)])
+    # yield (LiftToCompoundBlock,
+    #        lambda ast: [id_gen_func(ast), type_env_func(ast)])
     yield (RemoveCompoundAssignment,
            lambda ast: [id_gen_func(ast), type_env_func(ast)])
-    #yield (RemoveInitLists, [type_env_func(ast)])
-    yield (InsertExplicitTypeCasts, lambda ast: [type_env_func(ast)])
+    # #yield (RemoveInitLists, [type_env_func(ast)])
+    # yield (InsertExplicitTypeCasts, lambda ast: [type_env_func(ast)])
     yield (SingleReturn, lambda ast: [id_gen_func(ast)])
 
 def get_all_transformers(id_gen_func, type_env_func):
