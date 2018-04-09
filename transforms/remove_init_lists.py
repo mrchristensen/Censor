@@ -44,9 +44,8 @@ void censorXX_INIT_GLOBALS() {
     b[1] = 4;
 }
 """
-from pycparser.c_ast import Decl, FuncDef, FuncDecl, FuncCall, IdentifierType
-from pycparser.c_ast import Compound, ExprList, TypeDecl, ID, ArrayDecl
-from pycparser.c_ast import ArrayRef, Assignment, Constant, Struct, StructRef
+# after having four lines of pycparser import, I decided to do them all at once
+from pycparser.c_ast import * # pylint: disable=wildcard-import, unused-wildcard-import
 from .node_transformer import NodeTransformer
 from .helpers import prepend_statement
 from .type_helpers import get_type
@@ -74,6 +73,9 @@ from .type_helpers import get_type
 
 # TODO: once this transform is implemented, uncomment the
 # "raise IncorrectTransformOrder" in insert_explicit_type_casts
+
+_NOT_IMPLEMENTED_MESSAGE = """The RemoveInitLists transform has only been
+implemented for initializer lists that are a list of constant expressions."""
 
 class RemoveInitLists(NodeTransformer):
     """Transform for removing all initializer lists and compound
@@ -146,11 +148,25 @@ def is_main(node):
     """Determines if an AST object is a FuncDef named main."""
     return isinstance(node, FuncDef) and node.decl.name == 'main'
 
+def is_constant_expression(node):
+    """Returns a boolean telling if a node represents a constant
+    expression in C or not."""
+    if isinstance(node, UnaryOp):
+        return is_constant_expression(node.expr)
+    elif isinstance(node, BinaryOp):
+        return is_constant_expression(node.left) \
+            and is_constant_expression(node.right)
+    else:
+        return isinstance(node, Constant)
+
 def flatten_array_init(decl):
     """Takes a Decl with an initializer list, returns a list of assignment
     nodes that take care of the initialization."""
     inits = []
     for i, init in enumerate(decl.init.exprs):
+        if not is_constant_expression(init):
+            decl.show()
+            raise NotImplementedError(_NOT_IMPLEMENTED_MESSAGE)
         index = Constant(IdentifierType(["int"]), str(i))
         lvalue = ArrayRef(ID(decl.name), index)
         assignment = Assignment("=", lvalue, init)
@@ -164,6 +180,9 @@ def flatten_struct_init(decl, env):
     fields = typ.type.decls
     inits = []
     for i, init in enumerate(decl.init.exprs):
+        if not is_constant_expression(init):
+            decl.show()
+            raise NotImplementedError(_NOT_IMPLEMENTED_MESSAGE)
         field = ID(fields[i].name)
         lvalue = StructRef(ID(decl.name), ".", field)
         assignment = Assignment("=", lvalue, init)
