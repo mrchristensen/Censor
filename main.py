@@ -51,16 +51,20 @@ def main():
         utils.preserve_include_preprocess(temp.name)
         args.filename = temp.name
 
+    cpp_args = [
+        '-nostdinc',
+        '-E', '-x', 'c',
+        ''.join(['-I', fake_libc_path]),
+        ''.join(['-I', dir_name]),
+        ''.join(['-I', dir_name, '/utilities']),
+    ]
+    if args.includes is not None:
+        cpp_args.extend([''.join(['-I', include]) \
+                for include in args.includes.split(',')])
+
     ast = pycparser.parse_file(
-        args.filename, use_cpp=True, cpp_path='gcc',
-        cpp_args=['-nostdinc',
-                  '-E', '-x', 'c',
-                  ''.join(['-I', fake_libc_path]),
-                  ''.join(['-I', dir_name]),
-                  ''.join(['-I', dir_name, '/utilities']),
-                  *[''.join(['-I', include]) for include \
-                          in args.includes.split(',')]
-                 ])
+        args.filename, use_cpp=True, cpp_path='gcc', cpp_args=cpp_args
+        )
 
     if args.sanitize:
         utils.sanitize(ast)
