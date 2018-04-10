@@ -23,6 +23,11 @@ def main():
     parser.add_argument('--sanitize', '-s',
                         required=False, action="store_true",
                         help='remove typedefs added by fake includes')
+
+    parser.add_argument('--includes', '-I',
+                        required=False, type=str,
+                        help='Comma separated includes for preprocessing')
+
     args = parser.parse_args()
     dir_name = path.dirname(args.filename)
 
@@ -52,7 +57,9 @@ def main():
                   '-E', '-x', 'c',
                   ''.join(['-I', fake_libc_path]),
                   ''.join(['-I', dir_name]),
-                  ''.join(['-I', dir_name, '/utilities'])
+                  ''.join(['-I', dir_name, '/utilities']),
+                  *[''.join(['-I', include]) for include \
+                          in args.includes.split(',')]
                  ])
 
     if args.sanitize:
