@@ -1,6 +1,7 @@
 """Test ForToWhile -- Replacing for with while loops"""
 
 from transforms.for_to_while import ForToWhile
+from transforms.omp_for import PragmaToOmpFor
 from helpers import GoldenTestCase
 
 class TestForToWhile(GoldenTestCase):
@@ -13,6 +14,8 @@ class TestForToWhile(GoldenTestCase):
 
     def transform(self, ast):
         """Transform input AST"""
+        pre_transformer = PragmaToOmpFor()
+        ast = pre_transformer.visit(ast)
         return self.transformer.visit(ast)
 
     def test_for_to_while(self):

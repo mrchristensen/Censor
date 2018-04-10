@@ -2,15 +2,28 @@
 
 from pycparser.c_ast import While, Compound, Constant, DoWhile, DeclList
 from pycparser.c_ast import Assignment, ExprList
-from omp.omp_ast import OmpFor
+from omp.clause import Collapse, Ordered
 from .node_transformer import NodeTransformer
 from .helpers import append_statement
+
+_ERROR_MESSAGE = """Handling the 'collapse' and 'ordered' clauses is not
+yet implemented. These clauses change which for loops are being parallelized
+in subtle ways that are not yet understood by us, and are not well documented
+by OMP. For a start, see the OMP spec at
+http://www.openmp.org/wp-content/uploads/openmp-4.5.pdf,
+section 2.7.1 'Loop Construct'
+"""
 
 class ForToWhile(NodeTransformer):
     """NodeTransformer to change for loops to while loops"""
 
-    def skip(self, node):
-        return node is None or isinstance(node, OmpFor)
+    def visit_OmpFor(self, node): #pylint: disable=invalid-name
+        """Don't transform the omp for loop, but go inside it to transform any
+        loops that may be nested inside it."""
+        if any(isinstance(x, (Collapse, Ordered)) for x in node.clauses):
+            raise NotImplementedError(_ERROR_MESSAGE)
+        node.loops.stmt = self.generic_visit(node.loops.stmt)
+        return node
 
     def visit_For(self, node): #pylint: disable=invalid-name
         """Transform a for loop to a while loop"""
