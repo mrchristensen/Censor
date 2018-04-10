@@ -49,10 +49,27 @@ from .single_return import SingleReturn
 from .id_generator import IDGenerator
 from .type_environment_calculator import TypeEnvironmentCalculator
 
-def get_transformers_omp():
-    """ Return transformer constructor-dependency function tuple for all omp
-        transforms.
+def get_transformers(ast):
+    """ Return transformer constructor-dependency function tuples for all
+        transformers.
+
+        Following this constructor-dependency function tuple form,
+        we can obtain information about the current transformation more
+        easily (through doing things like `constructor.__class__.__name__`,
+        for example). This is especially beneficial in regression testing
+        for producing more readable, useful output.
     """
+    # one id_generator must be passed to all transforms, to
+    # ensure unique ids across transforms
+    id_generator = IDGenerator(ast)
+
+    # type environments should be recalculated each time they are needed
+    # for a transform, because the AST changes and so the type environments
+    # should be different
+    type_env_calc = TypeEnvironmentCalculator()
+
+    # Each dependency function must take one argument so that we can easily
+    # chain transformations together without worrying about arity.
     yield (PragmaToOmpParallelSections, lambda ast: [])
     yield (PragmaToOmpParallelFor, lambda ast: [])
     yield (PragmaToOmpParallel, lambda ast: [])
@@ -68,45 +85,25 @@ def get_transformers_omp():
     yield (PragmaToOmpMaster, lambda ast: [])
     yield (PragmaToOmpSingle, lambda ast: [])
     yield (OmpNotImplemented, lambda ast: [])
-
-def get_transformers(id_gen_func, type_env_func):
-    """ Return transformer constructor-dependency function tuple for all
-        non-omp transforms.
-    """
-    yield (IfToIfGoto, lambda ast: [id_gen_func(ast)])
+    yield (IfToIfGoto, lambda ast: [id_generator])
     yield (ForToWhile, lambda ast: [])
     yield (WhileToDoWhile, lambda ast: [])
-    yield (DoWhileToGoto, lambda ast: [id_gen_func(ast)])
-    yield (TernaryToIf, lambda ast: [id_gen_func(ast), type_env_func(ast)])
+    yield (DoWhileToGoto, lambda ast: [id_generator])
+    yield (TernaryToIf,
+           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
     # yield (LiftToCompoundBlock,
-    #        lambda ast: [id_gen_func(ast), type_env_func(ast)])
+    #        lambda ast: [id_generator, type_env_calc.get_environments(ast)])
     yield (RemoveCompoundAssignment,
-           lambda ast: [id_gen_func(ast), type_env_func(ast)])
-    # #yield (RemoveInitLists, [type_env_func(ast)])
-    # yield (InsertExplicitTypeCasts, lambda ast: [type_env_func(ast)])
-    yield (SingleReturn, lambda ast: [id_gen_func(ast)])
-
-def get_all_transformers(id_gen_func, type_env_func):
-    """ Return all transformer constructor-dependency function tuples.
-    """
-    yield from get_transformers_omp()
-    yield from get_transformers(id_gen_func, type_env_func)
+           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
+    # yield (RemoveInitLists,
+    #        lambda ast: [type_env_calc.get_environments(ast)])
+    # yield (InsertExplicitTypeCasts,
+    #        lambda ast: [type_env_calc.get_environments(ast)])
+    yield (SingleReturn, lambda ast: [id_generator])
 
 def transform(ast):
     """Perform each transform in package"""
-    # one id_generator must be passed to all transforms, to
-    # ensure unique ids across transforms
-    id_generator = IDGenerator(ast)
-    # type environments should be recalculated each time they are needed
-    # for a transform, because the AST changes and so the type environments
-    # should be different
-    type_env_calc = TypeEnvironmentCalculator()
-
-    id_gen_func = lambda ast: id_generator # same id generator across all
-    type_env_func = type_env_calc.get_environments
-
-    for (constructor, dep_func) in (
-            get_all_transformers(id_gen_func, type_env_func)):
+    for (constructor, dep_func) in get_transformers(ast):
         transformer = constructor(*dep_func(ast))
         ast = transformer.visit(ast)
     return ast

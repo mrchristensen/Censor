@@ -2,13 +2,13 @@
 
 import subprocess
 import tempfile
+import difflib
 from os import listdir
 from os.path import join
 from unittest import TestCase
 import pycparser
 from omp.c_with_omp_generator import CWithOMPGenerator
-from transforms import get_transformers_omp, get_transformers
-from transforms import IDGenerator, TypeEnvironmentCalculator
+from transforms import get_transformers, transform
 
 
 # Pylint doesn't like the way things are set up but doing it any different
@@ -24,7 +24,7 @@ class RegressionTestCase(TestCase):
     def setUpClass(cls):
         cls.generator = CWithOMPGenerator()
 
-    def assert_same_output_ast(self, ast, f_input):
+    def assert_same_output_ast(self, ast, expected_out, prev_ast=None):
         """ Compile ast and run and compare against results of f_input
         """
         temp = tempfile.NamedTemporaryFile()
@@ -36,80 +36,73 @@ class RegressionTestCase(TestCase):
 
         _preserve_include_postprocess(temp.name)
 
-        res = _compile_and_diff_results(f_input, temp.name,
-                                        self.includes, self.add_flags)
+        actual_out = _run_c(temp.name, self.includes, self.add_flags)
+
+        res = _diff_results(expected_out, actual_out)
+
         if res:
-            print('F', end='', flush=True)
+            print('Failed!\n', flush=True)
             msg = (
                 "Same output assertion failed\n"
-                + "Input file: " + f_input + "\n"
-                + res.decode('utf-8')[:1024])
+                + "Before transformation: \n"
+                + self.generator.visit(prev_ast) #sanitize this
+                + "\nAfter transformation: \n"
+                + self.generator.visit(ast) #sanitize this
+                + "\nDiff: \n" + res)
             raise self.failureException(msg)
 
-    def assert_individual_non_omp(self):
-        """ Test all non-omp transfomrations independently.
+    def assert_same_output_series(self, fixture):
+        """ Test combination of all transforms gives expected output
         """
-        id_gen_func = lambda ast: IDGenerator(ast)
-        type_env_func = TypeEnvironmentCalculator().get_environments
+        print("\nTesting: " + fixture)
 
-        for fixture in get_fixtures(self.fixtures):
-            temp = _temp_copy(fixture)
+        temp = _temp_copy(fixture)
 
-            _preserve_include_preprocess(temp.name)
+        _preserve_include_preprocess(temp.name)
+        ast = _parse_ast_from_file(temp.name, self.includes)
 
-            for (constructor, deps) in get_transformers(id_gen_func,
-                                                        type_env_func):
-                with self.subTest(msg=fixture + ":" + constructor.__name__):
-                    ast = _parse_ast_from_file(temp.name, self.includes)
-                    test_ast = constructor(*deps(ast)).visit(ast)
-                    self.assert_same_output_ast(test_ast, fixture)
-                    print('.', end='', flush=True)
+        expected_out = _run_c(fixture, self.includes, self.add_flags)
 
-    def assert_all_omp(self):
-        """ Test all omp transformations (all at once).
-        """
-        for fixture in get_fixtures(self.fixtures):
-            temp = _temp_copy(fixture)
-
-            _preserve_include_preprocess(temp.name)
-            ast = _parse_ast_from_file(temp.name, self.includes)
-
-            for (constructor, deps) in get_transformers_omp():
+        with self.subTest(msg=fixture + ": all transforms in series"):
+            prev_ast = ast
+            for (constructor, deps) in get_transformers(ast):
+                print(
+                    "\tTesting "
+                    + constructor.__name__
+                    + '... ',
+                    end='',
+                    flush=True
+                )
+                prev_ast = ast
                 ast = constructor(*deps(ast)).visit(ast)
+                self.assert_same_output_ast(ast, expected_out, prev_ast)
+                print('Good', flush=True)
 
-            self.assert_same_output_ast(ast, fixture)
-            print('.', end='', flush=True)
-
-    def assert_same_output_series(self):
-        """ Test comination of all transforms gives expected output
+    def assert_end_result_same(self):
+        """ Test whether running all transforms on a fixture results in
+            the same output. If not, run against each transformation in series.
         """
-        type_env_func = TypeEnvironmentCalculator().get_environments
-
         for fixture in get_fixtures(self.fixtures):
-            print("\nTesting fixture: " + fixture)
+            print("Testing: " + fixture)
 
             temp = _temp_copy(fixture)
 
             _preserve_include_preprocess(temp.name)
             ast = _parse_ast_from_file(temp.name, self.includes)
 
-            id_gen = IDGenerator(ast)
-            id_gen_func = lambda ast: id_gen #pylint: disable=cell-var-from-loop
+            expected_out = _run_c(fixture, self.includes, self.add_flags)
 
-            with self.subTest(msg=fixture + ": all transforms in series"):
+            ast = transform(ast)
 
-                for (constructor, deps) in get_transformers(id_gen_func,
-                                                            type_env_func):
-                    print(
-                        "\tTesting "
-                        + constructor.__name__
-                        + '... ',
-                        end='',
-                        flush=True
-                    )
-                    ast = constructor(*deps(ast)).visit(ast)
-                    self.assert_same_output_ast(ast, fixture)
-                    print('Good', flush=True)
+            failed = False
+            try:
+                self.assert_same_output_ast(ast, expected_out)
+            except AssertionError:
+                failed = True
+
+            if failed:
+                print("Verifying same output after each transform...")
+                self.assert_same_output_series(fixture)
 
 
 
@@ -118,6 +111,9 @@ def get_fixtures(path):
     return [join(path, f) for f in listdir(path) if f.endswith('.c')]
 
 def _parse_ast_from_file(path, includes):
+    """ Parse a file into an ast with the given includes.
+        fake_libc_path currently hard coded.
+    """
     return pycparser.parse_file(
         path, use_cpp=True, cpp_path='gcc',
         cpp_args=['-nostdinc',
@@ -128,29 +124,22 @@ def _parse_ast_from_file(path, includes):
                  ])
 
 def _temp_copy(path):
+    """ Get a tempfile copy of a given file path.
+    """
     temp = tempfile.NamedTemporaryFile()
     temp.write(open(path, 'rb').read())
     temp.flush()
     return temp
 
-def _compile_and_diff_results(expected, actual, includes, add_flags):
-    actual_out = _run_c(actual, includes, add_flags)
-
-    temp_actual_out = tempfile.NamedTemporaryFile(mode='w')
-    temp_actual_out.write(actual_out)
-    temp_actual_out.flush()
-
-    expected_out = _run_c(expected, includes, add_flags)
-    temp_expected_out = tempfile.NamedTemporaryFile(mode='w')
-    temp_expected_out.write(expected_out)
-    temp_expected_out.flush()
-
-    stdout, _ = subprocess.Popen(
-        ['diff', '-u', '-N', '-w', '-B',
-         temp_expected_out.name, temp_actual_out.name],
-        stdout=subprocess.PIPE
-    ).communicate()
-    return stdout
+def _diff_results(expected_out, actual_out):
+    """ Use python's difflib to diff two strings.
+    """
+    return '\n'.join(
+        difflib.unified_diff(
+            expected_out.splitlines(),
+            actual_out.splitlines()
+        )
+    )
 
 
 def _run_c(path, includes, add_flags):
@@ -166,18 +155,12 @@ def _run_c(path, includes, add_flags):
         stderr=subprocess.PIPE
     )
     if res.returncode != 0:
-        print('F', end='', flush=True)
-        msg = (
-            "Compilation failed!\n"
-            + "Input file: " + path + "\n"
-            + "Contents:\n\n"
-            + open(path, 'r').read()
-            + "\n\n"
-            + res.stderr.decode('utf-8'))
-        raise TestCase.failureException(msg)
+        return \
+            "Compilation failed!\n" \
+            + res.stderr.decode('utf-8')
 
     stdout = subprocess.check_output([out_path])
-    return stdout.decode()
+    return stdout.decode('utf-8')
 
 def _preserve_include_preprocess(path):
     """ Run sed on source file to preserve includes through gcc preprocessing

@@ -12,8 +12,5 @@ class TestBasic(RegressionTestCase): #pylint: disable=no-name-in-module
         self.add_flags = []
 
     def test_all(self):
-        """ Assert same output for non-omp and omp transformations.
-        """
-        self.assert_individual_non_omp()
-        self.assert_all_omp()
-        self.assert_same_output_series()
+        """ Test all fixtures """
+        self.assert_end_result_same()
