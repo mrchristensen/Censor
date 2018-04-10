@@ -7,6 +7,7 @@ from os import listdir
 from os.path import join
 from unittest import TestCase
 import pycparser
+import utils
 from omp.c_with_omp_generator import CWithOMPGenerator
 from transforms import get_transformers, transform
 
@@ -34,7 +35,7 @@ class RegressionTestCase(TestCase):
         temp.write(bytes(actual, 'utf-8'))
         temp.flush()
 
-        _preserve_include_postprocess(temp.name)
+        utils.preserve_include_postprocess(temp.name)
 
         actual_out = _run_c(temp.name, self.includes, self.add_flags)
 
@@ -45,9 +46,9 @@ class RegressionTestCase(TestCase):
             msg = (
                 "Same output assertion failed\n"
                 + "Before transformation: \n"
-                + self.generator.visit(prev_ast) #sanitize this
+                + self.generator.visit(utils.sanitize(prev_ast))
                 + "\nAfter transformation: \n"
-                + self.generator.visit(ast) #sanitize this
+                + self.generator.visit(utils.sanitize(ast))
                 + "\nDiff: \n" + res)
             raise self.failureException(msg)
 
@@ -58,7 +59,7 @@ class RegressionTestCase(TestCase):
 
         temp = _temp_copy(fixture)
 
-        _preserve_include_preprocess(temp.name)
+        utils.preserve_include_preprocess(temp.name)
         ast = _parse_ast_from_file(temp.name, self.includes)
 
         expected_out = _run_c(fixture, self.includes, self.add_flags)
@@ -87,7 +88,7 @@ class RegressionTestCase(TestCase):
 
             temp = _temp_copy(fixture)
 
-            _preserve_include_preprocess(temp.name)
+            utils.preserve_include_preprocess(temp.name)
             ast = _parse_ast_from_file(temp.name, self.includes)
 
             expected_out = _run_c(fixture, self.includes, self.add_flags)
@@ -161,24 +162,3 @@ def _run_c(path, includes, add_flags):
 
     stdout = subprocess.check_output([out_path])
     return stdout.decode('utf-8')
-
-def _preserve_include_preprocess(path):
-    """ Run sed on source file to preserve includes through gcc preprocessing
-    """
-    sed_path = r'include_preserve.sed'
-    res = subprocess.run(['sed', '-i', '-rf', sed_path, path])
-    if res.returncode != 0:
-        raise RuntimeError('Could not perform include preserve preprocessing!')
-
-def _preserve_include_postprocess(path):
-    """ Run sed on transformed source file to remove fake_libc_includes and
-        replace them with the original includes.
-    """
-    inserting_sed = r'insert_includes.sed'
-    deleting_sed = r'remove_fake_includes.sed'
-    subprocess.run(
-        ['sed', '-i', '-rf', inserting_sed, path],
-    )
-    subprocess.run(
-        ['sed', '-i', '-rf', deleting_sed, path],
-    )
