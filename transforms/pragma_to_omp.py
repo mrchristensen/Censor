@@ -19,6 +19,18 @@ class PragmaToOmp(NodeTransformer):
         pattern = r'(\w+\((?:[\w+-\\*\\|\\^&]+:\s*)?\w+(?:,\s*\w+)*\)|\w+)'
         self.clause_pattern = re.compile(pattern)
 
+    def filter_clause_str(self, pragma_string):
+        """Filters clauses that are not in clause dictionary
+        Used for seperating combined constructs into separate
+        constructs"""
+        clause_str = ''
+        clause_strs = self.clause_pattern.findall(pragma_string)
+        for clause in clause_strs:
+            parts = self.parse_clause(clause)
+            if parts[0] in self.str_to_clause_type:
+                clause_str += ' ' + clause
+        return clause_str
+
     def parse_clauses(self, clause_strs):
         """ Parse pragma strings to generate Omp Clause Nodes.
         """

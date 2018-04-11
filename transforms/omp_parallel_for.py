@@ -11,11 +11,8 @@ PARALLEL_STR_TO_CLAUSE_TYPE = {
     "if": OmpClause.If,
     "num_threads": OmpClause.NumThreads,
     "default": OmpClause.Default,
-    "private": OmpClause.Private,
-    "firstprivate": OmpClause.FirstPrivate,
     "shared": OmpClause.Shared,
     "copyin": OmpClause.CopyIn,
-    "reduction": OmpClause.Reduction,
     }
 
 FOR_STR_TO_CLAUSE_TYPE = {
@@ -48,20 +45,17 @@ class PragmaToOmpParallelFor(PragmaToOmp):
             if isinstance(child, Pragma) \
                and self.pragma_matches(child.string) \
                and index + 1 < len(node.block_items):
-                # We wrap the children in a compound block because
-                # then we can easily visit scopes by only visiting
-                # Compound nodes
                 next_sibling = node.block_items[index+1]
                 self.str_to_clause_type = FOR_STR_TO_CLAUSE_TYPE
                 for_node = OmpFor(
-                    child.string,
+                    'omp for ' + self.filter_clause_str(child.string),
                     self.clause_nodes_from_pragma_string(child.string),
                     next_sibling,
                     child.coord
                     )
                 self.str_to_clause_type = PARALLEL_STR_TO_CLAUSE_TYPE
                 node.block_items[index] = OmpParallel(
-                    child.string,
+                    'omp parallel ' + self.filter_clause_str(child.string),
                     self.clause_nodes_from_pragma_string(child.string),
                     ensure_compound(for_node),
                     child.coord
