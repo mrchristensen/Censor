@@ -1,13 +1,13 @@
 """Test Instrumenter"""
 
-from helpers import GoldenTestCase
+from tests.helpers import GoldenTestCase
 from instrumenter.instrumenter import Instrumenter
-from transforms.omp_parallel import PragmaToOmpParallel
+from transforms.omp_parallel_for import PragmaToOmpParallelFor
 from transforms.id_generator import IDGenerator
 from transforms.type_environment_calculator import TypeEnvironmentCalculator
 
 TRANSFORMS = [
-    PragmaToOmpParallel()
+    PragmaToOmpParallelFor()
 ]
 
 def transform_omp(ast):
@@ -18,18 +18,10 @@ def transform_omp(ast):
 
 class TestInstrumenter(GoldenTestCase):
     """Test Instrumenter"""
-    #TODO test these cases where OpenMP pragmas cause
-    # implicit references to variables
-    # if
+    #TODO test clauses used in benchmarks
+    # reduction
     # num_threads
     # schedule
-    # final
-    # firstprivate
-    # lastprivate
-    # linear
-    # reduction
-    # copyprivate
-    # map (may cause a reference)
 
     def setUp(self): #pylint: disable=invalid-name
         """Set up test case"""
@@ -38,10 +30,11 @@ class TestInstrumenter(GoldenTestCase):
 
     def transform(self, ast):
         """Transform input AST"""
+        ast = transform_omp(ast)
         id_generator = IDGenerator(ast)
         environments = TypeEnvironmentCalculator().get_environments(ast)
         self.instrumenter = Instrumenter(id_generator, environments)
-        return self.instrumenter.visit(transform_omp(ast))
+        return self.instrumenter.visit(ast)
 
     def test_fixtures(self):
         """Test all golden files"""

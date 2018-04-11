@@ -9,9 +9,9 @@ should give them the same instance of IDGenerator() to ensure that the
 transforms use different IDs.
 """
 
-from pycparser.c_ast import NodeVisitor
+from .node_transformer import NodeTransformer
 
-class IDCollector(NodeVisitor):
+class IDCollector(NodeTransformer):
     """Collects all identifers in the given AST and stores them in a set"""
 
     def __init__(self):
@@ -21,18 +21,21 @@ class IDCollector(NodeVisitor):
         """Whenever it sees an ID, it adds it to the set as a string."""
         if node.name is not None:
             self.ids.add(node.name)
+        return node
 
     def visit_Decl(self, node): # pylint: disable=invalid-name
         """Whenever it sees an Decl, it adds the identifier to the set as
          a string."""
         if node.name is not None:
             self.ids.add(node.name)
+        return node
 
     def visit_Label(self, node): # pylint: disable=invalid-name
         """Whenever it sees a Label, it adds the identifier to the set as
         a string."""
         if node.name is not None:
             self.ids.add(node.name)
+        return node
 
     def get_unique_prefix(self, ast):
         """Returns a string that is not a prefix of ANY identifiers in the
