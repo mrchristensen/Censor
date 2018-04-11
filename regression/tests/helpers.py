@@ -10,6 +10,8 @@ import pycparser
 import utils
 from omp.c_with_omp_generator import CWithOMPGenerator
 from transforms import get_transformers, transform
+import observer
+import cesk
 
 
 # Pylint doesn't like the way things are set up but doing it any different
@@ -83,6 +85,8 @@ class RegressionTestCase(TestCase):
         """ Test whether running all transforms on a fixture results in
             the same output. If not, run against each transformation in series.
         """
+        implemented_node_set = cesk.implemented_nodes()
+        watchman = observer.Observer()
         for fixture in get_fixtures(self.fixtures):
             print("Testing: " + fixture)
 
@@ -104,6 +108,13 @@ class RegressionTestCase(TestCase):
             if failed:
                 print("Verifying same output after each transform...")
                 self.assert_same_output_series(fixture)
+            else:
+                utils.sanitize(ast)
+                watchman.visit(ast)
+
+        print()
+        watchman.report()
+        watchman.coverage(implemented_node_set)
 
 
 
