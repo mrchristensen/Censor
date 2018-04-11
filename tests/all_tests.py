@@ -41,7 +41,6 @@ SUITE = unittest.TestLoader().loadTestsFromNames(
         'test_transforms.test_simplify_omp_for',
         'test_transforms.test_omp_not_implemented',
         'test_instrumenter.test_logger',
-        'test_instrumenter.test_shared_vars',
         'test_instrumenter.test_instrumenter'
     ]
 )
