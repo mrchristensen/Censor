@@ -78,9 +78,13 @@ def main():
     elif args.tool == "cesk":
         cesk.main(ast)
     elif args.tool == "observer":
+        import transforms
         watchman = observer.Observer()
+        transforms.transform(ast)
         watchman.visit(ast)
         watchman.report()
+        watchman.coverage(cesk.implemented_nodes())
+
     else:
         print("No valid tool name given; defaulting to censor.")
         censor.main(ast) #default to censor

@@ -22,8 +22,9 @@ class Observer(NodeVisitor):
         else:
             self.counts[name] += 1
 
-        for child in node:
-            self.visit(child)
+        if hasattr(node, '__iter__'):
+            for child in node:
+                self.visit(child)
 
     def report(self):
         """ Report findings.
@@ -33,4 +34,34 @@ class Observer(NodeVisitor):
         print('{:<15}'.format('Observed') + '{:>5}'.format('Count'))
         print('--------------------')
         for elem in self.seen:
+            print('{:<15}'.format(elem) + '{:>5}'.format(self.counts[elem]))
+
+    def coverage(self, implemented_set):
+        """ Using a set of implemented objects returned from cesk,
+            calculate a coverage report.
+
+            This function must be called after processing the ast.
+        """
+        diff_set = self.seen.difference(implemented_set)
+        print('\n--------------------')
+        print('{:^20}'.format('Coverage Report'))
+        print('--------------------')
+        if not diff_set:
+            print('100% Coverage')
+            return
+
+        total = sum(self.counts.values())
+        covered = total
+        for elem in diff_set:
+            if elem not in self.counts:
+                pass
+            else:
+                covered -= self.counts[elem]
+
+        print('  {: 4.1f}% Coverage'.format((covered/total) * 100))
+        print('--------------------\n')
+        print('--------------------')
+        print('{:^20}'.format('Uncovered Objects'))
+        print('--------------------')
+        for elem in diff_set:
             print('{:<15}'.format(elem) + '{:>5}'.format(self.counts[elem]))

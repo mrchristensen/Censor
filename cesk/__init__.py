@@ -21,3 +21,21 @@ def main(ast):
         successors = execute(next_state)
         queue.extend(successors)
     raise Exception("Execution finished without Halt")
+
+def implemented_nodes():
+    """ Return set of nodes that the interpreter currently implements.
+    """
+    return {
+        'ArrayRef',
+        'Assignment',
+        'BinaryOp',
+        'Compound',
+        'Constant',
+        'Goto',
+        'ID',
+        'If',
+        'Label',
+        'UnaryOp',
+        'Return',
+        'FileAST'
+    }
