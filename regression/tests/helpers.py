@@ -101,6 +101,8 @@ class RegressionTestCase(TestCase):
 
             failed = False
             try:
+                # Once the interpreter matures, checking for correct output
+                # can be easily added here
                 self.assert_same_output_ast(ast, expected_out)
             except AssertionError:
                 failed = True
