@@ -136,6 +136,16 @@ class TypeEnvironmentCalculator(NodeTransformer):
         self.envr = self.envr.parent
         return node
 
+    def visit_For(self, node): # pylint: disable=invalid-name
+        """The for loop header should have its own scope."""
+        self.envr = Envr(self.envr)
+        node.init = self.visit(node.init)
+        # don't need to visit node.cond or node.next because they can't
+        # have Declarations in them
+        node.stmt = self.visit(node.stmt)
+        self.envr = self.envr.parent
+        return node
+
     def visit_Decl(self, node): # pylint: disable=invalid-name
         """Visit Decl nodes so that we can save type information about
         identifiers in the environment."""

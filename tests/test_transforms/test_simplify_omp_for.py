@@ -16,11 +16,11 @@ class TestRemoveCompoundAssignment(GoldenTestCase):
 
     def transform(self, ast):
         """Transform input AST"""
+        id_generator = IDGenerator(ast)
         environments = TypeEnvironmentCalculator().get_environments(ast)
         pre_transformer = PragmaToOmpFor()
         ast = pre_transformer.visit(ast)
-        self.transformer = SimplifyOmpFor(IDGenerator(ast),
-                                          environments)
+        self.transformer = SimplifyOmpFor(id_generator, environments)
         return self.transformer.visit(ast)
 
     def test_remove_compound_assignment(self):
