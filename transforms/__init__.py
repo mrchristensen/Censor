@@ -13,6 +13,8 @@ ForToWhile < WhileToDoWhile
 WhileToDoWhile < DoWhileToGoto
 DoWhileToGoto < LiftToCompoundBlock
 LiftToCompoundBlock < RemoveCompoundAssignment
+PragmaToOmpFor < SimplifyOmpFor
+SimplifyOmpFor < TernaryToIf
 TernaryToIf < InsertExplicitTypeCasts
 TernaryToIf < LiftToCompoundBlock
 RemoveCompoundAssignment < InsertExplicitTypeCasts
@@ -41,9 +43,10 @@ from .omp_single import PragmaToOmpSingle
 from .omp_not_implemented import OmpNotImplemented
 from .remove_compound_assignment import RemoveCompoundAssignment
 from .lift_to_compound_block import LiftToCompoundBlock
-# from .remove_init_lists import RemoveInitLists #implementation incomplete
+from .remove_init_lists import RemoveInitLists
 from .insert_explicit_type_casts import InsertExplicitTypeCasts
 from .single_return import SingleReturn
+from .simplify_omp_for import SimplifyOmpFor
 
 # other imports
 from .id_generator import IDGenerator
@@ -89,16 +92,18 @@ def get_transformers(ast):
     yield (ForToWhile, lambda ast: [])
     yield (WhileToDoWhile, lambda ast: [])
     yield (DoWhileToGoto, lambda ast: [id_generator])
+    yield (SimplifyOmpFor,
+           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
     yield (TernaryToIf,
            lambda ast: [id_generator, type_env_calc.get_environments(ast)])
-    # yield (LiftToCompoundBlock,
-    #        lambda ast: [id_generator, type_env_calc.get_environments(ast)])
+    yield (LiftToCompoundBlock,
+           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
     yield (RemoveCompoundAssignment,
            lambda ast: [id_generator, type_env_calc.get_environments(ast)])
-    # yield (RemoveInitLists,
-    #        lambda ast: [type_env_calc.get_environments(ast)])
-    # yield (InsertExplicitTypeCasts,
-    #        lambda ast: [type_env_calc.get_environments(ast)])
+    yield (RemoveInitLists,
+           lambda ast: [type_env_calc.get_environments(ast)])
+    yield (InsertExplicitTypeCasts,
+           lambda ast: [type_env_calc.get_environments(ast)])
     yield (SingleReturn, lambda ast: [id_generator])
 
 def transform(ast):

@@ -86,6 +86,9 @@ class SimplifyOmpFor(NodeTransformer):
         iter_decl = None
         if isinstance(loop.next, Assignment):
             if len(loop.next.op) == 2:
+                # don't need to worry about side effects because "It is
+                # unspecified whether, in what order, or how many times any
+                # side effects within the lb, b, or incr expressions occur."
                 binop = BinaryOp(loop.next.op[0], loop.next.lvalue,
                                  loop.next.rvalue)
                 loop.next = Assignment("=", loop.next.lvalue, binop)
