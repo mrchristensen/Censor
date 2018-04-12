@@ -101,7 +101,7 @@ def get_transformers(ast):
     yield (RemoveCompoundAssignment,
            lambda ast: [id_generator, type_env_calc.get_environments(ast)])
     yield (RemoveInitLists,
-           lambda ast: [type_env_calc.get_environments(ast)])
+           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
     yield (InsertExplicitTypeCasts,
            lambda ast: [type_env_calc.get_environments(ast)])
     yield (SingleReturn, lambda ast: [id_generator])
