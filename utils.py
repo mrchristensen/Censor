@@ -31,6 +31,7 @@ def sanitize(ast):
         """Sanitizing NodeTransformer"""
         def visit_FileAST(self, node): #pylint: disable=invalid-name, no-self-use
             """Visit the FileAST and remove typedefs included by fake libc"""
+            marks = []
             for i, child in enumerate(node):
                 if isinstance(child, pycparser.c_ast.Pragma) \
                     and "BEGIN" in child.string:
@@ -39,9 +40,14 @@ def sanitize(ast):
                     if end == -1:
                         raise RuntimeError("Could not find ending Pragma!")
 
-                    del node.ext[i:end+1]
-                    break
+                    marks.append((i+1, end+1))
 
+            diff = 0
+            for (begin, end) in marks:
+                begin -= diff
+                end -= diff
+                del node.ext[begin:end]
+                diff += end - begin
 
     Sanitizer().visit(ast)
 
@@ -75,6 +81,6 @@ def preserve_include_find_end(node, start_index):
         if isinstance(child, pycparser.c_ast.Pragma) \
             and "END" in child.string:
 
-            return i
+            return i + start_index
 
     return -1

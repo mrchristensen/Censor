@@ -6,6 +6,8 @@ import difflib
 from os import listdir
 from os.path import join
 from unittest import TestCase
+import copy
+import sys
 import pycparser
 import utils
 from omp.c_with_omp_generator import CWithOMPGenerator
@@ -44,14 +46,20 @@ class RegressionTestCase(TestCase):
         res = _diff_results(expected_out, actual_out)
 
         if res:
+            # Get printable c
+            utils.sanitize(prev_ast)
+            prev_c = self.generator.visit(prev_ast)
+            utils.sanitize(ast)
+            actual_c = self.generator.visit(ast)
             print('Failed!\n', flush=True)
             msg = (
                 "Same output assertion failed\n"
                 + "Before transformation: \n"
-                + self.generator.visit(utils.sanitize(prev_ast))
+                + prev_c
                 + "\nAfter transformation: \n"
-                + self.generator.visit(utils.sanitize(ast))
+                + actual_c
                 + "\nDiff: \n" + res)
+            print(msg, file=sys.stderr)
             raise self.failureException(msg)
 
     def assert_same_output_series(self, fixture):
@@ -76,7 +84,7 @@ class RegressionTestCase(TestCase):
                     end='',
                     flush=True
                 )
-                prev_ast = ast
+                prev_ast = copy.deepcopy(ast)
                 ast = constructor(*deps(ast)).visit(ast)
                 self.assert_same_output_ast(ast, expected_out, prev_ast)
                 print('Good', flush=True)
@@ -99,10 +107,11 @@ class RegressionTestCase(TestCase):
 
             failed = False
             try:
+                prev_ast = copy.deepcopy(ast)
                 ast = transform(ast)
                 # Once the interpreter matures, checking for correct output
                 # can be easily added here
-                self.assert_same_output_ast(ast, expected_out)
+                self.assert_same_output_ast(ast, expected_out, prev_ast)
             except NotImplementedError:
                 print("Transformation failed! Received NotImplementedError!")
                 failed = True
