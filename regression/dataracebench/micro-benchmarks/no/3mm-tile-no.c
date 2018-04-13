@@ -2599,11 +2599,11 @@ static void print_array(int ni,int nl,double G[128 + 0][128 + 0])
   int j;
   for (i = 0; i < ni; i++)
     for (j = 0; j < nl; j++) {
-      fprintf(stderr,"%0.2lf ",G[i][j]);
+      fprintf(stdout,"%0.2lf ",G[i][j]);
       if ((i * ni + j) % 20 == 0)
-        fprintf(stderr,"\n");
+        fprintf(stdout,"\n");
     }
-  fprintf(stderr,"\n");
+  fprintf(stdout,"\n");
 }
 /* Main computational kernel. The whole function will be timed,
    including the call and return. */
@@ -2774,6 +2774,7 @@ int main(int argc,char **argv)
   polybench_timer_stop();
   ;
   // polybench_timer_print();
+  print_array(ni,nl, *G);
   ;
 /* Prevent dead-code elimination. All live-out data must be printed
      by the function call in argument. */

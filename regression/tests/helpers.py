@@ -97,13 +97,15 @@ class RegressionTestCase(TestCase):
 
             expected_out = _run_c(fixture, self.includes, self.add_flags)
 
-            ast = transform(ast)
-
             failed = False
             try:
+                ast = transform(ast)
                 # Once the interpreter matures, checking for correct output
                 # can be easily added here
                 self.assert_same_output_ast(ast, expected_out)
+            except NotImplementedError:
+                print("Transformation failed! Received NotImplementedError!")
+                failed = True
             except AssertionError:
                 failed = True
 
