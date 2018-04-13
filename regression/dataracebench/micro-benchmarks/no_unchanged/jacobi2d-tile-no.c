@@ -51,11 +51,11 @@ static void print_array(int n,double A[500 + 0][500 + 0])
   int j;
   for (i = 0; i < n; i++)
     for (j = 0; j < n; j++) {
-      fprintf(stderr,"%0.2lf ",A[i][j]);
+      fprintf(stdout,"%0.2lf ",A[i][j]);
       if ((i * n + j) % 20 == 0)
-        fprintf(stderr,"\n");
+        fprintf(stdout,"\n");
     }
-  fprintf(stderr,"\n");
+  fprintf(stdout,"\n");
 }
 /* Main computational kernel. The whole function will be timed,
    including the call and return. */
@@ -151,12 +151,12 @@ int main(int argc,char **argv)
 /* Initialize array(s). */
   init_array(n, *A, *B);
 /* Start timer. */
-  polybench_timer_start();
+  // polybench_timer_start();
   ;
 /* Run kernel. */
   kernel_jacobi_2d_imper(tsteps,n, *A, *B);
 /* Stop and print timer. */
-  polybench_timer_stop();
+  // polybench_timer_stop();
   ;
   // polybench_timer_print();
   ;

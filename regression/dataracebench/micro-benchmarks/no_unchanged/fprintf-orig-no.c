@@ -63,7 +63,7 @@ int main(int argc, char* argv[])
   pfile = fopen("mytempfile.txt","a+");
   if (pfile ==NULL)
   {
-    fprintf(stderr,"Error in fopen()\n");
+    fprintf(stdout,"Error in fopen()\n");
   }
 
 #pragma omp parallel for
@@ -76,7 +76,7 @@ int main(int argc, char* argv[])
   ret = remove("mytempfile.txt");
   if (ret != 0)
   {
-    fprintf(stderr, "Error: unable to delete mytempfile.txt\n");
+    fprintf(stdout, "Error: unable to delete mytempfile.txt\n");
   }
   return 0;
 }

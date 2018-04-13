@@ -44,23 +44,24 @@ IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-
 /*
-Example use of firstprivate()
-*/
-void foo(int * a, int n, int g)
-{
-  int i;
-#pragma omp parallel for firstprivate (g)
-  for (i=0;i<n;i++)
-  {
-    a[i] = a[i]+g;
-  }
-}
+One dimension array computation
+with finer granularity than traditional 4 bytes.
 
-int a[100];
+Dynamic tools monitoring 4-bytes elements may wrongfuly report race condition.
+*/
+#include <stdio.h>
+
+char a[100];
 int main()
 {
-  foo(a, 100, 7);
+  int i;
+#pragma omp parallel for
+  for (i=0;i<100;i++)
+    a[i]=a[i]+1;
+
+  for (i=0;i<100;i++)
+    printf("%d ", a[i]);
+
   return 0;
-}  
+}

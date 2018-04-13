@@ -11,10 +11,10 @@
 #include <string.h>
 #include <math.h>
 /* Include polybench common header. */
-#include <polybench.h>
+#include "../utilities/polybench.h"
 /* Include benchmark-specific header. */
 /* Default data type is double, default size is 4000. */
-#include "3mm.h"
+#include "../3mm.h"
 /* Array initialization. */
 
 static void init_array(int ni,int nj,int nk,int nl,int nm,double A[128 + 0][128 + 0],double B[128 + 0][128 + 0],double C[128 + 0][128 + 0],double D[128 + 0][128 + 0])
@@ -2766,12 +2766,12 @@ int main(int argc,char **argv)
 /* Initialize array(s). */
   init_array(ni,nj,nk,nl,nm, *A, *B, *C, *D);
 /* Start timer. */
-  polybench_timer_start();
+  // polybench_timer_start();
   ;
 /* Run kernel. */
   kernel_3mm(ni,nj,nk,nl,nm, *E, *A, *B, *F, *C, *D, *G);
 /* Stop and print timer. */
-  polybench_timer_stop();
+  // polybench_timer_stop();
   ;
   // polybench_timer_print();
   print_array(ni,nl, *G);

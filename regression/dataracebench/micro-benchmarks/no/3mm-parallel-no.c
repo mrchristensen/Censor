@@ -610,12 +610,12 @@ int main(int argc,char **argv)
 /* Initialize array(s). */
   init_array(ni,nj,nk,nl,nm, *A, *B, *C, *D);
 /* Start timer. */
-  polybench_timer_start();
+  // polybench_timer_start();
   ;
 /* Run kernel. */
   kernel_3mm(ni,nj,nk,nl,nm, *E, *A, *B, *F, *C, *D, *G);
 /* Stop and print timer. */
-  polybench_timer_stop();
+  // polybench_timer_stop();
   ;
   // polybench_timer_print();
   // ;

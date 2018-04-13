@@ -44,9 +44,11 @@ IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-/* 
+/*
 Two-dimensional array computation
 */
+#include <stdio.h>
+
 int a[100][100];
 int main()
 {
@@ -55,6 +57,13 @@ int main()
   for (i=0;i<100;i++)
     for (j=0;j<100;j++)
       a[i][j]=a[i][j]+1;
+
+  for (i=0;i<100;i++) {
+    for (j=0;j<100;j++) {
+      printf("%d ", a[i][j]);
+    }
+    printf("\n");
+  }
   return 0;
 }
 

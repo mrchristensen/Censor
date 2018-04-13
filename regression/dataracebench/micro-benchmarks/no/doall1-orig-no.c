@@ -45,17 +45,20 @@ THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 /*
-One dimension array computation
-with finer granularity than traditional 4 bytes.
-
-Dynamic tools monitoring 4-bytes elements may wrongfuly report race condition.
+Simplest one dimension array computation
 */
-char a[100];
+
+#include <stdio.h>
+
+int a[100] = {0};
 int main()
 {
   int i;
-#pragma omp parallel for
+  #pragma omp parallel for
   for (i=0;i<100;i++)
     a[i]=a[i]+1;
+
+  for (i=0;i<100;i++)
+    printf("%d ", a[i]);
   return 0;
-} 
+}

@@ -44,15 +44,27 @@ IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-/* 
-Simplest one dimension array computation
+
+/*
+Example use of firstprivate()
 */
+#include <stdio.h>
+
+void foo(int * a, int n, int g)
+{
+  int i;
+#pragma omp parallel for firstprivate (g)
+  for (i=0;i<n;i++)
+  {
+    a[i] = a[i]+g;
+  }
+}
+
 int a[100];
 int main()
 {
-int i;
-#pragma omp parallel for
-  for (i=0;i<100;i++)
-    a[i]=a[i]+1;
+  foo(a, 100, 7);
+  for (int i = 0; i<100; ++i)
+    printf("%d ", a[i]);
   return 0;
-} 
+}
