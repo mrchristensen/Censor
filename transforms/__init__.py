@@ -73,6 +73,7 @@ def get_transformers(ast):
 
     # Each dependency function must take one argument so that we can easily
     # chain transformations together without worrying about arity.
+    ast.show()
     yield (PragmaToOmpParallelSections, lambda ast: [])
     yield (PragmaToOmpParallelFor, lambda ast: [])
     yield (PragmaToOmpParallel, lambda ast: [])

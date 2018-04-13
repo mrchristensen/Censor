@@ -16,6 +16,7 @@
 #include <sys/resource.h>
 #include <sched.h>
 #include <math.h>
+#include "polybench.h"
 #ifdef _OPENMP
 # include <omp.h>
 #endif

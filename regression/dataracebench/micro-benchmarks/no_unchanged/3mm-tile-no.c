@@ -1,6 +1,6 @@
 /**
  * 3mm.c: This file is part of the PolyBench/C 3.2 test suite.
- * with tiling 16x16 and nested SIMD 
+ * with tiling 16x16 and nested SIMD
  *
  * Contact: Louis-Noel Pouchet <pouchet@cse.ohio-state.edu>
  * Web address: http://polybench.sourceforge.net
@@ -2597,10 +2597,10 @@ static void print_array(int ni,int nl,double G[128 + 0][128 + 0])
 {
   int i;
   int j;
-  for (i = 0; i < ni; i++) 
+  for (i = 0; i < ni; i++)
     for (j = 0; j < nl; j++) {
       fprintf(stderr,"%0.2lf ",G[i][j]);
-      if ((i * ni + j) % 20 == 0) 
+      if ((i * ni + j) % 20 == 0)
         fprintf(stderr,"\n");
     }
   fprintf(stderr,"\n");
@@ -2613,7 +2613,7 @@ static void kernel_3mm(int ni,int nj,int nk,int nl,int nm,double E[128 + 0][128 
   // int i;
   // int j;
   // int k;
-  
+
   //#pragma scop
 {
     int c5;
@@ -2729,7 +2729,7 @@ static void kernel_3mm(int ni,int nj,int nk,int nl,int nm,double E[128 + 0][128 
       }
     }
   }
-  
+
   //#pragma endscop
 }
 
@@ -2773,11 +2773,11 @@ int main(int argc,char **argv)
 /* Stop and print timer. */
   polybench_timer_stop();
   ;
-  polybench_timer_print();
+  // polybench_timer_print();
   ;
 /* Prevent dead-code elimination. All live-out data must be printed
      by the function call in argument. */
-  if (argc > 42 && !strcmp(argv[0],"")) 
+  if (argc > 42 && !strcmp(argv[0],""))
     print_array(ni,nl, *G);
 /* Be clean. */
   free(((void *)E));

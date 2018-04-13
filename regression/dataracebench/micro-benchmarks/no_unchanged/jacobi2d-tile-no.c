@@ -49,10 +49,10 @@ static void print_array(int n,double A[500 + 0][500 + 0])
 {
   int i;
   int j;
-  for (i = 0; i < n; i++) 
+  for (i = 0; i < n; i++)
     for (j = 0; j < n; j++) {
       fprintf(stderr,"%0.2lf ",A[i][j]);
-      if ((i * n + j) % 20 == 0) 
+      if ((i * n + j) % 20 == 0)
         fprintf(stderr,"\n");
     }
   fprintf(stderr,"\n");
@@ -65,7 +65,7 @@ static void kernel_jacobi_2d_imper(int tsteps,int n,double A[500 + 0][500 + 0],d
   //int t;
   //int i;
   //int j;
-  
+
   //#pragma scop
 {
     int c0;
@@ -132,7 +132,7 @@ static void kernel_jacobi_2d_imper(int tsteps,int n,double A[500 + 0][500 + 0],d
       }
     }
   }
-  
+
 //#pragma endscop
 }
 
@@ -158,11 +158,11 @@ int main(int argc,char **argv)
 /* Stop and print timer. */
   polybench_timer_stop();
   ;
-  polybench_timer_print();
+  // polybench_timer_print();
   ;
 /* Prevent dead-code elimination. All live-out data must be printed
      by the function call in argument. */
-  if (argc > 42 && !strcmp(argv[0],"")) 
+  if (argc > 42 && !strcmp(argv[0],""))
     print_array(n, *A);
 /* Be clean. */
   free(((void *)A));

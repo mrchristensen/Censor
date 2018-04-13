@@ -21,5 +21,4 @@ class TestDataRaceBench(RegressionTestCase): #pylint: disable=no-name-in-module
     def test_all(self):
         """ Assert same output for non-omp and omp transformations.
         """
-        self.assert_individual_non_omp()
-        self.assert_all_omp()
+        self.assert_end_result_same()
