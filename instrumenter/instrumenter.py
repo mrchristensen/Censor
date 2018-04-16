@@ -1,8 +1,14 @@
 """Instrumenter class for traversing anc instrumenting an AST"""
+from pycparser.c_ast import ID, ArrayDecl, ArrayRef, Constant
 from omp.clause import Reduction, FirstPrivate, LastPrivate
 from transforms.lift_node import LiftNode
 from transforms.helpers import ensure_compound
+from transforms.type_helpers import get_type
 from .logger import Logger
+
+def array_ref(name, subscript):
+    """Return an ArrayRef AST object"""
+    return ArrayRef(ID(name), Constant('int', str(subscript)))
 
 class Instrumenter(LiftNode): #pylint: disable=too-many-public-methods
     """Instrumenter class"""
@@ -10,23 +16,48 @@ class Instrumenter(LiftNode): #pylint: disable=too-many-public-methods
         super().__init__(id_generator, environments)
         self.registry = Logger()
 
+    def ids_to_nodes(self, id_strs):
+        """Convert a list of ids to a list of AST ID nodes expanding
+        Array ids to an ID for every element"""
+        nodes = []
+        for id_str in id_strs:
+            typ = get_type(id_str, self.envr)
+            if isinstance(typ, ArrayDecl):
+                indexes = range(0, int(typ.dim.value))
+                nodes.extend([array_ref(id_str, i) for i in indexes])
+            else:
+                nodes.append(ID(id_str))
+        return nodes
+
+    def register_implicit_references(self, omp_node, clauses):
+        """Instrument AST with function calls to register implicit
+        reads and writes made by clauses"""
+        refs = []
+        if hasattr(omp_node, 'clauses'):
+            for clause in omp_node.clauses:
+                if isinstance(clause, clauses):
+                    refs.extend(self.ids_to_nodes(clause.ids))
+        return refs
+
     def register_implicit_reads(self, omp_node):
         """Instrument AST with a list of AST objects to register implicit
         reads made by OpenMP clauses on the omp node"""
-        if hasattr(omp_node, 'clauses'):
-            for clause in omp_node.clauses:
-                if isinstance(clause, (Reduction, FirstPrivate)):
-                    refs = [self.registry.register_read(r) for r in clause.ids]
-                    self.insert_into_scope(*refs)
+        refs = self.register_implicit_references(
+            omp_node,
+            (Reduction, FirstPrivate)
+            )
+        refs = [self.registry.register_read(r) for r in refs]
+        self.insert_into_scope(*refs)
 
     def register_implicit_writes(self, omp_node):
         """Instrument AST with a list of AST objects to register implicit
         writes made by OpenMP clauses on the omp node"""
-        if hasattr(omp_node, 'clauses'):
-            for clause in omp_node.clauses:
-                if isinstance(clause, (LastPrivate, Reduction)):
-                    refs = [self.registry.register_write(w) for w in clause.ids]
-                    self.append_to_scope(*refs)
+        refs = self.register_implicit_references(
+            omp_node,
+            (Reduction, LastPrivate)
+            )
+        refs = [self.registry.register_write(r) for r in refs]
+        self.append_to_scope(*refs)
 
     def instrument_omp(self, block, construct):
         """Add sandwiching log statements at the beginning and end of an omp
