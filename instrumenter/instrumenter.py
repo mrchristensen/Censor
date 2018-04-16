@@ -1,4 +1,5 @@
 """Instrumenter class for traversing anc instrumenting an AST"""
+from omp.clause import Reduction, FirstPrivate, LastPrivate
 from transforms.lift_node import LiftNode
 from transforms.helpers import ensure_compound
 from .logger import Logger
@@ -7,20 +8,38 @@ class Instrumenter(LiftNode): #pylint: disable=too-many-public-methods
     """Instrumenter class"""
     def __init__(self, id_generator, environments):
         super().__init__(id_generator, environments)
-        self.logger = Logger()
+        self.registry = Logger()
+
+    def register_implicit_reads(self, omp_node):
+        """Instrument AST with a list of AST objects to register implicit
+        reads made by OpenMP clauses on the omp node"""
+        if hasattr(omp_node, 'clauses'):
+            for clause in omp_node.clauses:
+                if isinstance(clause, (Reduction, FirstPrivate)):
+                    refs = [self.registry.register_read(r) for r in clause.ids]
+                    self.insert_into_scope(*refs)
+
+    def register_implicit_writes(self, omp_node):
+        """Instrument AST with a list of AST objects to register implicit
+        writes made by OpenMP clauses on the omp node"""
+        if hasattr(omp_node, 'clauses'):
+            for clause in omp_node.clauses:
+                if isinstance(clause, (LastPrivate, Reduction)):
+                    refs = [self.registry.register_write(w) for w in clause.ids]
+                    self.append_to_scope(*refs)
 
     def instrument_omp(self, block, construct):
         """Add sandwiching log statements at the beginning and end of an omp
         structured block"""
         block = ensure_compound(block)
-        block.block_items.insert(0, self.logger.register_omp_enter(construct))
-        block.block_items.append(self.logger.register_omp_exit(construct))
+        block.block_items.insert(0, self.registry.register_omp_enter(construct))
+        block.block_items.append(self.registry.register_omp_exit(construct))
         return block
 
     def visit_FileAST(self, node): #pylint: disable=invalid-name
         """visit_FileAST"""
         node = self.generic_visit(node)
-        return self.logger.embed_definitions(node)
+        return self.registry.embed_definitions(node)
 
     def visit_OmpParallel(self, node): #pylint: disable=invalid-name
         """visit_OmpParallel"""
@@ -31,8 +50,10 @@ class Instrumenter(LiftNode): #pylint: disable=too-many-public-methods
     def visit_OmpFor(self, node): #pylint: disable=invalid-name
         """visit_OmpFor"""
         node = self.generic_visit(node)
-        self.insert_into_scope(self.logger.register_omp_enter('for'))
-        self.append_to_scope(self.logger.register_omp_exit('for'))
+        self.register_implicit_reads(node)
+        self.insert_into_scope(self.registry.register_omp_enter('for'))
+        self.append_to_scope(self.registry.register_omp_exit('for'))
+        self.register_implicit_writes(node)
         return node
 
     def visit_OmpSections(self, node): #pylint: disable=invalid-name

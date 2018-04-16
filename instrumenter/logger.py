@@ -31,7 +31,7 @@ class Logger(InstrumentingStrategy):
             pycparser.c_ast.ID(self.log_heap_def.decl.name),
             pycparser.c_ast.ExprList([
                 pycparser.c_ast.Constant('string', '"' + mode + '"'),
-                pycparser.c_ast.ID(var),
+                pycparser.c_ast.UnaryOp('&', pycparser.c_ast.ID(var)),
                 pycparser.c_ast.FuncCall(
                     pycparser.c_ast.ID('omp_get_thread_num'),
                     None

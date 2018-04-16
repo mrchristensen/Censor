@@ -19,37 +19,37 @@ class LiftNode(NodeTransformer):
 
     def __init__(self, id_generator, environments):
         self.index = 0
-        self.inserts = []
+        self.block_items = []
         self.environments = environments
         self.envr = environments["GLOBAL"]
         self.id_generator = id_generator
 
     def insert_into_scope(self, *nodes):
         """Insert nodes into scope above current index"""
-        self.inserts.insert(0, (self.index, nodes))
+        self.block_items.insert(0, (self.index, nodes))
 
     def append_to_scope(self, *nodes):
         """Append nodes to scope below current index"""
-        self.inserts.insert(0, (self.index + 1, nodes))
+        self.block_items.insert(0, (self.index + 1, nodes))
 
     def visit_Compound(self, node): # pylint: disable=invalid-name
         """Visit scope"""
-        parent_inserts = self.inserts
-        self.inserts = []
-        parent_env = self.envr
+        block_items = self.block_items
+        self.block_items = []
+        envr = self.envr
         self.envr = self.environments[node]
         if node.block_items is not None:
             for i, item in enumerate(node.block_items):
                 self.index = i
                 item = self.visit(item)
         self.index = 0
-        if self.inserts and node.block_items is None:
-            raise ValueError
-        for i, inserts in self.inserts:
+        offset = 0
+        for i, items in self.block_items:
             if i < len(node.block_items):
-                node.block_items[i:i] = inserts
+                node.block_items[i:i] = items
             else:
-                node.block_items.extend(inserts)
-        self.inserts = parent_inserts
-        self.envr = parent_env
+                node.block_items.extend(items)
+            offset += len(items)
+        self.block_items = block_items
+        self.envr = envr
         return node
