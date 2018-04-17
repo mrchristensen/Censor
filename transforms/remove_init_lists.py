@@ -163,6 +163,8 @@ def flatten_array_init(decl):
     """Takes a Decl with an initializer list, returns a list of assignment
     nodes that take care of the initialization."""
     inits = []
+    if decl.init is None:
+        return inits
     for i, init in enumerate(decl.init.exprs):
         if not is_constant_expression(init):
             decl.show()
