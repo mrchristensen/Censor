@@ -4,7 +4,7 @@ from pycparser.c_ast import While, Compound, Constant, DoWhile, DeclList
 from pycparser.c_ast import Assignment, ExprList
 from omp.clause import Collapse, Ordered
 from .node_transformer import NodeTransformer
-from .helpers import append_statement
+from .helpers import append_statement, ensure_compound
 
 _ERROR_MESSAGE = """Handling the 'collapse' and 'ordered' clauses is not
 yet implemented. These clauses change which for loops are being parallelized
@@ -22,7 +22,7 @@ class ForToWhile(NodeTransformer):
         loops that may be nested inside it."""
         if any(isinstance(x, (Collapse, Ordered)) for x in node.clauses):
             raise NotImplementedError(_ERROR_MESSAGE)
-        node.loops.stmt = self.generic_visit(node.loops.stmt)
+        node.loops.stmt = ensure_compound(self.generic_visit(node.loops.stmt))
         return node
 
     def visit_For(self, node): #pylint: disable=invalid-name
