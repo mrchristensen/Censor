@@ -1,7 +1,7 @@
 """Makes all typecasts explicit"""
 from pycparser.c_ast import Cast, TypeDecl, PtrDecl, ArrayDecl, FuncDecl
 from pycparser.c_ast import InitList, Constant, Struct, ID, EllipsisParam
-# from .helpers import IncorrectTransformOrder
+from .helpers import IncorrectTransformOrder
 from .node_transformer import NodeTransformer
 from .type_helpers import Side, get_type, resolve_types, cast_if_needed
 from .type_helpers import remove_identifier
@@ -77,23 +77,18 @@ class InsertExplicitTypeCasts(NodeTransformer):
 
     def handle_assignment(self, type_node, rvalue):
         """Handle type cast upon assignment whether part of a Decl or not."""
+        ril_error_message = "RemoveInitLists must be done first."
 
         rvalue = self.generic_visit(rvalue)
 
         if isinstance(type_node, TypeDecl) and \
             isinstance(type_node.type, Struct):
-            # TODO: uncomment once RemoveInitLists is implemented
-            # raise IncorrectTransformOrder(
-            #   "RemoveInitLists must be done first.", node)
-            pass
+            raise IncorrectTransformOrder(ril_error_message, rvalue)
         elif isinstance(type_node, (TypeDecl, PtrDecl)):
             rvalue = cast_if_needed(type_node, self.visit(rvalue), self.env)
         elif isinstance(type_node, ArrayDecl):
             if isinstance(rvalue, InitList):
-                # TODO: uncomment once RemoveInitLists is implemented
-                # raise IncorrectTransformOrder(
-                #   "RemoveInitLists must be done first.", node)
-                pass
+                raise IncorrectTransformOrder(ril_error_message, rvalue)
             elif isinstance(rvalue, Constant):
                 # TODO: figure out what to do with cases like
                 # char wow[100] = "wow"; where an array is initialized
