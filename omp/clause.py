@@ -366,3 +366,44 @@ class Threadprivate():
     def __iter__(self):
         if self.ids is not None:
             yield self.ids
+
+class Safelen():
+    """ Safelen
+        length
+
+        Syntax: safelen(length)
+    """
+    def __init__(self, length):
+        self.length = length
+
+class Simdlen():
+    """ Simdlen
+        length
+
+        Syntax: simdlen(length)
+    """
+    def __init__(self, length):
+        self.length = length
+
+class Linear():
+    """ Linear
+        list
+
+        Syntax: linear(list[ : [linear-step] ])
+    """
+    def __init__(self, list_type):
+        self.list = list_type
+
+class Aligned():
+    """ Aligned
+        list
+
+        Syntax: aligned(list[ : alignment ])
+    """
+    def __init__(self, *ids):
+        """"""
+        self.ids = list(ids)
+
+    def __iter__(self):
+        if self.ids is not None:
+            yield self.ids

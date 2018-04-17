@@ -112,8 +112,9 @@ class RegressionTestCase(TestCase):
                 # Once the interpreter matures, checking for correct output
                 # can be easily added here
                 self.assert_same_output_ast(ast, expected_out, prev_ast)
-            except NotImplementedError:
-                print("Transformation failed! Received NotImplementedError!")
+            except NotImplementedError as err:
+                print("Transformation failed! Received NotImplementedError! ")
+                print(str(err))
                 failed = True
             except AssertionError:
                 failed = True

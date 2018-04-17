@@ -40,6 +40,7 @@ from .omp_barrier import PragmaToOmpBarrier
 from .omp_atomic import PragmaToOmpAtomic
 from .omp_master import PragmaToOmpMaster
 from .omp_single import PragmaToOmpSingle
+from .omp_simd import PragmaToOmpSimd
 from .omp_not_implemented import OmpNotImplemented
 from .remove_compound_assignment import RemoveCompoundAssignment
 from .lift_to_compound_block import LiftToCompoundBlock
@@ -87,6 +88,7 @@ def get_transformers(ast):
     yield (PragmaToOmpAtomic, lambda ast: [])
     yield (PragmaToOmpMaster, lambda ast: [])
     yield (PragmaToOmpSingle, lambda ast: [])
+    yield (PragmaToOmpSimd, lambda ast: [])
     yield (OmpNotImplemented, lambda ast: [])
     yield (IfToIfGoto, lambda ast: [id_generator])
     yield (ForToWhile, lambda ast: [])
