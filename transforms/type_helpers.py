@@ -54,6 +54,9 @@ def cast_if_needed(type_node, expr, env):
         expr_type = get_type(expr, env)
         if resolve_types(type_node, expr_type) == Side.NOCAST:
             return expr
+    elif isinstance(type_node, ArrayDecl):
+        # Cannot cast to array type
+        return expr
     return Cast(type_node, expr)
 
 def remove_identifier(node):

@@ -101,7 +101,7 @@ class RemoveInitLists(NodeTransformer):
         func_name = self.id_generator.get_unique_id() + "_INIT_GLOBALS"
         func_type = TypeDecl(func_name, [], IdentifierType(["void"]))
         init_globals_decl = Decl(func_name, [], [], [],
-                                 FuncDecl(None, func_type), None, None)
+                                 FuncDecl(ParamList([]), func_type), None, None)
         init_globals_def = FuncDef(init_globals_decl, [], Compound([]))
         init_globals_call = FuncCall(ID(func_name), ExprList([]))
 
