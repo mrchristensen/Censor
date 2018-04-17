@@ -6,7 +6,7 @@ from transforms.node_transformer import NodeTransformer
 def ensure_compound(node):
     """Wrap an AST node in a compound block if necessary"""
     if node is None:
-        return Compound([])
+        return None
     elif isinstance(node, Compound):
         if node.block_items is None:
             node.block_items = []

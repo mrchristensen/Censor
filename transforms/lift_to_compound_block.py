@@ -53,24 +53,21 @@ is a Compound block.
 """
 
 from copy import deepcopy
-from pycparser.c_ast import Compound, UnaryOp, ID, Assignment
+import pycparser.c_ast as AST
 from .lift_node import LiftNode
 from .type_helpers import make_temp_ptr, make_temp_value
 
 class LiftToCompoundBlock(LiftNode):
     """LiftToCompoundBlock Transform"""
 
+    def visit_FuncDecl(self, node): # pylint: disable=invalid-name,no-self-use
+        """Leave function definitions alone"""
+        return node
 
-    def __init__(self, id_generator, environments):
-        super().__init__(id_generator, environments)
-        self.ptr_class_names = [
-            'StructRef',
-            'ArrayRef'
-        ]
-        self.value_class_names = [
-            'BinaryOp',
-            # 'FuncCall'
-        ]
+    def visit_For(self, node): # pylint: disable=invalid-name
+        """Leave For conditions alone"""
+        node.stmt = self.visit(node.stmt)
+        return node
 
     def generic_visit(self, node):
         for field in node.__class__.__slots__:
@@ -81,23 +78,22 @@ class LiftToCompoundBlock(LiftNode):
                 old_value[:] = self.visit_list(old_value)
             elif self.is_node(old_value):
                 node = self.visit_node(node, field, old_value)
-            if not isinstance(node, Compound):
+            if not isinstance(node, AST.Compound):
                 node = self.lift_field(node, field)
         return node
 
     def lift_field(self, node, field):
         """Lift field value to compound block if necessary"""
         value = getattr(node, field, None)
-        klass = value.__class__.__name__
-        if klass in self.ptr_class_names:
+        if isinstance(value, (AST.StructRef, AST.ArrayRef)):
             return self.lift_to_ptr(node, field, value)
-        elif isinstance(value, UnaryOp):
+        elif isinstance(value, AST.UnaryOp):
             return self.lift_unaryop(node, field, value)
-        elif isinstance(value, Assignment):
+        elif isinstance(value, AST.Assignment):
             return self.lift_assignment(node, field, value)
-        elif isinstance(node, Assignment):
+        elif isinstance(node, AST.Assignment):
             return node
-        elif klass in self.value_class_names:
+        elif isinstance(value, AST.BinaryOp): #TODO: FuncCall
             return self.lift_to_value(node, field, value)
 
         return node
@@ -107,7 +103,7 @@ class LiftToCompoundBlock(LiftNode):
         decl = make_temp_ptr(value, self.id_generator, self.envr)
         self.insert_into_scope(decl)
         self.envr.add(decl.name, decl.type)
-        ref = UnaryOp('*', ID(decl.name))
+        ref = AST.UnaryOp('*', AST.ID(decl.name))
         setattr(node, field, ref)
         return node
 
@@ -116,7 +112,7 @@ class LiftToCompoundBlock(LiftNode):
         decl = make_temp_value(value, self.id_generator, self.envr)
         self.insert_into_scope(decl)
         self.envr.add(decl.name, decl.type)
-        ref = ID(decl.name)
+        ref = AST.ID(decl.name)
         setattr(node, field, ref)
         return node
 

@@ -15,6 +15,7 @@ DoWhileToGoto < LiftToCompoundBlock
 LiftToCompoundBlock < RemoveCompoundAssignment
 PragmaToOmpFor < SimplifyOmpFor
 SimplifyOmpFor < TernaryToIf
+TernaryToIf < IfToIfGoto
 TernaryToIf < InsertExplicitTypeCasts
 TernaryToIf < LiftToCompoundBlock
 RemoveCompoundAssignment < InsertExplicitTypeCasts
@@ -90,14 +91,14 @@ def get_transformers(ast):
     yield (PragmaToOmpSingle, lambda ast: [])
     yield (PragmaToOmpSimd, lambda ast: [])
     yield (OmpNotImplemented, lambda ast: [])
-    yield (IfToIfGoto, lambda ast: [id_generator])
-    yield (ForToWhile, lambda ast: [])
-    yield (WhileToDoWhile, lambda ast: [])
-    yield (DoWhileToGoto, lambda ast: [id_generator])
     yield (SimplifyOmpFor,
            lambda ast: [id_generator, type_env_calc.get_environments(ast)])
     yield (TernaryToIf,
            lambda ast: [id_generator, type_env_calc.get_environments(ast)])
+    yield (IfToIfGoto, lambda ast: [id_generator])
+    yield (ForToWhile, lambda ast: [])
+    yield (WhileToDoWhile, lambda ast: [])
+    yield (DoWhileToGoto, lambda ast: [id_generator])
     yield (LiftToCompoundBlock,
            lambda ast: [id_generator, type_env_calc.get_environments(ast)])
     yield (RemoveCompoundAssignment,
