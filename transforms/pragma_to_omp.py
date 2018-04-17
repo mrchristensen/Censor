@@ -16,7 +16,7 @@ class PragmaToOmp(NodeTransformer):
         self.pattern = pattern
         self.str_to_clause_type = str_to_clause_type
         self.structured_block = structured_block
-        pattern = r'(\w+\((?:[\w+-\\*\\|\\^&]+:\s*)?\w+(?:,\s*\w+)*\)|\w+)'
+        pattern = r'(\w+\s*\((?:[\w+-\\*\\|\\^&]+:\s*)?\w+(?:,\s*\w+)*\)|\w+)'
         self.clause_pattern = re.compile(pattern)
 
     def filter_clause_str(self, pragma_string):
