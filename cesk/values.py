@@ -144,7 +144,9 @@ class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
 
     def dereference(self):
         """Reads the address the pointer points to and returns value"""
-        return self.holding_stor.read_refactor(self.address)
+        if self.address == 0:
+            raise Exception("SegFault")
+        return self.holding_stor.read(self.address)
 
     def index(self, stor, list_of_index):
         """Reads the address with a given offset from the pointer"""
@@ -178,23 +180,24 @@ class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
 class Array(ReferenceValue):
     """Concrete implementation of an Array of data"""
 
-    def __init__(self, start_address, list_of_sizes):
+    def __init__(self, start_address, list_of_sizes, stor):
         if not isinstance(start_address, ReferenceValue):
             raise Exception("start_address should be Pointer not " +
                             str(start_address));
         self.start_address = start_address
         self.list_of_sizes = list_of_sizes
+        self.stor = stor
 
-    def dereference(self, stor):
+    def dereference(self):
         """Reads the first item of the array"""
-        return stor.read(self.start_address)
+        return self.start_address.dereference()
 
     def index(self, stor, list_of_index):
         """Gets the object at a given index of an array. A[1][2]...[n]"""
         address = self.index_for_address(list_of_index)
         if len(self.list_of_sizes) > len(list_of_index):
             remaining_sizes = self.list_of_sizes[-len(list_of_index):]
-            return generate_array(address, remaining_sizes)
+            return generate_array(address, remaining_sizes, self.stor)
 
         return address.dereference()
 
@@ -228,9 +231,12 @@ def generate_pointer_value(address, stor):
     """Given a address (int) package it into a pointer"""
     return Pointer(address, stor)
 
-def generate_array(start_address, list_of_sizes):
+def generate_null_pointer():
+    return Pointer(0, None)
+
+def generate_array(start_address, list_of_sizes, stor):
     #TODO this does not properly handle graph based stor
-    return Array(start_address, list_of_sizes)
+    return Array(start_address, list_of_sizes, stor)
 
 def cast(value, typedeclt): #pylint: disable=unused-argument
     """Casts the given value a  a value of the given type."""

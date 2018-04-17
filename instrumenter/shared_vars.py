@@ -83,8 +83,13 @@ class DeclVisitor(NodeVisitor):
 
     def visit_Assignment(self, node): # pylint: disable=invalid-name
         """Remove an ID from locals if it is assigned to a shared variable"""
+<<<<<<< a2a4438cb8b2e33f90568963847990f3a89f4b90
         #if self.node_is_private(node.lvalue) \
         #        and not self.node_is_private(node.rvalue):
+=======
+        #if self.node_is_private(node.lvalue) and
+        #   not self.node_is_private(node.rvalue):
+>>>>>>> CESK: Function Calls now passing tests
         #    self.locals.remove(node.lvalue.name)
         #    self.whitelist.remove(node.lvalue.name)
         pass

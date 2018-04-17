@@ -12,7 +12,7 @@ def main(ast):
     main_function = find_main(ast)[0]
 
     start_ctrl = Ctrl(main_function.body)
-    halt_state = State(start_ctrl, Envr(), Stor(), Halt())
+    halt_state = State(start_ctrl, Envr.get_global_scope(), Stor(), Halt())
     start_state = State(halt_state.ctrl, halt_state.envr, halt_state.stor,
                         FunctionKont(halt_state))
     queue = deque([start_state])

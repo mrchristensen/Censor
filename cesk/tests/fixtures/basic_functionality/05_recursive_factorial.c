@@ -5,7 +5,8 @@ int factorial(int n) {
         return 1;    
     }
     else {
-        return n*factorial(n-1);
+        int censor0 = n-1;
+        return n*factorial(censor0);
     }    
 }
 

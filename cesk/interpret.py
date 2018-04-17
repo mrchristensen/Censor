@@ -5,11 +5,12 @@ from cesk.values import ReferenceValue, generate_constant_value
 from cesk.values import generate_array
 
 class LinkSearch(pycparser.c_ast.NodeVisitor):
-    """NodeTransformer to link children nodes to parents"""
+    """Holds vareious look-up-tables for functions, lablels, etc."""
     parent_lut = {}
     index_lut = {}
     label_lut = {}
     envr_lut = {}
+    function_lut = {}
 
     def generic_visit(self, node):
 
@@ -17,6 +18,10 @@ class LinkSearch(pycparser.c_ast.NodeVisitor):
             if node.name in LinkSearch.label_lut:
                 raise Exception("Duplicate label name")
             LinkSearch.label_lut[node.name] = node
+
+        if isinstance(node, pycparser.c_ast.FuncDef):
+            name = node.decl.name
+            LinkSearch.function_lut[name] = node
 
         for i, child in enumerate(node):
             if isinstance(child, pycparser.c_ast.Node):
@@ -118,11 +123,8 @@ def execute(state):
         # TODO
         #print("Compound")
         new_ctrl = Ctrl(0, stmt)
-        if stmt in LinkSearch.envr_lut:
-            new_envr = LinkSearch.envr_lut[stmt]
-        else:
-            new_envr = Envr(state.envr) #make blank env at head of linked list
-            LinkSearch.envr_lut[stmt] = new_envr
+        new_envr = Envr(state.envr)
+        LinkSearch.envr_lut[stmt] = new_envr #save to table for goto lookup
         if stmt.block_items is None:
             successors.append(get_next(state))
         else:
@@ -147,7 +149,15 @@ def execute(state):
     elif isinstance(stmt, pycparser.c_ast.Decl):
         # TODO
         #print("Decl")
-        successors.append(handle_decl(stmt, state))
+        handle_decl(stmt, state)
+        if stmt.init is not None:
+            new_address = state.envr.get_address(stmt.name)
+            new_state = handle_assignment("=", new_address, stmt.init, state)
+            successors.append(new_state)
+        elif isinstance(state.kont, FunctionKont): #dont return to function
+            successors.append(get_next(state))
+        else:
+            successors.append(state.kont.satisfy(state))
     elif isinstance(stmt, pycparser.c_ast.DeclList):
         # TODO
         #print("DeclList")
@@ -205,9 +215,52 @@ def execute(state):
             address = state.envr.get_address(id_to_print)
             value = address.dereference()
             print(value.data)
+            successors.append(get_next(state))
+
         else:
-            print(stmt.name.name)
-        successors.append(get_next(state))
+            if not stmt.name.name in LinkSearch.function_lut:
+                raise Exception("Undefined reference to " + stmt.name.name)
+            else:
+                func_def = LinkSearch.function_lut[stmt.name.name]
+                if func_def.decl.type.args is None:
+                    param_list = []
+                else:
+                    param_list = func_def.decl.type.args.params
+                if stmt.args is None:
+                    expr_list = []
+                else:
+                    expr_list = stmt.args.exprs
+
+                if len(expr_list) != len(param_list):
+                    raise Exception("Function " + stmt.name.name +
+                                    " expected " +
+                                    str(len(param_list)) +
+                                    " parameters but received " +
+                                    str(len(expr_list)))
+
+
+                new_ctrl = Ctrl(0, func_def.body)
+                new_envr = Envr(Envr.get_global_scope())
+                new_state = State(new_ctrl, new_envr, state.stor, state.kont)
+
+                for decl, expr in zip(param_list, expr_list):
+                    new_state = handle_decl(decl, new_state)
+                    new_address = new_state.envr.get_address(decl.name)
+                    if isinstance(expr, pycparser.c_ast.Constant):
+                        value = generate_constant_value(expr.value)
+                    elif isinstance(expr, pycparser.c_ast.ID):
+                        address = state.envr.get_address(expr.name)
+                        value = address.dereference()
+                    else:
+                        raise Exception("Values passed to functions must be " +
+                                        "Constant or ID not " + str(expr))
+                    new_state.stor.write(new_address, value)
+
+                new_kont = FunctionKont(state)
+                successors.append(State(new_ctrl,
+                                        new_state.envr,
+                                        new_state.stor,
+                                        new_kont))
     elif isinstance(stmt, pycparser.c_ast.FuncDecl):
         # TODO
         #print("FuncDecl")
@@ -225,9 +278,11 @@ def execute(state):
             index = LinkSearch.index_lut[body]
             body = LinkSearch.parent_lut[body]
         new_ctrl = Ctrl(index, body)
-        new_envr = state.envr
         if body in LinkSearch.envr_lut:
             new_envr = LinkSearch.envr_lut[body]
+        else:
+            new_envr = state.envr
+            raise Exception("Need to make decisions on scope of forward jump")
         successors.append(State(new_ctrl, new_envr, state.stor, state.kont))
     elif isinstance(stmt, pycparser.c_ast.ID):
         # TODO
@@ -258,10 +313,6 @@ def execute(state):
     elif isinstance(stmt, pycparser.c_ast.Label):
         # TODO
         #print("Label")
-        body = stmt
-        while not isinstance(body, pycparser.c_ast.Compound):
-            body = LinkSearch.parent_lut[body]
-        LinkSearch.envr_lut[body] = state.envr
         new_ctrl = Ctrl(stmt.stmt)
         successors.append(State(new_ctrl, state.envr, state.stor, state.kont))
     elif isinstance(stmt, pycparser.c_ast.NamedInitializer):
@@ -353,12 +404,7 @@ def handle_decl(decl, state):
                                pycparser.c_ast.PtrDecl))):#pointers are ints
         new_address = state.stor.get_next_address()
         state.envr.map_new_identifier(name, new_address)
-        exp = decl.init
-        if exp is not None:
-            return handle_assignment("=", new_address, exp, state)
-        if isinstance(state.kont, FunctionKont): #dont return to function
-            return get_next(state)
-        return state.kont.satisfy(state)
+        return state
 
     elif isinstance(decl.type, pycparser.c_ast.ArrayDecl):
         ref_address = handle_decl_array(decl.type, [], state)
@@ -367,10 +413,7 @@ def handle_decl(decl, state):
             ## TODO if init evaluates to an address don't allocate just
             # assign
             raise Exception("array init not yet implemented")
-        if isinstance(state.kont, FunctionKont): #dont return to function
-            return get_next(state)
-        return state.kont.satisfy(state)
-
+        return state
     else:
         raise Exception("Declarations of " + str(decl.type) +
                         " are not yet implemented")
@@ -383,19 +426,19 @@ def handle_decl_array(array, list_of_sizes, state):
         size = generate_constant_value(array.dim.value).data
         if size < 1:
             raise Exception("Non-positive Array Sizes are not supported")
-        list_of_sizes.insert(0, size)
+        list_of_sizes.append(size)
         return handle_decl_array(array.type, list_of_sizes, state)
 
     elif isinstance(array.type, pycparser.c_ast.TypeDecl):
         size = generate_constant_value(array.dim.value).data
         if size < 1:
             raise Exception("Non-positive Array Sizes are not supported")
-        list_of_sizes.insert(0, size)
+        list_of_sizes.append(size)
         ref_address = state.stor.get_next_address()
         length = reduce(lambda x, y: x*y, list_of_sizes)
-        data_address = state.stor.allocate_array(length)
-        state.stor.write(ref_address,
-                         generate_array(data_address, list_of_sizes))
+        data_address = state.stor.allocate_block(length)
+        new_array = generate_array(data_address, list_of_sizes, state.stor)
+        state.stor.write(ref_address, new_array)
         return ref_address
     else:
         raise Exception("Declarations of " + str(array.type) +
@@ -462,28 +505,51 @@ def get_next(state): #pylint: disable=inconsistent-return-statements
               "is not implemented. Defaulting to 0")
         state.kont.satisfy(state, generate_constant_value("0"))
 
-    if ctrl.body is not None and ctrl.index + 1 < len(ctrl.body.block_items):
-        new_ctrl = ctrl + 1
-        return State(new_ctrl, state.envr, state.stor, state.kont)
+    if ctrl.body is not None: #if a standard compound block index type ctrl
+        if ctrl.index + 1 < len(ctrl.body.block_items):
+            #if there are more items in the compound block just move on
+            new_ctrl = ctrl + 1
+            return State(new_ctrl, state.envr, state.stor, state.kont)
+        else:
+            #if we are falling of the end of a compound block
+            parent = LinkSearch.parent_lut[ctrl.body]
+            if parent is None:
+                #we are falling off and there is no parent block
+                #this is an end of a function call. Satify kont.
+                if isinstance(state.kont, VoidKont):
+                    return state.kont.satisfy()
+                else:
+                    raise Exception("Excpected Return Statememnt")
+
+            elif isinstance(parent, pycparser.c_ast.Compound):
+                #find our position in the parent compound block
+                parent_index = LinkSearch.index_lut[ctrl.body]
+                new_ctrl = Ctrl(parent_index, parent)
+                new_envr = state.envr.parent #fall off: return to parent scope
+
+            else:
+                #if the parent is not a compound (probably an if statment)
+                new_ctrl = Ctrl(parent) #make a special ctrl and try again
+                new_envr = state.envr
+
+            return get_next(State(new_ctrl, new_envr, state.stor, state.kont))
+
 
     if ctrl.node is not None:
+        #if it is a special ctrl as created by binop or assign
+        #try to convert to normal ctrl and try agiain
         parent = LinkSearch.parent_lut[ctrl.node]
-        parent_index = LinkSearch.index_lut[ctrl.node]
-    else:
-        parent = LinkSearch.parent_lut[ctrl.body]
-        parent_index = LinkSearch.index_lut[ctrl.body]
+        if isinstance(parent, pycparser.c_ast.Compound):
+            #we found the compound we can create normal ctrl
+            parent_index = LinkSearch.index_lut[ctrl.node]
+            new_ctrl = Ctrl(parent_index, parent)
+        else:
+            #we couldn't make a normal try again on parent
+            new_ctrl = Ctrl(parent)
+        return get_next(State(new_ctrl, state.envr, state.stor, state.kont))
 
-    while not isinstance(parent, pycparser.c_ast.Compound):
-        parent_index = LinkSearch.index_lut[parent]
-        parent = LinkSearch.parent_lut[parent]
-        if parent is None:
-            if isinstance(state.kont, VoidKont):
-                return state.kont.satisfy()
-            else:
-                raise Exception("Excpected Return Statememnt")
-    parent_ctrl = Ctrl(parent_index, parent)
-    new_envr = LinkSearch.envr_lut[parent] #set environment to parent scope
-    return get_next(State(parent_ctrl, new_envr, state.stor, state.kont))
+    raise Exception("unreachable Code?")
+
 
 # imports are down here to allow for circular dependencies between
 # structures.py and interpret.py

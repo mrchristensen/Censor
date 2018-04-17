@@ -3,7 +3,8 @@
 import copy
 import sys
 import pycparser
-from cesk.values import ReferenceValue, generate_default_value, generate_pointer_value
+from cesk.values import ReferenceValue, generate_default_value
+from cesk.values import generate_pointer_value, generate_null_pointer
 # from cesk.interpret import execute #pylint:disable=all
 
 def throw(string, state=None, exit_code=0):
@@ -11,11 +12,6 @@ def throw(string, state=None, exit_code=0):
        state.ctrl.stmt().show() 
     print(string)
     exit(exit_code)
-
-class bcolors:
-    BLUE = '\033[94m'
-    GREEN = '\033[92m'
-    RED = '\033[93m'
 
 class State: #pylint:disable=too-few-public-methods
     """Holds a program state"""
@@ -89,6 +85,7 @@ class Ctrl: #pylint:disable=too-few-public-methods
 class Envr:
     """Holds the enviorment (a maping of identifiers to addresses)"""
     counter = 0;
+    global_scope = None
 
     def __init__(self, parent = None):
         self.map_to_address = {} #A set of IdToAddr mappings
@@ -96,6 +93,11 @@ class Envr:
         self.parent = parent
         self.id = Envr.counter
         Envr.counter = Envr.counter + 1
+        
+    def get_global_scope():
+        if Envr.global_scope is None:
+            Envr.global_scope = Envr(None)
+        return Envr.global_scope 
 
     def get_address(self, ident):
         "looks up the address associated with an identifier"""
@@ -133,12 +135,15 @@ class Envr:
 class Stor:
     """Represents the contents of memory at a moment in time."""
     address_counter = 1 # start at 1 so that 0 can be nullptr
+    NULL = generate_null_pointer()
 
     def __init__(self, to_copy=None):
         if to_copy is None:
             self.memory = {}
             self.succ_map = {}
             self.pred_map = {}
+            self.succ_map[Stor.NULL] = Stor.NULL
+            self.pred_map[Stor.NULL] = Stor.NULL
         elif isinstance(to_copy, Stor):
             self.memory = to_copy.memory
             self.succ_map = to_copy.succ_map
@@ -149,18 +154,18 @@ class Stor:
     def get_next_address(self):
         """returns the next available storage address"""
         pointer = generate_pointer_value(self.address_counter, self);
-        self.succ_map[pointer] = None
-        self.pred_map[pointer] = None
+        self.succ_map[pointer] = Stor.NULL 
+        self.pred_map[pointer] = Stor.NULL
         self.address_counter += 1
         return pointer 
 
-    def allocate_array(self, length):
+    def allocate_block(self, length):
         """Moves the address counter to leave room for an array and returns
         start"""
         start_address = self.address_counter
         start_pointer = generate_pointer_value(self.address_counter, self);
 
-        self.pred_map[start_pointer] = None
+        self.pred_map[start_pointer] = Stor.NULL
         last_pointer = start_pointer
         while self.address_counter < (start_address + length):
             self.address_counter += 1
@@ -168,7 +173,7 @@ class Stor:
             self.pred_map[new_pointer] = last_pointer
             self.succ_map[last_pointer] = new_pointer
             last_pointer = new_pointer
-        self.succ_map[last_pointer] = None
+        self.succ_map[last_pointer] = Stor.NULL
             
         return start_pointer
 
@@ -183,7 +188,7 @@ class Stor:
         return new_pointer
             
 
-    def read_refactor(self, address):
+    def read(self, address):
         """Read the contents of the store at address. Returns None if undefined.
         """
         if address in self.memory:
@@ -231,7 +236,6 @@ class Halt(Kont):
 
 class FunctionKont(Kont):
     """Continuation for function"""
-    parent_state = None
     
     def __init__(self, parent_state):
         self.parent_state = parent_state
@@ -239,12 +243,17 @@ class FunctionKont(Kont):
     def satisfy(self, state, value):
         if value is None:
             raise Exception("'return' expected return value")
+        new_envr = self.parent_state.envr
+        if new_envr is None:
+            raise Exception("Tried to close Global Scope")
         if isinstance(self.parent_state.kont, FunctionKont):
+            #in the case of a function call in statement position
             #don't return out of function without return
-            new_state = State(self.parent_state.ctrl, state.envr, state.stor,
+            new_state = State(self.parent_state.ctrl, new_envr, state.stor,
                               self.parent_state.kont)
             return cesk.interpret.get_next(new_state)
-        return self.parent_state.kont.satisfy(state, value)
+        new_state = State(state.ctrl, new_envr, state.stor, state.kont)
+        return self.parent_state.kont.satisfy(new_state, value)
 
 class VoidKont(FunctionKont):
     """Continuation for function returning void"""
@@ -306,13 +315,12 @@ class IfKont(Kont):
         return State(new_ctrl, state.envr, state.stor, self.parent_state.kont)
 
 class ReturnKont(Kont): #pylint: disable=too-few-public-methods
-    parent_kont = None
 
     def __init__(self, parent_kont):
         self.parent_kont = parent_kont
 
     def satisfy(self, state, value):
-        self.parent_kont.satisfy(state, value)
+        return self.parent_kont.satisfy(state, value)
 
 #Expresion Konts
 class LeftBinopKont(Kont):
