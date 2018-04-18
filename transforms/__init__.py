@@ -12,7 +12,6 @@ RemoveInitLists < InsertExplicitTypeCasts
 ForToWhile < WhileToDoWhile
 WhileToDoWhile < DoWhileToGoto
 DoWhileToGoto < LiftToCompoundBlock
-LiftToCompoundBlock < RemoveCompoundAssignment
 PragmaToOmpFor < SimplifyOmpFor
 SimplifyOmpFor < TernaryToIf
 TernaryToIf < IfToIfGoto
@@ -99,14 +98,14 @@ def get_transformers(ast):
     yield (ForToWhile, lambda ast: [])
     yield (WhileToDoWhile, lambda ast: [])
     yield (DoWhileToGoto, lambda ast: [id_generator])
-    yield (LiftToCompoundBlock,
-           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
     yield (RemoveCompoundAssignment,
            lambda ast: [id_generator, type_env_calc.get_environments(ast)])
     yield (RemoveInitLists,
            lambda ast: [id_generator, type_env_calc.get_environments(ast)])
     yield (InsertExplicitTypeCasts,
            lambda ast: [type_env_calc.get_environments(ast)])
+    yield (LiftToCompoundBlock,
+           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
     yield (SingleReturn, lambda ast: [id_generator])
 
 def transform(ast):
