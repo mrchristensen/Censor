@@ -85,52 +85,46 @@ class LiftToCompoundBlock(LiftNode):
     def lift_field(self, node, field):
         """Lift field value to compound block if necessary"""
         value = getattr(node, field, None)
+        ref = None
         if isinstance(value, (AST.StructRef, AST.ArrayRef)):
-            return self.lift_to_ptr(node, field, value)
+            ref = self.lift_to_ptr(value)
         elif isinstance(value, AST.UnaryOp):
-            return self.lift_unaryop(node, field, value)
+            ref = self.lift_unaryop(value)
         elif isinstance(value, AST.Assignment):
-            return self.lift_assignment(node, field, value)
+            ref = self.lift_assignment(value)
         elif isinstance(node, AST.Assignment):
-            return node
+            ref = None
         elif isinstance(value, AST.BinaryOp): #TODO: FuncCall
-            return self.lift_to_value(node, field, value)
-
+            ref = self.lift_to_value(value)
+        if ref is not None:
+            setattr(node, field, ref)
         return node
 
-    def lift_to_ptr(self, node, field, value):
+    def lift_to_ptr(self, value):
         """Lift node to compound block"""
         decl = make_temp_ptr(value, self.id_generator, self.envr)
         self.insert_into_scope(decl)
         self.envr.add(decl.name, decl.type)
-        ref = AST.UnaryOp('*', AST.ID(decl.name))
-        setattr(node, field, ref)
-        return node
+        return AST.UnaryOp('*', AST.ID(decl.name))
 
-    def lift_to_value(self, node, field, value):
+    def lift_to_value(self, value):
         """Lift node to compound block"""
         decl = make_temp_value(value, self.id_generator, self.envr)
         self.insert_into_scope(decl)
         self.envr.add(decl.name, decl.type)
-        ref = AST.ID(decl.name)
-        setattr(node, field, ref)
-        return node
+        return AST.ID(decl.name)
 
-    def lift_assignment(self, node, field, value):
+    def lift_assignment(self, value):
         """Lift node to compound block"""
         self.insert_into_scope(value)
-        ref = deepcopy(value.lvalue)
-        setattr(node, field, ref)
-        return node
+        return deepcopy(value.lvalue)
 
-    def lift_unaryop(self, node, field, value):
+    def lift_unaryop(self, value):
         """Lift node to compound block"""
         if value.op not in ['++', '--', 'p++', 'p--']:
-            return node
+            return None
         if 'p' in value.op:
             self.append_to_scope(value)
         else:
             self.insert_into_scope(value)
-        ref = deepcopy(value.expr)
-        setattr(node, field, ref)
-        return node
+        return deepcopy(value.expr)
