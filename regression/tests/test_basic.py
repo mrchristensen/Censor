@@ -1,4 +1,4 @@
-""" Run regression tests on dataracebench tests. """
+""" Run regression tests on basic test files. """
 
 from helpers import RegressionTestCase #pylint: disable=no-name-in-module
 

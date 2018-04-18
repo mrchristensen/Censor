@@ -3,7 +3,7 @@
 from helpers import RegressionTestCase #pylint: disable=no-name-in-module
 
 class TestDataRaceBench(RegressionTestCase): #pylint: disable=no-name-in-module
-    """ Test dataracebench micro-benchmakrs """
+    """ Test dataracebench micro-benchmarks """
 
     def setUp(self): #pylint: disable=invalid-name
         """Setup"""

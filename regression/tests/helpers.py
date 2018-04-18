@@ -20,9 +20,15 @@ import cesk
 # breaks stuff
 #pylint: disable=no-member
 class RegressionTestCase(TestCase):
-    """
-    Unit test base class for using golden files.
-    Provides a method to compare file contents with a string and print a diff
+    """ Unit test base class for Regression testing.
+
+        The structure is such that TestCases deriving from RegressionTestCase
+        only need to specify the fixtures directory, includes, and any
+        additonal flags needed to compile the C file correctly and then call
+        `self.assert_end_result_same()`.
+
+        The currently existing test cases `TestBasic` and `TestDataRaceBench`
+        are good examples of this convention.
     """
 
     @classmethod
@@ -167,10 +173,9 @@ def _diff_results(expected_out, actual_out):
         )
     )
 
-
 def _run_c(path, includes, add_flags):
-    """ compiles and runs a c source file and returns stdout
-        as a byte string.
+    """ compiles and runs a c source file and returns stdout (or stderr, if
+        the return code is non-zero) as a byte string.
     """
     out_path = join(tempfile.gettempdir(), "censor_out")
     res = subprocess.run(
