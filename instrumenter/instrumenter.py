@@ -10,6 +10,18 @@ def array_ref(name, subscript):
     """Return an ArrayRef AST object"""
     return ArrayRef(ID(name), Constant('int', str(subscript)))
 
+def node_to_address(node):
+    """Return an AST node that represents the address accessed"""
+    if isinstance(node, UnaryOp):
+        if node.op == '&':
+            return node
+        else:
+            return node.expr
+    elif isinstance(node, str):
+        return UnaryOp('&', ID(node))
+    else:
+        return UnaryOp('&', node)
+
 class Instrumenter(LiftNode): #pylint: disable=too-many-public-methods
     """Instrumenter class"""
     def __init__(self, id_generator, environments):
@@ -22,9 +34,10 @@ class Instrumenter(LiftNode): #pylint: disable=too-many-public-methods
             self.register_node_accesses(mode, node.right, append)
             self.register_node_accesses(mode, node.left, append)
             return
+        elif isinstance(node, Constant):
+            return
 
-        dereferenced = isinstance(node, UnaryOp) and node.op == '*'
-        address = node if dereferenced else UnaryOp('&', node)
+        address = node_to_address(node)
         func_call = self.registry.register_heap_access(mode, address)
         if append:
             self.append_to_scope(func_call)
@@ -35,11 +48,19 @@ class Instrumenter(LiftNode): #pylint: disable=too-many-public-methods
         """Log reads and writes in Assignment node"""
         self.register_node_accesses('read', node.rvalue)
         self.register_node_accesses('write', node.lvalue)
+        return node
 
     def visit_UnaryOp(self, node): # pylint: disable=invalid-name
         """Log reads and writes in UnaryOp node"""
         if node.op in ['++', '--', 'p--', 'p++']:
             self.register_node_accesses('write', node.expr)
+        return node
+
+    def visit_Decl(self, node): # pylint: disable=invalid-name
+        """Log reads and writes in Decl node"""
+        if node.init is not None:
+            self.register_node_accesses('read', node.init)
+        return node
 
     def clause_ids_to_nodes(self, id_strs):
         """Convert a list of clause ids to a list of AST nodes expanding

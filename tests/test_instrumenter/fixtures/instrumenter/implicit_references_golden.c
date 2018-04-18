@@ -12,14 +12,23 @@ int main(int argc, char** argv)
 {
   int a = 0;
   int sum = 0;
-  int values[10] = {1,2,3,4,5,6,7,8,9,10};
+  int values[10];
   #pragma omp parallel
   {
     yeti_log_omp("enter", "parallel", omp_get_thread_num());
-    yeti_log_heap_access("clause read", &a, omp_get_thread_num());
+    yeti_log_heap_access("clause read", &values[0], omp_get_thread_num());
+    yeti_log_heap_access("clause read", &values[1], omp_get_thread_num());
+    yeti_log_heap_access("clause read", &values[2], omp_get_thread_num());
+    yeti_log_heap_access("clause read", &values[3], omp_get_thread_num());
+    yeti_log_heap_access("clause read", &values[4], omp_get_thread_num());
+    yeti_log_heap_access("clause read", &values[5], omp_get_thread_num());
+    yeti_log_heap_access("clause read", &values[6], omp_get_thread_num());
+    yeti_log_heap_access("clause read", &values[7], omp_get_thread_num());
+    yeti_log_heap_access("clause read", &values[8], omp_get_thread_num());
+    yeti_log_heap_access("clause read", &values[9], omp_get_thread_num());
     yeti_log_heap_access("clause read", &sum, omp_get_thread_num());
     yeti_log_omp("enter", "for", omp_get_thread_num());
-#pragma omp for firstprivate(a) lastprivate(a) schedule(static, 1) reduction(+:sum)
+#pragma omp for firstprivate(values) lastprivate(a) schedule(static, 1) reduction(+:sum)
     for (int i = 0; i < 10; i++)
     {
       yeti_log_heap_access("write", &a, omp_get_thread_num());
