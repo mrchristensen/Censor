@@ -60,10 +60,6 @@ from .type_helpers import make_temp_ptr, make_temp_value
 class LiftToCompoundBlock(LiftNode):
     """LiftToCompoundBlock Transform"""
 
-    def visit_FuncDecl(self, node): # pylint: disable=invalid-name,no-self-use
-        """Leave function definitions alone"""
-        return node
-
     def visit_For(self, node): # pylint: disable=invalid-name
         """Leave For conditions alone"""
         node.stmt = self.visit(node.stmt)
@@ -103,6 +99,7 @@ class LiftToCompoundBlock(LiftNode):
     def lift_to_ptr(self, value):
         """Lift node to compound block"""
         decl = make_temp_ptr(value, self.id_generator, self.envr)
+        decl.type = self.visit(decl.type) # simplify array decls
         self.insert_into_scope(decl)
         self.envr.add(decl.name, decl.type)
         return AST.UnaryOp('*', AST.ID(decl.name))

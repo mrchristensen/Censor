@@ -32,6 +32,22 @@ class LiftNode(NodeTransformer):
         """Append nodes to scope below current index"""
         self.block_items.insert(0, (self.index + 1, nodes))
 
+    def visit_FileAST(self, node): # pylint: disable=invalid-name
+        """Visit file level scope"""
+        block_items = self.block_items
+        if node.ext is not None:
+            for i, item in enumerate(node.ext):
+                self.index = i
+                item = self.visit(item)
+        self.index = 0
+        for i, items in self.block_items:
+            if i < len(node.ext):
+                node.ext[i:i] = items
+            else:
+                node.ext.extend(items)
+        self.block_items = block_items
+        return node
+
     def visit_Compound(self, node): # pylint: disable=invalid-name
         """Visit scope"""
         block_items = self.block_items
@@ -43,13 +59,11 @@ class LiftNode(NodeTransformer):
                 self.index = i
                 item = self.visit(item)
         self.index = 0
-        offset = 0
         for i, items in self.block_items:
             if i < len(node.block_items):
                 node.block_items[i:i] = items
             else:
                 node.block_items.extend(items)
-            offset += len(items)
         self.block_items = block_items
         self.envr = envr
         return node
