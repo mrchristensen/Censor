@@ -3,11 +3,13 @@
 from tests.helpers import GoldenTestCase
 from instrumenter.instrumenter import Instrumenter
 from transforms.omp_parallel_for import PragmaToOmpParallelFor
+from transforms.omp_parallel import PragmaToOmpParallel
 from transforms.id_generator import IDGenerator
 from transforms.type_environment_calculator import TypeEnvironmentCalculator
 
 TRANSFORMS = [
-    PragmaToOmpParallelFor()
+    PragmaToOmpParallelFor(),
+    PragmaToOmpParallel()
 ]
 
 def transform_omp(ast):
@@ -18,10 +20,6 @@ def transform_omp(ast):
 
 class TestInstrumenter(GoldenTestCase):
     """Test Instrumenter"""
-    #TODO test clauses used in benchmarks
-    # reduction
-    # num_threads
-    # schedule
 
     def setUp(self): #pylint: disable=invalid-name
         """Set up test case"""

@@ -2,7 +2,7 @@
 
 import unittest
 from pycparser.c_generator import CGenerator
-from pycparser.c_ast import ID
+from pycparser.c_ast import ID, UnaryOp
 from instrumenter.logger import Logger
 
 class TestLogger(unittest.TestCase):
@@ -15,14 +15,14 @@ class TestLogger(unittest.TestCase):
 
     def test_log_read(self):
         """Make sure log read heap access works"""
-        ast = self.logger.register_read(ID('x'))
+        ast = self.logger.register_heap_access('read', UnaryOp('&', ID('x')))
         func_call = self.c_gen.visit(ast)
         output = 'yeti_log_heap_access("read", &x, omp_get_thread_num())'
         self.assertEqual(output, func_call)
 
     def test_log_write(self):
         """Make sure log write heap access works"""
-        ast = self.logger.register_write(ID('x'))
+        ast = self.logger.register_heap_access('write', UnaryOp('&', ID('x')))
         func_call = self.c_gen.visit(ast)
         output = 'yeti_log_heap_access("write", &x, omp_get_thread_num())'
         self.assertEqual(output, func_call)
