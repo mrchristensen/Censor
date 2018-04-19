@@ -47,6 +47,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 /*
 One dimension array computation with a vetorization directive
 */
+#include <stdio.h>
+
 int a[100], b[100], c[100];
 int main()
 {
@@ -54,5 +56,9 @@ int main()
 #pragma omp simd
   for (i=0;i<100;i++)
     a[i]=b[i]*c[i];
+
+  for (i=0;i<100;i++)
+    printf("%d ", a[i]);
+
   return 0;
 }
