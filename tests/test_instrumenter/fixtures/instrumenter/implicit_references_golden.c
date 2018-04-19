@@ -8,6 +8,8 @@ void yeti_log_omp(char* action, char* construct, int thread_num)
   printf("%s, %s, %d\n", action, construct, thread_num);
 }
 
+#pragma BEGIN #include<omp.h>
+#pragma END
 int main(int argc, char** argv)
 {
   int a = 0;
