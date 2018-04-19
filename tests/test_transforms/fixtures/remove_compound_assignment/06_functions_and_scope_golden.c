@@ -1,3 +1,5 @@
+typedef int size_t;
+extern void *malloc (size_t __size);
 int x;
 struct rectangle
 {

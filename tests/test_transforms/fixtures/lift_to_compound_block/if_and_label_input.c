@@ -1,3 +1,4 @@
+int printf(const char * __format, ...);
 int main()
 {
   int n;
@@ -23,10 +24,13 @@ int main()
         second = next;
       }
       censor01_ENDIF:
-      
+      (void)(0);
 
-      printf("%d\n", next);
-      c++;
+
+      if (printf("%d\n", next))
+      {
+        c++;
+      }
       if (c < n)
         goto censor02;
 

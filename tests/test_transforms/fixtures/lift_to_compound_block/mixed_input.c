@@ -1,4 +1,5 @@
-
+typedef int size_t;
+extern void *malloc (size_t __size);
 struct rects {
   int x[10];
   int y[10];

@@ -1,3 +1,5 @@
+typedef int size_t;
+extern void *malloc (size_t __size);
 struct node {
   int data;
   struct node* next;
