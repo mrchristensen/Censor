@@ -30,7 +30,7 @@ class InstrumentReadsAndWrites(LiftNode): #pylint: disable=too-many-public-metho
         self.envr = envr
         self.registry = registry
 
-    def register_node_accesses(self, mode, node, append=False):
+    def register_node_accesses(self, mode, node, append=False): # pylint: disable=too-many-branches
         """Register reads for node"""
         read_mode = mode.replace('write', 'read')
         if isinstance(node, BinaryOp):
@@ -50,6 +50,8 @@ class InstrumentReadsAndWrites(LiftNode): #pylint: disable=too-many-public-metho
         elif isinstance(node, UnaryOp):
             if node.op == 'sizeof' or isinstance(node.expr, Constant):
                 return
+            elif node.op == '*':
+                self.register_node_accesses(read_mode, node.expr, append)
         elif isinstance(node, StructRef):
             self.register_node_accesses(read_mode, node.name, append)
         elif isinstance(node, ArrayRef):
