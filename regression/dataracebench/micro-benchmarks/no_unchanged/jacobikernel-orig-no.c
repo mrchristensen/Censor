@@ -82,7 +82,7 @@ initialize ()
 void print_array(double a[MSIZE][MSIZE]) {
   for (int i = 0; i < MSIZE; ++i) {
     for (int j = 0; j < MSIZE; ++j){
-      printf("%f ", a[i][j]);
+      printf("%.17g ", a[i][j]);
     }
     printf("\n");
   }

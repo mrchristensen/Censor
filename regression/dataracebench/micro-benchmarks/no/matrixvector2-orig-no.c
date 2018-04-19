@@ -70,7 +70,7 @@ int main()
 {
   mv();
   for (int i = 0; i < N; ++i) {
-    printf("%d ", v_out[i]);
+    printf("%f ", v_out[i]);
   }
   return 0;
 }
