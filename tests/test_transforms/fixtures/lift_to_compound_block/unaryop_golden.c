@@ -4,11 +4,10 @@ int main()
   int i = 0;
   LOOP:
   {
-    int *censor01 = &a[i];
+    a[i] = 0;
     i++;
-    *censor01 = 0;
-    int censor02 = i < 4;
-    if (censor02)
+    int censor01 = i < 4;
+    if (censor01)
       goto LOOP;
   }
 }

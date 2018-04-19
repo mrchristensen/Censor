@@ -82,14 +82,14 @@ class LiftToCompoundBlock(LiftNode):
         """Lift field value to compound block if necessary"""
         value = getattr(node, field, None)
         ref = None
-        if isinstance(value, (AST.StructRef, AST.ArrayRef)):
-            ref = self.lift_to_ptr(value)
-        elif isinstance(value, AST.UnaryOp):
-            ref = self.lift_unaryop(value)
-        elif isinstance(value, AST.Assignment):
+        if isinstance(value, AST.Assignment):
             ref = self.lift_assignment(value)
         elif isinstance(node, AST.Assignment):
             ref = None
+        elif isinstance(value, (AST.StructRef, AST.ArrayRef)):
+            ref = self.lift_to_ptr(value)
+        elif isinstance(value, AST.UnaryOp):
+            ref = self.lift_unaryop(value)
         elif isinstance(value, AST.BinaryOp): #TODO: FuncCall
             ref = self.lift_to_value(value)
         if ref is not None:

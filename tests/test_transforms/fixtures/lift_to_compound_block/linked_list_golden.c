@@ -18,8 +18,7 @@ linked_list *create_node(int data)
   if (censor01)
     return NULL;
 
-  int *censor02 = &new_node->data;
-  *censor02 = data;
+  new_node->data = data;
 
   return new_node;
 }
@@ -29,31 +28,20 @@ int main()
   linked_list *list;
   list = create_node(0);
 
+  list->next = create_node(0);
+  struct node **censor02 = &list->next;
+  (*censor02)->next = create_node(0);
   struct node **censor03 = &list->next;
-  *censor03 = create_node(0);
-
-  struct node **censor04 = &list->next;
-  struct node **censor05 = &(*censor04)->next;
-  *censor05 = create_node(0);
-
+  struct node **censor04 = &(*censor03)->next;
+  (*censor04)->next = create_node(0);
+  struct node **censor05 = &list->next;
+  list->data = (*censor05)->data;
   struct node **censor06 = &list->next;
   struct node **censor07 = &(*censor06)->next;
-  struct node **censor08 = &(*censor07)->next;
-  *censor08 = create_node(0);
-
-  int *censor09 = &list->data;
-  struct node **censor010 = &list->next;
-  int *censor011 = &(*censor010)->data;
-  *censor09 = *censor011;
-
-  struct node **censor012 = &list->next;
-  struct node **censor013 = &(*censor012)->next;
-  int *censor014 = &(*censor013)->data;
-  struct node **censor015 = &list->next;
-  struct node **censor016 = &(*censor015)->next;
-  struct node **censor017 = &(*censor016)->next;
-  int *censor018 = &(*censor017)->data;
-  *censor014 = *censor018;
+  struct node **censor08 = &list->next;
+  struct node **censor09 = &(*censor08)->next;
+  struct node **censor010 = &(*censor09)->next;
+  (*censor07)->data = (*censor010)->data;
 
   return 0;
 }
