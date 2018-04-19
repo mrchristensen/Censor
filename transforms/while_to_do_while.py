@@ -1,5 +1,6 @@
 """AST transform that transforms a while loop to a do-while loop"""
 
+from copy import deepcopy
 from pycparser.c_ast import DoWhile, If
 from .node_transformer import NodeTransformer
 
@@ -14,4 +15,4 @@ class WhileToDoWhile(NodeTransformer):
         node = self.generic_visit(node)
         cond = node.cond
         stmt = node.stmt
-        return If(node.cond, DoWhile(cond, stmt, node.coord), None)
+        return If(deepcopy(cond), DoWhile(cond, stmt, node.coord), None)

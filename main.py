@@ -5,11 +5,9 @@ import sys
 import tempfile
 from os import path
 
-#from transforms import transform
-
 import yeti
 import utils
-
+from transforms import transform
 
 def main():
     """Parses arguments and calls correct tool"""
@@ -78,11 +76,11 @@ def main():
     elif args.tool == "yeti":
         yeti.main(ast)
     elif args.tool == "cesk":
+        # transform(ast)
         cesk.main(ast)
     elif args.tool == "observer":
-        import transforms
         watchman = observer.Observer()
-        transforms.transform(ast)
+        transform(ast)
         watchman.visit(ast)
         watchman.report()
         watchman.coverage(cesk.implemented_nodes())

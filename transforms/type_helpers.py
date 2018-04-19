@@ -122,13 +122,18 @@ def resolve_types(left, right): # pylint: disable=too-many-return-statements
     right.show()
     raise NotImplementedError()
 
-# statement representing a no-op in C. See
-# https://stackoverflow.com/questions/7978620/whats-a-portable-way-to-implement-no-op-statement-in-c
-NO_OP = Cast(Typename(None, [], IdentifierType(['void'])),
-             Constant('int', '0'))
-
+def get_no_op():
+    """Returns node representina a no-op. Makes a deep copy because we con't
+    have any node duplication in the tree because parent links are used
+    for interpreting."""
+    return deepcopy(_NO_OP)
 
 ## Private helper functions that shouldn't be called from outside this file ##
+
+# statement representing a no-op in C. See
+# https://stackoverflow.com/questions/7978620/whats-a-portable-way-to-implement-no-op-statement-in-c
+_NO_OP = Cast(Typename(None, [], IdentifierType(['void'])),
+             Constant('int', '0'))
 
 def _get_type_helper(expr, env): # pylint: disable=too-many-return-statements,too-many-branches
     """Does all of the actual work for get_type, but returns a reference to

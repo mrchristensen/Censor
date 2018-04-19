@@ -24,7 +24,7 @@
 
 from pycparser.c_ast import If, Compound, Goto, Label
 from .node_transformer import NodeTransformer
-from .type_helpers import NO_OP
+from .type_helpers import get_no_op
 from .helpers import ensure_compound
 
 class IfToIfGoto(NodeTransformer):
@@ -43,7 +43,8 @@ class IfToIfGoto(NodeTransformer):
             return node
 
         end_label = self.id_gen.get_unique_id() + "_ENDIF"
-        return self.mangle_if(node, end_label) + [Label(end_label, NO_OP)]
+        return self.mangle_if(node, end_label) + [Label(end_label,
+                                                        get_no_op())]
 
     def mangle_if(self, node, end_label):
         """ If rewrite
