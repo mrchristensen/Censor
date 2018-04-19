@@ -62,6 +62,9 @@ class InsertExplicitTypeCasts(NodeTransformer):
     def visit_FuncCall(self, node): #pylint: disable=invalid-name
         """Put explicit type casts in front of each parameter in the call."""
         func_type = get_type(node.name, self.env)
+        if node.args is None or func_type.args is None:
+            return self.generic_visit(node)
+
         formal_args = func_type.args.params
         args = node.args.exprs
         rest_args = False

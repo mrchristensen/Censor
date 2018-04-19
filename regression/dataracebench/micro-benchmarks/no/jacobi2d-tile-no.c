@@ -11,10 +11,10 @@
 #include <string.h>
 #include <math.h>
 /* Include polybench common header. */
-#include <polybench.h>
+#include "../utilities/polybench.h"
 /* Include benchmark-specific header. */
 /* Default data type is double, default size is 20x1000. */
-#include "jacobi-2d-imper.h"
+#include "../jacobi-2d-imper.h"
 /* Array initialization. */
 
 static void init_array(int n,double A[500 + 0][500 + 0],double B[500 + 0][500 + 0])
@@ -162,7 +162,7 @@ int main(int argc,char **argv)
   ;
 /* Prevent dead-code elimination. All live-out data must be printed
      by the function call in argument. */
-  if (argc > 42 && !strcmp(argv[0],""))
+  // if (argc > 42 && !strcmp(argv[0],""))
     print_array(n, *A);
 /* Be clean. */
   free(((void *)A));

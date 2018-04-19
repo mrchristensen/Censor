@@ -78,8 +78,21 @@ initialize ()
     }
 }
 
+void print_array(double a[MSIZE][MSIZE]) {
+  for (int i = 0; i < MSIZE; ++i) {
+    for (int j = 0; j < MSIZE; ++j){
+      printf("%f ", a[i][j]);
+    }
+    printf("\n");
+  }
+  printf("\n");
+}
+
 int main()
 {
   initialize();
+  print_array(u);
+  print_array(f);
+
   return 0;
 }

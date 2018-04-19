@@ -46,21 +46,38 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 /*
 Example with loop-carried data dependence at the outer level loop.
-But the inner level loop can be parallelized.
+The inner level loop can be parallelized.
 */
-#include <string.h>
-int main(int argc,char *argv[])
-{
-  int i;
-  int j;
-  double a[20][20];
-  memset(a,0,(sizeof(a)));
+#include <stdio.h>
 
-  for (i = 0; i < 20 -1; i += 1) {
-#pragma omp parallel for
-    for (j = 0; j < 20; j += 1) {
-      a[i][j] += a[i + 1][j];
+#define MSIZE 100
+void print_array(double a[MSIZE][MSIZE]) {
+  for (int i = 0; i < MSIZE; ++i) {
+    for (int j = 0; j < MSIZE; ++j){
+      printf("%f ", a[i][j]);
     }
+    printf("\n");
   }
+}
+
+int main()
+{
+  int i,j;
+  int n=100, m=100;
+  double b[n][m];
+
+  for(i=0;i<n; i++)
+    for(j=0;j<n; j++)
+      b[i][j]=(double)(i*j);
+
+  print_array(b);
+  printf("\n");
+
+  for (i=1;i<n;i++)
+  #pragma omp parallel for
+    for (j=1;j<m;j++)
+      b[i][j]=b[i-1][j-1];
+
+  print_array(b);
   return 0;
 }

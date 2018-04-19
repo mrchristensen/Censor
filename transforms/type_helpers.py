@@ -133,7 +133,7 @@ def get_no_op():
 # statement representing a no-op in C. See
 # https://stackoverflow.com/questions/7978620/whats-a-portable-way-to-implement-no-op-statement-in-c
 _NO_OP = Cast(Typename(None, [], IdentifierType(['void'])),
-             Constant('int', '0'))
+              Constant('int', '0'))
 
 def _get_type_helper(expr, env): # pylint: disable=too-many-return-statements,too-many-branches
     """Does all of the actual work for get_type, but returns a reference to
