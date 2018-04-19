@@ -5,6 +5,7 @@ from transforms.lift_node import LiftNode
 from transforms.helpers import ensure_compound
 from transforms.type_helpers import get_type
 from instrumenter.logger import Logger
+from utils import is_main
 
 def array_ref(name, subscript):
     """Return an ArrayRef AST object"""
@@ -22,11 +23,12 @@ def node_to_address(node):
     else:
         return UnaryOp('&', node)
 
-class Instrumenter(LiftNode): #pylint: disable=too-many-public-methods
-    """Instrumenter class"""
-    def __init__(self, id_generator, environments):
+class InstrumentReadsAndWrites(LiftNode): #pylint: disable=too-many-public-methods
+    """InstrumentReadsAndWrites"""
+    def __init__(self, id_generator, environments, envr, registry):
         super().__init__(id_generator, environments)
-        self.registry = Logger()
+        self.envr = envr
+        self.registry = registry
 
     def register_node_accesses(self, mode, node, append=False):
         """Register reads for node"""
@@ -133,11 +135,6 @@ class Instrumenter(LiftNode): #pylint: disable=too-many-public-methods
         block.block_items.append(self.registry.register_omp_exit(construct))
         return block
 
-    def visit_FileAST(self, node): #pylint: disable=invalid-name
-        """visit_FileAST"""
-        node = self.generic_visit(node)
-        return self.registry.embed_definitions(node)
-
     def visit_OmpParallel(self, node): #pylint: disable=invalid-name
         """visit_OmpParallel"""
         node = self.generic_visit(node)
@@ -203,52 +200,77 @@ class Instrumenter(LiftNode): #pylint: disable=too-many-public-methods
         node.block = self.instrument_omp(node.block, 'flush')
         return node
 
-    # Focusing on the constructs used in benchmarks first
     def visit_OmpTaskloop(self, node): #pylint: disable=invalid-name
         """visit_OmpTaskloop"""
-        raise NotImplementedError('Instrumenter: ' + node.pragma)
-    #    node = self.generic_visit(node)
-    #    node.block = self.instrument_omp(node.loops, 'taskloop')
-    #    return node
+        node = self.generic_visit(node)
+        node.block = self.instrument_omp(node.loops, 'taskloop')
+        return node
 
     def visit_OmpTaskwait(self, node): #pylint: disable=invalid-name
         """visit_OmpTaskwait"""
-        raise NotImplementedError('Instrumenter: ' + node.pragma)
-    #    node = self.generic_visit(node)
-    #    node.block = self.instrument_omp(node, 'taskwait')
-    #    return node
+        node = self.generic_visit(node)
+        node.block = self.instrument_omp(node, 'taskwait')
+        return node
 
     def visit_OmpTaskgroup(self, node): #pylint: disable=invalid-name
         """visit_OmpTaskgroup"""
-        raise NotImplementedError('Instrumenter: ' + node.pragma)
-    #    node = self.generic_visit(node)
-    #    node.block = self.instrument_omp(node.block, 'taskgroup')
-    #    return node
+        node = self.generic_visit(node)
+        node.block = self.instrument_omp(node.block, 'taskgroup')
+        return node
 
     def visit_OmpAtomic(self, node): #pylint: disable=invalid-name
         """visit_OmpAtomic"""
-        raise NotImplementedError('Instrumenter: ' + node.pragma)
-    #    node = self.generic_visit(node)
-    #    node.block = self.instrument_omp(node.block, 'atomic')
-    #    return node
+        node = self.generic_visit(node)
+        node.block = self.instrument_omp(node.block, 'atomic')
+        return node
 
     def visit_OmpCancel(self, node): #pylint: disable=invalid-name
         """visit_OmpCancel"""
-        raise NotImplementedError('Instrumenter: ' + node.pragma)
-    #    node = self.generic_visit(node)
-    #    node.block = self.instrument_omp(node.block, 'cancel')
-    #    return node
+        node = self.generic_visit(node)
+        node.block = self.instrument_omp(node.block, 'cancel')
+        return node
 
     def visit_OmpCancellationPoint(self, node): #pylint: disable=invalid-name
         """visit_OmpCancellationPoint"""
-        raise NotImplementedError('Instrumenter: ' + node.pragma)
-    #    node = self.generic_visit(node)
-    #    node.block = self.instrument_omp(node.block, 'cancellationpoint')
-    #    return node
+        node = self.generic_visit(node)
+        node.block = self.instrument_omp(node.block, 'cancellationpoint')
+        return node
 
     def visit_OmpThreadprivate(self, node): #pylint: disable=invalid-name
         """visit_OmpThreadprivate"""
         raise NotImplementedError('Instrumenter: ' + node.pragma)
-    #    node = self.generic_visit(node)
-    #    node.block = self.instrument_omp(node.block, 'threadprivate')
-    #    return node
+
+class Instrumenter(LiftNode):
+    """Instrumenter class"""
+    def __init__(self, id_generator, environments):
+        super().__init__(id_generator, environments)
+        self.registry = Logger()
+
+    def visit_FileAST(self, node): # pylint:disable=invalid-name,no-self-use
+        """<++>"""
+        node = self.generic_visit(node)
+        return self.registry.embed_definitions(node)
+
+    def visit_OmpParallel(self, node): #pylint: disable=invalid-name
+        """Log reads and writes in parallel regions"""
+        visitor = InstrumentReadsAndWrites(
+            self.id_generator,
+            self.environments,
+            self.envr,
+            self.registry
+            )
+        node = visitor.visit(node)
+        return node
+
+    def visit_FuncDef(self, node): #pylint: disable=invalid-name
+        """Log reads and writes in function definitions"""
+        if is_main(node):
+            return self.generic_visit(node)
+        visitor = InstrumentReadsAndWrites(
+            self.id_generator,
+            self.environments,
+            self.envr,
+            self.registry
+            )
+        node = visitor.visit(node)
+        return node
