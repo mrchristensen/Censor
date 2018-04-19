@@ -45,29 +45,32 @@ THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 /*
-This benchmark is extracted from flush_nolist.1c of OpenMP
-Application Programming Interface Examples Version 4.5.0 .
-
-We privatize variable i to fix data races in the original example.
-Once i is privatized, flush is no longer needed.
+Arrays passed as function parameters
 */
+#include <stdio.h>
 
-#include<stdio.h>
-#include<assert.h>
-void f1(int *q)
+void foo1(double o1[], double c[], int len)
 {
-  *q = 1;
+  int i ;
+#pragma omp parallel for
+  for (i = 0; i < len; ++i) {
+    double volnew_o8 = 0.5 * c[i];
+    o1[i] = volnew_o8;
+  }
 }
 
+double o1[100];
+double c[100];
 int main()
-{ 
-  int i=0, sum=0; 
-  #pragma omp parallel reduction(+:sum) num_threads(10) private(i)
-  {
-     f1(&i);
-     sum+= i; 
+{
+  foo1 (o1, c, 100);
+  for (int i = 0; i < 100; ++i) {
+    printf("%f ", o1[i]);
   }
-  assert (sum==10);
-  printf("sum=%d\n", sum);
-  return 0;   
+  printf("\n");
+  for (int i = 0; i < 100; ++i) {
+    printf("%f ", c[i]);
+  }
+  printf("\n");
+  return 0;
 }

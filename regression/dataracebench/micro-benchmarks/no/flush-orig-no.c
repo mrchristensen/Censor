@@ -45,39 +45,27 @@ THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 /*
- Example use of fprintf
+This benchmark is extracted from flush_nolist.1c of OpenMP
+Application Programming Interface Examples Version 4.5.0 .
+
+We privatize variable i to fix data races in the original example.
+Once i is privatized, flush is no longer needed.
 */
-#include <stdio.h>
-int main(int argc, char* argv[])
+
+#include<stdio.h>
+void f1(int *q)
 {
-  int i;
-  int ret;
-  FILE* pfile;
-  int len=1000;
-
-  int A[1000];
-
-  for (i=0; i<len; i++)
-    A[i]=i;
-
-  pfile = fopen("mytempfile.txt","a+");
-  if (pfile ==NULL)
-  {
-    fprintf(stdout,"Error in fopen()\n");
-  }
-
-#pragma omp parallel for
-  for (i=0; i<len; ++i)
-  {
-    fprintf(pfile, "%d\n", A[i] );
-  }
-
-  fclose(pfile);
-  ret = remove("mytempfile.txt");
-  if (ret != 0)
-  {
-    fprintf(stdout, "Error: unable to delete mytempfile.txt\n");
-  }
-  return 0;
+  *q = 1;
 }
 
+int main()
+{
+  int i=0, sum=0;
+  #pragma omp parallel reduction(+:sum) num_threads(10) private(i)
+  {
+     f1(&i);
+     sum+= i;
+  }
+  printf("sum=%d\n", sum);
+  return 0;
+}

@@ -44,23 +44,21 @@ IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-/* 
-Arrays passed as function parameters
+/*
+omp_get_thread_num() is used to ensure serial semantics.
 */
-void foo1(double o1[], double c[], int len)
-{ 
-  int i ;
-#pragma omp parallel for
-  for (i = 0; i < len; ++i) {
-    double volnew_o8 = 0.5 * c[i];
-    o1[i] = volnew_o8;
-  } 
-}
+#include <omp.h>
+#include <stdio.h>
 
-double o1[100];
-double c[100];
 int main()
 {
-  foo1 (o1, c, 100);
+  int numThreads=0 ;
+  #pragma omp parallel
+  {
+    if ( omp_get_thread_num() == 0 ) {
+      numThreads = omp_get_num_threads();
+    }
+  }
+  printf ("numThreads=%d\n", numThreads);
   return 0;
 }

@@ -51,8 +51,6 @@ They are used as base addresses of two arrays, indexed through an index set.
 The index set has no two indices with distance of 12.
 So there is no loop carried dependence.
 */
-
-#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -67,7 +65,7 @@ int indexSet[N] = {
 651, 653, 655, 657, 659, 661,
 859, 861, 863, 865, 867, 869,
 885, 887, 889, 891, 893, 895,
-911, 913, 915, 917, 919, 921, 
+911, 913, 915, 917, 919, 921,
 937, 939, 941, 943, 945, 947,
 
 963, 965, 967, 969, 971, 973,
@@ -100,7 +98,7 @@ int main (int argc, char* argv[])
   if (base == 0)
   {
     printf("Error, malloc() returns NULL. End execution. \n");
-    return 1;  
+    return 1;
   }
 
   double * xa1 = base;
@@ -123,10 +121,10 @@ int main (int argc, char* argv[])
   // verify the results, no overlapping of xa1 vs. xa2, no addition happens to the same element twice
   for (i =521; i<= 2025; ++i)
   {
-    //printf ("%f  ", base[i]);
-    assert (base[i]!=4.0);
+    printf ("%f  ", base[i]);
+    // assert (base[i]!=4.0);
   }
-
+  printf ("\n");
   free (base);
   return  0;
 }
