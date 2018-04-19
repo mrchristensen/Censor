@@ -103,9 +103,9 @@ def resolve_types(left, right): # pylint: disable=too-many-return-statements
     section, 6.3.1.8 Usual arithmetic conversions, p. 44.
     """
     if _is_ptr(left) and _is_integral(right):
-        return Side.LEFT
+        return Side.NOCAST
     elif _is_integral(left) and _is_ptr(right):
-        return Side.RIGHT
+        return Side.NOCAST
     elif _is_ptr(left) and _is_ptr(right):
         return TypeDecl(None, [], IdentifierType(['int']))
     elif _is_float(left) and _is_integral(right):
@@ -321,7 +321,11 @@ def _get_binop_type(expr, env):
     elif expr.op in ['%', '*', '+', '-', '/', '^', '|', '&', '<<', '>>']:
         left_type = get_type(expr.left, env)
         right_type = get_type(expr.right, env)
-        if resolve_types(left_type, right_type) == Side.LEFT:
+        if _is_ptr(left_type):
+            return left_type
+        elif _is_ptr(right_type):
+            return right_type
+        elif resolve_types(left_type, right_type) == Side.LEFT:
             return left_type
         else:
             return right_type
