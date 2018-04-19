@@ -4,7 +4,7 @@ from omp.clause import Reduction, FirstPrivate, LastPrivate
 from transforms.lift_node import LiftNode
 from transforms.helpers import ensure_compound
 from transforms.type_helpers import get_type
-from .logger import Logger
+from instrumenter.logger import Logger
 
 def array_ref(name, subscript):
     """Return an ArrayRef AST object"""

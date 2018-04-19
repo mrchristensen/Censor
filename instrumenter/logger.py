@@ -2,7 +2,8 @@
 
 from os import path
 import pycparser
-from .strategy import InstrumentingStrategy
+from instrumenter.strategy import InstrumentingStrategy
+from instrumenter.helpers import IncludeOMP, find_end_include
 
 LOGGER_C_FILE = 'logger.c'
 
@@ -17,8 +18,10 @@ class Logger(InstrumentingStrategy):
 
     def embed_definitions(self, file_ast):
         """Return AST with the declarations and definitions needed"""
-        file_ast.ext.insert(0, self.log_omp_def)
-        file_ast.ext.insert(0, self.log_heap_def)
+        file_ast = IncludeOMP().visit(file_ast)
+        io_index = find_end_include(file_ast, 'stdio')
+        file_ast.ext.insert(io_index+1, self.log_omp_def)
+        file_ast.ext.insert(io_index+1, self.log_heap_def)
         return file_ast
 
     def register_heap_access(self, mode, var):

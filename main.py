@@ -66,14 +66,17 @@ def main():
         args.filename, use_cpp=True, cpp_path='gcc', cpp_args=cpp_args
         )
 
-    if args.sanitize:
-        utils.sanitize(ast)
+    # the instrumenter needs to preserve includes until after
+    # instrumentation
+    #if args.sanitize:
+    #    utils.sanitize(ast)
 
     # figure out what analysis is supposed to happen and call the
     # appropriate one
     if args.tool == "censor":
         censor.main(ast)
     elif args.tool == "yeti":
+        transform(ast)
         yeti.main(ast)
     elif args.tool == "cesk":
         # transform(ast)
