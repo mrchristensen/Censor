@@ -8,6 +8,7 @@ sys.path[0:0] = ['.', '..', '../..']
 SUITE = unittest.TestLoader().loadTestsFromNames(
     [
         'test_dataracebench',
+        # 'test_instrumenter',
         # 'test_basic'
     ]
 )

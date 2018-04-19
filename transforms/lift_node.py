@@ -35,35 +35,40 @@ class LiftNode(NodeTransformer):
     def visit_FileAST(self, node): # pylint: disable=invalid-name
         """Visit file level scope"""
         block_items = self.block_items
+        index = self.index
+        self.block_items = []
+        self.index = 0
         if node.ext is not None:
             for i, item in enumerate(node.ext):
                 self.index = i
                 item = self.visit(item)
-        self.index = 0
         for i, items in self.block_items:
             if i < len(node.ext):
                 node.ext[i:i] = items
             else:
                 node.ext.extend(items)
         self.block_items = block_items
+        self.index = index
         return node
 
     def visit_Compound(self, node): # pylint: disable=invalid-name
         """Visit scope"""
         block_items = self.block_items
-        self.block_items = []
         envr = self.envr
+        index = self.index
+        self.block_items = []
         self.envr = self.environments[node]
+        self.index = 0
         if node.block_items is not None:
             for i, item in enumerate(node.block_items):
                 self.index = i
                 item = self.visit(item)
-        self.index = 0
         for i, items in self.block_items:
             if i < len(node.block_items):
                 node.block_items[i:i] = items
             else:
                 node.block_items.extend(items)
         self.block_items = block_items
+        self.index = index
         self.envr = envr
         return node

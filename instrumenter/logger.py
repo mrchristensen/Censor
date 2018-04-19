@@ -2,7 +2,6 @@
 
 from os import path
 import pycparser
-from utils import is_main
 from .strategy import InstrumentingStrategy
 
 LOGGER_C_FILE = 'logger.c'
@@ -18,11 +17,8 @@ class Logger(InstrumentingStrategy):
 
     def embed_definitions(self, file_ast):
         """Return AST with the declarations and definitions needed"""
-        for i, block in enumerate(file_ast.ext):
-            if is_main(block):
-                file_ast.ext.insert(i, self.log_omp_def)
-                file_ast.ext.insert(i, self.log_heap_def)
-                break
+        file_ast.ext.insert(0, self.log_omp_def)
+        file_ast.ext.insert(0, self.log_heap_def)
         return file_ast
 
     def register_heap_access(self, mode, var):

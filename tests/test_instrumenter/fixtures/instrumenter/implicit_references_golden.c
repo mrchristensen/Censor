@@ -16,15 +16,25 @@ int main(int argc, char** argv)
   #pragma omp parallel
   {
     yeti_log_omp("enter", "parallel", omp_get_thread_num());
+    yeti_log_heap_access("clause read", &values, omp_get_thread_num());
     yeti_log_heap_access("clause read", &values[0], omp_get_thread_num());
+    yeti_log_heap_access("clause read", &values, omp_get_thread_num());
     yeti_log_heap_access("clause read", &values[1], omp_get_thread_num());
+    yeti_log_heap_access("clause read", &values, omp_get_thread_num());
     yeti_log_heap_access("clause read", &values[2], omp_get_thread_num());
+    yeti_log_heap_access("clause read", &values, omp_get_thread_num());
     yeti_log_heap_access("clause read", &values[3], omp_get_thread_num());
+    yeti_log_heap_access("clause read", &values, omp_get_thread_num());
     yeti_log_heap_access("clause read", &values[4], omp_get_thread_num());
+    yeti_log_heap_access("clause read", &values, omp_get_thread_num());
     yeti_log_heap_access("clause read", &values[5], omp_get_thread_num());
+    yeti_log_heap_access("clause read", &values, omp_get_thread_num());
     yeti_log_heap_access("clause read", &values[6], omp_get_thread_num());
+    yeti_log_heap_access("clause read", &values, omp_get_thread_num());
     yeti_log_heap_access("clause read", &values[7], omp_get_thread_num());
+    yeti_log_heap_access("clause read", &values, omp_get_thread_num());
     yeti_log_heap_access("clause read", &values[8], omp_get_thread_num());
+    yeti_log_heap_access("clause read", &values, omp_get_thread_num());
     yeti_log_heap_access("clause read", &values[9], omp_get_thread_num());
     yeti_log_heap_access("clause read", &sum, omp_get_thread_num());
     yeti_log_omp("enter", "for", omp_get_thread_num());
@@ -33,6 +43,8 @@ int main(int argc, char** argv)
     {
       yeti_log_heap_access("write", &a, omp_get_thread_num());
       a++;
+      yeti_log_heap_access("read", &values, omp_get_thread_num());
+      yeti_log_heap_access("read", &i, omp_get_thread_num());
       yeti_log_heap_access("read", &values[i], omp_get_thread_num());
       yeti_log_heap_access("read", &sum, omp_get_thread_num());
       yeti_log_heap_access("write", &sum, omp_get_thread_num());

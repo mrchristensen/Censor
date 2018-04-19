@@ -30,12 +30,29 @@ class Instrumenter(LiftNode): #pylint: disable=too-many-public-methods
 
     def register_node_accesses(self, mode, node, append=False):
         """Register reads for node"""
+        read_mode = mode.replace('write', 'read')
         if isinstance(node, BinaryOp):
             self.register_node_accesses(mode, node.right, append)
             self.register_node_accesses(mode, node.left, append)
             return
+        elif isinstance(node, FuncCall):
+            if node.args is not None:
+                for expr in node.args.exprs:
+                    self.register_node_accesses(read_mode, expr, append)
+            return
+        elif isinstance(node, Cast):
+            self.register_node_accesses(mode, node.expr, append)
+            return
         elif isinstance(node, Constant):
             return
+        elif isinstance(node, UnaryOp):
+            if node.op == 'sizeof' or isinstance(node.expr, Constant):
+                return
+        elif isinstance(node, StructRef):
+            self.register_node_accesses(read_mode, node.name, append)
+        elif isinstance(node, ArrayRef):
+            self.register_node_accesses(read_mode, node.name, append)
+            self.register_node_accesses(read_mode, node.subscript, append)
 
         address = node_to_address(node)
         func_call = self.registry.register_heap_access(mode, address)
@@ -61,6 +78,11 @@ class Instrumenter(LiftNode): #pylint: disable=too-many-public-methods
         if node.init is not None:
             self.register_node_accesses('read', node.init)
         return node
+
+    def visit_If(self, node): # pylint: disable=invalid-name
+        """Log reads and writes in If conditions"""
+        self.register_node_accesses('read', node.cond)
+        return self.generic_visit(node)
 
     def clause_ids_to_nodes(self, id_strs):
         """Convert a list of clause ids to a list of AST nodes expanding
