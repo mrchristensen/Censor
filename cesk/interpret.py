@@ -5,7 +5,7 @@ from cesk.values import ReferenceValue, generate_constant_value
 from cesk.values import generate_array
 
 class LinkSearch(pycparser.c_ast.NodeVisitor):
-    """Holds vareious look-up-tables for functions, lablels, etc."""
+    """Holds various look-up-tables for functions, labels, etc."""
     parent_lut = {}
     index_lut = {}
     label_lut = {}
@@ -26,7 +26,7 @@ class LinkSearch(pycparser.c_ast.NodeVisitor):
         for i, child in enumerate(node):
             if isinstance(child, pycparser.c_ast.Node):
                 if child in LinkSearch.parent_lut:
-                    raise Exception("Node duplicated in tree")
+                    print(Exception("Node duplicated in tree"))
                 LinkSearch.parent_lut[child] = node
                 LinkSearch.index_lut[child] = i
                 self.visit(child)
@@ -46,11 +46,9 @@ def execute(state):
     successors = []
     stmt = state.ctrl.stmt()
     if isinstance(stmt, pycparser.c_ast.ArrayDecl):
-        # TODO
         #print("ArrayDecl")
         raise Exception("ArrayDecl should have been found as a child of Decl")
     elif isinstance(stmt, pycparser.c_ast.ArrayRef):
-        # TODO
         #print("ArrayRef")
         list_of_index = []
         while not isinstance(stmt, pycparser.c_ast.ID):
@@ -74,7 +72,6 @@ def execute(state):
                             str(pointer))
         successors.append(state.kont.satisfy(state, value))
     elif isinstance(stmt, pycparser.c_ast.Assignment):
-        # TODO
         #print("Assignment")
         exp = stmt.rvalue
         if isinstance(stmt.lvalue, pycparser.c_ast.ID):
@@ -98,11 +95,18 @@ def execute(state):
             name = array.name
             pointer = state.envr.get_address(name).dereference()
             address = pointer.index_for_address(list_of_index)
+        elif isinstance(stmt.lvalue, pycparser.c_ast.UnaryOp):
+            unary_op = stmt.lvalue
+            if unary_op.op == "*":
+                name = unary_op.expr
+                pointer = state.envr.get_address(name)
+                address = pointer.dereference()
+            else:
+                raise Exception("Unsupported UnaryOp lvalue: " + unary_op.op)
         else:
-            raise Exception("unsuported assign lvalue: " + str(stmt.lvalue))
+            raise Exception("unsupported assign lvalue: " + str(stmt.lvalue))
         successors.append(handle_assignment(stmt.op, address, exp, state))
     elif isinstance(stmt, pycparser.c_ast.BinaryOp):
-        # TODO
         #print("BinaryOp")
         new_kont = LeftBinopKont(state, stmt.op, stmt.right, state.kont)
         successors.append(State(Ctrl(stmt.left), state.envr, state.stor,
@@ -118,9 +122,10 @@ def execute(state):
     elif isinstance(stmt, pycparser.c_ast.Cast):
         # TODO
         #print("Cast")
-        successors.append(get_next(state))
+        new_ctrl = Ctrl(stmt.expr)
+        new_state = State(new_ctrl, state.envr, state.stor, state.kont)
+        successors.append(new_state)
     elif isinstance(stmt, pycparser.c_ast.Compound):
-        # TODO
         #print("Compound")
         new_ctrl = Ctrl(0, stmt)
         new_envr = Envr(state.envr)
@@ -135,10 +140,9 @@ def execute(state):
         #print("CompoundLiteral")
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.Constant):
-        # TODO
         #print("Constant")
         value = generate_constant_value(stmt.value)
-        if isinstance(state.kont, FunctionKont): #dont return to function
+        if isinstance(state.kont, FunctionKont): #Don't return to function
             successors.append(get_next(state))
         else:
             successors.append(state.kont.satisfy(state, value))
@@ -147,14 +151,13 @@ def execute(state):
         #print("Continue")
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.Decl):
-        # TODO
         #print("Decl")
         handle_decl(stmt, state)
         if stmt.init is not None:
             new_address = state.envr.get_address(stmt.name)
             new_state = handle_assignment("=", new_address, stmt.init, state)
             successors.append(new_state)
-        elif isinstance(state.kont, FunctionKont): #dont return to function
+        elif isinstance(state.kont, FunctionKont): #Don't return to function
             successors.append(get_next(state))
         else:
             successors.append(state.kont.satisfy(state))
@@ -182,8 +185,6 @@ def execute(state):
         # TODO
         #print("Enum")
         successors.append(get_next(state))
-    elif isinstance(stmt, pycparser.c_ast.Enum):
-        successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.Enumerator):
         # TODO
         #print("Enumerator")
@@ -205,16 +206,17 @@ def execute(state):
         #print("For")
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.FuncCall):
-        # TODO
         #print("FuncCall")
         if stmt.name.name == "printf":
             if not isinstance(stmt.args.exprs[1], pycparser.c_ast.ID):
                 raise Exception("printf test stub only supports ID not " +
                                 str(stmt.args.exprs[1]))
-            id_to_print = stmt.args.exprs[1].name #FIXME should evalueate exp
+            id_to_print = stmt.args.exprs[1].name
             address = state.envr.get_address(id_to_print)
             value = address.dereference()
-            print(value.data)
+            print_string = stmt.args.exprs[0].value % (value.data)
+            print_string = print_string[1:][:-1] #drop quotes
+            print(print_string.replace("\\n", "\n"), end="") #convert newlines
             successors.append(get_next(state))
 
         else:
@@ -262,15 +264,12 @@ def execute(state):
                                         new_state.stor,
                                         new_kont))
     elif isinstance(stmt, pycparser.c_ast.FuncDecl):
-        # TODO
         #print("FuncDecl")
-        successors.append(get_next(state))
+        raise Exception("FuncDecl out of Global scope")
     elif isinstance(stmt, pycparser.c_ast.FuncDef):
-        # TODO
         #print("FuncDef")
-        successors.append(get_next(state))
+        raise Exception("FuncDef out of Global scope")
     elif isinstance(stmt, pycparser.c_ast.Goto):
-        # TODO
         #print("Goto")
         label_to = LinkSearch.label_lut[stmt.name]
         body = label_to
@@ -285,14 +284,13 @@ def execute(state):
             raise Exception("Need to make decisions on scope of forward jump")
         successors.append(State(new_ctrl, new_envr, state.stor, state.kont))
     elif isinstance(stmt, pycparser.c_ast.ID):
-        # TODO
         #print("ID")
         name = stmt.name
         address = state.envr.get_address(name)
         value = address.dereference()
         if value is None:
             raise Exception(name + ": " + str(state.stor.memory))
-        if isinstance(state.kont, FunctionKont): #dont return to function
+        if isinstance(state.kont, FunctionKont): #Don't return to function
             successors.append(get_next(state))
         else:
             successors.append(state.kont.satisfy(state, value))
@@ -301,7 +299,6 @@ def execute(state):
         #print("IdentifierType")
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.If):
-        # TODO
         #print("If")
         new_kont = IfKont(state, stmt.iftrue, stmt.iffalse)
         new_ctrl = Ctrl(stmt.cond)
@@ -311,7 +308,6 @@ def execute(state):
         #print("InitList")
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.Label):
-        # TODO
         #print("Label")
         new_ctrl = Ctrl(stmt.stmt)
         successors.append(State(new_ctrl, state.envr, state.stor, state.kont))
@@ -328,7 +324,6 @@ def execute(state):
         #print("PtrDecl")
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.Return):
-        # TODO
         #print("Return")
         exp = stmt.expr
         successors.append(handle_return(exp, state))
@@ -345,13 +340,13 @@ def execute(state):
         #print("Switch")
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.TernaryOp):
-        # TODO
         #print("TernaryOp")
-        successors.append(get_next(state))
+        new_kont = IfKont(state, stmt.iftrue, stmt.iffalse)
+        new_ctrl = Ctrl(stmt.cond)
+        successors.append(State(new_ctrl, state.envr, state.stor, new_kont))
     elif isinstance(stmt, pycparser.c_ast.TypeDecl):
-        # TODO
         #print("TypeDecl")
-        successors.append(get_next(state))
+        raise Exception("TypeDecl should have been found as child of Decl")
     elif isinstance(stmt, pycparser.c_ast.Typedef):
         # TODO
         #print("Typedef")
@@ -361,7 +356,6 @@ def execute(state):
         #print("Typename")
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.UnaryOp):
-        # TODO
         #print("UnaryOp")
         opr = stmt.op
         expr = stmt.expr
@@ -384,8 +378,8 @@ def execute(state):
     return successors
 
 def handle_assignment(operator, address, exp, state):
-    """Creates continuation to evalueate exp and assigns resulting value to the
-    address associated with ident"""
+    """Creates continuation to evaluate exp and assigns resulting value to the
+    given address"""
     #pylint: disable=too-many-function-args
     if operator == '=':
         new_ctrl = Ctrl(exp) #build special ctrl for exp
@@ -398,10 +392,11 @@ def handle_decl(decl, state):
     """Maps the identifier to a new address and passes assignment part"""
     name = decl.name
     if state.envr.is_localy_defined(name):
-        raise Exception("Error: redefinition of " + name)
+        pass
+        #raise Exception("Error: redefinition of " + name)
 
-    if (isinstance(decl.type, (pycparser.c_ast.TypeDecl,
-                               pycparser.c_ast.PtrDecl))):#pointers are ints
+    elif (isinstance(decl.type, (pycparser.c_ast.TypeDecl,
+                                 pycparser.c_ast.PtrDecl))):#pointers are ints
         new_address = state.stor.get_next_address()
         state.envr.map_new_identifier(name, new_address)
         return state
@@ -418,11 +413,12 @@ def handle_decl(decl, state):
         raise Exception("Declarations of " + str(decl.type) +
                         " are not yet implemented")
 
-    return get_next(state)
+    return state
 
 def handle_decl_array(array, list_of_sizes, state):
-    """Calulates size and allocates Array. Returns address of first item"""
+    """Calculates size and allocates Array. Returns address of first item"""
     if isinstance(array.type, pycparser.c_ast.ArrayDecl):
+        #Recursively add sizes array to list
         size = generate_constant_value(array.dim.value).data
         if size < 1:
             raise Exception("Non-positive Array Sizes are not supported")
@@ -434,11 +430,13 @@ def handle_decl_array(array, list_of_sizes, state):
         if size < 1:
             raise Exception("Non-positive Array Sizes are not supported")
         list_of_sizes.append(size)
+        #List of sizes populated: allocate the array
         ref_address = state.stor.get_next_address()
-        length = reduce(lambda x, y: x*y, list_of_sizes)
+        length = reduce(lambda x, y: x*y, list_of_sizes) #multiply all together
         data_address = state.stor.allocate_block(length)
         new_array = generate_array(data_address, list_of_sizes, state.stor)
         state.stor.write(ref_address, new_array)
+        #Allocated block: passing back the Array object that points to block
         return ref_address
     else:
         raise Exception("Declarations of " + str(array.type) +
@@ -455,6 +453,7 @@ def handle_unary_op(opr, expr, state): #pylint: disable=inconsistent-return-stat
         elif isinstance(expr, pycparser.c_ast.ArrayRef):
             array = expr
             list_of_index = []
+            #Compile a list of index
             while not isinstance(array, pycparser.c_ast.ID):
                 if isinstance(array.subscript, pycparser.c_ast.ID):
                     address = state.envr.get_address(array.subscript.name)
@@ -465,7 +464,7 @@ def handle_unary_op(opr, expr, state): #pylint: disable=inconsistent-return-stat
                     raise Exception("Array subscripts of type " +
                                     str(array.subscript) +
                                     "are not yet implemented")
-                list_of_index.insert(0, index)
+                list_of_index.insert(0, index) #Push to front of list
                 array = array.name
             name = array.name
             pointer = state.envr.get_address(name).dereference()
@@ -483,7 +482,9 @@ def handle_unary_op(opr, expr, state): #pylint: disable=inconsistent-return-stat
 
 
 def handle_return(exp, state):
-    """makes a ReturnKont to pass a value to the parrent kont"""
+    """makes a ReturnKont. The exp return value is passed to parent kont"""
+    #All expressions refuse to return to FunctionKont to prevent expression
+    # in statement position errors. Only ReturnKont will satisfy FunctionKont
     if isinstance(state.kont, FunctionKont):
         returnable_kont = ReturnKont(state.kont)
     else:
@@ -496,39 +497,40 @@ def handle_return(exp, state):
     return State(Ctrl(exp), state.envr, state.stor, returnable_kont)
 
 def get_next(state): #pylint: disable=inconsistent-return-statements
-    """takes state and returns a state with ctrl for the next statment
+    """takes state and returns a state with ctrl for the next statement
     to execute"""
     ctrl = state.ctrl
     if not isinstance(state.kont, FunctionKont):
         print(Exception("CESK error: called get_next in bad context"))
-        print("You are probably trying to get a value from somthing that " +
+        print(ctrl.stmt().coord)
+        print("You are probably trying to get a value from something that " +
               "is not implemented. Defaulting to 0")
         state.kont.satisfy(state, generate_constant_value("0"))
 
-    if ctrl.body is not None: #if a standard compound block index type ctrl
+    if ctrl.body is not None: #if a standard compound-block:index ctrl
         if ctrl.index + 1 < len(ctrl.body.block_items):
-            #if there are more items in the compound block just move on
+            #if there are more items in the compound block go to next
             new_ctrl = ctrl + 1
             return State(new_ctrl, state.envr, state.stor, state.kont)
         else:
-            #if we are falling of the end of a compound block
+            #if we are falling off the end of a compound block
             parent = LinkSearch.parent_lut[ctrl.body]
             if parent is None:
                 #we are falling off and there is no parent block
-                #this is an end of a function call. Satify kont.
+                #this is an end of a function call. Satisfy kont.
                 if isinstance(state.kont, VoidKont):
                     return state.kont.satisfy()
                 else:
-                    raise Exception("Excpected Return Statememnt")
+                    raise Exception("Expected Return Statement")
 
             elif isinstance(parent, pycparser.c_ast.Compound):
-                #find our position in the parent compound block
+                #find current compound block position in the parent block
                 parent_index = LinkSearch.index_lut[ctrl.body]
                 new_ctrl = Ctrl(parent_index, parent)
                 new_envr = state.envr.parent #fall off: return to parent scope
 
             else:
-                #if the parent is not a compound (probably an if statment)
+                #if the parent is not a compound (probably an if statement)
                 new_ctrl = Ctrl(parent) #make a special ctrl and try again
                 new_envr = state.envr
 
@@ -537,7 +539,7 @@ def get_next(state): #pylint: disable=inconsistent-return-statements
 
     if ctrl.node is not None:
         #if it is a special ctrl as created by binop or assign
-        #try to convert to normal ctrl and try agiain
+        #try to convert to normal ctrl and try again
         parent = LinkSearch.parent_lut[ctrl.node]
         if isinstance(parent, pycparser.c_ast.Compound):
             #we found the compound we can create normal ctrl
@@ -548,7 +550,7 @@ def get_next(state): #pylint: disable=inconsistent-return-statements
             new_ctrl = Ctrl(parent)
         return get_next(State(new_ctrl, state.envr, state.stor, state.kont))
 
-    raise Exception("unreachable Code?")
+    raise Exception("Malformed ctrl: this should have been unreachable")
 
 
 # imports are down here to allow for circular dependencies between

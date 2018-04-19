@@ -2,9 +2,9 @@
 #pragma BEGIN #include <unistd.h>
 #pragma BEGIN #include <string.h>
 #pragma BEGIN #include <math.h>
-extern void *malloc(size_t __size);
-extern void *calloc(size_t __nmemb, size_t __size);
-extern void *realloc(void *__ptr, size_t __size);
+extern void *malloc(int __size);
+extern void *calloc(int __nmemb, int __size);
+extern void *realloc(void *__ptr, int __size);
 extern void free(void *__ptr);
 extern double atof(const char *__nptr);
 extern int atoi(const char *__nptr);

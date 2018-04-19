@@ -53,6 +53,9 @@ class Ctrl: #pylint:disable=too-few-public-methods
         self.body = body 
 
     def __init__(self, first, second=None):
+        """There are two types of control: The normal ones that have an index in
+        a body, and the special ones that only hold a Node. This picks which 
+        constructor to use"""
         self.index = None
         self.body = None
         self.node = None
@@ -67,7 +70,7 @@ class Ctrl: #pylint:disable=too-few-public-methods
         elif first is not None:
             self.construct_node(first)
         else:
-            raise Exception("None None Ctrl init")
+            raise Exception("Malformed Ctrl init")
 
     def __add__(self, offset):
         """Returns the location in the same function with the line number offset
@@ -89,7 +92,6 @@ class Envr:
 
     def __init__(self, parent = None):
         self.map_to_address = {} #A set of IdToAddr mappings
-        self.map_to_type = {}
         self.parent = parent
         self.id = Envr.counter
         Envr.counter = Envr.counter + 1

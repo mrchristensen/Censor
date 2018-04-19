@@ -8,15 +8,17 @@ from cesk.interpret import execute, LinkSearch
 
 def main(ast):
     """Injects execution into main funciton and maintains work queue"""
-    ast = LinkSearch().visit(ast)
+    #Search ast. link children to parents, map names FuncDef and Label nodes
+    LinkSearch().visit(ast)
     main_function = find_main(ast)[0]
 
     start_ctrl = Ctrl(main_function.body)
     halt_state = State(start_ctrl, Envr.get_global_scope(), Stor(), Halt())
-    start_state = State(halt_state.ctrl, halt_state.envr, halt_state.stor,
+    # create start state as if main() has been called by halt
+    start_state = State(start_ctrl, halt_state.envr, halt_state.stor,
                         FunctionKont(halt_state))
     queue = deque([start_state])
-    while queue:
+    while queue: #is not empty
         next_state = queue.popleft()
         successors = execute(next_state)
         queue.extend(successors)
@@ -31,11 +33,17 @@ def implemented_nodes():
         'BinaryOp',
         'Compound',
         'Constant',
+        'Decl',
+        'FuncCall',
+        'FuncDecl',
+        'FuncDef',
         'Goto',
         'ID',
         'If',
         'Label',
-        'UnaryOp',
         'Return',
+        'TernaryOp',
+        'TypeDecl',
+        'UnaryOp',
         'FileAST'
     }

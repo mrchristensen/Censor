@@ -3,13 +3,11 @@
 
 int main() {
 
-	int *a, *b;
+    int *a, *b;
     int c = 3, d = 7;
-
-	a = &c;
+    a = &c;
     b = &d;
-
     int sum = *a + *b; 
-	printf("%d\n", sum);
-	return 0;
+    printf("%d\n", sum);
+    return 0;
 }

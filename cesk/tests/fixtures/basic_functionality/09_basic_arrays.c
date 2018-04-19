@@ -7,7 +7,7 @@ int main() {
 
     loop:
 		sum = sum + a[i];
-		++i;
+		i = i + 1;
 	if (i < 10) {
 		goto loop;
 	}
