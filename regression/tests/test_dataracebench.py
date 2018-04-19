@@ -12,6 +12,7 @@ class TestDataRaceBench(RegressionTestCase): #pylint: disable=no-name-in-module
                          '../dataracebench/micro-benchmarks/utilities']
         self.add_flags = [
             '-fopenmp',
+            '-lm',
             '../dataracebench/micro-benchmarks/utilities/polybench.c',
             '-DPOLYBENCH_NO_FLUSH_CACHE',
             '-DPOLYBENCH_TIME',

@@ -44,10 +44,12 @@ IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-/* 
-Only the outmost loop can be parallelized. 
-  
+/*
+Only the outmost loop can be parallelized.
+
 */
+#include <stdio.h>
+
 int n=100, m=100;
 double b[100][100];
 
@@ -63,5 +65,12 @@ void foo()
 int main()
 {
   foo();
-  return 0;
+  int i, j;
+  for (i=0;i<n;i++) {
+    for (j=0;j<m;j++) {
+      printf("%f ", b[i][j]);
+    }
+    printf("\n");
+  }
+    return 0;
 }

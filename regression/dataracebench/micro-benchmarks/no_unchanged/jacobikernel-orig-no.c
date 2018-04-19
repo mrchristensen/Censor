@@ -79,6 +79,16 @@ initialize ()
     }
 }
 
+void print_array(double a[MSIZE][MSIZE]) {
+  for (int i = 0; i < MSIZE; ++i) {
+    for (int j = 0; j < MSIZE; ++j){
+      printf("%f ", a[i][j]);
+    }
+    printf("\n");
+  }
+  printf("\n");
+}
+
 void
 jacobi ()
 {
@@ -89,7 +99,7 @@ jacobi ()
   omega = relax;
 /* Initialize coefficients */
 
-  dx = 2.0 / (n - 1); 
+  dx = 2.0 / (n - 1);
   dy = 2.0 / (m - 1);
 
   ax = 1.0 / (dx * dx);         /* X-direction coef */
@@ -127,11 +137,13 @@ jacobi ()
 /* Error check */
 
      k = k + 1;
-      error = sqrt (error) / (n * m);
+      error = sqrt(error) / (n * m);
     }                           /*  End iteration loop */
 
-  printf ("Total Number of Iterations:%d\n", k);
-  printf ("Residual:%E\n", error);
+  // printf ("Total Number of Iterations:%d\n", k);
+  // printf ("Residual:%E\n", error);
+  print_array(u);
+  print_array(f);
 }
 
 int main()

@@ -45,26 +45,35 @@ THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 /*
-Using lastprivate() to resolve an output dependence.
-
-Semantics of lastprivate (x):
-causes the corresponding original list item to be updated after the end of the region.
-The compiler/runtime copies the local value back to the shared one within the last iteration.
+Classic i-k-j matrix multiplication
 */
 #include <stdio.h>
 
-void foo()
+#define N 100
+#define M 100
+#define K 100
+double a[N][M],b[M][K],c[N][K];
+
+int mmm()
 {
-  int i,x;
-#pragma omp parallel for private (i) lastprivate (x)
-  for (i=0;i<100;i++)
-    x=i;
-  printf("x=%d",x);
+  int i,j,k;
+#pragma omp parallel for private(j,k)
+  for (i = 0; i < N; i++)
+    for (k = 0; k < K; k++)
+      for (j = 0; j < M; j++)
+        c[i][j]= c[i][j]+a[i][k]*b[k][j];
+  return 0;
 }
 
 int main()
 {
-  foo();
-  return 0;
+  mmm();
+  int i, j;
+  for (i = 0; i < N; i++) {
+    for (j = 0; j < M; j++) {
+      printf("%f ", c[i][j]);
+    }
+    printf("\n");
+  }
+    return 0;
 }
-

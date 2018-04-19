@@ -45,27 +45,32 @@ THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 /*
-Classic i-k-j matrix multiplication
+Matrix-vector multiplication: inner level parallelization.
 */
+#include <stdio.h>
+#define N 1000
+double a[N][N],v[N],v_out[N];
 
-#define N 100
-#define M 100 
-#define K 100
-double a[N][M],b[M][K],c[N][K];
-            
-int mmm()   
-{           
-  int i,j,k;
-#pragma omp parallel for private(j,k)
-  for (i = 0; i < N; i++) 
-    for (k = 0; k < K; k++) 
-      for (j = 0; j < M; j++)
-        c[i][j]= c[i][j]+a[i][k]*b[k][j];
-  return 0; 
-} 
+void mv()
+{
+  int i,j;
+  for (i = 0; i < N; i++)
+  {
+    float sum = 0.0;
+#pragma omp parallel for reduction(+:sum)
+    for (j = 0; j < N; j++)
+    {
+      sum += a[i][j]*v[j];
+    }
+    v_out[i] = sum;
+  }
+}
 
 int main()
 {
-  mmm();
+  mv();
+  for (int i = 0; i < N; ++i) {
+    printf("%d ", v_out[i]);
+  }
   return 0;
-}  
+}

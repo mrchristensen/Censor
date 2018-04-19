@@ -48,17 +48,25 @@ THE POSSIBILITY OF SUCH DAMAGE.
 Freshly allocated pointers do not alias to each other.
 */
 #include <stdlib.h>
+#include <stdio.h>
+
 void setup(int N)
 {
   double * m_pdv_sum = (double* ) malloc (sizeof (double) * N );
   double * m_nvol = (double* ) malloc (sizeof (double) * N );
 
-#pragma omp parallel for schedule(static)
-  for (int i=0; i < N; ++i ) 
-  { 
+#pragma omp parallel for schedule(static, 50)
+  for (int i=0; i < N; ++i )
+  {
     m_pdv_sum[ i ] = 0.0;
     m_nvol[ i ]   = i*2.5;
   }
+
+  for (int i=0; i < N; ++i )
+    printf("%f ", m_pdv_sum[ i ]);
+  printf("\n");
+  for (int i=0; i < N; ++i )
+    printf("%f ", m_nvol[ i ]);
 
   free(m_pdv_sum);
   free(m_nvol);
@@ -69,4 +77,4 @@ int main()
   int N =1000;
   setup(N);
 }
-  
+

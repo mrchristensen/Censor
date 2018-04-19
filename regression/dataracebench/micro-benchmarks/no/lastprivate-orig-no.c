@@ -45,28 +45,26 @@ THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 /*
-Matrix-vector multiplication: inner level parallelization.
-*/
-#define N 1000
-double a[N][N],v[N],v_out[N];
+Using lastprivate() to resolve an output dependence.
 
-void mv()
-{           
-  int i,j;
-  for (i = 0; i < N; i++)
-  {         
-    float sum = 0.0;
-#pragma omp parallel for reduction(+:sum)
-    for (j = 0; j < N; j++)
-    { 
-      sum += a[i][j]*v[j];
-    }  
-    v_out[i] = sum;
-  }         
+Semantics of lastprivate (x):
+causes the corresponding original list item to be updated after the end of the region.
+The compiler/runtime copies the local value back to the shared one within the last iteration.
+*/
+#include <stdio.h>
+
+void foo()
+{
+  int i,x;
+#pragma omp parallel for private (i) lastprivate (x)
+  for (i=0;i<100;i++)
+    x=i;
+  printf("x=%d\n",x);
 }
 
 int main()
 {
-  mv();
+  foo();
   return 0;
 }
+

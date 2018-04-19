@@ -44,12 +44,14 @@ IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-/* 
-Only the outmost loop can be parallelized. 
-  
+/*
+Only the outmost loop can be parallelized.
+
 The inner loop has loop carried anti data dependence.
 However, the loop is not parallelized so no race condition.
 */
+#include <stdio.h>
+
 int n=100, m=100;
 double b[100][100];
 
@@ -65,5 +67,12 @@ void foo()
 int main()
 {
   foo();
+  int i, j;
+  for (i=0;i<n;i++) {
+    for (j=0;j<m;j++) {
+      printf("%f ", b[i][j]);
+    }
+    printf("\n");
+  }
   return 0;
 }
