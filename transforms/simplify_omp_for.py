@@ -46,8 +46,25 @@ class SimplifyOmpFor(NodeTransformer):
         loop = node.loops
         nodes = []
 
-        # find the name of the variable of iteration, pull out the Decl if
-        # there is one
+        iter_var = self.get_iter_var(loop, nodes)
+        bound_decl = self.pull_condition(loop, iter_var)
+        nodes.append(bound_decl)
+
+        # if the iteration is not simple incrementation, pull out iteration
+        # step size, evaluate it to a constant in advance
+        if isinstance(loop.next, UnaryOp):
+            nodes.append(node)
+            return Compound(nodes)
+        else:
+            iter_decl = self.pull_incrementation(loop, iter_var)
+            nodes.append(iter_decl)
+            node.loops.stmt = self.generic_visit(node.loops.stmt)
+            nodes.append(node)
+            return Compound(nodes)
+
+    def get_iter_var(self, loop, nodes): #pylint: disable=no-self-use
+        """"find the name of the variable of iteration, pull out the Decl if
+        there is one."""
         iter_var = None
         if isinstance(loop.init, Assignment) and \
             isinstance(loop.init.lvalue, ID):
@@ -60,8 +77,10 @@ class SimplifyOmpFor(NodeTransformer):
             loop.init = Assignment("=", ID(iter_var), decl.init)
         else:
             raise Exception("Invalid OMP for loop init.")
+        return iter_var
 
-        # pull out condition to evaluate it to a constant in advance
+    def pull_condition(self, loop, iter_var):
+        """pull out condition to evaluate it to a constant in advance."""
         bound_decl = None
         if isinstance(loop.cond.left, ID) and loop.cond.left.name == iter_var:
             bound_decl = make_temp_value(loop.cond.right,
@@ -74,21 +93,18 @@ class SimplifyOmpFor(NodeTransformer):
             loop.cond.left = ID(bound_decl.name)
         else:
             raise Exception("Invalid OMP for loop condition.")
-        nodes.append(bound_decl)
+        return bound_decl
 
-        # if the iteration is not simple incrementation, pull out iteration
-        # step size, evaluate it to a constant in advance
-
-        if isinstance(loop.next, UnaryOp):
-            nodes.append(node)
-            return Compound(nodes)
-
+    def pull_incrementation(self, loop, iter_var):
+        """Pull out iteration step size, evaluate it to a constant
+        in advance."""
         iter_decl = None
         if isinstance(loop.next, Assignment):
             if len(loop.next.op) == 2:
-                # don't need to worry about side effects because "It is
-                # unspecified whether, in what order, or how many times any
-                # side effects within the lb, b, or incr expressions occur."
+                # Naive version of removing compound assignment. We don't need
+                # to worry about side effects of the lvalue because "It is
+                # unspecified whether, in what order, or how many time any side
+                # effects within the lb, b, or incr expressions occur."
                 binop = BinaryOp(loop.next.op[0], loop.next.lvalue,
                                  loop.next.rvalue)
                 loop.next = Assignment("=", loop.next.lvalue, binop)
@@ -104,8 +120,4 @@ class SimplifyOmpFor(NodeTransformer):
                 binop.left = ID(iter_decl.name)
         else:
             raise Exception("Invalid OMP for loop incrementation.")
-
-        nodes.append(iter_decl)
-        node.loops.stmt = self.generic_visit(node.loops.stmt)
-        nodes.append(node)
-        return Compound(nodes)
+        return iter_decl
