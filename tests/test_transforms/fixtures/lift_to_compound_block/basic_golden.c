@@ -2,8 +2,8 @@ int main()
 {
   int censor01 = 1 + 3;
   int censor02 = 7 - 2;
-  float censor03 = 4.5 + ((float) censor02);
-  float censor04 = ((float) censor01) + censor03;
+  double censor03 = 4.5 + ((float) censor02);
+  double censor04 = ((float) censor01) + censor03;
   int x = (int) censor04;
   int censor05 = 4 + 5;
   int censor06 = censor05 + 6;

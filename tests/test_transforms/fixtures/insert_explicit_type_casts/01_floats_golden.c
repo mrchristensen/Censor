@@ -13,4 +13,11 @@ int main()
   i = (int) (((float) i) + a);
   i = (int) (b + ((double) i));
   i = (int) (((long double) i) + c);
+
+  float f = (float) (((double) 1) + 0.0);
+  f = ((float) 1) + 0.0f;
+  f = ((float) 1) + 0.0F;
+  f = (float) (((long double) 1) + 0.0l);
+  f = (float) (((long double) 1) + 0.0L);
+
 }

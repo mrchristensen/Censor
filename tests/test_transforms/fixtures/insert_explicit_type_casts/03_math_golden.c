@@ -24,7 +24,7 @@ double sqrt(double x)
   double z = (double) 10;
   for (i = 1; i < (grenze + 1); i++)
   {
-    z = z * ((double) 0.1);
+    z = z * 0.1;
     while ((v * v) < x)
     {
       v = v + z;
