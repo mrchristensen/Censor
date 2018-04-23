@@ -21,6 +21,7 @@ RemoveCompoundAssignment < InsertExplicitTypeCasts
 """
 
 # imports for transforms
+from .sizeof_type import SizeofType
 from .do_while_to_goto import DoWhileToGoto
 from .while_to_do_while import WhileToDoWhile
 from .for_to_while import ForToWhile
@@ -90,6 +91,8 @@ def get_transformers(ast):
     yield (PragmaToOmpSingle, lambda ast: [])
     yield (PragmaToOmpSimd, lambda ast: [])
     yield (OmpNotImplemented, lambda ast: [])
+    yield (SizeofType,
+           lambda ast: [type_env_calc.get_environments(ast)])
     yield (SimplifyOmpFor,
            lambda ast: [id_generator, type_env_calc.get_environments(ast)])
     yield (TernaryToIf,

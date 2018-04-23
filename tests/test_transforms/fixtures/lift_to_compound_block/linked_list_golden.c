@@ -13,7 +13,7 @@ typedef struct node linked_list;
 linked_list *create_node(int data)
 {
 
-  void *censor01 = malloc(sizeof(new_node));
+  void *censor01 = malloc(sizeof(linked_list));
   linked_list *new_node = (linked_list *) censor01;
   int censor02 = new_node == NULL;
   if (censor02)

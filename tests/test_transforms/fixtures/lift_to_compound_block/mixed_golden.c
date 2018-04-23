@@ -7,7 +7,7 @@ struct rects
 };
 int main()
 {
-  void *censor01 = malloc(sizeof(r));
+  void *censor01 = malloc(sizeof(struct rects));
   struct rects *r = (struct rects *) censor01;
   int i = 0;
   int t = 0;

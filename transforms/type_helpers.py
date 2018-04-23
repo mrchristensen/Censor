@@ -138,7 +138,7 @@ _NO_OP = Cast(Typename(None, [], IdentifierType(['void'])),
 def _get_type_helper(expr, env): # pylint: disable=too-many-return-statements,too-many-branches
     """Does all of the actual work for get_type, but returns a reference to
     a node that is currently in the AST."""
-    if isinstance(expr, (TypeDecl, PtrDecl, ArrayDecl)):
+    if isinstance(expr, (TypeDecl, PtrDecl, ArrayDecl, Typename)):
         return expr
     elif isinstance(expr, str):
         return _get_type_helper(ID(expr), env)

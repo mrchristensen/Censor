@@ -4,6 +4,7 @@ from tests.helpers import GoldenTestCase
 from transforms.lift_to_compound_block import LiftToCompoundBlock
 from transforms.id_generator import IDGenerator
 from transforms.type_environment_calculator import TypeEnvironmentCalculator
+from transforms.sizeof_type import SizeofType
 
 class TestFlattenStructRefs(GoldenTestCase):
     """Test LiftToCompoundBlock transform"""
@@ -16,6 +17,7 @@ class TestFlattenStructRefs(GoldenTestCase):
     def transform(self, ast):
         """Transform input AST"""
         environments = TypeEnvironmentCalculator().get_environments(ast)
+        ast = SizeofType(environments).visit(ast)
         self.transformer = LiftToCompoundBlock(IDGenerator(ast), environments)
         return self.transformer.visit(ast)
 
