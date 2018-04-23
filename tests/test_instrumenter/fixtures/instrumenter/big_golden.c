@@ -1,4 +1,4 @@
-void yeti_log_heap_access(char *mode, void *var, int thread_num)
+void yeti_log_memory_access(char *mode, void *var, int thread_num)
 {
   printf("%s, %p, %d\n", mode, var, thread_num);
 }
@@ -23,9 +23,9 @@ static void init_array(int ni, int nj, int nk, int nl, int nm, double A[censor04
   {
     int c2;
     int c1;
-    yeti_log_heap_access("read", &nl, omp_get_thread_num());
+    yeti_log_memory_access("read", &nl, omp_get_thread_num());
     int censor0473 = nl >= 1;
-    yeti_log_heap_access("read", &censor0473, omp_get_thread_num());
+    yeti_log_memory_access("read", &censor0473, omp_get_thread_num());
     if (censor0473)
     {
       #pragma omp parallel
@@ -33,25 +33,25 @@ static void init_array(int ni, int nj, int nk, int nl, int nm, double A[censor04
         yeti_log_omp("enter", "parallel", omp_get_thread_num());
         {
           int censor038;
-          yeti_log_heap_access("read", &ni, omp_get_thread_num());
+          yeti_log_memory_access("read", &ni, omp_get_thread_num());
           int censor0474 = ni + (-1);
-          yeti_log_heap_access("read", &nj, omp_get_thread_num());
+          yeti_log_memory_access("read", &nj, omp_get_thread_num());
           int censor0475 = nj + (-1);
-          yeti_log_heap_access("read", &censor0475, omp_get_thread_num());
-          yeti_log_heap_access("read", &censor0474, omp_get_thread_num());
+          yeti_log_memory_access("read", &censor0475, omp_get_thread_num());
+          yeti_log_memory_access("read", &censor0474, omp_get_thread_num());
           int censor0476 = censor0474 < censor0475;
-          yeti_log_heap_access("read", &censor0476, omp_get_thread_num());
+          yeti_log_memory_access("read", &censor0476, omp_get_thread_num());
           if (censor0476)
           {
-            yeti_log_heap_access("read", &ni, omp_get_thread_num());
-            yeti_log_heap_access("write", &censor038, omp_get_thread_num());
+            yeti_log_memory_access("read", &ni, omp_get_thread_num());
+            yeti_log_memory_access("write", &censor038, omp_get_thread_num());
             censor038 = ni + (-1);
             goto censor0200_ENDIF;
           }
 
           {
-            yeti_log_heap_access("read", &nj, omp_get_thread_num());
-            yeti_log_heap_access("write", &censor038, omp_get_thread_num());
+            yeti_log_memory_access("read", &nj, omp_get_thread_num());
+            yeti_log_memory_access("write", &censor038, omp_get_thread_num());
             censor038 = nj + (-1);
           }
           censor0200_ENDIF:

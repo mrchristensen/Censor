@@ -1,14 +1,14 @@
-"""Instrumenting Strategy"""
+"""Registry"""
 
-class InstrumentingStrategy():
-    """Abstract class for instrumenting an AST"""
+class Registry():
+    """Abstract class for registering events in an AST"""
 
     def embed_definitions(self, file_ast):
         """Return AST with the declarations and definitions needed"""
         raise NotImplementedError
 
-    def register_heap_access(self, mode, var):
-        """Register heap access"""
+    def register_memory_access(self, mode, var):
+        """Register memory access"""
         raise NotImplementedError
 
     def register_omp(self, mode, construct):
