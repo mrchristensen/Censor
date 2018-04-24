@@ -2,6 +2,18 @@
 from pycparser import c_ast
 from .funccall_order import FuncCallOrder
 
+class IncorrectCallOrder(Exception):
+    """Exception raised when functions are called out of their defined
+    correct ordering."""
+    def __init__(self, message, funcname, sequence):
+        super().__init__(message)
+        self.funcname = funcname
+        self.sequence = sequence
+
+    def __str__(self):
+        return "Function " + self.funcname + " should always be called as" + \
+               " a part of the sequence " + str(self.sequence)
+
 def verify_openssl_correctness(ast):
     """Verifies the correctness of function calling order. For an OpenSSL
     Program"""
@@ -21,8 +33,9 @@ def verify_correctness(ast, defined_orders):
         for i, funcname in enumerate(a_order):
             if funcname in defined_orders:
                 d_order = defined_orders[funcname]
-                if not a_order[i:i + len(d_order)] == defined_orders[funcname]:
-                    return False
+                a_sequence = a_order[i:i + len(d_order)]
+                if a_sequence != defined_orders[funcname]:
+                    raise IncorrectCallOrder("", funcname, a_sequence)
     return True
 
 def _get_name(node):

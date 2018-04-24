@@ -1,7 +1,7 @@
 """Test asserting the correct order of calling functions."""
 
 import unittest
-from ssl.correct_call_order import verify_correctness
+from ssl.correct_call_order import verify_correctness, IncorrectCallOrder
 import pycparser
 
 C = """extern void a();
@@ -43,4 +43,5 @@ class TestCorrectCallOrder(unittest.TestCase):
         """false case"""
         defined_orders = {'a': ['a', 'b', 'c'], 'f': ['e', 'f', 'g']}
         ast = self.parser.parse(C)
-        self.assertFalse(verify_correctness(ast, defined_orders))
+        with self.assertRaises(IncorrectCallOrder):
+            verify_correctness(ast, defined_orders)
