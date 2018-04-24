@@ -1,12 +1,7 @@
 """
 Initializes ssl module. Module is to analyze OpenSSL programs to determine
-if they are calling the OpenSSL libraries in a way that preservers security.
+if they are calling the OpenSSL libraries in a way that preserves security.
 """
-
-from .funccall_order import FuncCallOrder
-
-# def verify_correctness():
-#     pass
 
 TEST_PROGRAM = r"""
 extern void a();
@@ -32,6 +27,3 @@ int main() {
     g();
 
 }"""
-
-if __name__ == "__main__":
-    pass

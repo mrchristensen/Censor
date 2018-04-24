@@ -7,12 +7,28 @@ class FuncCallOrder(NodeVisitor):
     in each function definition."""
 
     def __init__(self):
-        pass
+        self.call_order = None
+        self.current_function = None
 
     def visit_FuncDef(self, node): #pylint: disable=invalid-name
         """Create a new entry in the map for the function being visited."""
-        pass
+        name = node.decl.name
+        self.call_order[name] = []
+        self.current_function = name
+        self.visit(node.body)
+        self.current_function = None
 
     def visit_FuncCall(self, node): #pylint: disable=invalid-name
         """Simply appends the funccall to the current list."""
-        pass
+        # TODO: should we always ignore functions called in the arguments
+        # of a function? Maybe its best to for OpenSSL purposes...
+        self.call_order[self.current_function].append(node)
+
+    def get_call_order(self, ast):
+        """This is the only function that should be called publicly."""
+        self.call_order = {}
+        self.visit(ast)
+        retval = self.call_order
+        self.call_order = None
+        self.current_function = None
+        return retval

@@ -42,7 +42,8 @@ SUITE = unittest.TestLoader().loadTestsFromNames(
         'test_transforms.test_simplify_omp_for',
         'test_transforms.test_omp_not_implemented',
         'test_instrumenter.test_logger',
-        'test_instrumenter.test_instrumenter'
+        'test_instrumenter.test_instrumenter',
+        'test_ssl.test_correct_call_order'
     ]
 )
 TESTRESULT = unittest.TextTestRunner(verbosity=1).run(SUITE)

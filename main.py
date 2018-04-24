@@ -5,6 +5,7 @@ import sys
 import tempfile
 from os import path
 
+from ssl.correct_call_order import verify_openssl_correctness
 import yeti
 import utils
 from transforms import transform
@@ -15,7 +16,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("filename")
     parser.add_argument('--tool', '-t',
-                        choices=['censor', 'yeti', 'cesk', 'observer'],
+                        choices=['censor', 'yeti', 'cesk', 'observer', 'ssl'],
                         required=False, type=str.lower,
                         help='the (case-insensitive) name of the analysis')
     parser.add_argument('--pycparser', '-p',
@@ -68,7 +69,7 @@ def main():
 
     # the instrumenter needs to preserve includes until after
     # instrumentation
-    #if args.sanitize:
+    # if args.sanitize:
     #    utils.sanitize(ast)
 
     # figure out what analysis is supposed to happen and call the
@@ -87,7 +88,8 @@ def main():
         watchman.visit(ast)
         watchman.report()
         watchman.coverage(cesk.implemented_nodes())
-
+    elif args.tool == "ssl":
+        verify_openssl_correctness(ast)
     else:
         print("No valid tool name given; defaulting to censor.")
         censor.main(ast) #default to censor
