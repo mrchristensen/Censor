@@ -115,6 +115,13 @@ class NaiveInstrumenter(LiftNode): #pylint: disable=too-many-public-methods
     def register_clauses(self, mode, omp_node, clauses, append=False):
         """Instrument AST with function calls to register implicit
         reads and writes made by clauses"""
+        # TODO throw errors for clauses we don't handle yet
+        # TODO handle all clauses that make implicit references to variables
+        # schedule
+        # if
+        # copyin
+        # copyprivate
+        # num_threads
         if hasattr(omp_node, 'clauses'):
             for clause in omp_node.clauses:
                 if isinstance(clause, clauses):
