@@ -16,6 +16,8 @@ class PragmaToOmp(NodeTransformer):
         self.pattern = pattern
         self.str_to_clause_type = str_to_clause_type
         self.structured_block = structured_block
+        # TODO support clauses like
+        # pragma omp parallel if (a > 10)
         pattern = r'(\w+\s*\((?:[\w+-\\*\\|\\^&]+:\s*)?\w+(?:,\s*\w+)*\)|\w+)'
         self.clause_pattern = re.compile(pattern)
 
