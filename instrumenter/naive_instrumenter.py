@@ -1,10 +1,11 @@
 """Instrumenter that registers every read and write"""
 
+from copy import deepcopy
 from pycparser.c_ast import * # pylint: disable=wildcard-import, unused-wildcard-import
 from omp.clause import Reduction, FirstPrivate, LastPrivate
 from transforms.lift_node import LiftNode
 from transforms.type_helpers import get_type
-from transforms.helpers import ensure_compound
+from transforms.helpers import ensure_compound, append_statement
 
 def array_ref(name, subscript):
     """Return an ArrayRef AST object"""
@@ -68,6 +69,12 @@ class NaiveInstrumenter(LiftNode): #pylint: disable=too-many-public-methods
         """Log reads and writes in Assignment node"""
         self.register_node_accesses('read', node.rvalue)
         self.register_node_accesses('write', node.lvalue)
+        return node
+
+    def visit_BinaryOp(self, node): #pylint: disable=invalid-name
+        """Log reads and writes in BinaryOp node"""
+        self.register_node_accesses('read', node.left)
+        self.register_node_accesses('read', node.right)
         return node
 
     def visit_UnaryOp(self, node): # pylint: disable=invalid-name
@@ -144,11 +151,27 @@ class NaiveInstrumenter(LiftNode): #pylint: disable=too-many-public-methods
 
     def visit_OmpFor(self, node): #pylint: disable=invalid-name
         """visit_OmpFor"""
-        # TODO verify that I am not missing things by only visiting
-        # the body of the for loop
-        node.loops.stmt = self.visit(node.loops.stmt)
+        # Hacky way of instrumenting for loop header.
+        # Visit the loop header once
+        # Copy the nodes to the bottom of the loop body temporarily
+        # Visit them there
+        # Delete the temp nodes
+        # Because of SimplifyOmpFor we can assume a certain format
+        # for (Assignment, BinaryOp, Assignment)
         self.register_clause_reads(node)
         self.insert_into_scope(self.registry.register_omp_enter('for'))
+        node.loops.init.rvalue = self.visit(node.loops.init.rvalue)
+        node.loops.cond = self.visit(node.loops.cond)
+        cond = deepcopy(node.loops.cond)
+        inc = deepcopy(node.loops.next)
+        node.loops.stmt = append_statement(node.loops.stmt, inc)
+        node.loops.stmt = append_statement(node.loops.stmt, cond)
+        node.loops.stmt = self.visit(node.loops.stmt)
+        items = []
+        for item in node.loops.stmt.block_items:
+            if item != cond and item != inc:
+                items.append(item)
+        node.loops.stmt.block_items = items
         self.append_to_scope(self.registry.register_omp_exit('for'))
         self.register_clause_writes(node)
         return node
