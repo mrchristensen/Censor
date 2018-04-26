@@ -41,6 +41,7 @@ SUITE = unittest.TestLoader().loadTestsFromNames(
         'test_transforms.test_remove_init_lists',
         'test_transforms.test_simplify_omp_for',
         'test_transforms.test_omp_not_implemented',
+        'test_transforms.test_sizeof_type',
         'test_instrumenter.test_logger',
         'test_instrumenter.test_instrumenter',
         'test_ssl.test_correct_call_order'

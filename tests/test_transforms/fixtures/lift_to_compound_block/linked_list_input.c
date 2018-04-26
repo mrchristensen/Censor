@@ -8,7 +8,7 @@ struct node {
 typedef struct node linked_list;
 
 linked_list* create_node(int data) {
-  linked_list* new_node = (linked_list*)malloc(sizeof(new_node));
+  linked_list* new_node = (linked_list*)malloc(sizeof(*new_node));
   if (new_node == NULL)
     return NULL;
   new_node->data = data;
