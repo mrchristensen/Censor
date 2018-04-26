@@ -6,6 +6,7 @@ from os import listdir
 from os.path import join, dirname
 from unittest import TestCase
 from pycparser.c_parser import CParser
+from pycparser.c_ast import Node
 from omp.c_with_omp_generator import CWithOMPGenerator
 
 CWD = dirname(__file__)
@@ -26,8 +27,9 @@ class GoldenTestCase(TestCase):
         with open(CWD + f_input, 'r') as input_c_file:
             input_c = input_c_file.read()
         ast = self.parser.parse(input_c)
-        transformed = transform(ast)
-        actual = self.generator.visit(transformed)
+        actual = transform(ast)
+        if isinstance(actual, Node):
+            actual = self.generator.visit(actual)
         temp = tempfile.NamedTemporaryFile(mode='w')
         temp.write(actual)
         temp.flush()
