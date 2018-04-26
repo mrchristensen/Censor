@@ -173,18 +173,23 @@ def _diff_results(expected_out, actual_out):
         )
     )
 
-def _run_c(path, includes, add_flags):
-    """ compiles and runs a c source file and returns stdout (or stderr, if
-        the return code is non-zero) as a byte string.
-    """
-    out_path = join(tempfile.gettempdir(), "censor_out")
-    res = subprocess.run(
+def _compile_c(path, includes, add_flags, out_path):
+    """Compile c to out_path file. Return result"""
+    return subprocess.run(
         ['gcc', '-x', 'c', path, '-o', out_path,
          *[''.join(['-I', include]) for include in includes],
          *add_flags
         ],
         stderr=subprocess.PIPE
     )
+
+
+def _run_c(path, includes, add_flags):
+    """ compiles and runs a c source file and returns stdout (or stderr, if
+        the return code is non-zero) as a byte string.
+    """
+    out_path = join(tempfile.gettempdir(), "censor_out")
+    res = _compile_c(path, includes, add_flags, out_path)
     if res.returncode != 0:
         return \
             "Compilation failed!\n" \
