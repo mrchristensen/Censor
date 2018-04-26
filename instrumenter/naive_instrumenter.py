@@ -2,10 +2,15 @@
 
 from copy import deepcopy
 from pycparser.c_ast import * # pylint: disable=wildcard-import, unused-wildcard-import
+from omp.clause import * # pylint: disable=wildcard-import, unused-wildcard-import
 from omp.clause import Reduction, FirstPrivate, LastPrivate
 from transforms.lift_node import LiftNode
 from transforms.type_helpers import get_type
 from transforms.helpers import ensure_compound, append_statement
+
+def has_clause(node, clause):
+    """Return true if node has clause"""
+    return any(isinstance(c, clause) for c in node.clauses)
 
 def array_ref(name, subscript):
     """Return an ArrayRef AST object"""
@@ -151,6 +156,9 @@ class NaiveInstrumenter(LiftNode): #pylint: disable=too-many-public-methods
 
     def visit_OmpFor(self, node): #pylint: disable=invalid-name
         """visit_OmpFor"""
+        construct = 'for'
+        if has_clause(node, NoWait):
+            construct += ' nowait'
         # Hacky way of instrumenting for loop header.
         # Visit the loop header once
         # Copy the nodes to the bottom of the loop body temporarily
@@ -159,7 +167,7 @@ class NaiveInstrumenter(LiftNode): #pylint: disable=too-many-public-methods
         # Because of SimplifyOmpFor we can assume a certain format
         # for (Assignment, BinaryOp, Assignment)
         self.register_clause_reads(node)
-        self.insert_into_scope(self.registry.register_omp_enter('for'))
+        self.insert_into_scope(self.registry.register_omp_enter(construct))
         node.loops.init.rvalue = self.visit(node.loops.init.rvalue)
         node.loops.cond = self.visit(node.loops.cond)
         cond = deepcopy(node.loops.cond)
@@ -172,14 +180,17 @@ class NaiveInstrumenter(LiftNode): #pylint: disable=too-many-public-methods
             if item != cond and item != inc:
                 items.append(item)
         node.loops.stmt.block_items = items
-        self.append_to_scope(self.registry.register_omp_exit('for'))
+        self.append_to_scope(self.registry.register_omp_exit(construct))
         self.register_clause_writes(node)
         return node
 
     def visit_OmpSections(self, node): #pylint: disable=invalid-name
         """visit_OmpSections"""
         node = self.generic_visit(node)
-        node.block = self.instrument_omp(node.sections, 'sections')
+        construct = 'sections'
+        if has_clause(node, NoWait):
+            construct += ' nowait'
+        node.block = self.instrument_omp(node.sections, construct)
         return node
 
     def visit_OmpSection(self, node): #pylint: disable=invalid-name
@@ -191,7 +202,10 @@ class NaiveInstrumenter(LiftNode): #pylint: disable=too-many-public-methods
     def visit_OmpSingle(self, node): #pylint: disable=invalid-name
         """visit_OmpSingle"""
         node = self.generic_visit(node)
-        node.block = self.instrument_omp(node.block, 'single')
+        construct = 'single'
+        if has_clause(node, NoWait):
+            construct += ' nowait'
+        node.block = self.instrument_omp(node.block, construct)
         return node
 
     def visit_OmpTask(self, node): #pylint: disable=invalid-name

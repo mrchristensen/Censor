@@ -33,7 +33,7 @@ static void init_array(int ni, int nj, int nk, int nl, int nm, double A[censor04
           censor0200_ENDIF:
           (void ) 0;
 
-          #pragma omp for  private(c2)
+          #pragma omp for  private(c2) nowait
           for (c1 = 0; c1 <= censor038; c1++) {
 
           }

@@ -57,10 +57,10 @@ static void init_array(int ni, int nj, int nk, int nl, int nm, double A[censor04
           censor0200_ENDIF:
           (void ) 0;
 
-          yeti_log_omp("enter", "for", omp_get_thread_num());
+          yeti_log_omp("enter", "for nowait", omp_get_thread_num());
           yeti_log_memory_access("read", &c1, omp_get_thread_num());
           yeti_log_memory_access("read", &censor038, omp_get_thread_num());
-          #pragma omp for  private(c2)
+          #pragma omp for  private(c2) nowait
           for (c1 = 0; c1 <= censor038; c1++)
           {
             yeti_log_memory_access("write", &c1, omp_get_thread_num());
@@ -68,7 +68,7 @@ static void init_array(int ni, int nj, int nk, int nl, int nm, double A[censor04
             yeti_log_memory_access("read", &censor038, omp_get_thread_num());
           }
 
-          yeti_log_omp("exit", "for", omp_get_thread_num());
+          yeti_log_omp("exit", "for nowait", omp_get_thread_num());
         }
         yeti_log_omp("exit", "parallel", omp_get_thread_num());
       }
