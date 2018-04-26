@@ -296,6 +296,18 @@ class AssignKont(Kont):
                              new_stor, self.parent_state.kont) 
         return self.parent_state.kont.satisfy(return_state, value)
 
+class CastKont(Kont):
+    """Continuation to cast to different types before satisfying the parent"""
+
+    def __init__(self, parent_kont, to_type):
+        self.parent_kont = parent_kont
+        self.to_type = to_type
+
+    def satisfy(self, state, value):
+        cast_value = cast(value)
+        return self.parent_kont.satisfy(state, cast_value)
+        
+
 class IfKont(Kont):
     """Continuation for if statement, moves ctrl to correct place"""
     parent_state = None

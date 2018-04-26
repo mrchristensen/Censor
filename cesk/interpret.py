@@ -70,7 +70,10 @@ def execute(state):
         else:
             raise Exception(name + " is not an array nor pointer nor vector" +
                             str(pointer))
-        successors.append(state.kont.satisfy(state, value))
+        if isinstance(state.kont, FunctionKont): #Don't return to function
+            successors.append(get_next(state))
+        else:
+            successors.append(state.kont.satisfy(state, value))
     elif isinstance(stmt, pycparser.c_ast.Assignment):
         #print("Assignment")
         exp = stmt.rvalue
@@ -123,7 +126,11 @@ def execute(state):
         # TODO
         #print("Cast")
         new_ctrl = Ctrl(stmt.expr)
-        new_state = State(new_ctrl, state.envr, state.stor, state.kont)
+        if isinstance(state.kont, FunctionKont): #don't return: don't cast
+            new_kont = state.kont
+        else:
+            new_kont = CastKont(state.kont, stmt.to_type)
+        new_state = State(new_ctrl, state.envr, state.stor, new_kont)
         successors.append(new_state)
     elif isinstance(stmt, pycparser.c_ast.Compound):
         #print("Compound")
@@ -341,9 +348,7 @@ def execute(state):
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.TernaryOp):
         #print("TernaryOp")
-        new_kont = IfKont(state, stmt.iftrue, stmt.iffalse)
-        new_ctrl = Ctrl(stmt.cond)
-        successors.append(State(new_ctrl, state.envr, state.stor, new_kont))
+        raise Exception("TernaryOp should have been removed in the transforms")
     elif isinstance(stmt, pycparser.c_ast.TypeDecl):
         #print("TypeDecl")
         raise Exception("TypeDecl should have been found as child of Decl")
@@ -444,6 +449,9 @@ def handle_decl_array(array, list_of_sizes, state):
 
 def handle_unary_op(opr, expr, state): #pylint: disable=inconsistent-return-statements
     """decodes and evaluates unary_ops"""
+    if isinstance(state.kont, FunctionKont): #don't return to function
+        return get_next(state)
+
     if opr == "&":
         if isinstance(expr, pycparser.c_ast.ID):
             ident = expr.name
@@ -557,4 +565,4 @@ def get_next(state): #pylint: disable=inconsistent-return-statements
 # structures.py and interpret.py
 from cesk.structures import State, Ctrl, Envr, AssignKont, ReturnKont # pylint: disable=wrong-import-position
 from cesk.structures import FunctionKont, LeftBinopKont, IfKont, VoidKont # pylint: disable=wrong-import-position
-from cesk.structures import throw # pylint: disable=wrong-import-position
+from cesk.structures import CastKont, throw # pylint: disable=wrong-import-position
