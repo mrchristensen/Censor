@@ -75,7 +75,8 @@ def get_fixtures(path):
     """Retrieve test fixtures, a list of tuples (input_file, golden_file)"""
     fixtures = []
     directory = get_fixture(path)
-    files = [join(path, f) for f in listdir(directory) if isfile(join(path, f))]
+    is_fixture = lambda f: isfile(get_fixture(join(path, f)))
+    files = [join(path, f) for f in listdir(directory) if is_fixture(f)]
     sources = [f for f in files if 'input' in f]
     for source in sources:
         index = source.find('input')
