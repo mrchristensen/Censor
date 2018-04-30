@@ -25,4 +25,4 @@ class TestRemoveCompoundAssignment(GoldenTestCase):
 
     def test_remove_compound_assignment(self):
         """Run golden test cases"""
-        self.assert_all_golden(self.transform, self.fixtures)
+        self.assert_all_transform_golden(self.transform, self.fixtures)

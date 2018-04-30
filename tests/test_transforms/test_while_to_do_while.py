@@ -17,4 +17,4 @@ class TestWhileToDoWhile(GoldenTestCase):
 
     def test_while_to_do_while(self):
         """Run golden test cases"""
-        self.assert_all_golden(self.transform, self.fixtures)
+        self.assert_all_transform_golden(self.transform, self.fixtures)

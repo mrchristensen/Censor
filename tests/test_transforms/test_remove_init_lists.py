@@ -21,4 +21,4 @@ class TestRemoveInitLists(GoldenTestCase):
 
     def test_remove_init_lists(self):
         """Run golden test cases"""
-        self.assert_all_golden(self.transform, self.fixtures)
+        self.assert_all_transform_golden(self.transform, self.fixtures)

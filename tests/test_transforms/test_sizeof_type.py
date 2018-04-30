@@ -20,4 +20,4 @@ class TestSizeofType(GoldenTestCase):
 
     def test_fixtures(self):
         """Test all fixtures"""
-        self.assert_all_golden(self.transform, self.fixtures)
+        self.assert_all_transform_golden(self.transform, self.fixtures)
