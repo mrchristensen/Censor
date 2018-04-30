@@ -48,7 +48,8 @@ class SimplifyOmpFor(NodeTransformer):
 
         iter_var = self.get_iter_var(loop, nodes)
         bound_decl = self.pull_condition(loop, iter_var)
-        nodes.append(bound_decl)
+        if bound_decl is not None:
+            nodes.append(bound_decl)
 
         # if the iteration is not simple incrementation, pull out iteration
         # step size, evaluate it to a constant in advance
@@ -82,6 +83,8 @@ class SimplifyOmpFor(NodeTransformer):
     def pull_condition(self, loop, iter_var):
         """pull out condition to evaluate it to a constant in advance."""
         bound_decl = None
+        if isinstance(loop.cond.left, ID) and isinstance(loop.cond.right, ID):
+            return bound_decl
         if isinstance(loop.cond.left, ID) and loop.cond.left.name == iter_var:
             bound_decl = make_temp_value(loop.cond.right,
                                          self.id_generator, self.env)

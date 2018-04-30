@@ -47,10 +47,10 @@ int main(int argc, char** argv)
     {
       yeti_log_memory_access("write", &a, omp_get_thread_num());
       a++;
+      yeti_log_memory_access("read", &sum, omp_get_thread_num());
       yeti_log_memory_access("read", &values, omp_get_thread_num());
       yeti_log_memory_access("read", &i, omp_get_thread_num());
       yeti_log_memory_access("read", &values[i], omp_get_thread_num());
-      yeti_log_memory_access("read", &sum, omp_get_thread_num());
       yeti_log_memory_access("write", &sum, omp_get_thread_num());
       sum = sum + values[i];
       yeti_log_memory_access("write", &i, omp_get_thread_num());

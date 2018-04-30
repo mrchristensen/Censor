@@ -39,13 +39,13 @@ class NaiveInstrumenter(LiftNode): #pylint: disable=too-many-public-methods
         """Register accesses for node"""
         read_mode = mode.replace('write', 'read')
         if isinstance(node, BinaryOp):
-            self.register_node_accesses(mode, node.right, append)
             self.register_node_accesses(mode, node.left, append)
+            self.register_node_accesses(mode, node.right, append)
             return
         elif isinstance(node, FuncCall):
             if node.args is not None:
                 for expr in node.args.exprs:
-                    self.register_node_accesses(read_mode, expr, append)
+                    self.register_node_accesses(mode, expr, append)
             return
         elif isinstance(node, Cast):
             self.register_node_accesses(mode, node.expr, append)
@@ -57,6 +57,9 @@ class NaiveInstrumenter(LiftNode): #pylint: disable=too-many-public-methods
                 return
             elif node.op == '*':
                 self.register_node_accesses(read_mode, node.expr, append)
+            elif node.op == '&':
+                self.register_node_accesses(mode, node.expr, append)
+                return
         elif isinstance(node, StructRef):
             self.register_node_accesses(read_mode, node.name, append)
         elif isinstance(node, ArrayRef):
@@ -78,8 +81,7 @@ class NaiveInstrumenter(LiftNode): #pylint: disable=too-many-public-methods
 
     def visit_BinaryOp(self, node): #pylint: disable=invalid-name
         """Log reads and writes in BinaryOp node"""
-        self.register_node_accesses('read', node.left)
-        self.register_node_accesses('read', node.right)
+        self.register_node_accesses('read', node)
         return node
 
     def visit_UnaryOp(self, node): # pylint: disable=invalid-name

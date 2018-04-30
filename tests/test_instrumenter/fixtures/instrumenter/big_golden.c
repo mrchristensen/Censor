@@ -37,8 +37,8 @@ static void init_array(int ni, int nj, int nk, int nl, int nm, double A[censor04
           int censor0474 = ni + (-1);
           yeti_log_memory_access("read", &nj, omp_get_thread_num());
           int censor0475 = nj + (-1);
-          yeti_log_memory_access("read", &censor0475, omp_get_thread_num());
           yeti_log_memory_access("read", &censor0474, omp_get_thread_num());
+          yeti_log_memory_access("read", &censor0475, omp_get_thread_num());
           int censor0476 = censor0474 < censor0475;
           yeti_log_memory_access("read", &censor0476, omp_get_thread_num());
           if (censor0476)

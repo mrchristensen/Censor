@@ -31,6 +31,9 @@ int main(int argc, char** argv)
     yeti_log_memory_access("read", p_arr, omp_get_thread_num());
     yeti_log_memory_access("write", &(*p_arr)[0], omp_get_thread_num());
     (*p_arr)[0] = b[0];
+    yeti_log_memory_access("read", &b, omp_get_thread_num());
+    yeti_log_memory_access("read", &b[0], omp_get_thread_num());
+    int *c = &b[0];
     yeti_log_omp("exit", "parallel", omp_get_thread_num());
   }
 }
