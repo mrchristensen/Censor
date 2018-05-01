@@ -1,11 +1,15 @@
-void yeti_log_memory_access(char *mode, void *var, int thread_num)
+void yeti_log_memory_access(char *mode, void *var)
 {
-  printf("%s, %p, %d\n", mode, var, thread_num);
+  int thread_num = omp_get_thread_num();
+  int ancestor_num = omp_get_ancestor_thread_num();
+  printf("%s, %p, %d, %d\n", mode, var, thread_num, ancestor_num);
 }
 
-void yeti_log_omp(char *action, char *construct, int thread_num)
+void yeti_log_omp(char *action, char *construct)
 {
-  printf("%s, %s, %d\n", action, construct, thread_num);
+  int thread_num = omp_get_thread_num();
+  int ancestor_num = omp_get_ancestor_thread_num();
+  printf("%s, %s, %d, %d\n", action, construct, thread_num, ancestor_num);
 }
 
 #pragma BEGIN #include<omp.h>
@@ -23,53 +27,53 @@ static void init_array(int ni, int nj, int nk, int nl, int nm, double A[censor04
   {
     int c2;
     int c1;
-    yeti_log_memory_access("read", &nl, omp_get_thread_num());
+    yeti_log_memory_access("read", &nl);
     int censor0473 = nl >= 1;
-    yeti_log_memory_access("read", &censor0473, omp_get_thread_num());
+    yeti_log_memory_access("read", &censor0473);
     if (censor0473)
     {
       #pragma omp parallel
       {
-        yeti_log_omp("enter", "parallel", omp_get_thread_num());
+        yeti_log_omp("enter", "parallel");
         {
           int censor038;
-          yeti_log_memory_access("read", &ni, omp_get_thread_num());
+          yeti_log_memory_access("read", &ni);
           int censor0474 = ni + (-1);
-          yeti_log_memory_access("read", &nj, omp_get_thread_num());
+          yeti_log_memory_access("read", &nj);
           int censor0475 = nj + (-1);
-          yeti_log_memory_access("read", &censor0474, omp_get_thread_num());
-          yeti_log_memory_access("read", &censor0475, omp_get_thread_num());
+          yeti_log_memory_access("read", &censor0474);
+          yeti_log_memory_access("read", &censor0475);
           int censor0476 = censor0474 < censor0475;
-          yeti_log_memory_access("read", &censor0476, omp_get_thread_num());
+          yeti_log_memory_access("read", &censor0476);
           if (censor0476)
           {
-            yeti_log_memory_access("read", &ni, omp_get_thread_num());
-            yeti_log_memory_access("write", &censor038, omp_get_thread_num());
+            yeti_log_memory_access("read", &ni);
+            yeti_log_memory_access("write", &censor038);
             censor038 = ni + (-1);
             goto censor0200_ENDIF;
           }
 
           {
-            yeti_log_memory_access("read", &nj, omp_get_thread_num());
-            yeti_log_memory_access("write", &censor038, omp_get_thread_num());
+            yeti_log_memory_access("read", &nj);
+            yeti_log_memory_access("write", &censor038);
             censor038 = nj + (-1);
           }
           censor0200_ENDIF:
           (void ) 0;
 
-          yeti_log_omp("enter", "for nowait", omp_get_thread_num());
-          yeti_log_memory_access("read", &censor038, omp_get_thread_num());
+          yeti_log_omp("enter", "for nowait");
+          yeti_log_memory_access("read", &censor038);
           #pragma omp for  private(c2) nowait
           for (c1 = 0; c1 <= censor038; c1++)
           {
-            yeti_log_memory_access("write", &c1, omp_get_thread_num());
-            yeti_log_memory_access("read", &c1, omp_get_thread_num());
-            yeti_log_memory_access("read", &censor038, omp_get_thread_num());
+            yeti_log_memory_access("write", &c1);
+            yeti_log_memory_access("read", &c1);
+            yeti_log_memory_access("read", &censor038);
           }
 
-          yeti_log_omp("exit", "for nowait", omp_get_thread_num());
+          yeti_log_omp("exit", "for nowait");
         }
-        yeti_log_omp("exit", "parallel", omp_get_thread_num());
+        yeti_log_omp("exit", "parallel");
       }
 
     }

@@ -30,11 +30,7 @@ class Logger(Registry):
             pycparser.c_ast.ID(self.log_memory_def.decl.name),
             pycparser.c_ast.ExprList([
                 pycparser.c_ast.Constant('string', '"' + mode + '"'),
-                var,
-                pycparser.c_ast.FuncCall(
-                    pycparser.c_ast.ID('omp_get_thread_num'),
-                    None
-                )
+                var
             ])
         )
 
@@ -44,10 +40,6 @@ class Logger(Registry):
             pycparser.c_ast.ID(self.log_omp_def.decl.name),
             pycparser.c_ast.ExprList([
                 pycparser.c_ast.Constant('string', '"' + mode + '"'),
-                pycparser.c_ast.Constant('string', '"' + construct + '"'),
-                pycparser.c_ast.FuncCall(
-                    pycparser.c_ast.ID('omp_get_thread_num'),
-                    None
-                ),
+                pycparser.c_ast.Constant('string', '"' + construct + '"')
             ])
         )

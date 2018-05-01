@@ -1,11 +1,15 @@
-void yeti_log_memory_access(char* mode, void* var, int thread_num)
+void yeti_log_memory_access(char *mode, void *var)
 {
-  printf("%s, %p, %d\n", mode, var, thread_num);
+  int thread_num = omp_get_thread_num();
+  int ancestor_num = omp_get_ancestor_thread_num();
+  printf("%s, %p, %d, %d\n", mode, var, thread_num, ancestor_num);
 }
 
-void yeti_log_omp(char* action, char* construct, int thread_num)
+void yeti_log_omp(char *action, char *construct)
 {
-  printf("%s, %s, %d\n", action, construct, thread_num);
+  int thread_num = omp_get_thread_num();
+  int ancestor_num = omp_get_ancestor_thread_num();
+  printf("%s, %s, %d, %d\n", action, construct, thread_num, ancestor_num);
 }
 
 #pragma BEGIN #include<omp.h>
@@ -18,8 +22,8 @@ int main()
 {
   #pragma omp parallel
   {
-    yeti_log_omp("enter", "parallel", omp_get_thread_num());
+    yeti_log_omp("enter", "parallel");
     x();
-    yeti_log_omp("exit", "parallel", omp_get_thread_num());
+    yeti_log_omp("exit", "parallel");
   }
 }

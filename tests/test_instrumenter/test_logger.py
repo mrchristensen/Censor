@@ -17,26 +17,26 @@ class TestLogger(unittest.TestCase):
         """Make sure log read memory access works"""
         ast = self.logger.register_memory_access('read', UnaryOp('&', ID('x')))
         func_call = self.c_gen.visit(ast)
-        output = 'yeti_log_memory_access("read", &x, omp_get_thread_num())'
+        output = 'yeti_log_memory_access("read", &x)'
         self.assertEqual(output, func_call)
 
     def test_log_write(self):
         """Make sure log write memory access works"""
         ast = self.logger.register_memory_access('write', UnaryOp('&', ID('x')))
         func_call = self.c_gen.visit(ast)
-        output = 'yeti_log_memory_access("write", &x, omp_get_thread_num())'
+        output = 'yeti_log_memory_access("write", &x)'
         self.assertEqual(output, func_call)
 
     def test_log_omp_enter(self):
         """Make sure log omp enter works"""
         ast = self.logger.register_omp_enter('parallel')
         func_call = self.c_gen.visit(ast)
-        output = 'yeti_log_omp("enter", "parallel", omp_get_thread_num())'
+        output = 'yeti_log_omp("enter", "parallel")'
         self.assertEqual(output, func_call)
 
     def test_log_omp_exit(self):
         """Make sure log omp exit works"""
         ast = self.logger.register_omp_exit('parallel')
         func_call = self.c_gen.visit(ast)
-        output = 'yeti_log_omp("exit", "parallel", omp_get_thread_num())'
+        output = 'yeti_log_omp("exit", "parallel")'
         self.assertEqual(output, func_call)
