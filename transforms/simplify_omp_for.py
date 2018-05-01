@@ -24,6 +24,23 @@ from pycparser.c_ast import ID
 from .type_helpers import make_temp_value
 from .node_transformer import NodeTransformer
 
+def get_iter_var(loop, nodes):
+    """"find the name of the variable of iteration, pull out the Decl if
+    there is one."""
+    iter_var = None
+    if isinstance(loop.init, Assignment) and \
+        isinstance(loop.init.lvalue, ID):
+        iter_var = loop.init.lvalue.name
+    elif isinstance(loop.init, DeclList) and \
+        len(loop.init.decls) == 1:
+        decl = loop.init.decls[0]
+        iter_var = decl.name
+        nodes.append(decl)
+        loop.init = Assignment("=", ID(iter_var), decl.init)
+    else:
+        raise Exception("Invalid OMP for loop init.")
+    return iter_var
+
 class SimplifyOmpFor(NodeTransformer):
     """Transform to simplify the header of omp for loops."""
     def __init__(self, id_generator, environments):
@@ -46,7 +63,7 @@ class SimplifyOmpFor(NodeTransformer):
         loop = node.loops
         nodes = []
 
-        iter_var = self.get_iter_var(loop, nodes)
+        iter_var = get_iter_var(loop, nodes)
         bound_decl = self.pull_condition(loop, iter_var)
         if bound_decl is not None:
             nodes.append(bound_decl)
@@ -62,23 +79,6 @@ class SimplifyOmpFor(NodeTransformer):
             node.loops.stmt = self.generic_visit(node.loops.stmt)
             nodes.append(node)
             return Compound(nodes)
-
-    def get_iter_var(self, loop, nodes): #pylint: disable=no-self-use
-        """"find the name of the variable of iteration, pull out the Decl if
-        there is one."""
-        iter_var = None
-        if isinstance(loop.init, Assignment) and \
-            isinstance(loop.init.lvalue, ID):
-            iter_var = loop.init.lvalue.name
-        elif isinstance(loop.init, DeclList) and \
-            len(loop.init.decls) == 1:
-            decl = loop.init.decls[0]
-            iter_var = decl.name
-            nodes.append(decl)
-            loop.init = Assignment("=", ID(iter_var), decl.init)
-        else:
-            raise Exception("Invalid OMP for loop init.")
-        return iter_var
 
     def pull_condition(self, loop, iter_var):
         """pull out condition to evaluate it to a constant in advance."""

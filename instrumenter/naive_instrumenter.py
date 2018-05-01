@@ -7,6 +7,7 @@ from omp.clause import Reduction, FirstPrivate, LastPrivate
 from transforms.lift_node import LiftNode
 from transforms.type_helpers import get_type
 from transforms.helpers import ensure_compound, append_statement
+from transforms.simplify_omp_for import get_iter_var
 
 def has_clause(node, clause):
     """Return true if node has clause"""
@@ -168,6 +169,7 @@ class NaiveInstrumenter(LiftNode): #pylint: disable=too-many-public-methods
         construct = 'for'
         if has_clause(node, NoWait):
             construct += ' nowait'
+        iter_var = get_iter_var(node.loops, [])
         # Hacky way of instrumenting for loop header.
         # Visit the loop header once
         # Copy the nodes to the bottom of the loop body temporarily
@@ -175,20 +177,27 @@ class NaiveInstrumenter(LiftNode): #pylint: disable=too-many-public-methods
         # Delete the temp nodes
         # Because of SimplifyOmpFor we can assume a certain format
         # for (Assignment, BinaryOp, Assignment)
+        # We don't register the initial read of the iteration variable
+        # because it is made private and we do not have access to the
+        # private address in this scope
         self.register_clause_reads(node)
         self.insert_into_scope(self.registry.register_omp_enter(construct))
         node.loops.init.rvalue = self.visit(node.loops.init.rvalue)
-        node.loops.cond = self.visit(node.loops.cond)
+        cond_right = node.loops.cond.right
+        cond_left = node.loops.cond.left
+        if isinstance(cond_left, ID) and cond_left.name != iter_var:
+            self.register_node_accesses("read", node.loops.cond.left)
+        elif isinstance(cond_right, ID):
+            self.register_node_accesses("read", node.loops.cond.right)
         cond = deepcopy(node.loops.cond)
         inc = deepcopy(node.loops.next)
         node.loops.stmt = append_statement(node.loops.stmt, inc)
         node.loops.stmt = append_statement(node.loops.stmt, cond)
         node.loops.stmt = self.visit(node.loops.stmt)
-        items = []
-        for item in node.loops.stmt.block_items:
-            if item != cond and item != inc:
-                items.append(item)
-        node.loops.stmt.block_items = items
+        node.loops.stmt.block_items = filter(
+            lambda i: i != cond and i != inc,
+            node.loops.stmt.block_items
+            )
         self.append_to_scope(self.registry.register_omp_exit(construct))
         self.register_clause_writes(node)
         return node
