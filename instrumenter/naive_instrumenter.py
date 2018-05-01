@@ -2,8 +2,7 @@
 
 from copy import deepcopy
 from pycparser.c_ast import * # pylint: disable=wildcard-import, unused-wildcard-import
-from omp.clause import * # pylint: disable=wildcard-import, unused-wildcard-import
-from omp.clause import Reduction, FirstPrivate, LastPrivate
+from omp.clause import Reduction, FirstPrivate, LastPrivate, NoWait
 from transforms.lift_node import LiftNode
 from transforms.type_helpers import get_type
 from transforms.helpers import ensure_compound, append_statement
