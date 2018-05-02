@@ -21,16 +21,24 @@ def find_end_include(node, lib):
             return preserve_include_find_end(node, i)
     return -1
 
-class IncludeOMP(NodeTransformer):
+class IncludeDependencies(NodeTransformer):
     """Include OMP transform"""
 
+    def __init__(self, deps):
+        """Make sure file includes all dependencies"""
+        self.deps = deps
+
     def visit_FileAST(self, node): # pylint:disable=invalid-name,no-self-use
-        """Include omp.h if not already included"""
-        has_omp = False
+        """Include dependencies if not already included"""
+        has_dep = {}
+        for dep in self.deps:
+            has_dep[dep] = False
         for _, child in enumerate(node):
-            if is_include(child, 'omp'):
-                has_omp = True
-        if not has_omp:
-            node.ext.insert(0, Pragma("BEGIN #include<omp.h>"))
-            node.ext.insert(1, Pragma("END"))
+            for dep in self.deps:
+                if is_include(child, dep):
+                    has_dep[dep] = True
+        for dep in self.deps:
+            if not has_dep[dep]:
+                node.ext.insert(0, Pragma("BEGIN #include<"+dep+">"))
+                node.ext.insert(1, Pragma("END"))
         return node

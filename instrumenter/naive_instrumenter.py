@@ -5,7 +5,7 @@ from pycparser.c_ast import * # pylint: disable=wildcard-import, unused-wildcard
 from omp.clause import Reduction, FirstPrivate, LastPrivate, NoWait
 from transforms.lift_node import LiftNode
 from transforms.type_helpers import get_type
-from transforms.helpers import ensure_compound, append_statement
+from transforms.helpers import append_statement
 from transforms.simplify_omp_for import get_iter_var
 
 def has_clause(node, clause):
@@ -149,25 +149,19 @@ class NaiveInstrumenter(LiftNode): #pylint: disable=too-many-public-methods
             append=True
             )
 
-    def instrument_omp(self, block, construct):
-        """Add sandwiching log statements at the beginning and end of an omp
-        structured block"""
-        block = ensure_compound(block)
-        block.block_items.insert(0, self.registry.register_omp_enter(construct))
-        block.block_items.append(self.registry.register_omp_exit(construct))
-        return block
-
     def visit_OmpParallel(self, node): #pylint: disable=invalid-name
         """visit_OmpParallel"""
         node = self.generic_visit(node)
-        node.block = self.instrument_omp(node.block, 'parallel')
+        node.block.block_items = [
+            *self.registry.make_task_ids(),
+            self.registry.register_post(),
+            *node.block.block_items
+            ]
+        self.append_to_scope(self.registry.register_await())
         return node
 
     def visit_OmpFor(self, node): #pylint: disable=invalid-name
         """visit_OmpFor"""
-        construct = 'for'
-        if has_clause(node, NoWait):
-            construct += ' nowait'
         iter_var = get_iter_var(node.loops, [])
         # Hacky way of instrumenting for loop header.
         # Visit the loop header once
@@ -180,7 +174,6 @@ class NaiveInstrumenter(LiftNode): #pylint: disable=too-many-public-methods
         # because it is made private and we do not have access to the
         # private address in this scope
         self.register_clause_reads(node)
-        self.insert_into_scope(self.registry.register_omp_enter(construct))
         node.loops.init.rvalue = self.visit(node.loops.init.rvalue)
         cond_right = node.loops.cond.right
         cond_left = node.loops.cond.left
@@ -197,99 +190,87 @@ class NaiveInstrumenter(LiftNode): #pylint: disable=too-many-public-methods
             lambda i: i != cond and i != inc,
             node.loops.stmt.block_items
             )
-        self.append_to_scope(self.registry.register_omp_exit(construct))
         self.register_clause_writes(node)
+        if not has_clause(node, NoWait):
+            self.append_to_scope(self.registry.register_await())
         return node
 
     def visit_OmpSections(self, node): #pylint: disable=invalid-name
         """visit_OmpSections"""
         node = self.generic_visit(node)
-        construct = 'sections'
-        if has_clause(node, NoWait):
-            construct += ' nowait'
-        node.block = self.instrument_omp(node.sections, construct)
+        if not has_clause(node, NoWait):
+            self.append_to_scope(self.registry.register_await())
         return node
 
     def visit_OmpSection(self, node): #pylint: disable=invalid-name
         """visit_OmpSection"""
         node = self.generic_visit(node)
-        node.block = self.instrument_omp(node.block, 'section')
         return node
 
     def visit_OmpSingle(self, node): #pylint: disable=invalid-name
         """visit_OmpSingle"""
         node = self.generic_visit(node)
-        construct = 'single'
-        if has_clause(node, NoWait):
-            construct += ' nowait'
-        node.block = self.instrument_omp(node.block, construct)
+        if not has_clause(node, NoWait):
+            self.append_to_scope(self.registry.register_await())
         return node
 
     def visit_OmpTask(self, node): #pylint: disable=invalid-name
         """visit_OmpTask"""
         node = self.generic_visit(node)
-        node.block = self.instrument_omp(node.block, 'task')
+        node.block.block_items = [
+            *self.registry.make_task_ids(),
+            self.registry.register_post(),
+            *node.block.block_items
+            ]
         return node
 
     def visit_OmpMaster(self, node): #pylint: disable=invalid-name
         """visit_OmpMaster"""
         node = self.generic_visit(node)
-        node.block = self.instrument_omp(node.block, 'master')
         return node
 
     def visit_OmpCritical(self, node): #pylint: disable=invalid-name
         """visit_OmpCritical"""
         node = self.generic_visit(node)
-        node.block = self.instrument_omp(node.block, 'critical')
+        node.block.block_items = [
+            *self.registry.make_task_ids(),
+            self.registry.register_isolated(),
+            *node.block.block_items
+            ]
         return node
 
     def visit_OmpBarrier(self, node): #pylint: disable=invalid-name
         """visit_OmpBarrier"""
-        node = self.generic_visit(node)
-        node.block = self.instrument_omp(node, 'barrier')
+        self.append_to_scope(self.registry.register_await())
         return node
 
     def visit_OmpFlush(self, node): #pylint: disable=invalid-name
         """visit_OmpFlush"""
-        node = self.generic_visit(node)
-        node.block = self.instrument_omp(node.block, 'flush')
-        return node
+        raise NotImplementedError('Instrumenter: OmpFlush')
 
     def visit_OmpTaskloop(self, node): #pylint: disable=invalid-name
         """visit_OmpTaskloop"""
-        node = self.generic_visit(node)
-        node.block = self.instrument_omp(node.loops, 'taskloop')
-        return node
+        raise NotImplementedError('Instrumenter: OmpTaskloop')
 
     def visit_OmpTaskwait(self, node): #pylint: disable=invalid-name
         """visit_OmpTaskwait"""
-        node = self.generic_visit(node)
-        node.block = self.instrument_omp(node, 'taskwait')
-        return node
+        raise NotImplementedError('Instrumenter: OmpTaskwait')
 
     def visit_OmpTaskgroup(self, node): #pylint: disable=invalid-name
         """visit_OmpTaskgroup"""
-        node = self.generic_visit(node)
-        node.block = self.instrument_omp(node.block, 'taskgroup')
-        return node
+        raise NotImplementedError('Instrumenter: OmpTaskgroup')
 
     def visit_OmpAtomic(self, node): #pylint: disable=invalid-name
         """visit_OmpAtomic"""
-        node = self.generic_visit(node)
-        node.block = self.instrument_omp(node.block, 'atomic')
-        return node
+        raise NotImplementedError('Instrumenter: OmpAtomic')
 
     def visit_OmpCancel(self, node): #pylint: disable=invalid-name
         """visit_OmpCancel"""
-        node = self.generic_visit(node)
-        node.block = self.instrument_omp(node.block, 'cancel')
-        return node
+        raise NotImplementedError('Instrumenter: OmpCancel')
 
     def visit_OmpCancellationPoint(self, node): #pylint: disable=invalid-name
         """visit_OmpCancellationPoint"""
-        node = self.generic_visit(node)
-        node.block = self.instrument_omp(node.block, 'cancellationpoint')
-        return node
+        raise NotImplementedError('Instrumenter: OmpCancellationPoint')
 
     def visit_OmpThreadprivate(self, node): #pylint: disable=invalid-name
         """visit_OmpThreadprivate"""

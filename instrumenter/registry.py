@@ -8,17 +8,25 @@ class Registry():
         raise NotImplementedError
 
     def register_memory_access(self, mode, var):
-        """Register memory access"""
+        """Return code to register memory access"""
         raise NotImplementedError
 
-    def register_omp(self, mode, construct):
-        """Register entering and exiting an omp construct"""
+    def register_post(self):
+        """Return code to register post of task"""
         raise NotImplementedError
 
-    def register_omp_enter(self, construct):
-        """Insert a function call AST for entering an omp construct"""
-        return self.register_omp('enter', construct)
+    def register_isolated(self):
+        """Return code to register isolated region"""
+        raise NotImplementedError
 
-    def register_omp_exit(self, construct):
-        """Insert a function call AST for exiting an omp construct"""
-        return self.register_omp('exit', construct)
+    def register_await(self):
+        """Return code to register await"""
+        raise NotImplementedError
+
+    def register_ewait(self):
+        """Return code to register ewait"""
+        raise NotImplementedError
+
+    def make_task_ids(self):
+        """Return code to generate new task ids"""
+        raise NotImplementedError

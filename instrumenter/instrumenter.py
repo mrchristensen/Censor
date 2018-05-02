@@ -1,7 +1,7 @@
 """Instrumenter class for traversing anc instrumenting an AST"""
 
 from transforms.lift_node import LiftNode
-from instrumenter.logger import Logger
+from instrumenter.logger import Logger, is_yeti
 from instrumenter.naive_instrumenter import NaiveInstrumenter
 from utils import is_main
 
@@ -35,6 +35,6 @@ class Instrumenter(LiftNode):
         # TODO maybe do a first pass to see which functions
         # are actually called in parallel regions and only
         # instrument those
-        if is_main(node):
+        if is_main(node) or is_yeti(node):
             return self.generic_visit(node)
         return self.make_instrumenter().visit(node)
