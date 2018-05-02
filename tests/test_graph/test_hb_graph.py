@@ -7,7 +7,6 @@ def build_graph(log):
     """Build graph from log file. Print graph"""
     hb_graph = HBGraph()
     hb_graph.from_log_file(log)
-    print("%s" % (hb_graph))
     return "%s" % (hb_graph)
 
 class TestHBGraph(GoldenTestCase):

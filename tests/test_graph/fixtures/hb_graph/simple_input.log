@@ -1,6 +1,4 @@
-enter, parallel, 0
-enter, parallel, 1
-enter, parallel, 2
-exit, parallel, 0
-exit, parallel, 1
-exit, parallel, 2
+post, 1, 0
+post, 2, 0
+post, 3, 0
+await
