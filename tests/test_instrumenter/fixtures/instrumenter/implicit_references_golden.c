@@ -88,11 +88,10 @@ int main(int argc, char** argv)
       yeti_log_memory_access("read", &values[i], yeti_task_id);
       yeti_log_memory_access("write", &sum, yeti_task_id);
       sum = sum + values[i];
-      yeti_log_memory_access("write", &i, yeti_task_id);
-      yeti_log_memory_access("read", &i, yeti_task_id);
     }
     yeti_log_memory_access("clause write", &a, yeti_task_id);
     yeti_log_memory_access("clause write", &sum, yeti_task_id);
     yeti_log_await();
   }
+  yeti_log_await();
 }

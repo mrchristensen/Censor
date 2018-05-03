@@ -73,4 +73,5 @@ int main(int argc, char** argv)
     yeti_log_memory_access("read", &b[0], yeti_task_id);
     int *c = &b[0];
   }
+  yeti_log_await();
 }

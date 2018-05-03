@@ -97,9 +97,6 @@ static void init_array(char *yeti_task_id, char *yeti_parent_task_id, int ni, in
           #pragma omp for  private(c2) nowait
           for (c1 = 0; c1 <= censor038; c1++)
           {
-            yeti_log_memory_access("write", &c1, yeti_task_id);
-            yeti_log_memory_access("read", &c1, yeti_task_id);
-            yeti_log_memory_access("read", &censor038, yeti_task_id);
           }
 
         }

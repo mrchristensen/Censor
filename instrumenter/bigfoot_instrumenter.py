@@ -1,8 +1,8 @@
 """Bigfoot Instrumenter"""
 
-from instrumenter.naive_instrumenter import NaiveInstrumenter
+from instrumenter.instrumenter import Instrumenter
 
-class BigfootInstrumenter(NaiveInstrumenter): # pylint: disable=abstract-method
+class BigfootInstrumenter(Instrumenter): # pylint: disable=abstract-method
     """Instrumenter that registers minimal set of reads/writes"""
 
     # TODO set up any extra state needed for bigfoot analysis

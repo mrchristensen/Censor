@@ -58,4 +58,5 @@ int main()
     yeti_log_post(yeti_task_id, yeti_parent_task_id);
     x(yeti_task_id, yeti_parent_task_id);
   }
+  yeti_log_await();
 }
