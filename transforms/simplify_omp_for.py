@@ -20,7 +20,7 @@ might be transformed to
 """
 
 from pycparser.c_ast import Assignment, DeclList, Compound, UnaryOp, BinaryOp
-from pycparser.c_ast import ID
+from pycparser.c_ast import ID, Constant
 from .type_helpers import make_temp_value
 from .node_transformer import NodeTransformer
 
@@ -40,6 +40,10 @@ def get_iter_var(loop, nodes):
     else:
         raise Exception("Invalid OMP for loop init.")
     return iter_var
+
+def simplified(node):
+    """Return true if node is ID or Constant"""
+    return isinstance(node, (ID, Constant))
 
 class SimplifyOmpFor(NodeTransformer):
     """Transform to simplify the header of omp for loops."""
@@ -83,7 +87,7 @@ class SimplifyOmpFor(NodeTransformer):
     def pull_condition(self, loop, iter_var):
         """pull out condition to evaluate it to a constant in advance."""
         bound_decl = None
-        if isinstance(loop.cond.left, ID) and isinstance(loop.cond.right, ID):
+        if simplified(loop.cond.left) and simplified(loop.cond.right):
             return bound_decl
         if isinstance(loop.cond.left, ID) and loop.cond.left.name == iter_var:
             bound_decl = make_temp_value(loop.cond.right,
