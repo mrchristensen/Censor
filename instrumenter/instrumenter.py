@@ -5,7 +5,7 @@ from omp.clause import * # pylint: disable=wildcard-import, unused-wildcard-impo
 from transforms.lift_node import LiftNode
 from transforms.type_helpers import get_type
 from transforms.simplify_omp_for import get_iter_var
-from instrumenter.logger import Logger
+from instrumenter.logger import Logger, is_yeti
 
 NOT_IMPLEMENTED = (
     If,
@@ -175,6 +175,12 @@ class Instrumenter(LiftNode): #pylint: disable=too-many-public-methods
         """visit_FileAST"""
         node = self.generic_visit(node)
         return self.registry.embed_definitions(node)
+
+    def visit_FuncDef(self, node): #pylint: disable=invalid-name
+        """Skip tool inserted functions"""
+        if is_yeti(node):
+            return node
+        return self.generic_visit(node)
 
     def visit_OmpParallel(self, node): #pylint: disable=invalid-name
         """visit_OmpParallel"""
