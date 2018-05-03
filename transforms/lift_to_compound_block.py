@@ -84,18 +84,13 @@ class LiftToCompoundBlock(LiftNode):
         ref = None
         if isinstance(value, AST.Assignment):
             ref = self.lift_assignment(value)
+        elif isinstance(value, AST.UnaryOp):
+            ref = self.lift_unaryop(value)
         elif isinstance(node, AST.Assignment):
             ref = None
         elif isinstance(value, (AST.StructRef, AST.ArrayRef)):
             ref = self.lift_to_ptr(value)
-        elif isinstance(value, AST.UnaryOp):
-            ref = self.lift_unaryop(value)
         elif isinstance(value, (AST.BinaryOp, AST.FuncCall)):
-            # TODO fix bug with malloc
-            # struct node* n = (struct node*)malloc(sizeof(n));
-            # turns into
-            # void * censor1 = malloc(sizeof(n)); // n is undeclared!
-            # struct node* n = (struct node*)censor1;
             ref = self.lift_to_value(value)
         if ref is not None:
             setattr(node, field, ref)
