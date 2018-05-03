@@ -5,8 +5,8 @@ from collections import OrderedDict
 
 def task_ids(line):
     """Parse out arguments for processing isolated and post"""
-    task_id = line[1].strip()
-    parent_id = line[2].strip()
+    task_id = int(line[1].strip())
+    parent_id = int(line[2].strip())
     return (task_id, parent_id)
 
 def read_write_args(line):
@@ -27,13 +27,13 @@ class Node():
         len_writes = len(self.writes)
         return 'N(%s,%s)' % (len_reads, len_writes)
 
-    def add_read(self, addr, task_id):
+    def add_read(self, addr):
         """Adds memory access to reads array"""
-        self.reads.append((addr, task_id))
+        self.reads.append(addr)
 
-    def add_write(self, addr, task_id):
+    def add_write(self, addr):
         """Adds memory access to writes array"""
-        self.writes.append((addr, task_id))
+        self.writes.append(addr)
 
 class Graph():
     """Computation Graph Base class"""
@@ -41,6 +41,9 @@ class Graph():
     def __init__(self):
         self.nodes = OrderedDict()
         self.task_to_node = OrderedDict()
+        root = Node()
+        self.add_node(root)
+        self.task_to_node[0] = root
 
     def __str__(self):
         if not self.nodes:
