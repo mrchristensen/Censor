@@ -8,3 +8,4 @@ yacctab.py
 .tags
 **/*.pyc
 .vscode
+.idea
