@@ -3,11 +3,13 @@ From the C99 standard: "Their implementation-defined values shall be equal or
 greater in magnitude (absolute value) to those shown, with the same sign."""
 from collections import namedtuple
 
+TEST_MIN = 9
+TEST_MAX = 10
 CHAR_BIT = 8
 SCHAR_MIN = -127 # −(2^7 − 1)
 SCHAR_MAX = +127 # 2^7 − 1
 UCHAR_MAX = 255 # 2^8 − 1
-CHAR_MIN = SCHAR_MIN # can also be UCHAR_MIN, depending on implementation
+CHAR_MIN = 0 # can also be UCHAR_MIN, depending on implementation
 CHAR_MAX = SCHAR_MAX # can also be UCHAR_MAX, depending on implementation
 MB_LEN_MAX = 1
 SHRT_MIN = -32767 # −(2^15 − 1)
@@ -26,6 +28,7 @@ ULLONG_MAX = 18446744073709551615 # 2^64 − 1
 Range = namedtuple('Range', ['min', 'max'])
 
 RANGES = {
+    "test": Range(TEST_MIN, TEST_MAX),
     "char": Range(CHAR_MIN, CHAR_MAX),
     "unsigned char": Range(0, UCHAR_MAX),
     "signed char": Range(SCHAR_MIN, SCHAR_MAX),

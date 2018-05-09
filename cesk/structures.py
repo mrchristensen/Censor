@@ -87,7 +87,7 @@ class Ctrl: #pylint:disable=too-few-public-methods
 
 class Envr:
     """Holds the enviorment (a maping of identifiers to addresses)"""
-    counter = 0;
+    counter = 0
     global_scope = None
 
     def __init__(self, parent = None):

@@ -1,6 +1,7 @@
 """Tests for the concrete CESK interpreter"""
 import tempfile
 import subprocess
+import colorama
 from os import path, listdir
 from unittest import TestCase
 
@@ -15,9 +16,9 @@ class CESKvsGCC(TestCase):
         gcc_out = run_c(file_path)
         cesk_out = run_c_cesk(file_path)
         if gcc_out == cesk_out:
-            print("PASSED: ", path.basename(file_path))
+            print(colorama.Fore.GREEN + "PASSED: ", colorama.Fore.RESET + path.basename(file_path))
         else:
-            print("FAILED: ", path.basename(file_path))
+            print(colorama.Fore.RED + "FAILED: ", colorama.Fore.RESET + path.basename(file_path))
             print("Expected (gcc): ")
             print(str(gcc_out))
             print("Actual (cesk): ")

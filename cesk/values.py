@@ -66,28 +66,67 @@ class ArithmeticValue: #pylint:disable=too-few-public-methods
 
 class Integer(ArithmeticValue): #pylint:disable=too-few-public-methods
     """Concrete implementation of an Integral Type"""
-    max_value = limits.INT_MAX
-    min_value = limits.INT_MIN
-
+    def bound(self, value):
+        while value > self.max_value or value < self.min_value:
+            if value > self.max_value:
+                value = self.min_value + value - self.max_value - 1
+            elif value < self.min_value:
+                value = self.max_value + value - self.min_value + 1
+        return value
+    
     def __init__(self, data, type_of):
-        self.data = int(data)
+        self.min_value, self.max_value = limits.RANGES[type_of]
+        self.data = self.bound(int(data))
         self.type_of = type_of
 
     def __add__(self, other):
-        return Integer(self.data + other.data, self.type_of)
+        value = self.bound(self.data + other.data)
+        return Integer(value, self.type_of)
 
     def __sub__(self, other):
-        return Integer(self.data - other.data, self.type_of)
+        value = self.bound(self.data - other.data)
+        return Integer(value, self.type_of)
 
     def __mul__(self, other):
-        return Integer(self.data * other.data, self.type_of)
+        value = self.bound(self.data * other.data)
+        return Integer(value, self.type_of)
 
     def __truediv__(self, other):
-        return Integer(self.data / other.data, self.type_of)
+        value = self.bound(self.data // other.data)
+        return Integer(value, self.type_of)
 
     def __mod__(self, other):
-        return Integer(self.data % other.data, self.type_of)
+        value = self.bound(self.data % other.data)
+        return Integer(value, self.type_of)
 
+
+class Char(Integer):
+    """Concrete implementation of an char Type"""
+    def __init__(self, data, type_of='char'):
+        super().__init__(ord(data), type_of)
+
+    def __add__(self, other):
+        value = chr(super().__add__(other).data)
+        return Char(value, self.type_of)
+
+    def __sub__(self, other):
+        value = chr(super().__sub__(other).data)
+        return Char(value, self.type_of)
+
+    def __mul__(self, other):
+        value = chr(super().__mul__(other).data)
+        return Char(value, self.type_of)
+
+    def __truediv__(self, other):
+        value = chr(super().__truediv__(other).data)
+        return Char(value, self.type_of)
+
+    def __mod__(self, other):
+        value = chr(super().__mod__(other).data)
+        return Char(value, self.type_of)
+
+    def get_char(self) -> str: 
+        return chr(self.data)
 
 
 class Float(ArithmeticValue):  #pylint:disable=too-few-public-methods
@@ -214,18 +253,18 @@ class Array(ReferenceValue):
             offset = offset + list_of_index[i] * stride
         return self.start_address + offset
 
-def generate_constant_value(value):
+def generate_constant_value(value, typ='int'):
     """Given a string, parse it as a constant value."""
     # TODO: also parse constant chars
     if "." in value:
         return Float(value, 'float')
-    return Integer(value, 'int')
+    return Integer(value, typ)
 
 def generate_default_value(typedecl): #pylint: disable=unused-argument
     """Generates a default value of the given type (used for uninitialized
     variables)."""
     # TODO
-    return Integer(0, 'int')
+    return Integer(0, typedecl)
 
 def generate_pointer_value(address, stor):
     """Given a address (int) package it into a pointer"""
