@@ -80,7 +80,7 @@ def main():
         transform(ast)
         yeti.main(ast)
     elif args.tool == "cesk":
-        # transform(ast)
+        #transform(ast)
         cesk.main(ast)
     elif args.tool == "observer":
         watchman = observer.Observer()

@@ -1,6 +1,8 @@
 """Classes to represent values, and a function for generating
 a value based on an assignment node"""
 import cesk.limits as limits
+from pydoc import locate
+import pycparser
 
 BINOPS = {
     "+" : "__add__",
@@ -240,5 +242,20 @@ def generate_array(start_address, list_of_sizes, stor):
 
 def cast(value, typedeclt): #pylint: disable=unused-argument
     """Casts the given value a  a value of the given type."""
-    #TODO
-    return value
+    #TODO move the check for pycparser type to the function that calls cast so only an IdentifierType object is passed in
+    #print('typedecl.type: ' + str(typedeclt.type))    
+    print('Data: '+str(value.data))
+    m = value.data
+    if isinstance(typedeclt.type, pycparser.c_ast.IdentifierType):
+        s = typedeclt.type.names[0]
+        print('Cast from IdentifierType')
+    else:
+        print('Cast from other: '+str(typedeclt.type))
+        s = typedeclt.type.type.names[0]
+    if s == 'int':
+        n = Integer(m, 'int')
+    elif s == 'float':
+        n = Float(m, 'float')
+    #print(n.data)
+    
+    return n 

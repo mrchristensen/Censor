@@ -3,7 +3,7 @@
 import copy
 import sys
 import pycparser
-from cesk.values import ReferenceValue, generate_default_value
+from cesk.values import ReferenceValue, generate_default_value, cast
 from cesk.values import generate_pointer_value, generate_null_pointer
 # from cesk.interpret import execute #pylint:disable=all
 
@@ -304,7 +304,7 @@ class CastKont(Kont):
         self.to_type = to_type
 
     def satisfy(self, state, value):
-        cast_value = cast(value)
+        cast_value = cast(value, self.to_type)
         return self.parent_kont.satisfy(state, cast_value)
         
 

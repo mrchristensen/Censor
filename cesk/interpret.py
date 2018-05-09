@@ -3,6 +3,7 @@ from functools import reduce
 import pycparser
 from cesk.values import ReferenceValue, generate_constant_value
 from cesk.values import generate_array
+import sys
 
 class LinkSearch(pycparser.c_ast.NodeVisitor):
     """Holds various look-up-tables for functions, labels, etc."""
@@ -83,7 +84,20 @@ def execute(state):
         elif isinstance(stmt.lvalue, pycparser.c_ast.ArrayRef):
             array = stmt.lvalue
             list_of_index = []
-            while not isinstance(array, pycparser.c_ast.ID):
+            while True:                     
+                if isinstance(array, pycparser.c_ast.ID):
+                    name = array.name
+                    pointer = state.envr.get_address(name).dereference()
+                    address = pointer.index_for_address(list_of_index)
+                    break
+                elif isinstance(array, pycparser.c_ast.UnaryOp):
+                    if array.op == "*":
+                        name = array.expr
+                        pointer = state.envr.get_address(name)
+                        address = pointer.dereference()
+                        break
+                    else:
+                        raise Exception("Unsupported UnaryOp lvalue: " + array.op)
                 if isinstance(array.subscript, pycparser.c_ast.ID):
                     address = state.envr.get_address(array.subscript.name)
                     index = address.dereference().data
@@ -95,9 +109,6 @@ def execute(state):
                                     "are not yet implemented")
                 list_of_index.insert(0, index)
                 array = array.name
-            name = array.name
-            pointer = state.envr.get_address(name).dereference()
-            address = pointer.index_for_address(list_of_index)
         elif isinstance(stmt.lvalue, pycparser.c_ast.UnaryOp):
             unary_op = stmt.lvalue
             if unary_op.op == "*":
@@ -106,6 +117,20 @@ def execute(state):
                 address = pointer.dereference()
             else:
                 raise Exception("Unsupported UnaryOp lvalue: " + unary_op.op)
+        elif isinstance(stmt.lvalue, pycparser.c_ast.StructRef):
+            print('Assign value to item in struct')
+            ref = stmt.lvalue
+            print('Name: ' + str(ref.name.name) + 
+                '\nType: ' + str(ref.type) + 
+                '\nField: '+ str(ref.field.name))
+            struct_ptr = state.envr.get_address(ref.name.name)
+            struct = struct_ptr.dereference()
+            print('Pointer: '+str(struct_ptr))
+            print('Struct: '+str(struct.data))
+            address = struct_ptr
+
+        #elif isinstance(stmt.lvalue, pycparser.c_ast.Struct):
+        #    print('Assign struct')
         else:
             raise Exception("unsupported assign lvalue: " + str(stmt.lvalue))
         successors.append(handle_assignment(stmt.op, address, exp, state))
@@ -124,7 +149,7 @@ def execute(state):
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.Cast):
         # TODO
-        #print("Cast")
+        #print("Cast: "+str(stmt))
         new_ctrl = Ctrl(stmt.expr)
         if isinstance(state.kont, FunctionKont): #don't return: don't cast
             new_kont = state.kont
@@ -221,7 +246,19 @@ def execute(state):
             id_to_print = stmt.args.exprs[1].name
             address = state.envr.get_address(id_to_print)
             value = address.dereference()
-            print_string = stmt.args.exprs[0].value % (value.data)
+            
+            #testing print statements
+            #causing error when transform is active because a cast is placed on formal parameters that need it
+            #print(str(stmt.args.exprs[0])+'\n'+str(stmt.args.exprs[1]))
+            #print(str(stmt.args))
+
+            if isinstance(stmt.args.exprs[0], pycparser.c_ast.Constant):
+                print_string = stmt.args.exprs[0].value % (value.data)
+            elif isinstance(stmt.args.exprs[0], pycparser.c_ast.Cast):
+                #print(str(stmt.args.exprs[0].expr))
+                print_string = stmt.args.exprs[0].expr.value % (value.data) #still a work around 
+            else:
+                raise Exception("print does not know how to handle "+str(stmt.args.exprs[0]))
             print_string = print_string[1:][:-1] #drop quotes
             print(print_string.replace("\\n", "\n"), end="") #convert newlines
             successors.append(get_next(state))
@@ -336,11 +373,12 @@ def execute(state):
         successors.append(handle_return(exp, state))
     elif isinstance(stmt, pycparser.c_ast.Struct):
         # TODO
-        #print("Struct")
+        print("Struct")
+        print(stmt);
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.StructRef):
         # TODO
-        #print("StructRef")
+        print("StructRef")
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.Switch):
         # TODO
@@ -476,6 +514,7 @@ def handle_unary_op(opr, expr, state): #pylint: disable=inconsistent-return-stat
                 array = array.name
             name = array.name
             pointer = state.envr.get_address(name).dereference()
+            print('Ptr: '+str(pointer))
             value = pointer.index_for_address(list_of_index)
             return state.kont.satisfy(state, value)
         else:
