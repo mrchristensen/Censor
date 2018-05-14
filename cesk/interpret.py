@@ -89,7 +89,7 @@ def execute(state):
             while not isinstance(array, pycparser.c_ast.ID):
                 if isinstance(array, pycparser.c_ast.UnaryOp):
                     #TODO figure out how this is to be handled since tranforms inserts it here
-                    logging.debug("UnaryOp in ArrayRef lvalue")
+                    logging.error("UnaryOp in ArrayRef lvalue")
                     #new_state = handle_unary_op(array.op,array.expr,state)
                     #logging.debug('State Ctr: '+str(new_state.ctrl.stmt()))
                     #successors.append(new_state)
@@ -110,6 +110,8 @@ def execute(state):
             pointer = state.envr.get_address(name).dereference()
             address = pointer.index_for_address(list_of_index)
                     
+
+
         elif isinstance(stmt.lvalue, pycparser.c_ast.UnaryOp):
             unary_op = stmt.lvalue
             if unary_op.op == "*":
@@ -117,6 +119,7 @@ def execute(state):
                 pointer = state.envr.get_address(name)
                 address = pointer.dereference()
             else:
+
                 raise Exception("Unsupported UnaryOp lvalue in assignment: " + unary_op.op)
         elif isinstance(stmt.lvalue, pycparser.c_ast.StructRef):
             #TODO finish StructRef assignment
@@ -149,7 +152,11 @@ def execute(state):
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.Cast):
         # TODO
+
         logging.debug('Cast')
+
+
+
         new_ctrl = Ctrl(stmt.expr)
         if isinstance(state.kont, FunctionKont): #don't return: don't cast
             new_kont = state.kont
@@ -172,8 +179,13 @@ def execute(state):
         logging.debug("CompoundLiteral")
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.Constant):
+
         logging.debug("Constant")
-        value = generate_constant_value(stmt.value)
+
+
+
+        value = generate_constant_value(stmt.value, stmt.type)
+
         if isinstance(state.kont, FunctionKont): #Don't return to function
             successors.append(get_next(state))
         else:
@@ -247,6 +259,7 @@ def execute(state):
             address = state.envr.get_address(id_to_print)
             value = address.dereference()
             
+
             #testing logging.debug statements
             #causing error when transform is active because a cast is placed on formal parameters that need it
             if isinstance(stmt.args.exprs[0], pycparser.c_ast.Constant):
@@ -256,6 +269,20 @@ def execute(state):
                 print_string = stmt.args.exprs[0].expr.value % (value.data) #still a work around 
             else:
                 raise Exception("logging.debug does not know how to handle "+str(stmt.args.exprs[0]))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
             print_string = print_string[1:][:-1] #drop quotes
             print(print_string.replace("\\n", "\n"), end="") #convert newlines
@@ -379,11 +406,11 @@ def execute(state):
         struct = stmt
         logging.debug(str(struct.name))
         logging.debug(str(struct.decls))
-        
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.StructRef):
         # TODO
         logging.debug("StructRef")
+
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.Switch):
         # TODO
@@ -528,7 +555,6 @@ def handle_unary_op(opr, expr, state): #pylint: disable=inconsistent-return-stat
                 value = state.envr.get_address(name)
 
             logging.debug('\tValue: ' + str(value))
-                
             return state.kont.satisfy(state, value)
         else:
             raise Exception("& operator not implemented for " + str(expr))

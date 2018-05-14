@@ -3,6 +3,7 @@ a value based on an assignment node"""
 import cesk.limits as limits
 import pycparser
 import logging
+from pydoc import locate
 
 BINOPS = {
     "+" : "__add__",
@@ -65,6 +66,9 @@ class ArithmeticValue: #pylint:disable=too-few-public-methods
     def __ge__(self, other):
         return Integer(int(self.data >= other.data), 'int')
 
+    def __str__(self):
+        return "(" + self.type_of + ") " + str(self.data)
+
 
 class Integer(ArithmeticValue): #pylint:disable=too-few-public-methods
     """Concrete implementation of an Integral Type"""
@@ -78,7 +82,14 @@ class Integer(ArithmeticValue): #pylint:disable=too-few-public-methods
     
     def __init__(self, data, type_of):
         self.min_value, self.max_value = limits.RANGES[type_of]
-        self.data = self.bound(int(data))
+        # func = (lambda x, y: x <= y) if 'unsigned' in type_of else (lambda x, y: x < y)
+        # TODO move to cast
+        func = (lambda x, y: x <= y)
+        v = 1
+        tmp = self.max_value << 1
+        while func(v, tmp):
+            v = (v << 1) + 1
+        self.data = self.bound(int(data) & v)
         self.type_of = type_of
 
     def __add__(self, other):
@@ -105,7 +116,12 @@ class Integer(ArithmeticValue): #pylint:disable=too-few-public-methods
 class Char(Integer):
     """Concrete implementation of an char Type"""
     def __init__(self, data, type_of='char'):
-        super().__init__(ord(data), type_of)
+        if isinstance(data, str):
+            char = data.replace("\'", "")
+            v = ord(char)
+        else:
+            v = data
+        super().__init__(v, type_of)
 
     def __add__(self, other):
         value = chr(super().__add__(other).data)
@@ -127,7 +143,7 @@ class Char(Integer):
         value = chr(super().__mod__(other).data)
         return Char(value, self.type_of)
 
-    def get_char(self) -> str: 
+    def get_char(self): 
         return chr(self.data)
 
 
@@ -257,12 +273,14 @@ class Array(ReferenceValue):
             offset = offset + list_of_index[i] * stride
         return self.start_address + offset
 
-def generate_constant_value(value, typ='int'):
+def generate_constant_value(value, type_of='int'):
     """Given a string, parse it as a constant value."""
     # TODO: also parse constant chars
-    if "." in value:
-        return Float(value, 'float')
-    return Integer(value, typ)
+    if "char" in type_of:
+        return Char(value, type_of)
+    if "float" in type_of:
+        return Float(value, type_of)
+    return Integer(value, type_of)
 
 def generate_default_value(typedecl): #pylint: disable=unused-argument
     """Generates a default value of the given type (used for uninitialized
@@ -282,6 +300,7 @@ def generate_array(start_address, list_of_sizes, stor):
     return Array(start_address, list_of_sizes, stor)
 
 def cast(value, typedeclt): #pylint: disable=unused-argument
+<<<<<<< HEAD
     """Casts the given value a  a value of the given type."""
     #TODO move the check for pycparser type to the function that calls cast so only an IdentifierType object is passed in
     #TODO handle when value is a subclass of Reverence value like Array or Pointer
@@ -291,21 +310,23 @@ def cast(value, typedeclt): #pylint: disable=unused-argument
     logging.debug('\tValue: '+str(value)+'  Data: '+str(m))
     
     if isinstance(typedeclt.type, pycparser.c_ast.IdentifierType):
-        s = typedeclt.type.names[0]
+        s = typedeclt.type.names
         
         logging.debug('\tCast to IdentifierType')
     else:
         logging.debug('\tCast using: '+str(typedeclt.type))
-        s = typedeclt.type.type.names[0]
+        s = typedeclt.type.type.names
         logging.debug('\tCast to '+str(s))
-    if s == 'int':
-        n = Integer(m, 'int')
-    elif s == 'float':
-        n = Float(m, 'float')
-    else: 
-        raise Exception('Have not implemented cast to '+str(s))
+
+        #print(s) #implicit
+    n = generate_constant_value(m, " ".join(s))
+
+
+
+
+
 
     logging.debug('\tData: '+str(n.data))
     
     return n 
-    return value
+
