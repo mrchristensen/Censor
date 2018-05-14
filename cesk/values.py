@@ -300,7 +300,6 @@ def generate_array(start_address, list_of_sizes, stor):
     return Array(start_address, list_of_sizes, stor)
 
 def cast(value, typedeclt): #pylint: disable=unused-argument
-<<<<<<< HEAD
     """Casts the given value a  a value of the given type."""
     #TODO move the check for pycparser type to the function that calls cast so only an IdentifierType object is passed in
     #TODO handle when value is a subclass of Reverence value like Array or Pointer
@@ -320,12 +319,6 @@ def cast(value, typedeclt): #pylint: disable=unused-argument
 
         #print(s) #implicit
     n = generate_constant_value(m, " ".join(s))
-
-
-
-
-
-
     logging.debug('\tData: '+str(n.data))
     
     return n 
