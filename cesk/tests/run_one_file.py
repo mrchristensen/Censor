@@ -3,7 +3,7 @@
 import argparse
 from ceskvsgcc import CESKvsGCC, run_c, run_c_cesk 
 import subprocess
-import pdb
+import logging
 
 class OneFileTest(CESKvsGCC):
     
@@ -20,12 +20,11 @@ class OneFileTest(CESKvsGCC):
             print(run_c(args.file_name))
         elif args.cesk_only:
             print('Only running cesk_c')
+                        
+            print(subprocess.run(['python3', '../../main.py','-t', 'cesk', args.file_name]))
             if args.debug:
-                print('debugging')
-                pdb.run(['python3', '../../main.py','-t', 'cesk', args.file_name])
-            else:
-                print(subprocess.run(['python3', '../../main.py',
-                                      '-t', 'cesk', args.file_name]))
+                print("* * * * * * Debug Statements * * * * * * *")
+                subprocess.run(['cat','logfile.txt'])
         else:
             #TODO add better messages and handling for when output does not match
             self.assert_same_output(args.file_name)

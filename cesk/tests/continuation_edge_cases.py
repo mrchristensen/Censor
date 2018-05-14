@@ -5,7 +5,7 @@ from ceskvsgcc import CESKvsGCC
 
 class ContinuationEdgeCases(CESKvsGCC):
     """Tests basic functionality"""
-    def test_continuaiton_edge_cases(self):
+    def test_continuation_edge_cases(self):
         """Tests basic functionality"""
         self.assert_all_equal("./fixtures/continuation_edge_cases")
 

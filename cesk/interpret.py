@@ -2,7 +2,9 @@
 from functools import reduce
 import pycparser
 from cesk.values import ReferenceValue, generate_constant_value
-from cesk.values import generate_array
+from cesk.values import generate_array, Array
+import logging
+logging.basicConfig(filename='logfile.txt',level=logging.DEBUG, format='%(levelname)s: %(message)s', filemode='w')
 
 class LinkSearch(pycparser.c_ast.NodeVisitor):
     """Holds various look-up-tables for functions, labels, etc."""
@@ -46,10 +48,10 @@ def execute(state):
     successors = []
     stmt = state.ctrl.stmt()
     if isinstance(stmt, pycparser.c_ast.ArrayDecl):
-        #print("ArrayDecl")
+        logging.debug("ArrayDecl")
         raise Exception("ArrayDecl should have been found as a child of Decl")
     elif isinstance(stmt, pycparser.c_ast.ArrayRef):
-        #print("ArrayRef")
+        logging.debug("ArrayRef")
         list_of_index = []
         while not isinstance(stmt, pycparser.c_ast.ID):
             if isinstance(stmt.subscript, pycparser.c_ast.ID):
@@ -75,28 +77,24 @@ def execute(state):
         else:
             successors.append(state.kont.satisfy(state, value))
     elif isinstance(stmt, pycparser.c_ast.Assignment):
-        #print("Assignment")
+        logging.debug("Assignment")
         exp = stmt.rvalue
         if isinstance(stmt.lvalue, pycparser.c_ast.ID):
             ident = stmt.lvalue
             address = state.envr.get_address(ident.name)
         elif isinstance(stmt.lvalue, pycparser.c_ast.ArrayRef):
+            logging.debug('ArrayRef lvalue')
             array = stmt.lvalue
             list_of_index = []
-            while True:                     
-                if isinstance(array, pycparser.c_ast.ID):
-                    name = array.name
-                    pointer = state.envr.get_address(name).dereference()
-                    address = pointer.index_for_address(list_of_index)
-                    break
-                elif isinstance(array, pycparser.c_ast.UnaryOp):
-                    if array.op == "*":
-                        name = array.expr
-                        pointer = state.envr.get_address(name)
-                        address = pointer.dereference()
-                        break
-                    else:
-                        raise Exception("Unsupported UnaryOp lvalue: " + array.op)
+            while not isinstance(array, pycparser.c_ast.ID):
+                if isinstance(array, pycparser.c_ast.UnaryOp):
+                    #TODO figure out how this is to be handled since tranforms inserts it here
+                    logging.debug("UnaryOp in ArrayRef lvalue")
+                    #new_state = handle_unary_op(array.op,array.expr,state)
+                    #logging.debug('State Ctr: '+str(new_state.ctrl.stmt()))
+                    #successors.append(new_state)
+                    #return successors
+                    #break           
                 if isinstance(array.subscript, pycparser.c_ast.ID):
                     address = state.envr.get_address(array.subscript.name)
                     index = address.dereference().data
@@ -108,6 +106,10 @@ def execute(state):
                                     "are not yet implemented")
                 list_of_index.insert(0, index)
                 array = array.name
+            name = array.name
+            pointer = state.envr.get_address(name).dereference()
+            address = pointer.index_for_address(list_of_index)
+                    
         elif isinstance(stmt.lvalue, pycparser.c_ast.UnaryOp):
             unary_op = stmt.lvalue
             if unary_op.op == "*":
@@ -115,40 +117,39 @@ def execute(state):
                 pointer = state.envr.get_address(name)
                 address = pointer.dereference()
             else:
-                raise Exception("Unsupported UnaryOp lvalue: " + unary_op.op)
+                raise Exception("Unsupported UnaryOp lvalue in assignment: " + unary_op.op)
         elif isinstance(stmt.lvalue, pycparser.c_ast.StructRef):
             #TODO finish StructRef assignment
-            print('Assign value to item in struct')
+            logging.debug('Assign value to item in struct')
             ref = stmt.lvalue
-            print('Name: ' + str(ref.name.name) + 
-                '\nType: ' + str(ref.type) + 
-                '\nField: '+ str(ref.field.name))
+            logging.debug('Name: ' + str(ref.name.name) + '\nType: ' + str(ref.type) + '\nField: '+ str(ref.field.name))
             struct_ptr = state.envr.get_address(ref.name.name)
             struct = struct_ptr.dereference()
-            print('Pointer: '+str(struct_ptr))
-            print('Struct: '+str(struct.data))
+            logging.debug('Pointer: '+str(struct_ptr))
+            logging.debug('Struct: '+str(struct.data))
             address = struct_ptr
         #elif isinstance(stmt.lvalue, pycparser.c_ast.Struct):
-        #    print('Assign struct')
+        #    logging.debug('Assign struct')
         else:
             raise Exception("unsupported assign lvalue: " + str(stmt.lvalue))
+        logging.debug('\tEnd->Address: '+str(address.address)+'   rvalue: '+str(exp))
         successors.append(handle_assignment(stmt.op, address, exp, state))
     elif isinstance(stmt, pycparser.c_ast.BinaryOp):
-        #print("BinaryOp")
+        logging.debug("BinaryOp")
         new_kont = LeftBinopKont(state, stmt.op, stmt.right, state.kont)
         successors.append(State(Ctrl(stmt.left), state.envr, state.stor,
                                 new_kont))
     elif isinstance(stmt, pycparser.c_ast.Break):
         # TODO
-        #print("Break")
+        logging.debug("Break")
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.Case):
         # TODO
-        #print("Case")
+        logging.debug("Case")
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.Cast):
         # TODO
-        #print("Cast")
+        logging.debug('Cast')
         new_ctrl = Ctrl(stmt.expr)
         if isinstance(state.kont, FunctionKont): #don't return: don't cast
             new_kont = state.kont
@@ -157,7 +158,7 @@ def execute(state):
         new_state = State(new_ctrl, state.envr, state.stor, new_kont)
         successors.append(new_state)
     elif isinstance(stmt, pycparser.c_ast.Compound):
-        #print("Compound")
+        logging.debug("Compound")
         new_ctrl = Ctrl(0, stmt)
         new_envr = Envr(state.envr)
         LinkSearch.envr_lut[stmt] = new_envr #save to table for goto lookup
@@ -168,10 +169,10 @@ def execute(state):
 
     elif isinstance(stmt, pycparser.c_ast.CompoundLiteral):
         # TODO
-        #print("CompoundLiteral")
+        logging.debug("CompoundLiteral")
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.Constant):
-        #print("Constant")
+        logging.debug("Constant")
         value = generate_constant_value(stmt.value)
         if isinstance(state.kont, FunctionKont): #Don't return to function
             successors.append(get_next(state))
@@ -179,10 +180,10 @@ def execute(state):
             successors.append(state.kont.satisfy(state, value))
     elif isinstance(stmt, pycparser.c_ast.Continue):
         # TODO
-        #print("Continue")
+        logging.debug("Continue")
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.Decl):
-        #print("Decl")
+        logging.debug("Decl")
         handle_decl(stmt, state)
         if stmt.init is not None:
             new_address = state.envr.get_address(stmt.name)
@@ -194,50 +195,50 @@ def execute(state):
             successors.append(state.kont.satisfy(state))
     elif isinstance(stmt, pycparser.c_ast.DeclList):
         # TODO
-        #print("DeclList")
+        logging.debug("DeclList")
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.Default):
         # TODO
-        #print("Default")
+        logging.debug("Default")
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.DoWhile):
         # TODO
-        #print("DoWhile")
+        logging.debug("DoWhile")
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.EllipsisParam):
         # TODO
-        #print("EllipsisParam")
+        logging.debug("EllipsisParam")
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.EmptyStatement):
         # TODO
-        #print("EmptyStatement")
+        logging.debug("EmptyStatement")
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.Enum):
         # TODO
-        #print("Enum")
+        logging.debug("Enum")
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.Enumerator):
         # TODO
-        #print("Enumerator")
+        logging.debug("Enumerator")
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.EnumeratorList):
         # TODO
-        #print("EnumeratorList")
+        logging.debug("EnumeratorList")
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.ExprList):
         # TODO
-        #print("ExprList")
+        logging.debug("ExprList")
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.FileAST):
         # TODO
-        #print("FileAST")
+        logging.debug("FileAST")
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.For):
         # TODO
-        #print("For")
+        logging.debug("For")
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.FuncCall):
-        #print("FuncCall")
+        logging.debug("FuncCall")
         if stmt.name.name == "printf":
             if not isinstance(stmt.args.exprs[1], pycparser.c_ast.ID):
                 raise Exception("printf test stub only supports ID not " +
@@ -246,17 +247,15 @@ def execute(state):
             address = state.envr.get_address(id_to_print)
             value = address.dereference()
             
-            #testing print statements
+            #testing logging.debug statements
             #causing error when transform is active because a cast is placed on formal parameters that need it
-            #print(str(stmt.args.exprs[0])+'\n'+str(stmt.args.exprs[1]))
-            #print(str(stmt.args))
             if isinstance(stmt.args.exprs[0], pycparser.c_ast.Constant):
                 print_string = stmt.args.exprs[0].value % (value.data)
-            elif isinstance(stmt.args.exprs[0], pycparser.c_ast.Cast):
-                #print(str(stmt.args.exprs[0].expr))
+            elif isinstance(stmt.args.exprs[0], pycparser.c_ast.Cast):     
+                # TODO cast the value not just grap from cast object
                 print_string = stmt.args.exprs[0].expr.value % (value.data) #still a work around 
             else:
-                raise Exception("print does not know how to handle "+str(stmt.args.exprs[0]))
+                raise Exception("logging.debug does not know how to handle "+str(stmt.args.exprs[0]))
 
             print_string = print_string[1:][:-1] #drop quotes
             print(print_string.replace("\\n", "\n"), end="") #convert newlines
@@ -307,27 +306,30 @@ def execute(state):
                                         new_state.stor,
                                         new_kont))
     elif isinstance(stmt, pycparser.c_ast.FuncDecl):
-        #print("FuncDecl")
+        logging.debug("FuncDecl")
         raise Exception("FuncDecl out of Global scope")
     elif isinstance(stmt, pycparser.c_ast.FuncDef):
-        #print("FuncDef")
+        logging.debug("FuncDef")
         raise Exception("FuncDef out of Global scope")
     elif isinstance(stmt, pycparser.c_ast.Goto):
-        #print("Goto")
+        logging.debug('Goto')
         label_to = LinkSearch.label_lut[stmt.name]
         body = label_to
         while not isinstance(body, pycparser.c_ast.Compound):
             index = LinkSearch.index_lut[body]
             body = LinkSearch.parent_lut[body]
         new_ctrl = Ctrl(index, body)
+        logging.debug('\t Body: '+str(body))
         if body in LinkSearch.envr_lut:
             new_envr = LinkSearch.envr_lut[body]
         else:
             new_envr = state.envr
-            raise Exception("Need to make decisions on scope of forward jump")
+            logging.error('Need to make decisions on scope of forward jump')
+            #raise Exception("Need to make decisions on scope of forward jump")
+
         successors.append(State(new_ctrl, new_envr, state.stor, state.kont))
     elif isinstance(stmt, pycparser.c_ast.ID):
-        #print("ID")
+        logging.debug("ID")
         name = stmt.name
         address = state.envr.get_address(name)
         value = address.dereference()
@@ -339,79 +341,84 @@ def execute(state):
             successors.append(state.kont.satisfy(state, value))
     elif isinstance(stmt, pycparser.c_ast.IdentifierType):
         # TODO
-        #print("IdentifierType")
+        logging.debug("IdentifierType")
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.If):
-        #print("If")
+        logging.debug("If")
         new_kont = IfKont(state, stmt.iftrue, stmt.iffalse)
         new_ctrl = Ctrl(stmt.cond)
         successors.append(State(new_ctrl, state.envr, state.stor, new_kont))
     elif isinstance(stmt, pycparser.c_ast.InitList):
         # TODO
-        #print("InitList")
+        # should get transformed out
+        logging.debug("InitList")
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.Label):
-        #print("Label")
+        logging.debug("Label")
         new_ctrl = Ctrl(stmt.stmt)
         successors.append(State(new_ctrl, state.envr, state.stor, state.kont))
     elif isinstance(stmt, pycparser.c_ast.NamedInitializer):
         # TODO
-        #print("NamedInitializer")
+        logging.debug("NamedInitializer")
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.ParamList):
         # TODO
-        #print("ParamList")
+        logging.debug("ParamList")
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.PtrDecl):
         # TODO
-        #print("PtrDecl")
+        logging.debug("PtrDecl")
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.Return):
-        #print("Return")
+        logging.debug("Return")
         exp = stmt.expr
         successors.append(handle_return(exp, state))
     elif isinstance(stmt, pycparser.c_ast.Struct):
         # TODO
-        #print("Struct")
+        logging.debug("Struct")
+        struct = stmt
+        logging.debug(str(struct.name))
+        logging.debug(str(struct.decls))
+        
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.StructRef):
         # TODO
-        #print("StructRef")
+        logging.debug("StructRef")
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.Switch):
         # TODO
-        #print("Switch")
+        logging.debug("Switch")
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.TernaryOp):
-        #print("TernaryOp")
+        logging.debug("TernaryOp")
         raise Exception("TernaryOp should have been removed in the transforms")
     elif isinstance(stmt, pycparser.c_ast.TypeDecl):
-        #print("TypeDecl")
+        logging.debug("TypeDecl")
         raise Exception("TypeDecl should have been found as child of Decl")
     elif isinstance(stmt, pycparser.c_ast.Typedef):
         # TODO
-        #print("Typedef")
+        logging.debug("Typedef")
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.Typename):
         # TODO
-        #print("Typename")
+        logging.debug("Typename")
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.UnaryOp):
-        #print("UnaryOp")
+        logging.debug("UnaryOp "+stmt.op)
         opr = stmt.op
         expr = stmt.expr
         successors.append(handle_unary_op(opr, expr, state))
     elif isinstance(stmt, pycparser.c_ast.Union):
         # TODO
-        #print("Union")
+        logging.debug("Union")
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.While):
         # TODO
-        #print("While")
+        logging.debug("While")
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.Pragma):
         # TODO
-        #print("Pragma")
+        logging.debug("Pragma")
         successors.append(get_next(state))
     else:
         raise ValueError("Unknown C AST object type: {0}".format(stmt))
@@ -499,6 +506,7 @@ def handle_unary_op(opr, expr, state): #pylint: disable=inconsistent-return-stat
             list_of_index = []
             #Compile a list of index
             while not isinstance(array, pycparser.c_ast.ID):
+                logging.debug('\tSub: '+str(array.subscript))
                 if isinstance(array.subscript, pycparser.c_ast.ID):
                     address = state.envr.get_address(array.subscript.name)
                     index = address.dereference().data
@@ -511,16 +519,25 @@ def handle_unary_op(opr, expr, state): #pylint: disable=inconsistent-return-stat
                 list_of_index.insert(0, index) #Push to front of list
                 array = array.name
             name = array.name
+            logging.debug('\tName: '+name)
             pointer = state.envr.get_address(name).dereference()
-            print('Ptr: '+str(pointer))
-            value = pointer.index_for_address(list_of_index)
+            logging.debug('\tPTR_Deref: '+str(pointer))
+            if isinstance(pointer, Array):
+                value = pointer.index_for_address(list_of_index)
+            else:  #is another type of object, treat it like an array by returning the pointer
+                value = state.envr.get_address(name)
+
+            logging.debug('\tValue: ' + str(value))
+                
             return state.kont.satisfy(state, value)
         else:
             raise Exception("& operator not implemented for " + str(expr))
 
     elif opr == "*":
         pointer = state.envr.get_address(expr.name).dereference()
+        logging.debug('\tPointer: '+str(pointer))
         value = pointer.dereference()
+        logging.debug('\tValue: '+str(value.data))    
         return state.kont.satisfy(state, value)
     else:
         raise Exception(opr + " is not yet implemented")
@@ -533,7 +550,7 @@ def handle_return(exp, state):
     if isinstance(state.kont, FunctionKont):
         returnable_kont = ReturnKont(state.kont)
     else:
-        raise Exception("Unexpected return statement")
+        raise Exception("Unexpected return statement: "+str(state.kont))
     if exp is None:
         if isinstance(state.kont, VoidKont):
             return state.kont.satisfy(state)

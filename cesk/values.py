@@ -2,6 +2,7 @@
 a value based on an assignment node"""
 import cesk.limits as limits
 import pycparser
+import logging
 
 BINOPS = {
     "+" : "__add__",
@@ -173,6 +174,7 @@ class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
     def __init__(self, address, holding_stor):
         self.address = int(address)
         self.holding_stor = holding_stor
+        #self.data = address # added temporarily for testing should be deleted
 
     def __hash__(self):
         return self.address
@@ -227,6 +229,7 @@ class Array(ReferenceValue):
         self.start_address = start_address
         self.list_of_sizes = list_of_sizes
         self.stor = stor
+        #self.data = start_address.address  #added temporarily for testing  
 
     def dereference(self):
         """Reads the first item of the array"""
@@ -281,20 +284,28 @@ def generate_array(start_address, list_of_sizes, stor):
 def cast(value, typedeclt): #pylint: disable=unused-argument
     """Casts the given value a  a value of the given type."""
     #TODO move the check for pycparser type to the function that calls cast so only an IdentifierType object is passed in
-    #print('typedecl.type: ' + str(typedeclt.type))    
-    print('Data: '+str(value.data))
+    #TODO handle when value is a subclass of Reverence value like Array or Pointer
+    
+
     m = value.data
+    logging.debug('\tValue: '+str(value)+'  Data: '+str(m))
+    
     if isinstance(typedeclt.type, pycparser.c_ast.IdentifierType):
         s = typedeclt.type.names[0]
-        print('Cast from IdentifierType')
+        
+        logging.debug('\tCast to IdentifierType')
     else:
-        print('Cast from other: '+str(typedeclt.type))
+        logging.debug('\tCast using: '+str(typedeclt.type))
         s = typedeclt.type.type.names[0]
+        logging.debug('\tCast to '+str(s))
     if s == 'int':
         n = Integer(m, 'int')
     elif s == 'float':
         n = Float(m, 'float')
-    #print(n.data)
+    else: 
+        raise Exception('Have not implemented cast to '+str(s))
+
+    logging.debug('\tData: '+str(n.data))
     
     return n 
     return value
