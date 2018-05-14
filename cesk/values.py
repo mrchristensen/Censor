@@ -65,6 +65,9 @@ class ArithmeticValue: #pylint:disable=too-few-public-methods
     def __ge__(self, other):
         return Integer(int(self.data >= other.data), 'int')
 
+    def __str__(self):
+        return "(" + self.type_of + ") " + str(self.data)
+
 
 class Integer(ArithmeticValue): #pylint:disable=too-few-public-methods
     """Concrete implementation of an Integral Type"""
@@ -112,8 +115,12 @@ class Integer(ArithmeticValue): #pylint:disable=too-few-public-methods
 class Char(Integer):
     """Concrete implementation of an char Type"""
     def __init__(self, data, type_of='char'):
-        char = data.replace("\'", "")
-        super().__init__(ord(char), type_of)
+        if isinstance(data, str):
+            char = data.replace("\'", "")
+            v = ord(char)
+        else:
+            v = data
+        super().__init__(v, type_of)
 
     def __add__(self, other):
         value = chr(super().__add__(other).data)
@@ -290,19 +297,19 @@ def generate_array(start_address, list_of_sizes, stor):
     return Array(start_address, list_of_sizes, stor)
 
 def cast(value, typedeclt): #pylint: disable=unused-argument
-    """Casts the given value a  a value of the given type."""
-    #TODO move the check for pycparser type to the function that calls cast so only an IdentifierType object is passed in
-    print(typedeclt)
-    # print('typedecl.type: ' + str(typedeclt.type))    
-    print('Data: '+str(value.data))
+    """Casts the given value a  a value of the given type.""" 
+    #print('Data: '+str(value.data))
     m = value.data
     if isinstance(typedeclt.type, pycparser.c_ast.IdentifierType):
-        s = typedeclt.type.names[0]
-        print('Cast from IdentifierType')
+        #print('Cast from IdentifierType') #explicit
+        #TODO move the check for pycparser type to the function that calls cast so only an IdentifierType object is passed in
+        s = typedeclt.type.names
+        #print(s)
     else:
-        print('Cast from other: '+str(typedeclt.type))
-        s = typedeclt.type.type.names[0]
-    n = generate_constant_value(m, s)
+        #print('Cast from other: '+str(typedeclt.type))
+        s = typedeclt.type.type.names
+        #print(s) #implicit
+    n = generate_constant_value(m, " ".join(s))
     #print(n.data)
     
     return n 

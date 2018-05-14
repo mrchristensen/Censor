@@ -174,7 +174,6 @@ def execute(state):
     elif isinstance(stmt, pycparser.c_ast.Constant):
         #print("Constant")
         value = generate_constant_value(stmt.value, stmt.type)
-        print(value)
         if isinstance(state.kont, FunctionKont): #Don't return to function
             successors.append(get_next(state))
         else:
