@@ -78,7 +78,14 @@ class Integer(ArithmeticValue): #pylint:disable=too-few-public-methods
     
     def __init__(self, data, type_of):
         self.min_value, self.max_value = limits.RANGES[type_of]
-        self.data = self.bound(int(data))
+        # func = (lambda x, y: x <= y) if 'unsigned' in type_of else (lambda x, y: x < y)
+        # TODO move to cast
+        func = (lambda x, y: x <= y)
+        v = 1
+        tmp = self.max_value << 1
+        while func(v, tmp):
+            v = (v << 1) + 1
+        self.data = self.bound(int(data) & v)
         self.type_of = type_of
 
     def __add__(self, other):
@@ -105,7 +112,8 @@ class Integer(ArithmeticValue): #pylint:disable=too-few-public-methods
 class Char(Integer):
     """Concrete implementation of an char Type"""
     def __init__(self, data, type_of='char'):
-        super().__init__(ord(data), type_of)
+        char = data.replace("\'", "")
+        super().__init__(ord(char), type_of)
 
     def __add__(self, other):
         value = chr(super().__add__(other).data)
@@ -127,7 +135,7 @@ class Char(Integer):
         value = chr(super().__mod__(other).data)
         return Char(value, self.type_of)
 
-    def get_char(self) -> str: 
+    def get_char(self): 
         return chr(self.data)
 
 
@@ -255,12 +263,14 @@ class Array(ReferenceValue):
             offset = offset + list_of_index[i] * stride
         return self.start_address + offset
 
-def generate_constant_value(value, typ='int'):
+def generate_constant_value(value, type_of='int'):
     """Given a string, parse it as a constant value."""
     # TODO: also parse constant chars
-    if "." in value:
-        return Float(value, 'float')
-    return Integer(value, typ)
+    if "char" in type_of:
+        return Char(value, type_of)
+    if "float" in type_of:
+        return Float(value, type_of)
+    return Integer(value, type_of)
 
 def generate_default_value(typedecl): #pylint: disable=unused-argument
     """Generates a default value of the given type (used for uninitialized
@@ -282,7 +292,8 @@ def generate_array(start_address, list_of_sizes, stor):
 def cast(value, typedeclt): #pylint: disable=unused-argument
     """Casts the given value a  a value of the given type."""
     #TODO move the check for pycparser type to the function that calls cast so only an IdentifierType object is passed in
-    #print('typedecl.type: ' + str(typedeclt.type))    
+    print(typedeclt)
+    # print('typedecl.type: ' + str(typedeclt.type))    
     print('Data: '+str(value.data))
     m = value.data
     if isinstance(typedeclt.type, pycparser.c_ast.IdentifierType):
@@ -291,10 +302,7 @@ def cast(value, typedeclt): #pylint: disable=unused-argument
     else:
         print('Cast from other: '+str(typedeclt.type))
         s = typedeclt.type.type.names[0]
-    if s == 'int':
-        n = Integer(m, 'int')
-    elif s == 'float':
-        n = Float(m, 'float')
+    n = generate_constant_value(m, s)
     #print(n.data)
     
     return n 
