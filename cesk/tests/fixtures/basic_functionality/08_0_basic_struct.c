@@ -7,7 +7,12 @@ struct rectangle {
 
 int main() {
     struct rectangle a = {2, 4};
-	int x = a.x;
+    int x;
+    x = a.x;
+
+    a.y = 6;    
+
     printf("%d\n", x);
+    printf("%d\n", a.y);
     return 0;
 }

@@ -67,7 +67,9 @@ class ArithmeticValue: #pylint:disable=too-few-public-methods
         return Integer(int(self.data >= other.data), 'int')
 
     def __str__(self):
-        return "(" + self.type_of + ") " + str(self.data)
+        if self.data is not None:
+            return "(" + self.type_of + ") " + str(self.data)
+        return super(ArithmeticValue,self).__str__() 
 
 
 class Integer(ArithmeticValue): #pylint:disable=too-few-public-methods
@@ -231,6 +233,9 @@ class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
             raise Exception("Pointers can only be subtracted by int")
         return self.stor.add_offset_to_pointer(self, offset)
 
+    def __str__(self):
+        return '<cesk.values.Pointer> at '+str(self.address)
+
 class Array(ReferenceValue):
     """Concrete implementation of an Array of data"""
 
@@ -257,16 +262,41 @@ class Array(ReferenceValue):
 
     def index_for_address(self, list_of_index):
         """Calculates stride and finds the address for a given index"""
+        
         if len(self.list_of_sizes) < len(list_of_index):
             raise Exception("Invalid ArrayRef on Array")
         offset = 0
-        #TODO give a nice comment here
-        for i in range(len(list_of_index)):
+        #the for loop calculates how many posistions to jump of a given set of indices and sizes of the subsections in the array
+        num_indices = len(list_of_index)
+        for i in range(num_indices):
             stride = 1
             for j in range(i+1, len(self.list_of_sizes)):
                 stride = stride * self.list_of_sizes[j]
             offset = offset + list_of_index[i] * stride
+
+        #if less indices are given than are in the list of sizes it still needs to be treated as an array
+        if num_indices < len(self.list_of_sizes):
+            return generate_array(self.start_address+offset,self.list_of_sizes[num_indices-1:-1],self.stor)
+
         return self.start_address + offset
+
+class Struct:
+    def __init__(self,address,decls,stor):
+        self.values = {}
+        self.stor = stor
+        self.data = address
+        
+        offset = 0
+        for decl in decls:
+            self.values[decl.name] = offset
+            offset += 1
+    
+    def get_value(self, name):
+        if name in self.values:
+            return self.data + self.values[name]
+        else:
+            raise Exception(str(name)+' not found in struct') 
+
 
 def generate_constant_value(value, type_of='int'):
     """Given a string, parse it as a constant value."""
@@ -291,6 +321,10 @@ def generate_null_pointer():
 def generate_array(start_address, list_of_sizes, stor):
     #TODO this does not properly handle graph based stor
     return Array(start_address, list_of_sizes, stor)
+
+def generate_struct(start_address, decls, stor):
+    
+    return Struct(start_address, decls, stor)
 
 def cast(value, typedeclt): #pylint: disable=unused-argument
     """Casts the given value a  a value of the given type."""

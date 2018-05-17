@@ -2,7 +2,7 @@
 from functools import reduce
 import pycparser
 from cesk.values import ReferenceValue, generate_constant_value
-from cesk.values import generate_array, Array
+from cesk.values import generate_array, Array, generate_struct, Struct
 import logging
 logging.basicConfig(filename='logfile.txt',level=logging.DEBUG, format='%(levelname)s: %(message)s', filemode='w')
 
@@ -13,6 +13,7 @@ class LinkSearch(pycparser.c_ast.NodeVisitor):
     label_lut = {}
     envr_lut = {}
     function_lut = {}
+    struct_lut = {}    
 
     def generic_visit(self, node):
 
@@ -24,6 +25,11 @@ class LinkSearch(pycparser.c_ast.NodeVisitor):
         if isinstance(node, pycparser.c_ast.FuncDef):
             name = node.decl.name
             LinkSearch.function_lut[name] = node
+        
+        if isinstance(node, pycparser.c_ast.Struct) and node.decls is not None:
+            name = node.name
+            LinkSearch.struct_lut[name]=node
+            logging.debug('Store struct '+str(name)+' with decls '+str(node.decls) )
 
         for i, child in enumerate(node):
             if isinstance(child, pycparser.c_ast.Node):
@@ -51,92 +57,28 @@ def execute(state):
         # logging.debug("ArrayDecl")
         raise Exception("ArrayDecl should have been found as a child of Decl")
     elif isinstance(stmt, pycparser.c_ast.ArrayRef):
-        # logging.debug("ArrayRef")
-        list_of_index = []
-        while not isinstance(stmt, pycparser.c_ast.ID):
-            if isinstance(stmt.subscript, pycparser.c_ast.ID):
-                address = state.envr.get_address(stmt.subscript.name)
-                index = address.dereference().data
-            elif isinstance(stmt.subscript, pycparser.c_ast.Constant):
-                index = generate_constant_value(stmt.subscript.value).data
-            else:
-                raise Exception("Array subscripts of type " +
-                                str(stmt.subscript) + "are not yet implemented")
-            list_of_index.insert(0, index)
-            stmt = stmt.name
-        name = stmt.name
-        pointer_address = state.envr.get_address(name)
-        pointer = pointer_address.dereference()
-        if isinstance(pointer, ReferenceValue):
-            value = pointer.index(state.stor, list_of_index)
+        logging.debug("ArrayRef")
+
+        address = get_address(stmt,state)
+        if isinstance(address,Array):
+            #An multi dimensional array was access for only some of its dimensions
+            value = address
         else:
-            raise Exception(name + " is not an array nor pointer nor vector" +
-                            str(pointer))
+            value = address.dereference()  
+        logging.debug('   Address '+str(address)+'   Value: '+str(value))
+        
         if isinstance(state.kont, FunctionKont): #Don't return to function
             successors.append(get_next(state))
         else:
             successors.append(state.kont.satisfy(state, value))
     elif isinstance(stmt, pycparser.c_ast.Assignment):
-        # logging.debug("Assignment")
-        exp = stmt.rvalue
-        if isinstance(stmt.lvalue, pycparser.c_ast.ID):
-            ident = stmt.lvalue
-            address = state.envr.get_address(ident.name)
-        elif isinstance(stmt.lvalue, pycparser.c_ast.ArrayRef):
-            # logging.debug('ArrayRef lvalue')
-            array = stmt.lvalue
-            list_of_index = []
-            while not isinstance(array, pycparser.c_ast.ID):
-                if isinstance(array, pycparser.c_ast.UnaryOp):
-                    #TODO figure out how this is to be handled since tranforms inserts it here
-                    logging.error("UnaryOp in ArrayRef lvalue")
-                    #new_state = handle_unary_op(array.op,array.expr,state)
-                    # logging.debug('State Ctr: '+str(new_state.ctrl.stmt()))
-                    #successors.append(new_state)
-                    #return successors
-                    #break           
-                if isinstance(array.subscript, pycparser.c_ast.ID):
-                    address = state.envr.get_address(array.subscript.name)
-                    index = address.dereference().data
-                elif isinstance(array.subscript, pycparser.c_ast.Constant):
-                    index = generate_constant_value(array.subscript.value).data
-                else:
-                    raise Exception("Array subscripts of type " +
-                                    str(array.subscript) +
-                                    "are not yet implemented")
-                list_of_index.insert(0, index)
-                array = array.name
-            name = array.name
-            pointer = state.envr.get_address(name).dereference()
-            address = pointer.index_for_address(list_of_index)
-
-        elif isinstance(stmt.lvalue, pycparser.c_ast.UnaryOp):
-            unary_op = stmt.lvalue
-            if unary_op.op == "*":
-                name = unary_op.expr
-                pointer = state.envr.get_address(name)
-                address = pointer.dereference()
-            else:
-                raise Exception("Unsupported UnaryOp lvalue in assignment: " + unary_op.op)
-
-        elif isinstance(stmt.lvalue, pycparser.c_ast.StructRef):
-            #TODO finish StructRef assignment
-            # logging.debug('Assign value to item in struct')
-            ref = stmt.lvalue
-            # logging.debug('Name: ' + str(ref.name.name) + '\nType: ' + str(ref.type) + '\nField: '+ str(ref.field.name))
-            struct_ptr = state.envr.get_address(ref.name.name)
-            struct = struct_ptr.dereference()
-            # logging.debug('Pointer: '+str(struct_ptr))
-            # logging.debug('Struct: '+str(struct.data))
-            address = struct_ptr
-        #elif isinstance(stmt.lvalue, pycparser.c_ast.Struct):
-        #    # logging.debug('Assign struct')
-        else:
-            raise Exception("unsupported assign lvalue: " + str(stmt.lvalue))
-        # logging.debug('\tEnd->Address: '+str(address.data)+'   rvalue: '+str(exp))
-        successors.append(handle_assignment(stmt.op, address, exp, state))
+        logging.debug("Assignment")
+        rexp = stmt.rvalue
+        laddress = get_address(stmt.lvalue,state)
+         #take an operater, address (ReferenceValue), the expression on the right side, and the state       
+        successors.append(handle_assignment(stmt.op, laddress, rexp, state)) 
     elif isinstance(stmt, pycparser.c_ast.BinaryOp):
-        # logging.debug("BinaryOp")
+        logging.debug("BinaryOp "+str(stmt.op))
         new_kont = LeftBinopKont(state, stmt.op, stmt.right, state.kont)
         successors.append(State(Ctrl(stmt.left), state.envr, state.stor,
                                 new_kont))
@@ -150,8 +92,7 @@ def execute(state):
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.Cast):
         # TODO
-        # logging.debug('Cast')
-        # logging.debug(stmt.expr)
+        logging.debug('Cast')
         new_ctrl = Ctrl(stmt.expr)
         if isinstance(state.kont, FunctionKont): #don't return: don't cast
             new_kont = state.kont
@@ -174,7 +115,7 @@ def execute(state):
         # logging.debug("CompoundLiteral")
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.Constant):
-        # logging.debug("Constant")
+        logging.debug("Constant")
         value = generate_constant_value(stmt.value, stmt.type)
         if isinstance(state.kont, FunctionKont): #Don't return to function
             successors.append(get_next(state))
@@ -185,13 +126,14 @@ def execute(state):
         # logging.debug("Continue")
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.Decl):
-        # logging.debug("Decl")
+        logging.debug("Decl "+str(stmt.name)+'    '+str(stmt.type))
         handle_decl(stmt, state)
         if stmt.init is not None:
+            logging.debug('     Assignment was made')
             new_address = state.envr.get_address(stmt.name)
             new_state = handle_assignment("=", new_address, stmt.init, state)
             successors.append(new_state)
-        elif isinstance(state.kont, FunctionKont): #Don't return to function
+        elif isinstance(state.kont, FunctionKont): #Don't return to function/do not execute function until called
             successors.append(get_next(state))
         else:
             successors.append(state.kont.satisfy(state))
@@ -242,23 +184,15 @@ def execute(state):
     elif isinstance(stmt, pycparser.c_ast.FuncCall):
         # logging.debug("FuncCall")
         if stmt.name.name == "printf":
-            if not isinstance(stmt.args.exprs[1], pycparser.c_ast.ID):
-                raise Exception("printf test stub only supports ID not " +
-                                str(stmt.args.exprs[1]))
-            id_to_print = stmt.args.exprs[1].name
-            address = state.envr.get_address(id_to_print)
-            value = address.dereference()
-            
-
-            #testing # logging.debug statements
-            #causing error when transform is active because a cast is placed on formal parameters that need it
+            value = get_address(stmt.args.exprs[1],state).dereference()
+                       
             if isinstance(stmt.args.exprs[0], pycparser.c_ast.Constant):
                 print_string = stmt.args.exprs[0].value % (value.data)
             elif isinstance(stmt.args.exprs[0], pycparser.c_ast.Cast):     
-                # TODO cast the value not just grap from cast object
-                print_string = stmt.args.exprs[0].expr.value % (value.data) #still a work around 
+                # TODO cast the value not just grab from cast object
+                print_string = stmt.args.exprs[0].expr.value % (value.data) #still a work around      
             else:
-                raise Exception("# logging.debug does not know how to handle "+str(stmt.args.exprs[0]))
+                raise Exception("logging.debug does not know how to handle "+str(stmt.args.exprs[0]))
 
             print_string = print_string[1:][:-1] #drop quotes
             print(print_string.replace("\\n", "\n"), end="") #convert newlines
@@ -385,9 +319,14 @@ def execute(state):
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.StructRef):
         # TODO
-        # logging.debug("StructRef")
-
-        successors.append(get_next(state))
+        logging.debug("StructRef")
+        ref_address = get_address(stmt,state)
+        value = ref_address.dereference()
+        logging.debug('  Value: '+str(value))
+        if isinstance(state.kont, FunctionKont):
+            successors.append(get_next(state))
+        else:
+            successors.append(state.kont.satisfy(state,value))
     elif isinstance(stmt, pycparser.c_ast.Switch):
         # TODO
         # logging.debug("Switch")
@@ -447,34 +386,39 @@ def handle_decl(decl, state):
         #raise Exception("Error: redefinition of " + name)
 
     elif (isinstance(decl.type, (pycparser.c_ast.TypeDecl,
-                                 pycparser.c_ast.PtrDecl))):#pointers are ints
-        new_address = state.stor.get_next_address()
-        state.envr.map_new_identifier(name, new_address)
-        return state
+                                 pycparser.c_ast.PtrDecl))):       
+        ref_address = state.stor.get_next_address() #Pointer type is returned
+        state.envr.map_new_identifier(name, ref_address)       #the address is mapped then if additional space is need for a struct handle decl struct manages it 
 
+        if (isinstance(decl.type.type, pycparser.c_ast.Struct) 
+                    and isinstance(decl.type, pycparser.c_ast.TypeDecl)):
+            handle_decl_struct(decl.type.type, ref_address, state)
+                
     elif isinstance(decl.type, pycparser.c_ast.ArrayDecl):
-        ref_address = handle_decl_array(decl.type, [], state)
+        ref_address = state.stor.get_next_address()
+        handle_decl_array(decl.type, ref_address, [], state)
         state.envr.map_new_identifier(decl.name, ref_address)
         if decl.init is not None:
             ## TODO if init evaluates to an address don't allocate just
             # assign
             raise Exception("array init not yet implemented")
-        return state
+        
     else:
         raise Exception("Declarations of " + str(decl.type) +
                         " are not yet implemented")
 
     return state
 
-def handle_decl_array(array, list_of_sizes, state):
+def handle_decl_array(array, ref_address, list_of_sizes, state):
     """Calculates size and allocates Array. Returns address of first item"""
+    logging.debug('  Array Decl')
     if isinstance(array.type, pycparser.c_ast.ArrayDecl):
         #Recursively add sizes array to list
         size = generate_constant_value(array.dim.value).data
         if size < 1:
             raise Exception("Non-positive Array Sizes are not supported")
         list_of_sizes.append(size)
-        return handle_decl_array(array.type, list_of_sizes, state)
+        return handle_decl_array(array.type, ref_address, list_of_sizes, state)
 
     elif isinstance(array.type, pycparser.c_ast.TypeDecl):
         size = generate_constant_value(array.dim.value).data
@@ -482,16 +426,53 @@ def handle_decl_array(array, list_of_sizes, state):
             raise Exception("Non-positive Array Sizes are not supported")
         list_of_sizes.append(size)
         #List of sizes populated: allocate the array
-        ref_address = state.stor.get_next_address()
+        
         length = reduce(lambda x, y: x*y, list_of_sizes) #multiply all together
         data_address = state.stor.allocate_block(length)
         new_array = generate_array(data_address, list_of_sizes, state.stor)
+        logging.debug('   Generated array with sizes '+str(list_of_sizes))
         state.stor.write(ref_address, new_array)
         #Allocated block: passing back the Array object that points to block
+
+        #TODO handle array of structs
+        if isinstance(array.type.type, pycparser.c_ast.Struct):
+            for offset in range(length):
+                handle_decl_struct(array.type.type,data_address+offset,state)        
+
+
         return ref_address
     else:
         raise Exception("Declarations of " + str(array.type) +
                         " are not yet implemented")
+
+def handle_decl_struct(struct, ref_address, state):
+    if struct.name in LinkSearch.struct_lut:
+        struct = LinkSearch.struct_lut[struct.name]
+    else:
+        raise Exception('Struct '+decl.type.type.name+' not found')
+
+        
+    length = len(struct.decls)
+    data_address = state.stor.allocate_block(length)
+
+    logging.debug('    Made new struct: '+str(struct.name)+' at '+str(ref_address.address))
+    #todo handle struct or an array within a struct
+    new_struct = generate_struct(data_address, struct.decls, state.stor)
+    state.stor.write(ref_address, new_struct)
+
+    offset = 0
+    for decl in struct.decls:
+        #logging.debug('     DeclType: '+str(decl.type.type.names))
+        if (isinstance(decl.type,pycparser.c_ast.TypeDecl) 
+                and isinstance(decl.type.type,pycparser.c_ast.Struct)):
+            handle_decl_struct(decl.type.type,data_address+offset,state) 
+        elif isinstance(decl.type, pycparser.c_ast.ArrayDecl):
+            handle_decl_array(decl.type, data_address+offset, [], state)
+        offset += 1   
+        #if is instance array handle array
+         
+
+    return ref_address
 
 def handle_unary_op(opr, expr, state): #pylint: disable=inconsistent-return-statements
     """decodes and evaluates unary_ops"""
@@ -499,45 +480,13 @@ def handle_unary_op(opr, expr, state): #pylint: disable=inconsistent-return-stat
         return get_next(state)
 
     if opr == "&":
-        if isinstance(expr, pycparser.c_ast.ID):
-            ident = expr.name
-            address = state.envr.get_address(ident)
-            value = address
-            return state.kont.satisfy(state, value)
-        elif isinstance(expr, pycparser.c_ast.ArrayRef):
-            array = expr
-            list_of_index = []
-            #Compile a list of index
-            while not isinstance(array, pycparser.c_ast.ID):
-                # logging.debug('\tSub: '+str(array.subscript))
-                if isinstance(array.subscript, pycparser.c_ast.ID):
-                    address = state.envr.get_address(array.subscript.name)
-                    index = address.dereference().data
-                elif isinstance(array.subscript, pycparser.c_ast.Constant):
-                    index = generate_constant_value(array.subscript.value).data
-                else:
-                    raise Exception("Array subscripts of type " +
-                                    str(array.subscript) +
-                                    "are not yet implemented")
-                list_of_index.insert(0, index) #Push to front of list
-                array = array.name
-            name = array.name
-            # logging.debug('\tName: '+name)
-            pointer = state.envr.get_address(name).dereference()
-            # logging.debug('\tPTR_Deref: '+str(pointer))
-            if isinstance(pointer, Array):
-                value = pointer.index_for_address(list_of_index)
-            else:  #is another type of object, treat it like an array by returning the pointer
-                value = state.envr.get_address(name)
-
-            # logging.debug('\tValue: ' + str(value))
-            return state.kont.satisfy(state, value)
-        else:
-            raise Exception("& operator not implemented for " + str(expr))
-
+        value = get_address(expr,state)
+        return state.kont.satisfy(state, value)
     elif opr == "*":
-        pointer = state.envr.get_address(expr.name).dereference()
-        # logging.debug('\tPointer: '+str(pointer))
+        address = state.envr.get_address(expr.name)
+        logging.debug('\tName: '+str(expr.name)+ '   Address: '+str(address))
+        pointer = address.dereference()
+        logging.debug('\tPointer: '+str(pointer))
         value = pointer.dereference()
         # logging.debug('\tValue: '+str(value.data))    
         return state.kont.satisfy(state, value)
@@ -559,6 +508,65 @@ def handle_return(exp, state):
         else:
             throw("Exception: No return value was given in non-void function")
     return State(Ctrl(exp), state.envr, state.stor, returnable_kont)
+
+def get_address(reference,state):
+    if isinstance(reference, pycparser.c_ast.ID):
+        ident = reference
+        return state.envr.get_address(ident.name)
+    elif isinstance(reference, pycparser.c_ast.ArrayRef):
+        logging.debug(' ArrayRef in get_address')
+  
+        list_of_index = []
+        array_ptr = get_address(reference.name,state)
+        array = array_ptr.dereference()
+        
+        if isinstance(reference.subscript, pycparser.c_ast.ID):
+            address = state.envr.get_address(reference.subscript.name)
+            index = address.dereference().data
+        elif isinstance(reference.subscript, pycparser.c_ast.Constant):
+            index = generate_constant_value(reference.subscript.value).data
+            #why not just = array.subscript.value
+        else:
+            raise Exception("Array subscripts of type " +
+                            str(reference.subscript) +
+                            "are not yet implemented")
+        
+        list_of_index.insert(0, index)
+        
+        if not isinstance(array,Array):
+            array = array_ptr #this accors when ever there is a pointer acting as  
+            logging.debug('    pointer acting as an array '+str(array))
+            #logging.error(str(array)+' is not a reference value')
+            #assert False
+                    
+        return array.index_for_address(list_of_index)
+        
+    elif isinstance(reference, pycparser.c_ast.UnaryOp):
+        unary_op = reference
+        if unary_op.op == "*":
+            name = unary_op.expr
+            pointer = state.envr.get_address(name)
+            return pointer.dereference()
+        else:
+            raise Exception("Unsupported UnaryOp lvalue in assignment: " + unary_op.op)
+
+    elif isinstance(reference, pycparser.c_ast.StructRef):
+        
+        ref = reference
+        
+        struct_ptr = get_address(ref.name,state)          
+        struct = struct_ptr.dereference()
+       
+        address = struct.get_value(ref.field.name) 
+        
+        return address
+        
+    #elif isinstance(reference, pycparser.c_ast.Struct):
+    #    logging.debug('Assign struct')
+    else:
+        raise Exception("unsupported assign lvalue: " + str(reference))
+    
+
 
 def get_next(state): #pylint: disable=inconsistent-return-statements
     """takes state and returns a state with ctrl for the next statement
