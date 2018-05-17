@@ -1,8 +1,8 @@
 #include <stdio.h>
 int main() {
-	float f = 129.0;
-	float g = 129.0;
-	unsigned char z = f + g;
-	printf("%d\n", z);
+	int f = 66;
+	unsigned char* z = (unsigned char*) &f;
+	unsigned char c = *z;
+	printf("%d\n", c);
 	return 0;
 }

@@ -1,5 +1,6 @@
 """Holds the data structures for the CESK machine"""
 
+import logging
 import copy
 import sys
 import pycparser
@@ -193,6 +194,7 @@ class Stor:
     def read(self, address):
         """Read the contents of the store at address. Returns None if undefined.
         """
+        # logging.debug("\t\tAddress: "+str(address))
         if address in self.memory:
             #print(str(self.memory[address]) + " read from " + str(address))
             return self.memory[address]
@@ -304,6 +306,7 @@ class CastKont(Kont):
         self.to_type = to_type
 
     def satisfy(self, state, value):
+
         cast_value = cast(value, self.to_type)
         return self.parent_kont.satisfy(state, cast_value)
         

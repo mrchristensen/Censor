@@ -9,3 +9,4 @@ yacctab.py
 **/*.pyc
 .vscode
 .idea
+logfile.txt

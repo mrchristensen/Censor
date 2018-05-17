@@ -73,24 +73,17 @@ class ArithmeticValue: #pylint:disable=too-few-public-methods
 class Integer(ArithmeticValue): #pylint:disable=too-few-public-methods
     """Concrete implementation of an Integral Type"""
     def bound(self, value):
-        while value > self.max_value or value < self.min_value:
-            if value > self.max_value:
-                value = self.min_value + value - self.max_value - 1
-            elif value < self.min_value:
-                value = self.max_value + value - self.min_value + 1
-        return value
+        n = value - self.min_value
+        m = self.max_value - self.min_value + 1
+        k = n % m
+        x = k + self.min_value
+        return x
     
     def __init__(self, data, type_of):
-        self.min_value, self.max_value = limits.RANGES[type_of]
-        # func = (lambda x, y: x <= y) if 'unsigned' in type_of else (lambda x, y: x < y)
-        # TODO move to cast
-        func = (lambda x, y: x <= y)
-        v = 1
-        tmp = self.max_value << 1
-        while func(v, tmp):
-            v = (v << 1) + 1
-        self.data = self.bound(int(data) & v)
+        assert type_of != None
         self.type_of = type_of
+        self.min_value, self.max_value = limits.RANGES[type_of]
+        self.data = self.bound(int(data))
 
     def __add__(self, other):
         value = self.bound(self.data + other.data)
@@ -124,23 +117,23 @@ class Char(Integer):
         super().__init__(v, type_of)
 
     def __add__(self, other):
-        value = chr(super().__add__(other).data)
+        value = super().__add__(other).data
         return Char(value, self.type_of)
 
     def __sub__(self, other):
-        value = chr(super().__sub__(other).data)
+        value = super().__sub__(other).data
         return Char(value, self.type_of)
 
     def __mul__(self, other):
-        value = chr(super().__mul__(other).data)
+        value = super().__mul__(other).data
         return Char(value, self.type_of)
 
     def __truediv__(self, other):
-        value = chr(super().__truediv__(other).data)
+        value = super().__truediv__(other).data
         return Char(value, self.type_of)
 
     def __mod__(self, other):
-        value = chr(super().__mod__(other).data)
+        value = super().__mod__(other).data
         return Char(value, self.type_of)
 
     def get_char(self): 
@@ -183,28 +176,31 @@ class ReferenceValue(ArithmeticValue): #pylint:disable=all
     def index_for_address(self, stor, list_of_index):
         pass
 
+    def __str__(self):
+        return "sup"
+
 
 class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
     """Concrete implementation of a Pointer to any type."""
 
     def __init__(self, address, holding_stor):
-        self.address = int(address)
-        self.holding_stor = holding_stor
-        #self.data = address # added temporarily for testing should be deleted
+        # self.address changed to self.data so that all the same functionality is present
+        self.data = int(address)
+        self.stor = holding_stor
 
     def __hash__(self):
-        return self.address
-    
+        return self.data
+
     def __eq__(self, other):
         if not isinstance(other, ReferenceValue):
             return Integer(0, 'int')
-        return Integer(int(self.address == other.address), 'int')
-
+        return Integer(int(self.data == other.data), 'int')
+    
     def dereference(self):
         """Reads the address the pointer points to and returns value"""
-        if self.address == 0:
+        if self.data == 0:
             raise Exception("SegFault")
-        return self.holding_stor.read(self.address)
+        return self.stor.read(self.data)
 
     def index(self, stor, list_of_index):
         """Reads the address with a given offset from the pointer"""
@@ -215,7 +211,7 @@ class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
         if len(list_with_offset) != 1:
             raise Exception("Invalid ArrayRef on Pointer")
         offset = list_with_offset[0]
-        return self.holding_stor.add_offset_to_pointer(self, offset)
+        return self.stor.add_offset_to_pointer(self, offset)
 
     def __add__(self, other):
         if isinstance(other, Integer):
@@ -224,7 +220,7 @@ class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
             offset = other
         else:
             raise Exception("Pointers can only be added to int")
-        return self.holding_stor.add_offset_to_pointer(self, offset)
+        return self.stor.add_offset_to_pointer(self, offset)
 
     def __sub__(self, other):
         if isinstance(other, Integer):
@@ -233,7 +229,7 @@ class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
             offset = -1 * other
         else:
             raise Exception("Pointers can only be subtracted by int")
-        return self.holding_stor.add_offset_to_pointer(self, offset)
+        return self.stor.add_offset_to_pointer(self, offset)
 
 class Array(ReferenceValue):
     """Concrete implementation of an Array of data"""
@@ -241,11 +237,10 @@ class Array(ReferenceValue):
     def __init__(self, start_address, list_of_sizes, stor):
         if not isinstance(start_address, ReferenceValue):
             raise Exception("start_address should be Pointer not " +
-                            str(start_address));
+                            str(start_address))
         self.start_address = start_address
         self.list_of_sizes = list_of_sizes
         self.stor = stor
-        #self.data = start_address.address  #added temporarily for testing  
 
     def dereference(self):
         """Reads the first item of the array"""
@@ -275,7 +270,6 @@ class Array(ReferenceValue):
 
 def generate_constant_value(value, type_of='int'):
     """Given a string, parse it as a constant value."""
-    # TODO: also parse constant chars
     if "char" in type_of:
         return Char(value, type_of)
     if "float" in type_of:
@@ -285,8 +279,7 @@ def generate_constant_value(value, type_of='int'):
 def generate_default_value(typedecl): #pylint: disable=unused-argument
     """Generates a default value of the given type (used for uninitialized
     variables)."""
-    # TODO
-    return Integer(0, typedecl)
+    return generate_constant_value(0, typedecl)
 
 def generate_pointer_value(address, stor):
     """Given a address (int) package it into a pointer"""
@@ -302,24 +295,34 @@ def generate_array(start_address, list_of_sizes, stor):
 def cast(value, typedeclt): #pylint: disable=unused-argument
     """Casts the given value a  a value of the given type."""
     #TODO move the check for pycparser type to the function that calls cast so only an IdentifierType object is passed in
-    #TODO handle when value is a subclass of Reverence value like Array or Pointer
+    #TODO handle when value is a subclass of Reference value like Array or Pointer
+    n = None
+    logging.debug('FOR '+str(typedeclt))
+    logging.debug('\tCasting value: '+str(value))
+    logging.debug('\t\tto Type: '+str(typedeclt.type))
     
+    return value
 
-    m = value.data
-    logging.debug('\tValue: '+str(value)+'  Data: '+str(m))
-    
-    if isinstance(typedeclt.type, pycparser.c_ast.IdentifierType):
+    if isinstance(typedeclt.type, pycparser.c_ast.PtrDecl):
+        s = typedeclt.type.type.type.names
+        address = str(value.index_for_address([0]).data)
+        n = generate_pointer_value(address, value.stor)
+        logging.debug('\tCast to '+str(s))
+    elif isinstance(typedeclt.type, pycparser.c_ast.IdentifierType):
         s = typedeclt.type.names
-        
-        logging.debug('\tCast to IdentifierType')
-    else:
-        logging.debug('\tCast using: '+str(typedeclt.type))
+        n = generate_constant_value(str(value.data), " ".join(s))
+        logging.debug('\tData: ' + str(n.data))
+    elif isinstance(typedeclt.type, pycparser.c_ast.ArrayDecl):
+        logging.debug('!!!!!!!!!!!!!!!!!!!!!!!')
+    elif isinstance(typedeclt.type, pycparser.c_ast.TypeDecl):
         s = typedeclt.type.type.names
         logging.debug('\tCast to '+str(s))
-
-        #print(s) #implicit
-    n = generate_constant_value(m, " ".join(s))
-    logging.debug('\tData: '+str(n.data))
+        n = generate_constant_value(str(value.data), " ".join(s))
+    else:
+        logging.error('\tUnsupported cast: ' + str(typedeclt.type))
+        raise Exception("Unsupported cast")
     
+    logging.debug(n.data)
+    assert n.data != None
     return n 
 
