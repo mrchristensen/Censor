@@ -234,7 +234,7 @@ class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
         return self.stor.add_offset_to_pointer(self, offset)
 
     def __str__(self):
-        return '<cesk.values.Pointer> at '+str(self.address)
+        return '<cesk.values.Pointer> at '+str(self.data)
 
 class Array(ReferenceValue):
     """Concrete implementation of an Array of data"""

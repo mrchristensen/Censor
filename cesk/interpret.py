@@ -455,7 +455,7 @@ def handle_decl_struct(struct, ref_address, state):
     length = len(struct.decls)
     data_address = state.stor.allocate_block(length)
 
-    logging.debug('    Made new struct: '+str(struct.name)+' at '+str(ref_address.address))
+    logging.debug('    Made new struct: '+str(struct.name)+' at '+str(ref_address.data))
     #todo handle struct or an array within a struct
     new_struct = generate_struct(data_address, struct.decls, state.stor)
     state.stor.write(ref_address, new_struct)
