@@ -4,6 +4,7 @@ import subprocess
 import colorama
 from os import path, listdir
 from unittest import TestCase
+import sys
 
 class CESKvsGCC(TestCase):
     """
@@ -14,16 +15,19 @@ class CESKvsGCC(TestCase):
         """asserts that a c file will have the same output under gcc and under
         our cesk interpreter"""
         gcc_out = run_c(file_path)
-        cesk_out = run_c_cesk(file_path)
-        if gcc_out == cesk_out:
-            print(colorama.Fore.GREEN + "PASSED: ", colorama.Fore.RESET + path.basename(file_path))
-        else:
-            print(colorama.Fore.RED + "FAILED: ", colorama.Fore.RESET + path.basename(file_path))
-            print("Expected (gcc): ")
-            print(str(gcc_out))
-            print("Actual (cesk): ")
-            print(str(cesk_out))
-            raise self.failureException()
+        try:
+            cesk_out = run_c_cesk(file_path)
+            if gcc_out == cesk_out:
+                print(colorama.Fore.GREEN + "PASSED: ", colorama.Fore.RESET + path.basename(file_path))
+            else:
+                print(colorama.Fore.RED + "FAILED: ", colorama.Fore.RESET + path.basename(file_path))
+                print("Expected (gcc): ")
+                print(str(gcc_out))
+                print("Actual (cesk): ")
+                print(str(cesk_out))
+                #raise self.failureException()
+        except Exception:
+                print(colorama.Fore.RED + "FAILED: ", colorama.Fore.RESET + path.basename(file_path) + ' see ^^^^^'  )               
 
     def assert_all_equal(self, folder):
         """asserts that an entire folder full of c files will have the same
@@ -32,7 +36,6 @@ class CESKvsGCC(TestCase):
                         if f.endswith('.c')])
         for file in files:
             self.assert_same_output(file)
-
 
 def run_c_cesk(file_path):
     """runs a c source file using the cesk tool, returns stdout as a byte

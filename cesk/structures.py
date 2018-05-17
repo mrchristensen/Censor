@@ -1,5 +1,6 @@
 """Holds the data structures for the CESK machine"""
 
+import logging
 import copy
 import sys
 import pycparser
@@ -187,6 +188,7 @@ class Stor:
         else:
             for _ in range(abs(offset)):
                 new_pointer = self.pred_map[new_pointer]
+        logging.debug('   New Ptr: '+str(new_pointer))
         return new_pointer
             
 
@@ -287,6 +289,7 @@ class AssignKont(Kont):
     def satisfy(self, state, value):
         new_stor = state.stor
         new_stor.write(self.address, value)
+        logging.debug('    Assigned Value: '+str(value))
         if isinstance(self.parent_state.kont, FunctionKont):
             #don't return out of function without return
             new_state = State(self.parent_state.ctrl, state.envr, new_stor,
