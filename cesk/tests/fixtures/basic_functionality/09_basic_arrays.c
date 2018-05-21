@@ -5,7 +5,7 @@ int main() {
     int sum = 0;
     int i = 0;
     
-    loop:
+    loop:;
 		sum = sum + a[i];
 		i = i + 1;
                 printf("%d   ",i);

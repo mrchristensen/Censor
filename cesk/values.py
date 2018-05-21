@@ -178,10 +178,6 @@ class ReferenceValue(ArithmeticValue): #pylint:disable=all
     def index_for_address(self, stor, list_of_index):
         pass
 
-    def __str__(self):
-        return "sup"
-
-
 class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
     """Concrete implementation of a Pointer to any type."""
 
@@ -249,6 +245,8 @@ class Array(ReferenceValue):
 
     def dereference(self):
         """Reads the first item of the array"""
+        if len(self.list_of_sizes) > 1:
+            return self.start_address #could change this to return an array type    
         return self.start_address.dereference()
 
     def index(self, stor, list_of_index):
@@ -276,9 +274,15 @@ class Array(ReferenceValue):
 
         #if less indices are given than are in the list of sizes it still needs to be treated as an array
         if num_indices < len(self.list_of_sizes):
-            return generate_array(self.start_address+offset,self.list_of_sizes[num_indices-1:-1],self.stor)
+            temp_address = self.stor.get_next_address()
+            new_temp_array = generate_array(self.start_address+offset,self.list_of_sizes[num_indices-1:-1],self.stor)
+            self.stor.write(temp_address, new_temp_array)
+            return temp_address
 
         return self.start_address + offset
+
+    def __str__(self):
+        return '(Array) at '+str(self.start_address)
 
 class Struct:
     def __init__(self,address,decls,stor):
@@ -328,13 +332,31 @@ def generate_struct(start_address, decls, stor):
 
 def cast(value, typedeclt): #pylint: disable=unused-argument
     """Casts the given value a  a value of the given type."""
-    #TODO move the check for pycparser type to the function that calls cast so only an IdentifierType object is passed in
     #TODO handle when value is a subclass of Reference value like Array or Pointer
+
+    #typedeclt.show()
     n = None
     logging.debug('FOR '+str(typedeclt))
     logging.debug('\tCasting value: '+str(value))
     logging.debug('\t\tto Type: '+str(typedeclt.type))
-    
+
+ 
+    if isinstance(typedeclt,pycparser.c_ast.Typename):
+        typedecl = typedeclt.type
+    else:
+        typedecl = typedeclt
+
+    if isinstance(typedecl, pycparser.c_ast.PtrDecl):
+        if isinstance(value,ReferenceValue):
+            result = value.dereference()
+            if isinstance(result, Array):
+                return result.start_address
+            else:
+                return value
+        else:
+            raise Exception("Unsupported Cast to a pointer type")
+  
+
     return value
 
     if isinstance(typedeclt.type, pycparser.c_ast.PtrDecl):
