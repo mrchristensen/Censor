@@ -335,15 +335,16 @@ def cast(value, typedeclt): #pylint: disable=unused-argument
     logging.debug('\tCasting value: '+str(value))
     logging.debug('\t\tto Type: '+str(typedeclt.type))
     
-    return value
+    # return value
 
-    if isinstance(typedeclt.type, pycparser.c_ast.PtrDecl):
-        s = typedeclt.type.type.type.names
+    if isinstance(typedeclt, pycparser.c_ast.PtrDecl):
+        s = typedeclt.type.type.names
         address = str(value.index_for_address([0]).data)
         n = generate_pointer_value(address, value.stor)
         logging.debug('\tCast to '+str(s))
     elif isinstance(typedeclt.type, pycparser.c_ast.IdentifierType):
         s = typedeclt.type.names
+        print("Problem")
         n = generate_constant_value(str(value.data), " ".join(s))
         logging.debug('\tData: ' + str(n.data))
     elif isinstance(typedeclt.type, pycparser.c_ast.ArrayDecl):

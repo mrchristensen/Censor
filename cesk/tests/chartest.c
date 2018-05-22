@@ -1,7 +1,6 @@
-#include <stdio.h>
-
 int main() {
-	char c = 'a';
-	printf("%c\n", c);
+	int c[3] = {0,1,2};
+	short sum = 0;
+	sum = sum + c[1];
 	return 0;
 }
