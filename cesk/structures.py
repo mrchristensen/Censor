@@ -188,19 +188,16 @@ class Stor:
         else:
             for _ in range(abs(offset)):
                 new_pointer = self.pred_map[new_pointer]
-        logging.debug('   New Ptr: '+str(new_pointer))
         return new_pointer
             
 
     def read(self, address):
         """Read the contents of the store at address. Returns None if undefined.
         """
-        # logging.debug("\t\tAddress: "+str(address))
+        
         if address in self.memory:
-            #print(str(self.memory[address]) + " read from " + str(address))
             return self.memory[address]
         if address < self.address_counter:
-            #print("Returned default value of 0 for unititalized address")
             return generate_default_value("int")
         raise Exception("ERROR: tried to access an unalocated address: " +
                          str(address))
@@ -215,7 +212,7 @@ class Stor:
             self.memory[address] = value
         else:
             self.memory[address] = value
-        #print(str(self.memory[address]) + " writen to " + str(address))
+        logging.debug('  '+str(self.memory[address]) + " writen to " + str(address))
 
     def print_memory_visualization(self):
         for (address, value) in self.memeory:
@@ -290,7 +287,6 @@ class AssignKont(Kont):
     def satisfy(self, state, value):
         new_stor = state.stor
         new_stor.write(self.address, value)
-        logging.debug('    Assigned Value: '+str(value))
         if isinstance(self.parent_state.kont, FunctionKont):
             #don't return out of function without return
             new_state = State(self.parent_state.ctrl, state.envr, new_stor,

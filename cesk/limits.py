@@ -35,7 +35,7 @@ RANGES = {
     "unsigned int": Range(0, UINT_MAX),
     "long": Range(LONG_MIN, LONG_MAX),
     "long int": Range(LONG_MIN, LONG_MAX),
-    "unsigned long int": Range(0, ULONG_MAX),
-    "long long int": Range(LLONG_MIN, LLONG_MAX),
-    "unsigned long long int": Range(0, ULLONG_MAX)
+    "unsigned long": Range(0, ULONG_MAX),
+    "long long": Range(LLONG_MIN, LLONG_MAX),
+    "unsigned long long": Range(0, ULLONG_MAX)
 }

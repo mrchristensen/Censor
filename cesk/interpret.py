@@ -128,8 +128,7 @@ def execute(state):
     elif isinstance(stmt, pycparser.c_ast.Decl):
         logging.debug("Decl "+str(stmt.name)+'    '+str(stmt.type))
         handle_decl(stmt, state)
-        if stmt.init is not None:
-            logging.debug('     Assignment was made')
+        if stmt.init is not None: 
             new_address = state.envr.get_address(stmt.name)
             new_state = handle_assignment("=", new_address, stmt.init, state)
             successors.append(new_state)
@@ -288,7 +287,8 @@ def execute(state):
     elif isinstance(stmt, pycparser.c_ast.InitList):
         # TODO
         # should get transformed out
-        # logging.debug("InitList")
+        logging.error("InitList")
+        raise Exception("Initilizer List is not implemented")
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.Label):
         # logging.debug("Label")
@@ -346,7 +346,7 @@ def execute(state):
         # logging.debug("Typename")
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.UnaryOp):
-        # logging.debug("UnaryOp "+stmt.op)
+        logging.debug("UnaryOp "+stmt.op)
         opr = stmt.op
         expr = stmt.expr
         successors.append(handle_unary_op(opr, expr, state))
@@ -476,6 +476,7 @@ def handle_decl_struct(struct, ref_address, state):
 
 def handle_unary_op(opr, expr, state): #pylint: disable=inconsistent-return-statements
     """decodes and evaluates unary_ops"""
+    
     if isinstance(state.kont, FunctionKont): #don't return to function
         return get_next(state)
 
@@ -484,11 +485,8 @@ def handle_unary_op(opr, expr, state): #pylint: disable=inconsistent-return-stat
         return state.kont.satisfy(state, value)
     elif opr == "*":
         address = state.envr.get_address(expr.name)
-        logging.debug('\tName: '+str(expr.name)+ '   Address: '+str(address))
         pointer = address.dereference()
-        logging.debug('\tPointer: '+str(pointer))
         value = pointer.dereference()
-        # logging.debug('\tValue: '+str(value.data))    
         return state.kont.satisfy(state, value)
     else:
         raise Exception(opr + " is not yet implemented")
@@ -514,7 +512,6 @@ def get_address(reference,state):
         ident = reference
         return state.envr.get_address(ident.name)
     elif isinstance(reference, pycparser.c_ast.ArrayRef):
-        logging.debug(' ArrayRef in get_address')
   
         list_of_index = []
         array_ptr = get_address(reference.name,state)
@@ -533,12 +530,9 @@ def get_address(reference,state):
         
         list_of_index.insert(0, index)
         
-        if not isinstance(array,Array):
-            array = array_ptr #this accors when ever there is a pointer acting as  
-            logging.debug('    pointer acting as an array '+str(array))
-            #logging.error(str(array)+' is not a reference value')
-            #assert False
-                    
+        if not isinstance(array,ReferenceValue):
+            array = array_ptr #this accors when ever there is a pointer acting as an array 
+                                
         return array.index_for_address(list_of_index)
         
     elif isinstance(reference, pycparser.c_ast.UnaryOp):

@@ -16,7 +16,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("filename")
     parser.add_argument('--tool', '-t',
-                        choices=['censor', 'yeti', 'cesk', 'observer', 'ssl'],
+                        choices=['censor', 'yeti', 'cesk', 'observer', 'ssl', 'print'],
                         required=False, type=str.lower,
                         help='the (case-insensitive) name of the analysis')
     parser.add_argument('--pycparser', '-p',
@@ -80,10 +80,7 @@ def main():
         transform(ast)
         yeti.main(ast)
     elif args.tool == "cesk":
-        # ast.show()
-        # print('--------------------------------------------')
         transform(ast)
-        # ast.show()
         cesk.main(ast)
     elif args.tool == "observer":
         watchman = observer.Observer()
@@ -93,6 +90,11 @@ def main():
         watchman.coverage(cesk.implemented_nodes())
     elif args.tool == "ssl":
         verify_openssl_correctness(ast)
+    elif args.tool == "print":
+        ast.show()
+        print('-------------------------------------------------------')
+        transform(ast)
+        ast.show()
     else:
         print("No valid tool name given; defaulting to censor.")
         censor.main(ast) #default to censor
