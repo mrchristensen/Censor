@@ -331,7 +331,6 @@ def generate_struct(start_address, decls, stor):
 
 def cast(value, typedeclt): #pylint: disable=unused-argument
     """Casts the given value a  a value of the given type."""
-    #TODO handle when value is a subclass of Reference value like Array or Pointer
 
     # typedeclt.show()
     n = None
@@ -342,7 +341,7 @@ def cast(value, typedeclt): #pylint: disable=unused-argument
     if isinstance(typedeclt, pycparser.c_ast.Typename):
         n = cast(value, typedeclt.type)
     elif isinstance(typedeclt, pycparser.c_ast.PtrDecl):
-        # This could be problematic
+        # TODO This code may need to be more thoroughly tested
         temp = typedeclt
         while isinstance(temp, pycparser.c_ast.PtrDecl) or isinstance(temp, pycparser.c_ast.ArrayDecl):
             temp = temp.type
