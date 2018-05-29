@@ -19,7 +19,7 @@ BINOPS = {
     ">=": "__ge__",
 }
 
-class ArithmeticValue: #pylint:disable=too-few-public-methods
+class ArithmeticValue:
     """Abstract class for polymorphism between abstract and concrete values"""
     data = None
     type_of = None
@@ -75,6 +75,7 @@ class ArithmeticValue: #pylint:disable=too-few-public-methods
 class Integer(ArithmeticValue): #pylint:disable=too-few-public-methods
     """Concrete implementation of an Integral Type"""
     def bound(self, value):
+        # TODO document
         n = value - self.min_value
         m = self.max_value - self.min_value + 1
         k = n % m
@@ -181,6 +182,7 @@ class ReferenceValue(ArithmeticValue): #pylint:disable=all
 class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
     """Concrete implementation of a Pointer to any type."""
 
+    # TODO Dallin: Check with Kyle, refused bequest.  Check Array
     def __init__(self, address, holding_stor):
         # self.address changed to self.data so that all the same functionality is present
         self.data = int(address)
@@ -302,6 +304,7 @@ class Struct:
             raise Exception(str(name)+' not found in struct') 
 
 
+# TODO Dallin: discuss default type_of with Kyle
 def generate_constant_value(value, type_of='int'):
     """Given a string, parse it as a constant value."""
     if "char" in type_of:
@@ -331,28 +334,23 @@ def generate_struct(start_address, decls, stor):
 
 def cast(value, typedeclt): #pylint: disable=unused-argument
     """Casts the given value a  a value of the given type."""
-
-    # typedeclt.show()
     n = None
-    logging.debug('FOR '+str(typedeclt))
-    logging.debug('\tCasting value: '+str(value))
-    logging.debug('\t\tto Type: '+str(typedeclt.type))
+    logging.debug('CAST: '+str(value)+" to type "+str(typedeclt))
 
     if isinstance(typedeclt, pycparser.c_ast.Typename):
         n = cast(value, typedeclt.type)
     elif isinstance(typedeclt, pycparser.c_ast.PtrDecl):
         # TODO This code may need to be more thoroughly tested
+        # TODO Document well, include questions about more obscure test cases
         temp = typedeclt
         while isinstance(temp, pycparser.c_ast.PtrDecl) or isinstance(temp, pycparser.c_ast.ArrayDecl):
             temp = temp.type
-        s = temp.type.names
+        # s = temp.type.names
         address = str(value.index_for_address([0]).data)
         n = generate_pointer_value(address, value.stor)
-        logging.debug('\tCast to '+str(s))
     elif isinstance(typedeclt, pycparser.c_ast.TypeDecl):
         s = typedeclt.type.names
         n = generate_constant_value(str(value.data), " ".join(s))
-        logging.debug('\tData: ' + str(n.data))
     else:
         logging.error('\tUnsupported cast: ' + str(typedeclt.type))
         raise Exception("Unsupported cast")

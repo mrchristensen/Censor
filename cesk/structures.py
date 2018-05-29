@@ -226,6 +226,7 @@ class Kont:
     """Abstract class for polymorphism of continuations"""
     def satisfy(self, current_state, value):
         pass
+        
 #Special Konts
 class Halt(Kont):
     """Last continuation to execute"""

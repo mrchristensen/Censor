@@ -16,7 +16,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("filename")
     parser.add_argument('--tool', '-t',
-                        choices=['censor', 'yeti', 'cesk', 'observer', 'ssl', 'print'],
+                        choices=['censor', 'yeti', 'cesk',
+                                 'observer', 'ssl', 'print'],
                         required=False, type=str.lower,
                         help='the (case-insensitive) name of the analysis')
     parser.add_argument('--pycparser', '-p',
