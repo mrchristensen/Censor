@@ -169,7 +169,7 @@ def flatten_array_init(decl):
         if not is_constant_expression(init):
             decl.show()
             raise NotImplementedError(_NOT_IMPLEMENTED_MESSAGE)
-        index = Constant(IdentifierType(["int"]), str(i))
+        index = Constant('int', str(i))
         lvalue = ArrayRef(ID(decl.name), index)
         assignment = Assignment("=", lvalue, init)
         inits.append(assignment)

@@ -281,6 +281,26 @@ class Array(ReferenceValue):
 
         return self.start_address + offset
 
+    def __add__(self, other):
+        if isinstance(other, Integer):
+            offset = other.data
+        elif isinstance(other, int):
+            offset = other
+        else:
+            raise Exception("Pointers can only be added to int")
+        return self.stor.add_offset_to_pointer(self.start_address, offset)
+    
+    def __sub__(self, other):
+        if isinstance(other, Integer):
+            offset = -1 * other.data
+        elif isinstance(other, int):
+            offset = -1 * other
+        else:
+            raise Exception("Pointers can only be added to int")
+        return self.stor.add_offset_to_pointer(self.start_address, offset)
+
+
+
     def __str__(self):
         return '(Array) at '+str(self.start_address)
 

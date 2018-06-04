@@ -88,7 +88,7 @@ class LiftToCompoundBlock(LiftNode):
             ref = self.lift_unaryop(value)
         elif isinstance(node, AST.Assignment):
             ref = None
-        elif isinstance(value, (AST.StructRef, AST.ArrayRef)):
+        elif isinstance(value, (AST.StructRef,AST.ArrayRef)):
             ref = self.lift_to_ptr(value)
         elif isinstance(value, (AST.BinaryOp, AST.FuncCall)):
             ref = self.lift_to_value(value)

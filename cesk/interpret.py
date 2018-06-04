@@ -2,7 +2,7 @@
 from functools import reduce
 import pycparser
 from cesk.values import ReferenceValue, generate_constant_value
-from cesk.values import generate_array, Array, generate_struct, Struct
+from cesk.values import generate_struct, Struct
 import logging
 logging.basicConfig(filename='logfile.txt',level=logging.DEBUG, format='%(levelname)s: %(message)s', filemode='w')
 
@@ -60,11 +60,8 @@ def execute(state):
         logging.debug("ArrayRef")
 
         address = get_address(stmt,state)
-        if isinstance(address,Array):
-            #An multi dimensional array was access for only some of its dimensions
-            value = address
-        else:
-            value = address.dereference()  
+        value = address.dereference()  
+
         logging.debug('   Address '+str(address)+'   Value: '+str(value))
         
         if isinstance(state.kont, FunctionKont): #Don't return to function
@@ -75,6 +72,8 @@ def execute(state):
         logging.debug("Assignment")
         rexp = stmt.rvalue
         laddress = get_address(stmt.lvalue,state)
+        logging.debug(str(stmt.lvalue))
+        logging.debug('   '+str(laddress))
          #take an operater, address (ReferenceValue), the expression on the right side, and the state       
         successors.append(handle_assignment(stmt.op, laddress, rexp, state)) 
     elif isinstance(stmt, pycparser.c_ast.BinaryOp):
@@ -242,20 +241,20 @@ def execute(state):
                                         new_state.stor,
                                         new_kont))
     elif isinstance(stmt, pycparser.c_ast.FuncDecl):
-        # logging.debug("FuncDecl")
+        logging.debug("FuncDecl")
         raise Exception("FuncDecl out of Global scope")
     elif isinstance(stmt, pycparser.c_ast.FuncDef):
-        # logging.debug("FuncDef")
+        logging.debug("FuncDef")
         raise Exception("FuncDef out of Global scope")
     elif isinstance(stmt, pycparser.c_ast.Goto):
-        # logging.debug('Goto')
+        logging.debug('Goto')
         label_to = LinkSearch.label_lut[stmt.name]
         body = label_to
         while not isinstance(body, pycparser.c_ast.Compound):
             index = LinkSearch.index_lut[body]
             body = LinkSearch.parent_lut[body]
         new_ctrl = Ctrl(index, body)
-        # logging.debug('\t Body: '+str(body))
+        logging.debug('\t Body: '+str(body))
         if body in LinkSearch.envr_lut:
             new_envr = LinkSearch.envr_lut[body]
         else:
@@ -265,10 +264,11 @@ def execute(state):
 
         successors.append(State(new_ctrl, new_envr, state.stor, state.kont))
     elif isinstance(stmt, pycparser.c_ast.ID):
-        # logging.debug("ID")
+        logging.debug("ID "+stmt.name)
         name = stmt.name
         address = state.envr.get_address(name)
-        value = address.dereference()
+        #value = address.dereference()
+        value = state.stor.read(address.data)
         if value is None:
             raise Exception(name + ": " + str(state.stor.memory))
         if isinstance(state.kont, FunctionKont): #Don't return to function
@@ -396,8 +396,10 @@ def handle_decl(decl, state):
                 
     elif isinstance(decl.type, pycparser.c_ast.ArrayDecl):
         ref_address = state.stor.get_next_address()
-        handle_decl_array(decl.type, ref_address, [], state)
+        data_address = handle_decl_array(decl.type, [], state)
         state.envr.map_new_identifier(decl.name, ref_address)
+        state.stor.write(ref_address,data_address)
+        logging.debug(" Mapped "+str(name)+" to "+str(ref_address))
         if decl.init is not None:
             ## TODO if init evaluates to an address don't allocate just
             # assign
@@ -409,7 +411,7 @@ def handle_decl(decl, state):
 
     return state
 
-def handle_decl_array(array, ref_address, list_of_sizes, state):
+def handle_decl_array(array, list_of_sizes, state):
     """Calculates size and allocates Array. Returns address of first item"""
     logging.debug('  Array Decl')
     if isinstance(array.type, pycparser.c_ast.ArrayDecl):
@@ -421,7 +423,13 @@ def handle_decl_array(array, ref_address, list_of_sizes, state):
         return handle_decl_array(array.type, ref_address, list_of_sizes, state)
 
     elif isinstance(array.type, pycparser.c_ast.TypeDecl):
-        size = generate_constant_value(array.dim.value).data
+        if isinstance(array.dim,pycparser.c_ast.Constant):
+            size = generate_constant_value(array.dim.value).data
+        elif isinstance(array.dim,pycparser.c_ast.ID):
+            size = get_address(array.dim,state).dereference().data
+        else:
+            raise Exception("Unsupported ArrayDecl dimension "+str(array.dim))
+
         if size < 1:
             raise Exception("Non-positive Array Sizes are not supported")
         list_of_sizes.append(size)
@@ -429,9 +437,9 @@ def handle_decl_array(array, ref_address, list_of_sizes, state):
         
         length = reduce(lambda x, y: x*y, list_of_sizes) #multiply all together
         data_address = state.stor.allocate_block(length)
-        new_array = generate_array(data_address, list_of_sizes, state.stor)
+        #new_array = generate_array(data_address, list_of_sizes, state.stor)
         logging.debug('   Generated array with sizes '+str(list_of_sizes))
-        state.stor.write(ref_address, new_array)
+        #state.stor.write(ref_address, new_array)
         #Allocated block: passing back the Array object that points to block
 
         #TODO handle array of structs
@@ -440,7 +448,7 @@ def handle_decl_array(array, ref_address, list_of_sizes, state):
                 handle_decl_struct(array.type.type,data_address+offset,state)        
 
 
-        return ref_address
+        return data_address
     else:
         raise Exception("Declarations of " + str(array.type) +
                         " are not yet implemented")
@@ -467,7 +475,8 @@ def handle_decl_struct(struct, ref_address, state):
                 and isinstance(decl.type.type,pycparser.c_ast.Struct)):
             handle_decl_struct(decl.type.type,data_address+offset,state) 
         elif isinstance(decl.type, pycparser.c_ast.ArrayDecl):
-            handle_decl_array(decl.type, data_address+offset, [], state)
+            arr_address = handle_decl_array(decl.type, [], state)
+            state.stor.write(data_address+offset,arr_address)
         offset += 1   
         #if is instance array handle array
          
@@ -528,10 +537,7 @@ def get_address(reference,state):
                             str(reference.subscript) +
                             "are not yet implemented")
         
-        list_of_index.insert(0, index)
-        
-        if not isinstance(array,ReferenceValue):
-            array = array_ptr #this accors when ever there is a pointer acting as an array 
+        list_of_index.insert(0, index) 
                                 
         return array.index_for_address(list_of_index)
         

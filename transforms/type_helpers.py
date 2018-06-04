@@ -116,6 +116,10 @@ def resolve_types(left, right): # pylint: disable=too-many-return-statements
         return _resolve_floating_types(left, right)
     elif _is_integral(left) and _is_integral(right):
         return _resolve_integral_types(left, right)
+    elif _is_array(left) and _is_integral(right):
+        return PtrDecl([],left.type)
+    elif _is_integral(left) and _is_array(right):
+        return PtrDecl([],right.type) #maybe instead of quals being [] set to right.type.quals
     print("---left:")
     left.show()
     print("---right:")
@@ -174,7 +178,10 @@ def _get_type_helper(expr, env): # pylint: disable=too-many-return-statements,to
     elif isinstance(expr, StructRef):
         return _get_structref_type(expr, env)
     elif isinstance(expr, ArrayRef):
-        return _get_type_helper(expr.name, env).type
+        ref_type = _get_type_helper(expr.name, env).type
+        #if isinstance(ref_type, IdentifierType):
+        #    ref_type = TypeDecl(None, [], ref_type) 
+        return ref_type
     elif isinstance(expr, FuncCall):
         func_decl = env.get_type(expr.name)
         return func_decl.type
@@ -228,8 +235,12 @@ def _is_arithmetic_type(typ):
     return _is_float(typ) or _is_integral(typ)
 
 def _is_ptr(type_node):
-    """Returns if the given type node describes a pointer type."""
+    """Returns true if the given type node describes a pointer type."""
     return isinstance(type_node, PtrDecl)
+
+def _is_array(type_node):
+    """Returns true is the given type node describes an array type."""
+    return isinstance(type_node, ArrayDecl)
 
 def _get_integral_range(type_node):
     """Takes in a type_node describing an integral type and returns the range
@@ -333,10 +344,16 @@ def _get_binop_type(expr, env):
             return left_type
         elif _is_ptr(right_type):
             return right_type
-        elif resolve_types(left_type, right_type) == Side.LEFT:
+        resolved_type = resolve_types(left_type, right_type) 
+        if resolved_type == Side.LEFT:
             return left_type
-        else:
+        elif resolved_type == Side.RIGHT:
             return right_type
+        elif resolved_type == Side.NOCAST:
+            return right_type #should not matter what side you return since both sides are equivalent
+        else:
+            #to handle adding to an array type which is of pointer type to the type of the array
+            return resolved_type
     else:
         raise NotImplementedError()
 
@@ -351,7 +368,7 @@ def _get_unop_type(expr, env):
         return PtrDecl([], _get_type_helper(expr.expr, env))
     elif expr.op == '*':
         type_of_operand = get_type(expr.expr, env)
-        if not isinstance(type_of_operand, PtrDecl):
+        if not isinstance(type_of_operand, (PtrDecl,ArrayDecl)):
             raise Exception("Attempting to dereference a non-pointer.")
         return type_of_operand.type
     else:
