@@ -10,3 +10,4 @@ yacctab.py
 .vscode
 .idea
 logfile.txt
+cesk/tests/tmp/*
