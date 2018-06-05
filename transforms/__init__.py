@@ -17,6 +17,7 @@ SimplifyOmpFor < TernaryToIf
 TernaryToIf < IfToIfGoto
 TernaryToIf < InsertExplicitTypeCasts
 TernaryToIf < LiftToCompoundBlock
+RemoveMultideminsionalArray < LiftToCompoundBlock
 RemoveCompoundAssignment < InsertExplicitTypeCasts
 """
 

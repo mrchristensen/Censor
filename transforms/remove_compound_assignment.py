@@ -22,6 +22,7 @@ We can do this because any lvalue in C can be resolved to an address except
 for two cases: variables marked as register, which we can, as an
 implementation, safely ignore, and bit-fields, which we do not support.
 """
+from copy import deepcopy
 from pycparser.c_ast import UnaryOp, BinaryOp, Assignment, ID
 from .type_helpers import make_temp_ptr
 from .node_transformer import NodeTransformer
@@ -51,7 +52,7 @@ class RemoveCompoundAssignment(NodeTransformer):
         first_line = make_temp_ptr(node.lvalue, self.id_generator, self.env)
 
         dereferenced_temp_name = UnaryOp('*', ID(first_line.name))
-        operation = BinaryOp(node.op[:-1], dereferenced_temp_name, node.rvalue)
+        operation = BinaryOp(node.op[:-1], deepcopy(dereferenced_temp_name), node.rvalue)
         second_line = Assignment('=', dereferenced_temp_name, operation)
 
         return [first_line, second_line]

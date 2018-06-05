@@ -356,9 +356,9 @@ def cast(value, typedeclt): #pylint: disable=unused-argument
 
     #typedeclt.show()
     n = None
-    logging.debug('FOR '+str(typedeclt))
-    logging.debug('\tCasting value: '+str(value))
-    logging.debug('\t\tto Type: '+str(typedeclt.type))
+    #logging.debug('FOR '+str(typedeclt))
+    #logging.debug('\tCasting value: '+str(value))
+    #logging.debug('\t\tto Type: '+str(typedeclt.type))
 
  
     if isinstance(typedeclt,pycparser.c_ast.Typename):
