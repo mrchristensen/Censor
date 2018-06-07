@@ -116,10 +116,6 @@ def resolve_types(left, right): # pylint: disable=too-many-return-statements
         return _resolve_floating_types(left, right)
     elif _is_integral(left) and _is_integral(right):
         return _resolve_integral_types(left, right)
-    elif _is_array(left) and _is_integral(right):
-        return PtrDecl([],left.type)
-    elif _is_integral(left) and _is_array(right):
-        return PtrDecl([],right.type) #maybe instead of quals being [] set to right.type.quals
     print("---left:")
     left.show()
     print("---right:")
@@ -178,10 +174,7 @@ def _get_type_helper(expr, env): # pylint: disable=too-many-return-statements,to
     elif isinstance(expr, StructRef):
         return _get_structref_type(expr, env)
     elif isinstance(expr, ArrayRef):
-        ref_type = _get_type_helper(expr.name, env).type
-        #if isinstance(ref_type, IdentifierType):
-        #    ref_type = TypeDecl(None, [], ref_type) 
-        return ref_type
+        return _get_type_helper(expr.name, env).type
     elif isinstance(expr, FuncCall):
         func_decl = env.get_type(expr.name)
         return func_decl.type
@@ -344,16 +337,16 @@ def _get_binop_type(expr, env):
             return left_type
         elif _is_ptr(right_type):
             return right_type
+        elif _is_array(left_type):
+            return PtrDecl([],left_type.type)
+        elif _is_array(right_type):
+            return PtrDecl([],right_type.type)     
+
         resolved_type = resolve_types(left_type, right_type) 
         if resolved_type == Side.LEFT:
             return left_type
-        elif resolved_type == Side.RIGHT:
-            return right_type
-        elif resolved_type == Side.NOCAST:
-            return right_type #should not matter what side you return since both sides are equivalent
         else:
-            #to handle adding to an array type which is of pointer type to the type of the array
-            return resolved_type
+            return right_type
     else:
         raise NotImplementedError()
 

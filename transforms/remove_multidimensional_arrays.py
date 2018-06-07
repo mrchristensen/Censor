@@ -31,30 +31,19 @@ from .type_helpers import make_temp_ptr, make_temp_value, get_type
 #possibly change names to Simplify Arrays and ArrayReferences
 class RemoveMultidimensionalArray(LiftNode):
     """LiftToCompoundBlock Transform"""
+    
+    def visit_UnaryOp(self, node):
+        if (node.op == '&') and isinstance(node.expr,AST.ArrayRef):
+            node = self.visit_array_ref(node.expr,True)
+        return node
 
-    def generic_visit(self, node):
+    def visit_ArrayRef(self, node):
+        node = self.visit_array_ref(node)
+        return node
 
-        if isinstance(node, AST.UnaryOp):
-            if (node.op == '&') and isinstance(node.expr,AST.ArrayRef):
-                node = self.visit_array_ref(node.expr,True)
-
-        elif isinstance(node, AST.ArrayRef):
-            node = self.visit_array_ref(node)
-            
-        elif isinstance(node, AST.ArrayDecl):
-            self.visit_array_decl(node) 
-                   
-        for field in node.__class__.__slots__:
-          
-            old_value = getattr(node, field, None)
-
-            if self.skip(old_value):
-                continue
-            elif isinstance(old_value, list):
-                old_value[:] = self.visit_list(old_value)
-            elif self.is_node(old_value):
-                node = self.visit_node(node, field, old_value)
-
+    def visit_ArrayDecl(self, node):
+        self.visit_array_decl(node)
+        node = self.generic_visit(node)
         return node
 
     def visit_array_ref(self, array_ref, is_referenced=False):  
@@ -71,20 +60,21 @@ class RemoveMultidimensionalArray(LiftNode):
         #visits the array ref and returns the resulting type of the reference
         #   combines any nested references into a single on eif possible
         result_type = self.visit_array_ref_helper(array_ref,deepcopy(ref_type))
-        
-        #this happens when an array is only partially indexed
-        if not isinstance(result_type, AST.TypeDecl):
-            if isinstance(result_type, (AST.ArrayDecl,AST.PtrDecl)):
-                #continue to treat as a pointer/array rather than a value
-                array_ref = AST.BinaryOp('+',name,self._get_size(result_type,array_ref.subscript))
-            else: #TODO
-                raise Exception("Unknown partial indexing into ptr/array")
+
+        array_ref = AST.BinaryOp('+',array_ref.name,array_ref.subscript)
+        if (not is_referenced) and (not isinstance(result_type,AST.ArrayDecl)):
+            array_ref = AST.UnaryOp('*',array_ref)  
+            parent = array_ref.expr
         else:
-            #convert to pointer arithmetic        
-            array_ref = AST.BinaryOp('+',name,array_ref.subscript)
-            if not is_referenced:
-                array_ref = AST.UnaryOp('*',array_ref)
-        
+            parent = array_ref
+
+        #parent will be a binop
+
+        while isinstance(parent.left,AST.ArrayRef):
+            parent.left = AST.BinaryOp('+',parent.left.name,parent.left.subscript)
+            parent.left = AST.UnaryOp('*',parent.left)
+            parent = parent.left.expr
+
         return array_ref
 
     #computes the product of all nested dimensions
@@ -99,6 +89,7 @@ class RemoveMultidimensionalArray(LiftNode):
     def visit_array_ref_helper(self,ref,typ):
         #get the refrences paired with the right dimension to calculate stride, leftover type is at bottom of tree
         rtyp = self._reverse_type(typ,ref.name)
+        array_ref = ref
         while isinstance(ref,AST.ArrayRef):
 
             if isinstance(rtyp, AST.ArrayDecl):
@@ -131,10 +122,14 @@ class RemoveMultidimensionalArray(LiftNode):
 
                     ref.name = ref_temp
                     rtyp.type = typ_temp
-
+                
             ref = ref.name
             rtyp = rtyp.type
-        
+
+        if isinstance(rtyp,AST.ArrayDecl):
+            #partial index into an array
+            array_ref.subscript = self._get_size(rtyp,array_ref.subscript)
+
         return rtyp
         
     def _reverse_type(self,typ,ref_counter):

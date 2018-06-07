@@ -50,7 +50,7 @@ from .remove_init_lists import RemoveInitLists
 from .insert_explicit_type_casts import InsertExplicitTypeCasts
 from .single_return import SingleReturn
 from .simplify_omp_for import SimplifyOmpFor
-from .remove_multidimentional_arrays import RemoveMultidimensionalArray
+from .remove_multidimensional_arrays import RemoveMultidimensionalArray
     
 # other imports
 from .id_generator import IDGenerator
