@@ -3,17 +3,9 @@ from functools import reduce
 import logging
 import pycparser
 from cesk.values import ReferenceValue, generate_constant_value
-<<<<<<< HEAD
-from cesk.values import generate_array, Array, generate_struct, Struct
-
-logging.basicConfig(filename='logfile.txt',
-                    level=logging.DEBUG,
-                    format='%(levelname)s: %(message)s', filemode='w')
-=======
 from cesk.values import generate_struct, Struct
 import logging
 logging.basicConfig(filename='logfile.txt',level=logging.DEBUG, format='%(levelname)s: %(message)s', filemode='w')
->>>>>>> origin/check_transforms
 
 class LinkSearch(pycparser.c_ast.NodeVisitor):
     """Holds various look-up-tables for functions, labels, etc."""
@@ -68,19 +60,9 @@ def execute(state):
     elif isinstance(stmt, pycparser.c_ast.ArrayRef):
         logging.debug("ArrayRef")
 
-<<<<<<< HEAD
-        address = get_address(stmt, state)
-        if isinstance(address, Array):
-            # A multi dimensional array was access
-            # for only some of its dimensions
-            value = address
-        else:
-            value = address.dereference()
-=======
         address = get_address(stmt,state)
         value = address.dereference()  
 
->>>>>>> origin/check_transforms
         logging.debug('   Address '+str(address)+'   Value: '+str(value))
 
         if isinstance(state.kont, FunctionKont): #Don't return to function
@@ -90,18 +72,11 @@ def execute(state):
     elif isinstance(stmt, pycparser.c_ast.Assignment):
         logging.debug("Assignment")
         rexp = stmt.rvalue
-<<<<<<< HEAD
-        laddress = get_address(stmt.lvalue, state)
-        # take an operater, address (ReferenceValue),
-        # the expression on the right side, and the state
-        successors.append(handle_assignment(stmt.op, laddress, rexp, state))
-=======
         laddress = get_address(stmt.lvalue,state)
         logging.debug(str(stmt.lvalue))
         logging.debug('   '+str(laddress))
          #take an operater, address (ReferenceValue), the expression on the right side, and the state       
         successors.append(handle_assignment(stmt.op, laddress, rexp, state)) 
->>>>>>> origin/check_transforms
     elif isinstance(stmt, pycparser.c_ast.BinaryOp):
         logging.debug("BinaryOp "+str(stmt.op))
         new_kont = LeftBinopKont(state, stmt.op, stmt.right, state.kont)
@@ -495,14 +470,9 @@ def handle_decl_struct(struct, ref_address, state):
                 and isinstance(decl.type.type, pycparser.c_ast.Struct)):
             handle_decl_struct(decl.type.type, data_address+offset, state)
         elif isinstance(decl.type, pycparser.c_ast.ArrayDecl):
-<<<<<<< HEAD
-            handle_decl_array(decl.type, data_address+offset, [], state)
-        offset += 1
-=======
             arr_address = handle_decl_array(decl.type, [], state)
             state.stor.write(data_address+offset,arr_address)
         offset += 1   
->>>>>>> origin/check_transforms
         #if is instance array handle array
 
     return ref_address
@@ -565,19 +535,9 @@ def get_address(reference, state):
             raise Exception("Array subscripts of type " +
                             str(reference.subscript) +
                             "are not yet implemented")
-<<<<<<< HEAD
-
-        list_of_index.insert(0, index)
-
-        if not isinstance(array, ReferenceValue):
-            # this occurs when ever there is a pointer acting as an array
-            array = array_ptr
-
-=======
         
         list_of_index.insert(0, index) 
                                 
->>>>>>> origin/check_transforms
         return array.index_for_address(list_of_index)
 
     elif isinstance(reference, pycparser.c_ast.UnaryOp):

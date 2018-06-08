@@ -36,7 +36,7 @@ class Config:
             self.size_dict = STD_MIN_BYTE_WIDTHS
             self.char_sign = std_char_sign
             self.packing_scheme = Struct_Packing_Scheme.GCC_STD
-        elif config_type == CONFIG_Types.CESK:
+        elif config_type == Config_Types.CESK:
             self.num_rep = Number_Representation.TWOS_COMPLEMENT
             self.size_dict = GCC_SPICEY_BYTE_WIDTHS
             self.char_sign = std_char_sign
@@ -44,7 +44,7 @@ class Config:
 
 #---------------------------------------------------------------------
 # Change this line to change configuration
-config = Config(Config_Types.STD)
+config = Config(Config_Types.CESK)
 #---------------------------------------------------------------------
 
 def get_size_identifier(identifiers):
@@ -77,6 +77,7 @@ def get_word_size():
 Range = namedtuple('Range', ['min','max'])
 #only for integer values
 def get_min_max(byte_width,number_rep,signed=True):
+    byte_width*=8
     if number_rep == Number_Representation.ONES_COMPLEMENT:
         if signed:
             min_val = - (2**(byte_width-1) - 1)
@@ -94,20 +95,6 @@ def get_min_max(byte_width,number_rep,signed=True):
     return Range(min_val, max_val)
 
 RANGES = {
-<<<<<<< HEAD
-    "char": Range(CHAR_MIN, CHAR_MAX),
-    "unsigned char": Range(0, UCHAR_MAX),
-    "signed char": Range(SCHAR_MIN, SCHAR_MAX),
-    "short": Range(SHRT_MIN, SHRT_MAX),
-    "unsigned short": Range(0, USHRT_MAX),
-    "int": Range(INT_MIN, INT_MAX),
-    "unsigned int": Range(0, UINT_MAX),
-    "long": Range(LONG_MIN, LONG_MAX),
-    "long int": Range(LONG_MIN, LONG_MAX),
-    "unsigned long": Range(0, ULONG_MAX),
-    "long long": Range(LLONG_MIN, LLONG_MAX),
-    "unsigned long long": Range(0, ULLONG_MAX)
-=======
     "char": get_min_max(config.size_dict['char'],config.num_rep,config.char_sign),
     "unsigned char": get_min_max(config.size_dict['char'],config.num_rep,False),
     "signed char": get_min_max(config.size_dict['char'],config.num_rep,True),
@@ -120,7 +107,6 @@ RANGES = {
     "unsigned long int": get_min_max(config.size_dict['long'],config.num_rep,False),
     "long long int": get_min_max(config.size_dict['long long'],config.num_rep),
     "unsigned long long int": get_min_max(config.size_dict['long long'],config.num_rep,False)
->>>>>>> origin/check_transforms
 }
 """Concrete values for macros that would be accesed through <limits.h> in C.
 From the C99 standard: "Their implementation-defined values shall be equal or
