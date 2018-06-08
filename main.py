@@ -92,9 +92,10 @@ def main():
     elif args.tool == "ssl":
         verify_openssl_correctness(ast)
     elif args.tool == "print":
+        print("BEFORE TRANSFORMS---------------------------------------")
         ast.show()
-        print('-------------------------------------------------------')
         transform(ast)
+        print("--------------------------AFTER TRANSFORMS----------------")
         ast.show()
     else:
         print("No valid tool name given; defaulting to censor.")

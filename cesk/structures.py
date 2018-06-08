@@ -390,6 +390,7 @@ class RightBinopKont(Kont):
         self.return_kont = return_kont
 
     def satisfy(self, state, value):
+        logging.debug( "   "+str(self.left_result)+str(self.operator)+str(value))
         result = self.left_result.perform_operation(self.operator, value)
         if isinstance(self.parent_state.kont, FunctionKont):
             #don't return out of function without return
