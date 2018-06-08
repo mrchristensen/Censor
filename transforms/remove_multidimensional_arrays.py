@@ -44,6 +44,9 @@ class RemoveMultidimensionalArray(LiftNode):
     def visit_ArrayDecl(self, node):
         self.visit_array_decl(node)
         node = self.generic_visit(node)
+        #lift non_constant array decl dim to a value so that the size is always stored in a known variable 
+        if not isinstance(node.dim,AST.Constant):
+            node.dim = self.lift_to_value(node.dim) #maybe add lift to constant value
         return node
 
     def visit_array_ref(self, array_ref, is_referenced=False):  
@@ -189,7 +192,6 @@ class RemoveMultidimensionalArray(LiftNode):
 
     def lift_to_value(self, value):
         """Lift node to compound block"""
-
         decl = make_temp_value(value, self.id_generator, self.envr)
         self.insert_into_scope(decl)
         self.envr.add(decl.name, decl.type)

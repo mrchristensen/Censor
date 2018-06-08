@@ -239,7 +239,7 @@ def _get_integral_range(type_node):
     """Takes in a type_node describing an integral type and returns the range
     of integers that the given integral type can represent, e.g.
     _get_integral_range(TypeDecl(None, [],
-                    IdentifierType(['char'])) == Range(-127,127)"""
+                    IdentifierType(['char'])) == Range(-128,127)"""
     # TODO: Add support for user-defined integral types that are
     # defined through typedef's or enums
     type_string = " ".join(type_node.type.names)
