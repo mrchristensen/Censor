@@ -179,6 +179,7 @@ class ReferenceValue(ArithmeticValue): #pylint:disable=all
     def index_for_address(self, stor, list_of_index):
         pass
 
+
 class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
     """Concrete implementation of a Pointer to any type."""
 
@@ -234,6 +235,7 @@ class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
     def __str__(self):
         return '<cesk.values.Pointer> at '+str(self.data)
 
+
 class Array(ReferenceValue):
     """Concrete implementation of an Array of data"""
 
@@ -286,6 +288,7 @@ class Array(ReferenceValue):
     def __str__(self):
         return '(Array) at '+str(self.start_address)
 
+
 class Struct:
     def __init__(self,address,decls,stor):
         self.values = {}
@@ -313,24 +316,30 @@ def generate_constant_value(value, type_of='int'):
         return Float(value, type_of)
     return Integer(value, type_of)
 
+
 def generate_default_value(typedecl): #pylint: disable=unused-argument
     """Generates a default value of the given type (used for uninitialized
     variables)."""
     return generate_constant_value(0, typedecl)
 
+
 def generate_pointer_value(address, stor):
     """Given a address (int) package it into a pointer"""
     return Pointer(address, stor)
 
+
 def generate_null_pointer():
     return Pointer(0, None)
+
 
 def generate_array(start_address, list_of_sizes, stor):
     #TODO this does not properly handle graph based stor
     return Array(start_address, list_of_sizes, stor)
 
+
 def generate_struct(start_address, decls, stor):
     return Struct(start_address, decls, stor)
+
 
 def cast(value, typedeclt): #pylint: disable=unused-argument
     """Casts the given value a  a value of the given type."""
@@ -358,4 +367,3 @@ def cast(value, typedeclt): #pylint: disable=unused-argument
     logging.debug(n.data)
     assert n.data != None
     return n 
-

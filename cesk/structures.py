@@ -154,33 +154,34 @@ class Stor:
         else:
             raise Exception("Stor Copy Constructor Expects a Stor Object")
 
-    def get_next_address(self):
+    def get_next_address(self, size=1):
         """returns the next available storage address"""
-        pointer = generate_pointer_value(self.address_counter, self);
+        pointer = generate_pointer_value(self.address_counter, self)
         self.succ_map[pointer] = Stor.NULL 
         self.pred_map[pointer] = Stor.NULL
-        self.address_counter += 1
-        return pointer 
+        self.address_counter += size
+        return pointer
 
-    def allocate_block(self, length):
+    def allocate_block(self, length, size=1):
         """Moves the address counter to leave room for an array and returns
         start"""
         start_address = self.address_counter
-        start_pointer = generate_pointer_value(self.address_counter, self);
+        start_pointer = generate_pointer_value(self.address_counter, self)
 
         self.pred_map[start_pointer] = Stor.NULL
         last_pointer = start_pointer
-        while self.address_counter < (start_address + length):
-            self.address_counter += 1
-            new_pointer = generate_pointer_value(self.address_counter, self);
+        while self.address_counter < (start_address + length * size):
+            self.address_counter += size
+            new_pointer = generate_pointer_value(self.address_counter, self)
             self.pred_map[new_pointer] = last_pointer
             self.succ_map[last_pointer] = new_pointer
             last_pointer = new_pointer
         self.succ_map[last_pointer] = Stor.NULL
-            
+
         return start_pointer
 
     def add_offset_to_pointer(self, pointer, offset):
+        # TODO Document what this function does
         new_pointer = pointer
         if offset > 0:
             for _ in range(offset):
@@ -191,14 +192,27 @@ class Stor:
         return new_pointer
             
 
-    def read(self, address):
+    # def read(self, address):
+    #     """Read the contents of the store at address. Returns None if undefined.
+    #     """
+
+    #     if address in self.memory:
+    #         return self.memory[address]
+    #     if address < self.address_counter:
+    #         return generate_default_value("int")
+    #     raise Exception("ERROR: tried to access an unalocated address: " +
+    #                      str(address))
+
+
+    def read(self, address, size=None):
         """Read the contents of the store at address. Returns None if undefined.
         """
-        
-        if address in self.memory:
-            return self.memory[address]
+
         if address < self.address_counter:
-            return generate_default_value("int")
+            nearest_address = list(filter((lambda x: x.data <= address), self.memory))[-1]
+            
+            return self.memory[nearest_address]
+
         raise Exception("ERROR: tried to access an unalocated address: " +
                          str(address))
 
@@ -215,18 +229,18 @@ class Stor:
         logging.debug('  '+str(self.memory[address]) + " writen to " + str(address))
 
     def print_memory_visualization(self):
-        for (address, value) in self.memeory:
+        for (address, value) in self.memory:
             if isinstance(value, values.Integer):
                 print (bcolor.GREEN + str(value))
             else:
-                print( value)
+                print(value)
         
 #Base Class
 class Kont:
     """Abstract class for polymorphism of continuations"""
     def satisfy(self, current_state, value):
         pass
-        
+
 #Special Konts
 class Halt(Kont):
     """Last continuation to execute"""

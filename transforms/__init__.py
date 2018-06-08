@@ -18,6 +18,7 @@ TernaryToIf < IfToIfGoto
 TernaryToIf < InsertExplicitTypeCasts
 TernaryToIf < LiftToCompoundBlock
 RemoveCompoundAssignment < InsertExplicitTypeCasts
+SwitchToIf < LiftToCompoundBlock
 """
 
 # imports for transforms
@@ -25,6 +26,7 @@ from .sizeof_type import SizeofType
 from .do_while_to_goto import DoWhileToGoto
 from .while_to_do_while import WhileToDoWhile
 from .for_to_while import ForToWhile
+from .switch_if import SwitchToIf
 from .if_goto import IfToIfGoto
 from .ternary_to_if import TernaryToIf
 from .omp_parallel_for import PragmaToOmpParallelFor
@@ -97,6 +99,7 @@ def get_transformers(ast):
            lambda ast: [id_generator, type_env_calc.get_environments(ast)])
     yield (TernaryToIf,
            lambda ast: [id_generator, type_env_calc.get_environments(ast)])
+    yield (SwitchToIf, lambda ast: [id_generator])
     yield (IfToIfGoto, lambda ast: [id_generator])
     yield (ForToWhile, lambda ast: [])
     yield (WhileToDoWhile, lambda ast: [])

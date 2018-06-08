@@ -61,6 +61,8 @@ class NodeTransformer(pycparser.c_ast.NodeVisitor):
             if can_be_compound(node, field):
                 setattr(node, field, pycparser.c_ast.Compound(new_node))
             else:
+                new_node.show()
+                print(node, field)
                 raise ValueError("Should not be returning a list" +
                                  "in this context.")
         else:
