@@ -183,7 +183,10 @@ def execute(state):
     elif isinstance(stmt, pycparser.c_ast.FuncCall):
         # logging.debug("FuncCall")
         if stmt.name.name == "printf":
-            value = get_address(stmt.args.exprs[1], state).dereference()
+            if isinstance(stmt.args.exprs[1],pycparser.c_ast.Constant):
+                value = generate_constant_value(stmt.args.exprs[1].value)
+            else:
+                value = get_address(stmt.args.exprs[1], state).dereference()
 
             if isinstance(stmt.args.exprs[0], pycparser.c_ast.Constant):
                 print_string = stmt.args.exprs[0].value % (value.data)

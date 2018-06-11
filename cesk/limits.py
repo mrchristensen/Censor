@@ -44,7 +44,7 @@ class Config:
 
 #---------------------------------------------------------------------
 # Change this line to change configuration
-config = Config(Config_Types.CESK)
+config = Config(Config_Types.STD)
 #---------------------------------------------------------------------
 
 def get_size_identifier(identifiers):
@@ -92,22 +92,8 @@ def get_min_max(byte_width,number_rep,signed=True):
         else:
             min_val = 0
             max_val = 2**byte_width - 1
-    return Range(min_val, max_val)
+    return min_val, max_val
 
-RANGES = {
-    "char": get_min_max(config.size_dict['char'],config.num_rep,config.char_sign),
-    "unsigned char": get_min_max(config.size_dict['char'],config.num_rep,False),
-    "signed char": get_min_max(config.size_dict['char'],config.num_rep,True),
-    "short": get_min_max(config.size_dict['short'],config.num_rep),
-    "unsigned short": get_min_max(config.size_dict['short'],config.num_rep,False),
-    "int": get_min_max(config.size_dict['int'],config.num_rep),
-    "unsigned int": get_min_max(config.size_dict['int'],config.num_rep,False),
-    "long": get_min_max(config.size_dict['long'],config.num_rep),
-    "long int": get_min_max(config.size_dict['long'],config.num_rep),
-    "unsigned long int": get_min_max(config.size_dict['long'],config.num_rep,False),
-    "long long int": get_min_max(config.size_dict['long long'],config.num_rep),
-    "unsigned long long int": get_min_max(config.size_dict['long long'],config.num_rep,False)
-}
 """Concrete values for macros that would be accesed through <limits.h> in C.
 From the C99 standard: "Their implementation-defined values shall be equal or
 greater in magnitude (absolute value) to those shown, with the same sign."""
@@ -126,51 +112,77 @@ ULONG_MIN, ULONG_MAX = get_min_max(config.size_dict['long'],config.num_rep,False
 LLONG_MIN, LLONG_MAX = get_min_max(config.size_dict['long long'],config.num_rep)
 ULLONG_MIN, ULLONG_MAX = get_min_max(config.size_dict['long long'],config.num_rep,False) 
 
-"""
-Possible integer types (groups are equivalent)
+RANGES = {
+    "char": Range(CHAR_MIN,CHAR_MAX),
+    "unsigned char": Range(UCHAR_MIN,UCHAR_MAX),
+    "signed char": Range(SCHAR_MIN,SCHAR_MAX),
+    "short": Range(SHRT_MIN,SHRT_MAX),
+    "unsigned short": Range(USHRT_MIN,USHRT_MAX),
+    "int": Range(INT_MIN,INT_MAX),
+    "unsigned int": Range(UINT_MIN,UINT_MAX),
+    "long": Range(LONG_MIN,LONG_MAX),
+    "unsigned long": Range(ULONG_MIN,ULONG_MAX),
+    "long long": Range(LLONG_MIN,LLONG_MAX),
+    "unsigned long long": Range(ULLONG_MIN,ULLONG_MAX)
+}
 
-char
+#Possible integer types (groups are equivalent)
+#Make sure all are available in ranges
 
-signed char
+#char
 
-unsigned char
+#signed char
 
-short
-short int
-signed short
-signed short int
+#unsigned char
 
-unsigned short
-unsigned short int
+#short
+#short int
+#signed short
+#signed short int
+RANGES["short int"] = RANGES["short"]
+RANGES["signed short"] = RANGES["short"]
+RANGES["signed short int"] = RANGES["short"]
 
-int
-signed
-signed int
+#unsigned short
+#unsigned short int
+RANGES["unsigned short int"] = RANGES["unsigned short"]
 
-unsigned
-unsigned int
+#int
+#signed
+#signed int
+RANGES["signed"] = RANGES["int"]
+RANGES["signed int"] = RANGES["int"]
 
-long
-long int
-signed long
-signed long int
+#unsigned
+#unsigned int
+RANGES["unsigned"] = RANGES["unsigned int"]
 
-unsigned long
-unsigned long int
+#long
+#long int
+#signed long
+#signed long int
+RANGES["long int"] = RANGES["long"]
+RANGES["signed long"] = RANGES["long"]
+RANGES["signed long int"] = RANGES["long"]
 
-long long
-long long int
-signed long long
-signed long long int
+#unsigned long
+#unsigned long int
+RANGES["unsigned long int"] = RANGES["unsigned long"]
 
-unsigned long long
-unsigned long long int
+#long long
+#long long int
+#signed long long
+#signed long long int
+RANGES["long long int"] = RANGES["long long"]
+RANGES["signed long long"] = RANGES["long long"]
+RANGES["signed long long int"] = RANGES["long long"]
 
-float
+#unsigned long long
+#unsigned long long int
+RANGES["unsigned long long int"] = RANGES["unsigned long long"]
 
-double
+#float
 
-long double
+#double
 
-"""
-
+#long double

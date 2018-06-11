@@ -200,7 +200,9 @@ def _is_integral(type_node):
     """Returns if the given type node describes an integral type."""
     # TODO: Add support for user-defined integral types that are
     # defined through typedef's or enums
-    integral_ids = ['int', 'char', 'short']
+    if _is_float(type_node):
+        return False
+    integral_ids = ['int', 'char', 'short', 'long', 'long long']
     if isinstance(type_node, TypeDecl):
         if isinstance(type_node.type, IdentifierType):
             return bool([i for i in integral_ids if i in type_node.type.names])
@@ -353,9 +355,11 @@ def _get_binop_type(expr, env):
 def _get_unop_type(expr, env):
     """Takes in a UnaryOp node and a type environment (map of identifiers to
     types) and returns a node representing the type of the given expression."""
-    if expr.op == 'sizeof' or expr.op == '!':
+    if expr.op == 'sizeof':
+        return TypeDecl(None, [], IdentifierType(['unsigned', 'int']))#TODO load result of sizeof type from config file limits.py
+    elif expr.op == '!':
         return TypeDecl(None, [], IdentifierType(['int']))
-    elif expr.op in ['++', '--', '+', '-', '~']:
+    elif expr.op in ['++', '--', '+', '-', '~', 'p--','p++']:
         return get_type(expr.expr, env)
     elif expr.op == '&':
         return PtrDecl([], _get_type_helper(expr.expr, env))

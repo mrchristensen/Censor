@@ -20,6 +20,7 @@ TernaryToIf < LiftToCompoundBlock
 RemoveMultideminsionalArray < LiftToCompoundBlock
 RemoveCompoundAssignment < InsertExplicitTypeCasts
 SwitchToIf < LiftToCompoundBlock
+SizeofType < LiftUnaryOp
 """
 
 # imports for transforms
@@ -53,6 +54,7 @@ from .insert_explicit_type_casts import InsertExplicitTypeCasts
 from .single_return import SingleReturn
 from .simplify_omp_for import SimplifyOmpFor
 from .remove_multidimensional_arrays import RemoveMultidimensionalArray
+from .unary_op import LiftUnaryOp
     
 # other imports
 from .id_generator import IDGenerator
@@ -114,6 +116,8 @@ def get_transformers(ast):
            lambda ast: [type_env_calc.get_environments(ast)])
     yield (RemoveMultidimensionalArray, 
            lambda ast: [id_generator, type_env_calc.get_environments(ast)])
+    yield (LiftUnaryOp,
+           lambda ast: [id_generator,type_env_calc.get_environments(ast)])
     yield (LiftToCompoundBlock,
            lambda ast: [id_generator, type_env_calc.get_environments(ast)])
     yield (SingleReturn, lambda ast: [id_generator])
