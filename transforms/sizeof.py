@@ -1,6 +1,7 @@
 import pycparser.c_ast as AST
 from cesk.limits import get_word_size, get_size, Struct_Packing_Scheme as SPS, config
 
+#returns the size in bytes of the ast type, nested in an unsigned long constant
 def get_size_ast(ast_type_node):
     size, _  = get_size_and_alignment(ast_type_node)
     return size
@@ -11,19 +12,20 @@ def get_size_and_alignment(ast_type):
         size, alignment = get_size_and_alignment(ast_type.type)
         size = AST.BinaryOp('*',size,ast_type.dim)
     elif isinstance(ast_type, AST.FuncDecl):
-        size = AST.Constant('unsigned long',1)
+        size = AST.Constant('long',1)
         alignment = 1 #do not know what to do exactly
     elif isinstance(ast_type, AST.IdentifierType):
         num_bytes = get_size(ast_type.names)
-        size = AST.Constant('unsigned long',str(num_bytes))
+        size = AST.Constant('long',str(num_bytes))
         if num_bytes < get_word_size():
             alignment = num_bytes
         else:
             alignment = get_word_size()
     elif isinstance(ast_type, AST.PtrDecl):
-        size = AST.Constant('unsigned long',str(get_word_size()))
+        size = AST.Constant('long',str(get_word_size()))
         alignment = get_word_size()
     elif isinstance(ast_type, AST.Struct):
+        ast_type.show()
         if config.packing_scheme == SPS.PACT_COMPACT:
             num_bytes = 0
             alignment = 1
@@ -47,7 +49,7 @@ def get_size_and_alignment(ast_type):
         else:
             raise Exception("Unknown Packing Scheme")
 
-        return AST.Constant('unsigned long',str(num_bytes)), alignment
+        return AST.Constant('long',str(num_bytes)), alignment
     elif isinstance(ast_type, AST.TypeDecl):
         size, alignment = get_size_and_alignment(ast_type.type)
     elif isinstance(ast_type, AST.Typename):

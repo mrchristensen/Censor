@@ -5,6 +5,7 @@ import pycparser
 from cesk.values import ReferenceValue, generate_constant_value
 from cesk.values import generate_struct, Struct
 import logging
+from transforms.sizeof import get_size_ast
 logging.basicConfig(filename='logfile.txt',level=logging.DEBUG, format='%(levelname)s: %(message)s', filemode='w')
 
 class LinkSearch(pycparser.c_ast.NodeVisitor):
@@ -73,7 +74,7 @@ def execute(state):
         logging.debug("Assignment")
         rexp = stmt.rvalue
         laddress = get_address(stmt.lvalue,state)
-        logging.debug(str(stmt.lvalue))
+        logging.debug('   '+str(stmt.lvalue))
         logging.debug('   '+str(laddress))
          #take an operater, address (ReferenceValue), the expression on the right side, and the state       
         successors.append(handle_assignment(stmt.op, laddress, rexp, state)) 
@@ -273,8 +274,7 @@ def execute(state):
         logging.debug("ID "+stmt.name)
         name = stmt.name
         address = state.envr.get_address(name)
-        #value = address.dereference()
-        value = state.stor.read(address.data)
+        value = address.dereference()
         if value is None:
             raise Exception(name + ": " + str(state.stor.memory))
         if isinstance(state.kont, FunctionKont): #Don't return to function
@@ -436,7 +436,7 @@ def handle_decl_array(array, list_of_sizes, state):
         #List of sizes populated: allocate the array
 
         length = reduce(lambda x, y: x*y, list_of_sizes) #multiply all together
-        data_address = state.stor.allocate_block(length)
+        data_address = state.stor.allocate_block(length, int(get_size_ast(array.type).value))
         logging.debug('   Generated array of size '+str(list_of_sizes))
         #Allocated block: passing back the Array object that points to block
 
@@ -549,6 +549,8 @@ def get_address(reference, state):
             name = unary_op.expr
             if isinstance(name, pycparser.c_ast.ID):
                 pointer = state.envr.get_address(name)
+                logging.debug('   Pointer: '+str(pointer))
+                logging.debug('   Reference: '+str(pointer.dereference()))
                 return pointer.dereference()
             elif isinstance(name, pycparser.c_ast.UnaryOp) and name.op == "&":
                 return get_address(name.expr,state) #They cancel out

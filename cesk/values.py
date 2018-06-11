@@ -108,7 +108,6 @@ class Integer(ArithmeticValue): #pylint:disable=too-few-public-methods
         value = self.bound(self.data % other.data)
         return Integer(value, self.type_of)
 
-
 class Char(Integer):
     """Concrete implementation of an char Type"""
     def __init__(self, data, type_of='char'):
@@ -188,6 +187,7 @@ class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
         # self.address changed to self.data so that all the same functionality is present
         self.data = int(address)
         self.stor = holding_stor
+        self.offset = 0 #stores the offset from the address of the 
 
     def __hash__(self):
         return self.data
@@ -201,6 +201,7 @@ class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
         """Reads the address the pointer points to and returns value"""
         if self.data == 0:
             raise Exception("SegFault")
+        logging.debug(' Data: ' + str(self.stor.read(self.data)))
         return self.stor.read(self.data)
 
     def index(self, stor, list_of_index):
@@ -209,12 +210,16 @@ class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
 
     def index_for_address(self, list_with_offset):
         """Finds the address with a given offset from the pointer"""
+        if self.data == 0:
+            raise Exception("SegFault")
         if len(list_with_offset) != 1:
             raise Exception("Invalid ArrayRef on Pointer")
         offset = list_with_offset[0]
         return self.stor.add_offset_to_pointer(self, offset)
 
     def __add__(self, other):
+        if self.data == 0:
+            return self
         if isinstance(other, Integer):
             offset = other.data
         elif isinstance(other, int):
@@ -226,87 +231,90 @@ class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
     def __sub__(self, other):
         if isinstance(other, Integer):
             offset = -1 * other.data
+            return self.stor.add_offset_to_pointer(self, offset)
         elif isinstance(other, int):
             offset = -1 * other
+            return self.stor.add_offset_to_pointer(self, offset)
+        elif isinstance(other, Pointer):
+            return self.data - other.data
         else:
             raise Exception("Pointers can only be subtracted by int")
-        return self.stor.add_offset_to_pointer(self, offset)
 
     def __str__(self):
         return '<cesk.values.Pointer> at '+str(self.data)
 
-
-class Array(ReferenceValue):
-    """Concrete implementation of an Array of data"""
-
-    def __init__(self, start_address, list_of_sizes, stor):
-        if not isinstance(start_address, ReferenceValue):
-            raise Exception("start_address should be Pointer not " +
-                            str(start_address))
-        self.start_address = start_address
-        self.list_of_sizes = list_of_sizes
-        self.stor = stor
-
-    def dereference(self):
-        """Reads the first item of the array"""
-        if len(self.list_of_sizes) > 1:
-            return self.start_address #could change this to return an array type    
-        return self.start_address.dereference()
-
-    def index(self, stor, list_of_index):
-        """Gets the object at a given index of an array. A[1][2]...[n]"""
-        address = self.index_for_address(list_of_index)
-        if len(self.list_of_sizes) > len(list_of_index):
-            remaining_sizes = self.list_of_sizes[-len(list_of_index):]
-            return generate_array(address, remaining_sizes, self.stor)
-
-        return address.dereference()
-
-    def index_for_address(self, list_of_index):
-        """Calculates stride and finds the address for a given index"""
-        
-        if len(self.list_of_sizes) < len(list_of_index):
-            raise Exception("Invalid ArrayRef on Array")
-        offset = 0
-        #the for loop calculates how many posistions to jump of a given set of indices and sizes of the subsections in the array
-        num_indices = len(list_of_index)
-        for i in range(num_indices):
-            stride = 1
-            for j in range(i+1, len(self.list_of_sizes)):
-                stride = stride * self.list_of_sizes[j]
-            offset = offset + list_of_index[i] * stride
-
-        #if less indices are given than are in the list of sizes it still needs to be treated as an array
-        if num_indices < len(self.list_of_sizes):
-            temp_address = self.stor.get_next_address()
-            new_temp_array = generate_array(self.start_address+offset,self.list_of_sizes[num_indices-1:-1],self.stor)
-            self.stor.write(temp_address, new_temp_array)
-            return temp_address
-
-        return self.start_address + offset
-
-    def __add__(self, other):
-        if isinstance(other, Integer):
-            offset = other.data
-        elif isinstance(other, int):
-            offset = other
-        else:
-            raise Exception("Pointers can only be added to int")
-        return self.stor.add_offset_to_pointer(self.start_address, offset)
-    
-    def __sub__(self, other):
-        if isinstance(other, Integer):
-            offset = -1 * other.data
-        elif isinstance(other, int):
-            offset = -1 * other
-        else:
-            raise Exception("Pointers can only be added to int")
-        return self.stor.add_offset_to_pointer(self.start_address, offset)
-
-
-
-    def __str__(self):
-        return '(Array) at '+str(self.start_address)
+#Should not nead any more
+#class Array(ReferenceValue):
+#    """Concrete implementation of an Array of data"""
+#
+#    def __init__(self, start_address, list_of_sizes, stor):
+#        if not isinstance(start_address, ReferenceValue):
+#            raise Exception("start_address should be Pointer not " +
+#                            str(start_address))
+#        self.start_address = start_address
+#        self.list_of_sizes = list_of_sizes
+#        self.stor = stor
+#
+#    def dereference(self):
+#        """Reads the first item of the array"""
+#        if len(self.list_of_sizes) > 1:
+#            return self.start_address #could change this to return an array type    
+#        return self.start_address.dereference()
+#
+#    def index(self, stor, list_of_index):
+#        """Gets the object at a given index of an array. A[1][2]...[n]"""
+#        address = self.index_for_address(list_of_index)
+#        if len(self.list_of_sizes) > len(list_of_index):
+#            remaining_sizes = self.list_of_sizes[-len(list_of_index):]
+#            return generate_array(address, remaining_sizes, self.stor)
+#
+#        return address.dereference()
+#
+#    def index_for_address(self, list_of_index):
+#        """Calculates stride and finds the address for a given index"""
+#        
+#        if len(self.list_of_sizes) < len(list_of_index):
+#            raise Exception("Invalid ArrayRef on Array")
+#        offset = 0
+#        #the for loop calculates how many posistions to jump of a given set of indices and sizes of the subsections in the array
+#        num_indices = len(list_of_index)
+#        for i in range(num_indices):
+#            stride = 1
+#            for j in range(i+1, len(self.list_of_sizes)):
+#                stride = stride * self.list_of_sizes[j]
+#            offset = offset + list_of_index[i] * stride
+#
+#        #if less indices are given than are in the list of sizes it still needs to be treated as an array
+#        if num_indices < len(self.list_of_sizes):
+#            temp_address = self.stor.get_next_address()
+#            new_temp_array = generate_array(self.start_address+offset,self.list_of_sizes[num_indices-1:-1],self.stor)
+#            self.stor.write(temp_address, new_temp_array)
+#            return temp_address
+#
+#        return self.start_address + offset
+#
+#    def __add__(self, other):
+#        if isinstance(other, Integer):
+#            offset = other.data
+#        elif isinstance(other, int):
+#            offset = other
+#        else:
+#            raise Exception("Pointers can only be added to int")
+#        return self.stor.add_offset_to_pointer(self.start_address, offset)
+#    
+#    def __sub__(self, other):
+#        if isinstance(other, Integer):
+#            offset = -1 * other.data
+#        elif isinstance(other, int):
+#            offset = -1 * other
+#        else:
+#            raise Exception("Pointers can only be added to int")
+#        return self.stor.add_offset_to_pointer(self.start_address, offset)
+#
+#
+#
+#    def __str__(self):
+#        return '(Array) at '+str(self.start_address)
 
 
 class Struct:
@@ -364,7 +372,7 @@ def generate_struct(start_address, decls, stor):
 def cast(value, typedeclt): #pylint: disable=unused-argument
     """Casts the given value a  a value of the given type."""
     n = None
-    logging.debug('CAST: '+str(value)+" to type "+str(typedeclt))
+    #logging.debug('CAST: '+str(value)+" to type "+str(typedeclt))
 
     if isinstance(typedeclt, pycparser.c_ast.Typename):
         n = cast(value, typedeclt.type)
@@ -375,7 +383,7 @@ def cast(value, typedeclt): #pylint: disable=unused-argument
         while isinstance(temp, pycparser.c_ast.PtrDecl) or isinstance(temp, pycparser.c_ast.ArrayDecl):
             temp = temp.type
         # s = temp.type.names
-        address = str(value.index_for_address([0]).data)
+        address = value.data
         n = generate_pointer_value(address, value.stor)
     elif isinstance(typedeclt, pycparser.c_ast.TypeDecl):
         s = typedeclt.type.names
@@ -384,6 +392,5 @@ def cast(value, typedeclt): #pylint: disable=unused-argument
         logging.error('\tUnsupported cast: ' + str(typedeclt.type))
         raise Exception("Unsupported cast")
     
-    logging.debug(n.data)
     assert n.data != None
     return n 

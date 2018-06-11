@@ -44,7 +44,7 @@ class Config:
 
 #---------------------------------------------------------------------
 # Change this line to change configuration
-config = Config(Config_Types.STD)
+config = Config(Config_Types.CESK)
 #---------------------------------------------------------------------
 
 def get_size_identifier(identifiers):
