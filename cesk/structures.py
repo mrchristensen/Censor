@@ -313,13 +313,12 @@ class AssignKont(Kont):
 
 class CastKont(Kont):
     """Continuation to cast to different types before satisfying the parent"""
-
+    #TODO
     def __init__(self, parent_kont, to_type):
         self.parent_kont = parent_kont
         self.to_type = to_type
 
     def satisfy(self, state, value):
-
         cast_value = cast(value, self.to_type)
         return self.parent_kont.satisfy(state, cast_value)
         

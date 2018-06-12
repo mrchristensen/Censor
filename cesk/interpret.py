@@ -17,21 +17,25 @@ class LinkSearch(pycparser.c_ast.NodeVisitor):
     struct_lut = {}
 
     def generic_visit(self, node):
+        #create look-up-table (lut) for labels
         if isinstance(node, pycparser.c_ast.Label):
             if node.name in LinkSearch.label_lut:
                 raise Exception("Duplicate label name")
             LinkSearch.label_lut[node.name] = node
 
+        #create lut for functions
         if isinstance(node, pycparser.c_ast.FuncDef):
             name = node.decl.name
             LinkSearch.function_lut[name] = node
 
+        #create lut for structs
         if isinstance(node, pycparser.c_ast.Struct) and node.decls is not None:
             name = node.name
             LinkSearch.struct_lut[name] = node
             logging.debug('Store struct '+str(name)
                           +' with decls '+str(node.decls))
 
+        #link children to parents via lut
         for i, child in enumerate(node):
             if isinstance(child, pycparser.c_ast.Node):
                 if child in LinkSearch.parent_lut:
@@ -39,9 +43,12 @@ class LinkSearch(pycparser.c_ast.NodeVisitor):
                 LinkSearch.parent_lut[child] = node
                 LinkSearch.index_lut[child] = i
                 self.visit(child)
+
+        #if a node does not have a parent set it to none
         if not node in LinkSearch.parent_lut:
             LinkSearch.parent_lut[node] = None
             LinkSearch.index_lut[node] = 0
+
         return node
 
 def execute(state):
