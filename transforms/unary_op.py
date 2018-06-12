@@ -31,7 +31,7 @@ class LiftUnaryOp(LiftNode):
         if node.op == 'sizeof':
             type_node = get_type(node.expr,self.envr)
             #type_node = node.expr
-            return get_size_ast(type_node)
+            return get_size_ast(type_node,self.envr)
  
         node.expr = self.generic_visit(node.expr)
         if node.op == '!':

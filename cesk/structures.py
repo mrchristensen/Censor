@@ -180,6 +180,26 @@ class Stor:
 
         return start_pointer
 
+    def allocate_nonuniform_block(self, list_of_sizes):
+        """Takes in a list of sizes as int and allocates and links a block in the stor for each size"""
+        start_address = self.address_counter
+        start_pointer = generate_pointer_value(self.address_counter, self)
+        self.pred_map[start_pointer] = Stor.NULL
+        self.address_counter += list_of_sizes[0]
+
+        pred = start_pointer
+        for block_size in list_of_sizes[1:]:
+            next_block = generate_pointer_value(self.address_counter, self)
+            self.address_counter += block_size
+            self.pred_map[next_block] = pred
+            self.succ_map[pred] = next_block
+            pred = next_block
+
+        self.succ_map[pred] = Stor.NULL            
+        
+        return start_pointer
+
+
     def add_offset_to_pointer(self, pointer, offset):
         # TODO Document what this function does
         new_pointer = pointer

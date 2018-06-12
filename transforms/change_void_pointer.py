@@ -21,18 +21,21 @@ class ChangeToVoidPointer(LiftNode):
         self.generic_visit(node)
         
         if node.op == '+':
-            self.toVoidPointer(node)
+            left_type, right_type, node = self.toVoidPointer(node)
+            if _is_integral(left_type) and (_is_ptr(right_type) or _is_array(right_type)):
+                ptr_size = get_size_ast(right_type.type,self.envr)
+                node.left = AST.BinaryOp('*',node.left,ptr_size)
+                node.right = self.makeVoidPointer(node.right)
+                node = AST.Cast(AST.PtrDecl([],right_type.type),node)
         elif node.op == '-':
-            left_type, right_type = self.toVoidPointer(node)
+            left_type, right_type, node = self.toVoidPointer(node)
             if (_is_ptr(left_type) or _is_array(left_type)) and (_is_ptr(right_type) or _is_array(right_type)):
                 #This should only be allowed when they are both pointing to the same type of object
                 #The result should equal the difference in index values of the two pointers
                 #left_type.type must be equivalent to right_type.type
-                node.right = AST.Cast(AST.Typename(None,[],AST.PtrDecl([],AST.TypeDecl(None,[],AST.IdentifierType(['void'])))),
-                                      node.right)
-                node.left = AST.Cast(AST.Typename(None,[],AST.PtrDecl([],AST.TypeDecl(None,[],AST.IdentifierType(['void'])))),
-                                     node.left)
-                ptr_size = get_size_ast(left_type.type)
+                node.left = self.makeVoidPointer(node.left)
+                node.right = self.makeVoidPointer(node.right)
+                ptr_size = get_size_ast(left_type.type,self.envr)
                 node = AST.BinaryOp('/',node,ptr_size)
 
         return node      
@@ -40,18 +43,17 @@ class ChangeToVoidPointer(LiftNode):
     def toVoidPointer(self, node):
         left_type = get_type(node.left,self.envr)
         right_type = get_type(node.right,self.envr)
-        if _is_integral(left_type) and (_is_ptr(right_type) or _is_array(right_type)):
-            right_type.show()
-            ptr_size = get_size_ast(right_type.type)
-            node.left = AST.BinaryOp('*',node.left,ptr_size)
-            node.right = AST.Cast(AST.Typename(None,[],AST.PtrDecl([],AST.TypeDecl(None,[],AST.IdentifierType(['void'])))),
-                                  node.right)
         if _is_integral(right_type) and (_is_ptr(left_type) or _is_array(left_type)):
-            left_type.show()
-            ptr_size = get_size_ast(left_type.type)
+            ptr_size = get_size_ast(left_type.type,self.envr)
             node.right = AST.BinaryOp('*',node.right,ptr_size)
-            node.left = AST.Cast(AST.Typename(None,[],AST.PtrDecl([],AST.TypeDecl(None,[],AST.IdentifierType(['void'])))),
-                                 node.left)
+            node.left = self.makeVoidPointer(node.left)
+            node = AST.Cast(AST.PtrDecl([],left_type.type),node)
 
-        return left_type, right_type
+        return left_type, right_type, node
 
+    def makeVoidPointer(self,node):
+        return AST.Cast(AST.Typename(
+                            None,[],AST.PtrDecl([
+                                            ],AST.TypeDecl(
+                                                    None,[],AST.IdentifierType(['void'])))),
+                        node)

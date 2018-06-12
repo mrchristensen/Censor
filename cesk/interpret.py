@@ -6,6 +6,7 @@ from cesk.values import ReferenceValue, generate_constant_value
 from cesk.values import generate_struct, Struct
 import logging
 from transforms.sizeof import get_size_ast
+from cesk.limits import config, Struct_Packing_Scheme as SPS, get_size, get_word_size
 logging.basicConfig(filename='logfile.txt',level=logging.DEBUG, format='%(levelname)s: %(message)s', filemode='w')
 
 class LinkSearch(pycparser.c_ast.NodeVisitor):
@@ -175,7 +176,7 @@ def execute(state):
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.FileAST):
         # TODO
-        # logging.debug("FileAST")
+        # logging.debug("Filepycparser.c_ast")
         successors.append(get_next(state))
     elif isinstance(stmt, pycparser.c_ast.For):
         # This should be transformed out
@@ -363,7 +364,7 @@ def execute(state):
         # logging.debug("Pragma")
         successors.append(get_next(state))
     else:
-        raise ValueError("Unknown C AST object type: {0}".format(stmt))
+        raise ValueError("Unknown C pycparser.c_ast object type: {0}".format(stmt))
 
     return successors
 
@@ -387,12 +388,15 @@ def handle_decl(decl, state):
 
     elif (isinstance(decl.type, (pycparser.c_ast.TypeDecl,
                                  pycparser.c_ast.PtrDecl))):       
-        ref_address = state.stor.get_next_address() #Pointer type is returned
-        state.envr.map_new_identifier(name, ref_address)       #the address is mapped then if additional space is need for a struct handle decl struct manages it 
-
         if (isinstance(decl.type.type, pycparser.c_ast.Struct) 
                     and isinstance(decl.type, pycparser.c_ast.TypeDecl)):
-            handle_decl_struct(decl.type.type, ref_address, state)
+            ref_address = handle_decl_struct(decl.type.type, state)
+        else:
+            ref_address = state.stor.get_next_address(int(get_size_ast(decl.type).value))
+
+        state.envr.map_new_identifier(name, ref_address)       
+            #the address is mapped then if additional space is need for 
+            # a struct handle decl struct manages it 
                 
     elif isinstance(decl.type, pycparser.c_ast.ArrayDecl):
         ref_address = state.stor.get_next_address()
@@ -401,10 +405,8 @@ def handle_decl(decl, state):
         state.stor.write(ref_address,data_address)
         logging.debug(" Mapped "+str(name)+" to "+str(ref_address))
         if decl.init is not None:
-            # TODO if init evaluates to an address don't allocate just
-            # assign
-            raise Exception("array init not yet implemented")
-        
+            raise Exception("array init needs to be transformed")
+
     else:
         raise Exception("Declarations of " + str(decl.type) +
                         " are not yet implemented")
@@ -416,11 +418,12 @@ def handle_decl_array(array, list_of_sizes, state):
     logging.debug('  Array Decl')
     if isinstance(array.type, pycparser.c_ast.ArrayDecl):
         #Recursively add sizes array to list
-        size = generate_constant_value(array.dim.value).data
-        if size < 1:
-            raise Exception("Non-positive Array Sizes are not supported")
-        list_of_sizes.append(size)
-        return handle_decl_array(array.type, ref_address, list_of_sizes, state)
+        raise Exception("Multidimensional arrays should be transformed to single dimension arrays")
+        #size = generate_constant_value(array.dim.value).data
+        #if size < 1:
+        #    raise Exception("Non-positive Array Sizes are not supported")
+        #list_of_sizes.append(size)
+        #return handle_decl_array(array.type, ref_address, list_of_sizes, state)
 
     elif isinstance(array.type, pycparser.c_ast.TypeDecl):
         if isinstance(array.dim,pycparser.c_ast.Constant):
@@ -432,53 +435,114 @@ def handle_decl_array(array, list_of_sizes, state):
 
         if size < 1:
             raise Exception("Non-positive Array Sizes are not supported")
-        list_of_sizes.append(size)
+        #list_of_sizes.append(size)
         #List of sizes populated: allocate the array
 
-        length = reduce(lambda x, y: x*y, list_of_sizes) #multiply all together
-        data_address = state.stor.allocate_block(length, int(get_size_ast(array.type).value))
-        logging.debug('   Generated array of size '+str(list_of_sizes))
+        length = size #reduce(lambda x, y: x*y, list_of_sizes) #multiply all together
+        if length == 0: #TODO 
+            raise NotImplemented("Arrays of size 0 not implemented")
+        if isinstance(array.type.type, (pycparser.c_ast.Struct, pycparser.c_ast.Union)):
+            #TODO get data address from decl struct
+            #TODO handle Union
+            list_of_sizes = []
+            alignment = get_struct_sizes(array,list_of_sizes,state)
+            data_address = state.stor.allocate_nonuniform_block(list_of_sizes) 
+        else:
+            data_address = state.stor.allocate_block(length, int(get_size_ast(array.type).value))
         #Allocated block: passing back the Array object that points to block
-
-        # TODO handle array of structs
-        if isinstance(array.type.type, pycparser.c_ast.Struct):
-            for offset in range(length):
-                handle_decl_struct(array.type.type, data_address+offset, state)
-
         return data_address
     else:
         raise Exception("Declarations of " + str(array.type) +
                         " are not yet implemented")
 
-def handle_decl_struct(struct, ref_address, state):
-    """Handles struct declaration"""
-    if struct.name in LinkSearch.struct_lut:
-        struct = LinkSearch.struct_lut[struct.name]
+def get_struct_sizes(ast_type,list_so_far,state):
+    if isinstance(ast_type, pycparser.c_ast.ArrayDecl):
+        arr_list = []
+        alignment = get_struct_sizes(ast_type.type,arr_list,state)
+        if isinstance(ast_type.dim,pycparser.c_ast.Constant):
+            size = generate_constant_value(ast_type.dim.value).data
+        elif isinstance(ast_type.dim,pycparser.c_ast.ID):
+            size = get_address(array.dim,state).dereference().data
+        else:
+            raise Exception('Array dim must be constant or id')
+        for _ in range(size):
+            list_so_far.extend(arr_list)
+    elif isinstance(ast_type, pycparser.c_ast.Decl):
+        alignment = get_struct_sizes(ast_type.type,list_so_far,state)
+    elif isinstance(ast_type, pycparser.c_ast.FuncDecl):
+        raise Exception("Function Decl in struct not allowed")
+    elif isinstance(ast_type, pycparser.c_ast.IdentifierType):
+        num_bytes = get_size(ast_type.names)
+        if num_bytes < get_word_size():
+            alignment = num_bytes
+        else:
+            alignment = get_word_size()
+        list_so_far.append(num_bytes)
+    elif isinstance(ast_type, pycparser.c_ast.PtrDecl):
+        size = get_word_size()
+        list_so_far.append(size)
+        alignment = get_word_size()
+    elif isinstance(ast_type, pycparser.c_ast.Struct):
+        decls = ast_type.decls
+        if decls is None:
+            if ast_type.name in LinkSearch.struct_lut:
+                decls = LinkSearch.struct_lut[ast_type.name].decls
+            else:
+                raise Exception('Struct '+struct.name+' not found')
+        if config.packing_scheme == SPS.PACT_COMPACT:
+            alignment = 1
+            for decl in decls:
+                decl_alignment = get_struct_sizes(decl,list_so_far,state)
+                if alignment < decl_alignment:
+                    alignment = decl_alignment
+        elif config.packing_scheme == SPS.GCC_STD:
+            num_bytes = 0
+            alignment = 1
+            for decl in decls:
+                decl_alignment = get_struct_sizes(decl,list_so_far,state)
+                if num_bytes % decl_alignment != 0:
+                    buffer_size = decl_alignment - (num_bytes % decl_alignment)
+                    list_so_far[-1] += buffer_size
+                num_bytes += list_so_far[-1]
+                if alignment < decl_alignment:
+                    alignment = decl_alignment
+            if num_bytes % alignment != 0:
+                buffer_size += alignment - (num_bytes % alignment)
+                list_so_far[-1] += buffer_size
+        else:
+            raise Exception("Unknown Packing Scheme")
+    elif isinstance(ast_type, pycparser.c_ast.TypeDecl):
+        alignment = get_struct_sizes(ast_type.type,list_so_far,state)
+    elif isinstance(ast_type, pycparser.c_ast.Typename):
+        alignment = get_struct_sizes(ast_type.type,list_so_far,state)
+    elif isinstance(ast_type, pycparser.c_ast.Union):
+        decls = ast_type.decls
+        if decls is None:
+            #TODO
+            raise Exception("Union not handled yet")
+        size = None
+        alignment = None
+        for decl in ast_type.decls:
+            decl_size = []
+            decl_alignment = get_struct_sizes(decl,decl_size,state)
+            if (size is None) or (size < decl_size[0]):
+                size = decl_size[0]
+            if (alignment is None) or (alignment < decl_alignment):
+                alignment = decl_alignment
+        list_so_far.append(size)
     else:
-        raise Exception('Struct '+struct.name+' not found')
+        raise Exception('Unknown Type '+str(ast_type))
+    
+    if config.packing_scheme == SPS.PACT_COMPACT:
+        alignment = 1
+    return alignment
 
-    length = len(struct.decls)
-    data_address = state.stor.allocate_block(length)
-
-    logging.debug('\t\tMade new struct: '+str(struct.name)
-                  +' at '+str(ref_address.data))
-    #todo handle struct or an array within a struct
-    new_struct = generate_struct(data_address, struct.decls, state.stor)
-    state.stor.write(ref_address, new_struct)
-
-    offset = 0
-    for decl in struct.decls:
-        #logging.debug('     DeclType: '+str(decl.type.type.names))
-        if (isinstance(decl.type, pycparser.c_ast.TypeDecl)
-                and isinstance(decl.type.type, pycparser.c_ast.Struct)):
-            handle_decl_struct(decl.type.type, data_address+offset, state)
-        elif isinstance(decl.type, pycparser.c_ast.ArrayDecl):
-            arr_address = handle_decl_array(decl.type, [], state)
-            state.stor.write(data_address+offset,arr_address)
-        offset += 1   
-        #if is instance array handle array
-
-    return ref_address
+def handle_decl_struct(struct, state):
+    """Handles struct declaration"""
+    list_of_sizes = []
+    alignment = get_struct_sizes(struct,list_of_sizes,state)
+    data_address = state.stor.allocate_nonuniform_block(list_of_sizes)
+    return data_address
 
 def handle_unary_op(opr, expr, state): #pylint: disable=inconsistent-return-statements
     """decodes and evaluates unary_ops"""
@@ -496,7 +560,13 @@ def handle_unary_op(opr, expr, state): #pylint: disable=inconsistent-return-stat
             value = pointer.dereference()
         elif isinstance(expr,pycparser.c_ast.UnaryOp) and expr.op == "&":
             address = get_address(expr.expr,state)
-            value = address.dereference()
+            value = address.dereference() 
+        elif isinstance(expr, pycparser.c_ast.Cast) and isinstance(expr.to_type, pycparser.c_ast.PtrDecl):
+            #only Cast that have a valid dereference are PtrDecl, and since we treat all ptr as void*
+            # skip the casting step
+            value = get_address(expr.expr,state).dereference().dereference()
+        else:
+            raise Exception("Unknown Case for get address UnaryOp, nested part is "+str(name))   
         return state.kont.satisfy(state, value)
     else:
         raise Exception(opr + " is not yet implemented")
@@ -524,24 +594,25 @@ def get_address(reference, state):
         return state.envr.get_address(ident.name)
 
     elif isinstance(reference, pycparser.c_ast.ArrayRef):
-        list_of_index = []
-        array_ptr = get_address(reference.name, state)
-        array = array_ptr.dereference()
+        raise Exception("ArrayRef needs to be transformed out")
+        #list_of_index = []
+        #array_ptr = get_address(reference.name, state)
+        #array = array_ptr.dereference()
 
-        if isinstance(reference.subscript, pycparser.c_ast.ID):
-            address = state.envr.get_address(reference.subscript.name)
-            index = address.dereference().data
-        elif isinstance(reference.subscript, pycparser.c_ast.Constant):
-            index = generate_constant_value(reference.subscript.value).data
-            #why not just = array.subscript.value
-        else:
-            raise Exception("Array subscripts of type " +
-                            str(reference.subscript) +
-                            "are not yet implemented")
+        #if isinstance(reference.subscript, pycparser.c_ast.ID):
+        #    address = state.envr.get_address(reference.subscript.name)
+        #    index = address.dereference().data
+        #elif isinstance(reference.subscript, pycparser.c_ast.Constant):
+        #    index = generate_constant_value(reference.subscript.value).data
+        #    #why not just = array.subscript.value
+        #else:
+        #    raise Exception("Array subscripts of type " +
+        #                    str(reference.subscript) +
+        #                    "are not yet implemented")
         
-        list_of_index.insert(0, index) 
+        #list_of_index.insert(0, index) 
                                 
-        return array.index_for_address(list_of_index)
+        #return array.index_for_address(list_of_index)
 
     elif isinstance(reference, pycparser.c_ast.UnaryOp):
         unary_op = reference
@@ -549,29 +620,32 @@ def get_address(reference, state):
             name = unary_op.expr
             if isinstance(name, pycparser.c_ast.ID):
                 pointer = state.envr.get_address(name)
-                logging.debug('   Pointer: '+str(pointer))
-                logging.debug('   Reference: '+str(pointer.dereference()))
                 return pointer.dereference()
             elif isinstance(name, pycparser.c_ast.UnaryOp) and name.op == "&":
                 return get_address(name.expr,state) #They cancel out
+            elif isinstance(name, pycparser.c_ast.Cast) and isinstance(name.to_type, pycparser.c_ast.PtrDecl):
+                #only Cast that have a valid dereference are PtrDecl, and since we treat all ptr as void*
+                # skip the casting step
+                return get_address(name.expr,state).dereference();
             else:
-                raise Exception("Unknown Case for get address UnaryOp")   
+                raise Exception("Unknown Case for get address UnaryOp, nested part is "+str(name))   
         else:
             raise Exception("Unsupported UnaryOp lvalue in assignment: "
                             + unary_op.op)
 
     elif isinstance(reference, pycparser.c_ast.StructRef):
-        ref = reference
-        struct_ptr = get_address(ref.name, state)
-        struct = struct_ptr.dereference()
-        address = struct.get_value(ref.field.name)
-
+        raise Exception("Needs to be transformed to pointer arithmetic")
+        #ref = reference
+        #struct_ptr = get_address(ref.name, state)
+        #struct = struct_ptr.dereference()
+        #address = struct.get_value(ref.field.name)
         return address
 
-    #elif isinstance(reference, pycparser.c_ast.Struct):
-    #    logging.debug('Assign struct')
+    elif isinstance(reference, pycparser.c_ast.Struct):
+        #TODO
+        raise NotImplemented("Access to struct as a whole undefined still")
     else:
-        raise Exception("unsupported assign lvalue: " + str(reference))
+        raise Exception("Unsupported lvalue " + str(reference))
 
 
 def get_next(state): #pylint: disable=inconsistent-return-statements
