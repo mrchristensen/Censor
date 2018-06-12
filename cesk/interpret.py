@@ -688,7 +688,6 @@ def get_next(state): #pylint: disable=inconsistent-return-statements
 
             return get_next(State(new_ctrl, new_envr, state.stor, state.kont))
 
-
     if ctrl.node is not None:
         #if it is a special ctrl as created by binop or assign
         #try to convert to normal ctrl and try again
