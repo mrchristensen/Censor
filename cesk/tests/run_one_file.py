@@ -1,8 +1,8 @@
-"""Tests that input and output for a single c file is equivalent"""
-"""Usage python run_one_file.py <file to test>"""
+"""Tests that input and output for a single c file is equivalent
+   Usage python run_one_file.py <file to test>"""
 import argparse
-from ceskvsgcc import CESKvsGCC, run_c, run_c_cesk
 import subprocess
+from ceskvsgcc import CESKvsGCC, run_c
 
 class OneFileTest(CESKvsGCC):
     """ Class to handle running one file through the cesk interpreter"""
@@ -23,10 +23,10 @@ class OneFileTest(CESKvsGCC):
                 with open(args.print, "w") as outfile:
                     subprocess.run(['python3', '../../main.py',
                                     '-t', 'print', args.file_name],
-                                    stdout=outfile)
-            else:                
-                    subprocess.run(['python3', '../../main.py',
-                                    '-t', 'print', args.file_name])
+                                   stdout=outfile)
+            else:
+                subprocess.run(['python3', '../../main.py',
+                                '-t', 'print', args.file_name])
         if args.gcc_only:
             print('Only running gcc')
             print(run_c(args.file_name))

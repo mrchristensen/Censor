@@ -27,11 +27,9 @@
 """
 
 from copy import deepcopy
-from pycparser.c_ast import Switch, If, Compound, Goto, Label, BinaryOp, Case
-from pycparser.c_ast import Default, Break, For, DoWhile, While, EmptyStatement
+from pycparser.c_ast import If, Compound, Goto, Label, BinaryOp
+from pycparser.c_ast import Default, For, DoWhile, While, EmptyStatement
 from .node_transformer import NodeTransformer
-from .type_helpers import get_no_op
-from .helpers import ensure_compound
 
 class SwitchToIf(NodeTransformer):
     """NodeTransformer to change switch statements to if-else-if-goto changes"""
@@ -71,9 +69,9 @@ class SwitchToIf(NodeTransformer):
             complist.append(Compound([Goto(endlabel)]))
 
         # Create labels for if statements to jump to
-        for l in labellist:
-            compound = self.BreakToGoto(endlabel).generic_visit(l[1])
-            current_label = Label(l[0], compound)
+        for label in labellist:
+            compound = self.BreakToGoto(endlabel).generic_visit(label[1])
+            current_label = Label(label[0], compound)
             complist.append(current_label)
 
         complist.append(Label(endlabel, EmptyStatement()))
@@ -87,10 +85,11 @@ class SwitchToIf(NodeTransformer):
             self.endlabel = endlabel
 
         def generic_visit(self, node):
-            if (isinstance(node, (For, DoWhile, While))):
+            if isinstance(node, (For, DoWhile, While)):
                 return node
             else:
                 return super().generic_visit(node)
 
-        def visit_Break(self, node):
+        def visit_Break(self, node): #pylint: disable=invalid-name,unused-argument
+            """ changes breaks to Goto nodes """
             return Goto(self.endlabel)

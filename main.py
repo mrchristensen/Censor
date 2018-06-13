@@ -44,9 +44,6 @@ def main():
         fake_libc_path = path.join(args.pycparser, r'fake_libc_include/')
 
     import pycparser
-    import censor
-    import cesk
-    import observer
 
     temp = None
     if args.sanitize:
@@ -78,23 +75,29 @@ def main():
     # if args.sanitize:
     #    utils.sanitize(ast)
 
-    # figure out what analysis is supposed to happen and call the
-    # appropriate one
-    if args.tool == "censor":
+    run_tool(args.tool, ast)
+
+def run_tool(tool, ast):
+    """ figure out what analysis is supposed to happen and call the
+        appropriate one """
+    import censor
+    import cesk
+    import observer
+    if tool == "censor":
         censor.main(ast)
-    elif args.tool == "yeti":
+    elif tool == "yeti":
         transform(ast)
         yeti.main(ast)
-    elif args.tool == "cesk":
+    elif tool == "cesk":
         transform(ast)
         cesk.main(ast)
-    elif args.tool == "observer":
+    elif tool == "observer":
         observe_ast(ast, observer, cesk)
-    elif args.tool == "ssl":
+    elif tool == "ssl":
         verify_openssl_correctness(ast)
-    elif args.tool == "print":
+    elif tool == "print":
         print_ast(ast)
-    elif args.tool == "transform":
+    elif tool == "transform":
         transform(ast)
         print(CWithOMPGenerator().visit(ast))
     else:

@@ -105,7 +105,7 @@ def execute(state):
         if isinstance(state.kont, FunctionKont): #don't return: don't cast
             new_kont = state.kont
         else:
-            new_kont = CastKont(state.kont, stmt.to_type)
+            new_kont = CastKont(state.kont, stmt.to_type) #pylint: disable=redefined-variable-type
         new_state = State(new_ctrl, state.envr, state.stor, new_kont)
         successors.append(new_state)
     elif isinstance(stmt, AST.Compound):
@@ -453,7 +453,7 @@ def handle_decl_array(array, list_of_sizes, state):
             #TODO get data address from decl struct
             #TODO handle Union
             list_of_sizes = []
-            alignment = get_sizes(array, list_of_sizes, state)
+            alignment = get_sizes(array, list_of_sizes, state) #pylint: disable=unused-variable
             data_address = state.stor.allocate_nonuniform_block(list_of_sizes)
         else:
             data_address = state.stor.allocate_block(
@@ -562,7 +562,7 @@ def get_union_sizes(ast_type, list_so_far, state):
 def handle_decl_struct(struct, state):
     """Handles struct declaration"""
     list_of_sizes = []
-    alignment = get_sizes(struct, list_of_sizes, state)
+    alignment = get_sizes(struct, list_of_sizes, state) #pylint: disable=unused-variable
     data_address = state.stor.allocate_nonuniform_block(list_of_sizes)
     return data_address
 
@@ -730,6 +730,6 @@ def get_next(state):
 
 # imports are down here to allow for circular dependencies between
 # structures.py and interpret.py
-from cesk.structures import State, Ctrl, Envr, AssignKont, ReturnKont # pylint: disable=wrong-import-position,ungrouped-imports 
+from cesk.structures import State, Ctrl, Envr, AssignKont, ReturnKont # pylint: disable=wrong-import-position,ungrouped-imports
 from cesk.structures import FunctionKont, LeftBinopKont, IfKont, VoidKont # pylint: disable=wrong-import-position
 from cesk.structures import CastKont, throw # pylint: disable=wrong-import-position

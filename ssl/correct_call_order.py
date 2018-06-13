@@ -29,7 +29,7 @@ def verify_correctness(ast, defined_orders):
     actual_orders = FuncCallOrder().get_call_order(ast)
 
     for funcdef in actual_orders:
-        a_order = list(map(_get_name, actual_orders[funcdef]))
+        a_order = list(map(_get_name, actual_orders[funcdef])) #pylint: disable=bad-builtin
         for i, funcname in enumerate(a_order):
             if funcname in defined_orders:
                 d_order = defined_orders[funcname]

@@ -14,7 +14,7 @@ class CESKvsGCC(TestCase):
     Unit test class for testing if a c program
     gives the same output under gcc and under our CESK interpreter.
     """
-    def assert_same_output(self, file_path):
+    def assert_same_output(self, file_path): #pylint: disable=no-self-use
         """asserts that a c file will have the same output under gcc and under
         our cesk interpreter"""
         gcc_out = run_c(file_path)
@@ -22,12 +22,12 @@ class CESKvsGCC(TestCase):
             cesk_out = run_c_cesk(file_path)
             if gcc_out == cesk_out:
                 sys.stdout.write(GREEN)
-                print("PASSED: ", end= '')
+                print("PASSED: ", end='')
                 sys.stdout.write(RESET)
                 print(path.basename(file_path))
             else:
                 sys.stdout.write(RED)
-                print("FAILED: ", end= '')
+                print("FAILED: ", end='')
                 sys.stdout.write(RESET)
                 print(path.basename(file_path))
                 print("Expected (gcc): ")
@@ -36,10 +36,10 @@ class CESKvsGCC(TestCase):
                 print(str(cesk_out))
                 #raise self.failureException()
         except Exception: #pylint: disable=broad-except
-                sys.stdout.write(RED)
-                print("FAILED: ", end= '')
-                sys.stdout.write(RESET)
-                print(path.basename(file_path) + ' see ^^^^^'  )               
+            sys.stdout.write(RED)
+            print("FAILED: ", end='')
+            sys.stdout.write(RESET)
+            print(path.basename(file_path) + ' see ^^^^^')
 
     def assert_all_equal(self, folder):
         """asserts that an entire folder full of c files will have the same

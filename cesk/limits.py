@@ -90,8 +90,6 @@ Range = namedtuple('Range', ['min', 'max'])
 def set_ranges():
     """ Sets values for RANGES based on constants """
     #calculate range
-    global RANGES
-    global Range
     RANGES["char"] = Range(CHAR_MIN, CHAR_MAX)
     RANGES["unsigned char"] = Range(UCHAR_MIN, UCHAR_MAX)
     RANGES["signed char"] = Range(SCHAR_MIN, SCHAR_MAX)
@@ -139,13 +137,13 @@ class Config:
         return self.size_dict['word']
 
     def set_constants(self):
-        """ Declares contants to match choosen configuration 
+        """ Declares contants to match choosen configuration
             Also sets RANGES to match as well """
-        global CHAR_BIT, SCHAR_MIN, SCHAR_MAX, UCHAR_MIN, UCHAR_MAX
-        global CHAR_MIN, CHAR_MAX, MB_LEN_MAX, SHRT_MIN, SHRT_MAX
-        global USHRT_MIN, USHRT_MAX, INT_MIN, INT_MAX, UINT_MIN
-        global UINT_MAX, LONG_MIN, LONG_MAX, ULONG_MIN, ULONG_MAX
-        global LLONG_MIN, LLONG_MAX, ULLONG_MIN, ULLONG_MAX
+        global CHAR_BIT, SCHAR_MIN, SCHAR_MAX, UCHAR_MIN, UCHAR_MAX #pylint: disable=global-statement
+        global CHAR_MIN, CHAR_MAX, MB_LEN_MAX, SHRT_MIN, SHRT_MAX #pylint: disable=global-statement
+        global USHRT_MIN, USHRT_MAX, INT_MIN, INT_MAX, UINT_MIN #pylint: disable=global-statement
+        global UINT_MAX, LONG_MIN, LONG_MAX, ULONG_MIN, ULONG_MAX #pylint: disable=global-statement
+        global LLONG_MIN, LLONG_MAX, ULLONG_MIN, ULLONG_MAX #pylint: disable=global-statement
         CHAR_BIT = self.size_dict['char']*8
         SCHAR_MIN, SCHAR_MAX = get_min_max(self.size_dict['char'],
                                            self.num_rep)
@@ -178,7 +176,7 @@ CONFIG = Config(ConfigTypes.STD)
 #---------------------------------------------------------------------
 def set_config(config_string):
     """ Take a string and sets global CONFIG and types appropriately """
-    global CONFIG
+    global CONFIG #pylint: disable=global-statement
     config_string = config_string.lower()
     if config_string == 'gcc':
         CONFIG = Config(ConfigTypes.GCC)
@@ -189,7 +187,6 @@ def set_config(config_string):
     else:
         raise Exception("Unknown configuration "+config_string)
 
-    
 #Possible integer types (groups are equivalent)
 #Make sure all are available in ranges
 #char

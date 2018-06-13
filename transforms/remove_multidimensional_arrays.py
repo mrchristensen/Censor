@@ -68,7 +68,7 @@ class RemoveMultidimensionalArray(LiftNode):
 
         array_ref = AST.BinaryOp('+', array_ref.name, array_ref.subscript)
         if (not is_referenced) and (not isinstance(result_type, AST.ArrayDecl)):
-            array_ref = AST.UnaryOp('*', array_ref)
+            array_ref = AST.UnaryOp('*', array_ref) #pylint: disable=redefined-variable-type
             parent = array_ref.expr
         else:
             parent = array_ref
@@ -78,12 +78,12 @@ class RemoveMultidimensionalArray(LiftNode):
         while isinstance(parent.left, AST.ArrayRef):
             parent.left = AST.BinaryOp('+', parent.left.name,
                                        parent.left.subscript)
-            parent.left = AST.UnaryOp('*', parent.left)
+            parent.left = AST.UnaryOp('*', parent.left) #pylint: disable=redefined-variable-type
             parent = parent.left.expr
 
         return array_ref
 
-    def _get_size(self, ref_type, index):
+    def _get_size(self, ref_type, index): #pylint: disable=no-self-use
         """computes the product of all nested dimensions"""
         result = index
         while isinstance(ref_type, AST.ArrayDecl):
@@ -172,7 +172,7 @@ class RemoveMultidimensionalArray(LiftNode):
             return top
         return bottom
 
-    def _make_next(self, typ, subpart):
+    def _make_next(self, typ, subpart): #pylint: disable=no-self-use
         """ Helper for _reverse_type to build the proper nodes """
         if isinstance(typ, AST.ArrayDecl):
             return AST.ArrayDecl(subpart, typ.dim, typ.dim_quals)
@@ -181,7 +181,7 @@ class RemoveMultidimensionalArray(LiftNode):
         else:
             return None
 
-    def visit_array_decl(self, array_decl):
+    def visit_array_decl(self, array_decl): #pylint: disable=no-self-use
         """ Visit a combines nested array_decl nodes """
         temp = array_decl.type
         #copy = deepcopy(array_decl) #might need this for type aliasing
