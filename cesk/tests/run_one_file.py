@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 """Tests that input and output for a single c file is equivalent"""
 """Usage python run_one_file.py <file to test>"""
 import argparse
