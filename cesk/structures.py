@@ -233,12 +233,19 @@ class Stor:
     def read(self, address, size=None):
         """Read the contents of the store at address. Returns None if undefined.
         """
+        logging.debug("Address is: " + str(address))
 
         if address in self.memory:
             return self.memory[address]
         if address < self.address_counter:
-            nearest_address = list(filter((lambda x: x.data <= address), self.memory))[-1]
-            return self.memory[nearest_address]
+            nearest_address = Stor.NULL
+            for x in self.memory:
+                logging.debug("X is: " + str(x))
+                if x.data < address:
+                    nearest_address = x if x > nearest_address else nearest_address
+         
+            if not nearest_address == Stor.NULL:
+                return self.memory[nearest_address]
 
         raise Exception("ERROR: tried to access an unalocated address: " +
                          str(address))
