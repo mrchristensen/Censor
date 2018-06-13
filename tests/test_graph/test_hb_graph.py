@@ -12,7 +12,7 @@ def build_graph(log):
 class TestHBGraph(GoldenTestCase):
     """TestHBGraph"""
 
-    def setUp(self):
+    def setUp(self): #pylint: disable=invalid-name
         """Set up test cases"""
         self.fixtures = '/test_graph/fixtures/hb_graph'
 

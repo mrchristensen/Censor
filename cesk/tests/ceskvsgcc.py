@@ -26,8 +26,8 @@ class CESKvsGCC(TestCase):
                 print("Actual (cesk): ")
                 print(str(cesk_out))
                 #raise self.failureException()
-        except Exception:
-                print(colorama.Fore.RED + "FAILED: ", colorama.Fore.RESET + path.basename(file_path) + ' see ^^^^^'  )               
+        except Exception: #pylint: disable=broad-except
+            print(colorama.Fore.RED + "FAILED: ", colorama.Fore.RESET + path.basename(file_path) + ' see ^^^^^')               
 
     def assert_all_equal(self, folder):
         """asserts that an entire folder full of c files will have the same
@@ -41,7 +41,7 @@ def run_c_cesk(file_path):
     """runs a c source file using the cesk tool, returns stdout as a byte
     string."""
     stdout = subprocess.check_output(['python3', '../../main.py',
-                                      '-t', 'cesk', file_path])
+                                      '-st', 'cesk', '-c', 'cesk', file_path])
     return stdout
 
 def run_c(file_path):

@@ -23,7 +23,7 @@ class ArithmeticValue:
     """Abstract class for polymorphism between abstract and concrete values"""
     data = None
     type_of = None
-    def perform_operation(self, operator, value): # pylint: disable=inconsistent-return-statements
+    def perform_operation(self, operator, value):
         """Performs operation and returns value."""
         if operator in BINOPS:
             method = self.__getattribute__(BINOPS[operator])

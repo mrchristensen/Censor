@@ -3,6 +3,7 @@
 from transforms.insert_explicit_type_casts import InsertExplicitTypeCasts
 from transforms.type_environment_calculator import TypeEnvironmentCalculator
 from helpers import GoldenTestCase
+from cesk.limits import set_config
 
 class TestInsertExplicitTypeCasts(GoldenTestCase):
     """Test InsertExplicitTypeCasts transform"""
@@ -14,6 +15,7 @@ class TestInsertExplicitTypeCasts(GoldenTestCase):
 
     def transform(self, ast):
         """Transform input AST"""
+        set_config('std')
         environments = TypeEnvironmentCalculator().get_environments(ast)
         self.transformer = InsertExplicitTypeCasts(environments)
         return self.transformer.visit(ast)

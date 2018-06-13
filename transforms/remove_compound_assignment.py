@@ -49,10 +49,10 @@ class RemoveCompoundAssignment(NodeTransformer):
         if node.op == '=':
             return self.generic_visit(node)
 
-        first_line = make_temp_ptr(node.lvalue, self.id_generator, self.env)
+        first_ln = make_temp_ptr(node.lvalue, self.id_generator, self.env)
 
-        dereferenced_temp_name = UnaryOp('*', ID(first_line.name))
-        operation = BinaryOp(node.op[:-1], deepcopy(dereferenced_temp_name), node.rvalue)
-        second_line = Assignment('=', dereferenced_temp_name, operation)
+        dereferenced_operator = UnaryOp('*', ID(first_ln.name))
+        operation = BinaryOp(node.op[:-1], dereferenced_operator, node.rvalue)
+        second_ln = Assignment('=', deepcopy(dereferenced_operator), operation)
 
-        return [first_line, second_line]
+        return [first_ln, second_ln]

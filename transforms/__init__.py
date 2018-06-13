@@ -57,7 +57,6 @@ from .remove_multidimensional_arrays import RemoveMultidimensionalArray
 from .unary_op import LiftUnaryOp
 from .change_void_pointer import ChangeToVoidPointer
 
-    
 # other imports
 from .id_generator import IDGenerator
 from .type_environment_calculator import TypeEnvironmentCalculator
@@ -116,12 +115,12 @@ def get_transformers(ast):
            lambda ast: [id_generator, type_env_calc.get_environments(ast)])
     yield (InsertExplicitTypeCasts,
            lambda ast: [type_env_calc.get_environments(ast)])
-    yield (RemoveMultidimensionalArray, 
+    yield (RemoveMultidimensionalArray,
            lambda ast: [id_generator, type_env_calc.get_environments(ast)])
     yield (LiftUnaryOp,
-           lambda ast: [id_generator,type_env_calc.get_environments(ast)]) 
+           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
     yield (ChangeToVoidPointer,
-           lambda ast: [id_generator,type_env_calc.get_environments(ast)])
+           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
     yield (LiftToCompoundBlock,
            lambda ast: [id_generator, type_env_calc.get_environments(ast)])
     yield (SingleReturn, lambda ast: [id_generator])

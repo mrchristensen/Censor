@@ -9,7 +9,7 @@ from transforms.sizeof_type import SizeofType
 class TestRemoveMultiDimensionalArrays(GoldenTestCase):
     """Test LiftToCompoundBlock transform"""
 
-    def setUp(self):
+    def setUp(self): #pylint: disable=invalid-name
         """Set up test cases"""
         self.fixtures = '/test_transforms/fixtures/change_void_pointer'
         self.transformer = None
