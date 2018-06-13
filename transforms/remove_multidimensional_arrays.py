@@ -68,7 +68,7 @@ class RemoveMultidimensionalArray(LiftNode):
 
         array_ref = AST.BinaryOp('+', array_ref.name, array_ref.subscript)
         if (not is_referenced) and (not isinstance(result_type, AST.ArrayDecl)):
-            array_ref = AST.UnaryOp('*', array_ref) #pylint: disable=redefined-variable-type
+            array_ref = AST.UnaryOp('*', array_ref)
             parent = array_ref.expr
         else:
             parent = array_ref
@@ -78,7 +78,7 @@ class RemoveMultidimensionalArray(LiftNode):
         while isinstance(parent.left, AST.ArrayRef):
             parent.left = AST.BinaryOp('+', parent.left.name,
                                        parent.left.subscript)
-            parent.left = AST.UnaryOp('*', parent.left) #pylint: disable=redefined-variable-type
+            parent.left = AST.UnaryOp('*', parent.left)
             parent = parent.left.expr
 
         return array_ref

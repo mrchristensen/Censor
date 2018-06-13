@@ -1,8 +1,6 @@
 """Functions to interpret c code directly"""
 import logging
 import pycparser.c_ast as AST
-from cesk.values import generate_constant_value
-from cesk.limits import CONFIG, StructPackingScheme as SPS
 from transforms.sizeof import get_size_ast
 logging.basicConfig(filename='logfile.txt', level=logging.DEBUG,
                     format='%(levelname)s: %(message)s', filemode='w')
@@ -80,13 +78,13 @@ def execute(state):
         logging.debug("Assignment")
         rexp = stmt.rvalue
         laddress = get_address(stmt.lvalue, state)
-        logging.debug('   '+str(stmt.lvalue))
-        logging.debug('   '+str(laddress))
+        logging.debug('   %s', str(stmt.lvalue))
+        logging.debug('   %s', str(laddress))
         # take an operater, address (ReferenceValue),
         #  the expression on the right side, and the state
         successors.append(handle_assignment(stmt.op, laddress, rexp, state))
     elif isinstance(stmt, AST.BinaryOp):
-        logging.debug("BinaryOp "+str(stmt.op))
+        logging.debug("BinaryOp %s", str(stmt.op))
         new_kont = LeftBinopKont(state, stmt.op, stmt.right, state.kont)
         successors.append(State(Ctrl(stmt.left), state.envr, state.stor,
                                 new_kont))
@@ -105,7 +103,7 @@ def execute(state):
         if isinstance(state.kont, FunctionKont): #don't return: don't cast
             new_kont = state.kont
         else:
-            new_kont = CastKont(state.kont, stmt.to_type) #pylint: disable=redefined-variable-type
+            new_kont = CastKont(state.kont, stmt.to_type)
         new_state = State(new_ctrl, state.envr, state.stor, new_kont)
         successors.append(new_state)
     elif isinstance(stmt, AST.Compound):
@@ -218,7 +216,7 @@ def execute(state):
                 length = generate_constant_value(param.value).data
             else:
                 length = get_address(param, state).dereference().data
-            logging.debug("Length is: " + str(length))
+            logging.debug("Length is: %s", str(length))
 
             pointer = state.stor.allocate_block(length)
 
@@ -285,7 +283,7 @@ def execute(state):
             index = LinkSearch.index_lut[body]
             body = LinkSearch.parent_lut[body]
         new_ctrl = Ctrl(index, body)
-        logging.debug('\t Body: '+str(body))
+        logging.debug('\t Body: %s', str(body))
         if body in LinkSearch.envr_lut:
             new_envr = LinkSearch.envr_lut[body]
         else:
@@ -295,7 +293,7 @@ def execute(state):
 
         successors.append(State(new_ctrl, new_envr, state.stor, state.kont))
     elif isinstance(stmt, AST.ID):
-        logging.debug("ID "+stmt.name)
+        logging.debug("ID %s", stmt.name)
         name = stmt.name
         address = state.envr.get_address(name)
         value = address.dereference()
@@ -371,7 +369,7 @@ def execute(state):
         logging.error("Typename should appear only nested inside another type")
         successors.append(get_next(state))
     elif isinstance(stmt, AST.UnaryOp):
-        logging.debug("UnaryOp "+stmt.op)
+        logging.debug("UnaryOp %s", stmt.op)
         opr = stmt.op
         expr = stmt.expr
         successors.append(handle_unary_op(opr, expr, state))
@@ -746,6 +744,8 @@ def get_next(state):
 
 # imports are down here to allow for circular dependencies between
 # structures.py and interpret.py
-from cesk.structures import State, Ctrl, Envr, AssignKont, ReturnKont # pylint: disable=wrong-import-position,ungrouped-imports
-from cesk.structures import FunctionKont, LeftBinopKont, IfKont, VoidKont # pylint: disable=wrong-import-position
-from cesk.structures import CastKont, throw # pylint: disable=wrong-import-position
+from cesk.structures import (State, Ctrl, Envr, AssignKont, ReturnKont, # pylint: disable=wrong-import-position
+                             FunctionKont, LeftBinopKont, IfKont, VoidKont,
+                             CastKont, throw)
+from cesk.values import generate_constant_value # pylint: disable=wrong-import-position
+from cesk.limits import CONFIG, StructPackingScheme as SPS # pylint: disable=wrong-import-position

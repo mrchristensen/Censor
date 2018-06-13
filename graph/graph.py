@@ -57,7 +57,7 @@ class Graph():
         for node in self.nodes:
             graph += str(names[node])
             graph += ": %s => " % (node)
-            graph += ', '.join(map(lambda n: str(names[n]), self.nodes[node])) #pylint: disable=bad-builtin
+            graph += ', '.join(map(lambda n: str(names[n]), self.nodes[node])) #pylint: disable=bad-option-value
             graph += "\n"
         return graph
 
