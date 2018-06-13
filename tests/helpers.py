@@ -17,7 +17,7 @@ class GoldenTestCase(TestCase):
     """
 
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls): #pylint: disable=invalid-name
         cls.parser = CParser()
         cls.generator = CWithOMPGenerator()
 

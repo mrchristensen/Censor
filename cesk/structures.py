@@ -180,18 +180,45 @@ class Stor:
 
         return start_pointer
 
+    def allocate_nonuniform_block(self, list_of_sizes):
+        """Takes in a list of sizes as int and allocates and links a block in the stor for each size"""
+        start_address = self.address_counter
+        start_pointer = generate_pointer_value(self.address_counter, self)
+        self.pred_map[start_pointer] = Stor.NULL
+        self.address_counter += list_of_sizes[0]
+
+        pred = start_pointer
+        for block_size in list_of_sizes[1:]:
+            next_block = generate_pointer_value(self.address_counter, self)
+            self.address_counter += block_size
+            self.pred_map[next_block] = pred
+            self.succ_map[pred] = next_block
+            pred = next_block
+
+        self.succ_map[pred] = Stor.NULL            
+        
+        return start_pointer
+
+
     def add_offset_to_pointer(self, pointer, offset):
         # TODO Document what this function does
         new_pointer = pointer
         if offset > 0:
             for _ in range(offset):
-                new_pointer = self.succ_map[new_pointer]
+                new_pointer.offset += 1
+                diff = self.succ_map[new_pointer].data - new_pointer.data
+                if diff == new_pointer.offset:
+                    new_pointer.offset = 0
+                    new_pointer = self.succ_map[new_pointer]
         else:
             for _ in range(abs(offset)):
-                new_pointer = self.pred_map[new_pointer]
+                if 0 == new_pointer.offset:
+                    diff = new_pointer.data - self.pred_map[new_pointer].data
+                    new_pointer = self.pred_map[new_pointer]
+                    new_pointer.offset = diff
+                new_pointer.offset -= 1
         return new_pointer
             
-
     # def read(self, address):
     #     """Read the contents of the store at address. Returns None if undefined.
     #     """
@@ -203,14 +230,14 @@ class Stor:
     #     raise Exception("ERROR: tried to access an unalocated address: " +
     #                      str(address))
 
-
     def read(self, address, size=None):
         """Read the contents of the store at address. Returns None if undefined.
         """
 
+        if address in self.memory:
+            return self.memory[address]
         if address < self.address_counter:
             nearest_address = list(filter((lambda x: x.data <= address), self.memory))[-1]
-            
             return self.memory[nearest_address]
 
         raise Exception("ERROR: tried to access an unalocated address: " +
@@ -231,9 +258,9 @@ class Stor:
     def print_memory_visualization(self):
         for (address, value) in self.memory:
             if isinstance(value, values.Integer):
-                print (bcolor.GREEN + str(value))
+                print(bcolor.GREEN + str(value))
             else:
-                print(value)
+                print(str(value))
         
 #Base Class
 class Kont:

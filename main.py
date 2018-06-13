@@ -10,6 +10,7 @@ import yeti
 import utils
 from transforms import transform
 from omp.c_with_omp_generator import CWithOMPGenerator
+from cesk.limits import set_config
 
 def main():
     """Parses arguments and calls correct tool"""
@@ -27,11 +28,11 @@ def main():
     parser.add_argument('--sanitize', '-s',
                         required=False, action="store_true",
                         help='remove typedefs added by fake includes')
-
     parser.add_argument('--includes', '-I',
                         required=False, type=str,
                         help='Comma separated includes for preprocessing')
-
+    parser.add_argument('--configuration', '-c',
+                        required=False, type=str, help='limits for types')
     args = parser.parse_args()
     dir_name = path.dirname(args.filename)
 
@@ -70,6 +71,8 @@ def main():
         args.filename, use_cpp=True, cpp_path='gcc', cpp_args=cpp_args
         )
 
+    if args.configuration is not None:
+        set_config(args.configuration)
     # the instrumenter needs to preserve includes until after
     # instrumentation
     # if args.sanitize:
@@ -86,25 +89,33 @@ def main():
         transform(ast)
         cesk.main(ast)
     elif args.tool == "observer":
-        watchman = observer.Observer()
-        transform(ast)
-        watchman.visit(ast)
-        watchman.report()
-        watchman.coverage(cesk.implemented_nodes())
+        observe_ast(ast, observer, cesk)
     elif args.tool == "ssl":
         verify_openssl_correctness(ast)
     elif args.tool == "print":
-        print("BEFORE TRANSFORMS---------------------------------------")
-        ast.show()
-        transform(ast)
-        print("--------------------------AFTER TRANSFORMS----------------")
-        ast.show()
+        print_ast(ast)
     elif args.tool == "transform":
         transform(ast)
         print(CWithOMPGenerator().visit(ast))
     else:
         print("No valid tool name given; defaulting to censor.")
         censor.main(ast) #default to censor
+
+def print_ast(ast):
+    """ Steps to print the ast """
+    print("BEFORE TRANSFORMS---------------------------------------")
+    ast.show()
+    transform(ast)
+    print("--------------------------AFTER TRANSFORMS----------------")
+    ast.show()
+
+def observe_ast(ast, observer, cesk):
+    """ Steps to Observe """
+    watchman = observer.Observer()
+    transform(ast)
+    watchman.visit(ast)
+    watchman.report()
+    watchman.coverage(cesk.implemented_nodes())
 
 if __name__ == "__main__":
     main()

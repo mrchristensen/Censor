@@ -249,7 +249,7 @@ def _get_integral_range(type_node):
 
 def _is_signed(int_range):
     """Takes a Range, says if that Range represents a signed integral type."""
-    return not int_range.min == 0
+    return int_range.min != 0
 
 def _resolve_integral_types(left, right): # pylint: disable=too-many-return-statements
     """Given two integral types, figure out what types they should be cast to
@@ -336,19 +336,20 @@ def _get_binop_type(expr, env):
         left_type = get_type(expr.left, env)
         right_type = get_type(expr.right, env)
         if _is_ptr(left_type):
-            return left_type
+            result_type = left_type
         elif _is_ptr(right_type):
-            return right_type
+            result_type = right_type
         elif _is_array(left_type):
-            return PtrDecl([],left_type.type)
+            result_type = PtrDecl([], left_type.type)
         elif _is_array(right_type):
-            return PtrDecl([],right_type.type)     
-
-        resolved_type = resolve_types(left_type, right_type) 
-        if resolved_type == Side.LEFT:
-            return left_type
+            result_type = PtrDecl([], right_type.type)
         else:
-            return right_type
+            resolved_type = resolve_types(left_type, right_type)
+            if resolved_type == Side.LEFT:
+                result_type = left_type
+            else:
+                result_type = right_type
+        return result_type
     else:
         raise NotImplementedError()
 
@@ -356,16 +357,16 @@ def _get_unop_type(expr, env):
     """Takes in a UnaryOp node and a type environment (map of identifiers to
     types) and returns a node representing the type of the given expression."""
     if expr.op == 'sizeof':
-        return TypeDecl(None, [], IdentifierType(['unsigned', 'int']))#TODO load result of sizeof type from config file limits.py
+        return TypeDecl(None, [], IdentifierType(['unsigned', 'long']))
     elif expr.op == '!':
         return TypeDecl(None, [], IdentifierType(['int']))
-    elif expr.op in ['++', '--', '+', '-', '~', 'p--','p++']:
+    elif expr.op in ['++', '--', '+', '-', '~', 'p--', 'p++']:
         return get_type(expr.expr, env)
     elif expr.op == '&':
         return PtrDecl([], _get_type_helper(expr.expr, env))
     elif expr.op == '*':
         type_of_operand = get_type(expr.expr, env)
-        if not isinstance(type_of_operand, (PtrDecl,ArrayDecl)):
+        if not isinstance(type_of_operand, (PtrDecl, ArrayDecl)):
             raise Exception("Attempting to dereference a non-pointer.")
         return type_of_operand.type
     else:

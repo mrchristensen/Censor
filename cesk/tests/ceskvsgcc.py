@@ -35,7 +35,7 @@ class CESKvsGCC(TestCase):
                 print("Actual (cesk): ")
                 print(str(cesk_out))
                 #raise self.failureException()
-        except Exception:
+        except Exception: #pylint: disable=broad-except
                 sys.stdout.write(RED)
                 print("FAILED: ", end= '')
                 sys.stdout.write(RESET)
@@ -53,7 +53,7 @@ def run_c_cesk(file_path):
     """runs a c source file using the cesk tool, returns stdout as a byte
     string."""
     stdout = subprocess.check_output(['python3', '../../main.py',
-                                      '-t', 'cesk', file_path])
+                                      '-st', 'cesk', '-c', 'cesk', file_path])
     return stdout
 
 def run_c(file_path):

@@ -7,7 +7,7 @@ from tests.helpers import GoldenTestCase
 class TestSizeofType(GoldenTestCase):
     """Test SizeofType transform"""
 
-    def setUp(self):
+    def setUp(self): #pylint: disable=invalid-name
         """Set up test variables needed for GoldenTestCase"""
         self.fixtures = '/test_transforms/fixtures/sizeof_type'
         self.transformer = None

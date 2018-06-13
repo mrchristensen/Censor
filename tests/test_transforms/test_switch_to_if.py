@@ -7,7 +7,7 @@ from helpers import GoldenTestCase
 class TestSwitchToIf(GoldenTestCase):
     """Test SwitchToGoto transform"""
 
-    def setUp(self):
+    def setUp(self): #pylint: disable=invalid-name
         """Setup"""
         self.fixtures = '/test_transforms/fixtures/switch_to_if'
         self.transformer = None
@@ -33,14 +33,16 @@ class TestSwitchToIf(GoldenTestCase):
         self.assert_transform_golden(self.transform, golden_file, input_file)
 
     def test_switch_reordered_default(self):
-        """ Test switch statement with a default branch at some place other than the end
+        """ Test switch statement with a default branch
+             at some place other than the end
         """
         input_file = self.fixtures + '/switch_reordered_input.c'
         golden_file = self.fixtures + '/switch_reordered_golden.c'
         self.assert_transform_golden(self.transform, golden_file, input_file)
 
     def test_nested_statements(self):
-        """ Test switch statements with other switch or loop statements nested inside
+        """ Test switch statements with other switch or
+                loop statements nested inside
         """
         input_file = self.fixtures + '/nested_statements_input.c'
         golden_file = self.fixtures + '/nested_statements_golden.c'
