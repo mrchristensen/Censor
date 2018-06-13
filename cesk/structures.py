@@ -170,6 +170,7 @@ class Stor:
 
         self.pred_map[start_pointer] = Stor.NULL
         last_pointer = start_pointer
+        logging.debug(length)
         while self.address_counter < (start_address + length * size):
             self.address_counter += size
             new_pointer = generate_pointer_value(self.address_counter, self)
@@ -237,18 +238,21 @@ class Stor:
 
         if address in self.memory:
             return self.memory[address]
-        if address < self.address_counter:
-            nearest_address = Stor.NULL
-            for x in self.memory:
-                logging.debug("X is: " + str(x))
-                if x.data < address:
-                    nearest_address = x if x > nearest_address else nearest_address
-         
-            if not nearest_address == Stor.NULL:
-                return self.memory[nearest_address]
+        if address > self.address_counter:
+            raise Exception("ERROR: tried to access an unalocated address: " +
+                            str(address))
 
-        raise Exception("ERROR: tried to access an unalocated address: " +
-                         str(address))
+        nearest_address = Stor.NULL
+        for x in self.memory:
+            logging.debug("X is: " + str(x))
+            if x.data < address:
+                nearest_address = x if x > nearest_address else nearest_address
+ 
+        if not nearest_address == Stor.NULL:
+            return self.memory[nearest_address]
+
+        return generate_default_value("int")
+
 
     def write(self, address, value):
         """Write value to the store at address. If there is an existing value,

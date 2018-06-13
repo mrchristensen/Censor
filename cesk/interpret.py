@@ -93,7 +93,7 @@ def execute(state):
     elif isinstance(stmt, AST.Break):
         # TODO
         # logging.debug("Break")
-        successors.append(get_next(state))
+        raise Exception("Break has not yet been implemented")
     elif isinstance(stmt, AST.Case):
         # TODO
         # logging.debug("Case")
@@ -202,15 +202,31 @@ def execute(state):
                 # TODO cast the value not just grab from cast object
                 print_string = stmt.args.exprs[0].expr.value % (value.data)
             else:
-                raise Exception("logging.debug does not know how to handle "
+                raise Exception("printf does not know how to handle "
                                 +str(stmt.args.exprs[0]))
 
             print_string = print_string[1:][:-1] #drop quotes
             print(print_string.replace("\\n", "\n"), end="") #convert newlines
             successors.append(get_next(state))
         elif stmt.name.name == "malloc":
+            param = stmt.args.exprs[0]
+            if isinstance(stmt.args.exprs[0], AST.Cast):
+                # TODO cast the value not just brab from cast object
+                param = stmt.args.exprs[0].expr
 
-            successors.append(get_next(state))
+            if isinstance(param, AST.Constant):
+                length = generate_constant_value(param.value).data
+            else:
+                length = get_address(param, state).dereference().data
+            logging.debug("Length is: " + str(length))
+
+            pointer = state.stor.allocate_block(length)
+
+            if isinstance(state.kont, FunctionKont): #Don't return to function
+                successors.append(get_next(state))
+            else:
+                successors.append(state.kont.satisfy(state, pointer))
+
         else:
             if stmt.name.name not in LinkSearch.function_lut:
                 raise Exception("Undefined reference to " + stmt.name.name)
