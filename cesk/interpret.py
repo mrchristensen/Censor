@@ -39,7 +39,9 @@ class LinkSearch(pycparser.c_ast.NodeVisitor):
         for i, child in enumerate(node):
             if isinstance(child, pycparser.c_ast.Node):
                 if child in LinkSearch.parent_lut:
-                    print(Exception("Node duplicated in tree"))
+                    print("Child: " + str(child))
+                    print("Old Parent: " + str(LinkSearch.parent_lut[child]))
+                    print(Exception("Node duplicated in tree: "))
                 LinkSearch.parent_lut[child] = node
                 LinkSearch.index_lut[child] = i
                 self.visit(child)

@@ -9,6 +9,7 @@ from ssl.correct_call_order import verify_openssl_correctness
 import yeti
 import utils
 from transforms import transform
+from omp.c_with_omp_generator import CWithOMPGenerator
 
 def main():
     """Parses arguments and calls correct tool"""
@@ -17,7 +18,8 @@ def main():
     parser.add_argument("filename")
     parser.add_argument('--tool', '-t',
                         choices=['censor', 'yeti', 'cesk',
-                                 'observer', 'ssl', 'print'],
+                                 'observer', 'ssl', 'print',
+                                 'transform'],
                         required=False, type=str.lower,
                         help='the (case-insensitive) name of the analysis')
     parser.add_argument('--pycparser', '-p',
@@ -97,6 +99,9 @@ def main():
         transform(ast)
         print("--------------------------AFTER TRANSFORMS----------------")
         ast.show()
+    elif args.tool == "transform":
+        transform(ast)
+        print(CWithOMPGenerator().visit(ast))
     else:
         print("No valid tool name given; defaulting to censor.")
         censor.main(ast) #default to censor

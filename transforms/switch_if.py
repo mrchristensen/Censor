@@ -27,7 +27,8 @@
 """
 
 from copy import deepcopy
-from pycparser.c_ast import Switch, If, Compound, Goto, Label, BinaryOp, Case, Default, Break, For, DoWhile, While
+from pycparser.c_ast import Switch, If, Compound, Goto, Label, BinaryOp, Case
+from pycparser.c_ast import Default, Break, For, DoWhile, While, EmptyStatement
 from .node_transformer import NodeTransformer
 from .type_helpers import get_no_op
 from .helpers import ensure_compound
@@ -55,7 +56,7 @@ class SwitchToIf(NodeTransformer):
                 default_label = label
                 labellist.append((default_label, Compound(stmt.stmts)))
                 continue
-            binop = BinaryOp('==', cond, stmt.expr)
+            binop = BinaryOp('==', deepcopy(cond), deepcopy(stmt.expr))
             iftrue = Compound([Goto(label)])
             iffalse = None
             labellist.append((label, Compound(stmt.stmts)))
@@ -75,7 +76,7 @@ class SwitchToIf(NodeTransformer):
             current_label = Label(l[0], compound)
             complist.append(current_label)
 
-        complist.append(Label(endlabel, None))
+        complist.append(Label(endlabel, EmptyStatement()))
 
         return Compound(complist)
 

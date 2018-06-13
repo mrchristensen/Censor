@@ -1,10 +1,13 @@
 """Tests for the concrete CESK interpreter"""
 import tempfile
 import subprocess
-import colorama
 from os import path, listdir
 from unittest import TestCase
 import sys
+
+GREEN = "\033[92m"
+RED = "\033[31m"
+RESET = "\033[39m"
 
 class CESKvsGCC(TestCase):
     """
@@ -18,16 +21,25 @@ class CESKvsGCC(TestCase):
         try:
             cesk_out = run_c_cesk(file_path)
             if gcc_out == cesk_out:
-                print(colorama.Fore.GREEN + "PASSED: ", colorama.Fore.RESET + path.basename(file_path))
+                sys.stdout.write(GREEN)
+                print("PASSED: ", end= '')
+                sys.stdout.write(RESET)
+                print(path.basename(file_path))
             else:
-                print(colorama.Fore.RED + "FAILED: ", colorama.Fore.RESET + path.basename(file_path))
+                sys.stdout.write(RED)
+                print("FAILED: ", end= '')
+                sys.stdout.write(RESET)
+                print(path.basename(file_path))
                 print("Expected (gcc): ")
                 print(str(gcc_out))
                 print("Actual (cesk): ")
                 print(str(cesk_out))
                 #raise self.failureException()
         except Exception:
-                print(colorama.Fore.RED + "FAILED: ", colorama.Fore.RESET + path.basename(file_path) + ' see ^^^^^'  )               
+                sys.stdout.write(RED)
+                print("FAILED: ", end= '')
+                sys.stdout.write(RESET)
+                print(path.basename(file_path) + ' see ^^^^^'  )               
 
     def assert_all_equal(self, folder):
         """asserts that an entire folder full of c files will have the same
