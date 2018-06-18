@@ -16,8 +16,10 @@ class LinkSearch(AST.NodeVisitor):
     envr_lut = {}
     function_lut = {}
     struct_lut = {}
+    scope_decl_lut = {}
 
     def generic_visit(self, node):
+        # pylint: disable=too-many-branches
         #create look-up-table (lut) for labels
         if isinstance(node, AST.Label):
             if node.name in LinkSearch.label_lut:
@@ -35,6 +37,7 @@ class LinkSearch(AST.NodeVisitor):
             logging.debug('Store struct '+str(name)
                           +' with decls '+str(node.decls))
 
+
         #link children to parents via lut
         for i, child in enumerate(node):
             if isinstance(child, AST.Node):
@@ -51,6 +54,23 @@ class LinkSearch(AST.NodeVisitor):
             LinkSearch.parent_lut[node] = None
             LinkSearch.index_lut[node] = 0
 
+        #Make a list of Decls in compounds for continuation edge case 12
+        if isinstance(node, AST.Decl) and node in LinkSearch.parent_lut:
+            compound = None
+            parent = LinkSearch.parent_lut[node]
+            while True:
+                if isinstance(parent, AST.Compound):
+                    compound = parent
+                    break
+                if not parent in LinkSearch.parent_lut:
+                    break
+                parent = LinkSearch.parent_lut[parent]
+
+            if compound != None:
+                if compound in LinkSearch.scope_decl_lut:
+                    LinkSearch.scope_decl_lut[compound].append(node)
+                else:
+                    LinkSearch.scope_decl_lut[compound] = [node]
         return node
 
 def execute(state):
@@ -291,10 +311,12 @@ def execute(state):
         logging.debug('\t Body: %s', str(body))
         if body in LinkSearch.envr_lut:
             new_envr = LinkSearch.envr_lut[body]
+            logging.debug("Goto left scope %s and entered %s",
+                          str(state.envr.id), str(new_envr.id))
         else:
             new_envr = state.envr
-            logging.error('Need to make decisions on scope of forward jump')
-            #raise Exception("Need to make decisions on scope of forward jump")
+            #logging.error('Need to make decisions on scope of forward jump')
+            raise Exception("Need to make decisions on scope of forward jump")
 
         successors.append(State(new_ctrl, new_envr, state.stor, state.kont))
     elif isinstance(stmt, AST.ID):
@@ -409,8 +431,7 @@ def handle_decl(decl, state):
     """Maps the identifier to a new address and passes assignment part"""
     name = decl.name
     if state.envr.is_localy_defined(name):
-        pass
-        #raise Exception("Error: redefinition of " + name)
+        logging.debug(str(Exception("Error: redefinition of " + name)))
 
     elif (isinstance(decl.type, (AST.TypeDecl,
                                  AST.PtrDecl))):
@@ -627,10 +648,17 @@ def handle_return(exp, state):
     return State(Ctrl(exp), state.envr, state.stor, returnable_kont)
 
 def get_address(reference, state):
+    # pylint: disable=too-many-branches
     """get_address"""
     if isinstance(reference, AST.ID):
         ident = reference
-        return state.envr.get_address(ident.name)
+        if not state.envr.is_localy_defined(ident):
+            checked_decl = check_for_implicit_decl(ident)
+            if checked_decl != None:
+                logging.debug("Found implicit decl: %s", checked_decl.name)
+                handle_decl(checked_decl, state)
+        address = state.envr.get_address(ident.name)
+        return address
 
     elif isinstance(reference, AST.ArrayRef):
         raise Exception("ArrayRef needs to be transformed out")
@@ -687,6 +715,26 @@ def get_address(reference, state):
         raise NotImplementedError("Access to struct as a whole undefined still")
     else:
         raise Exception("Unsupported lvalue " + str(reference))
+
+def check_for_implicit_decl(ident):
+    """See continuation edge case 12. Determine if a implicit decl is needed"""
+    compound = None
+    parent = LinkSearch.parent_lut[ident]
+    while True:
+        if isinstance(parent, AST.Compound):
+            compound = parent
+            break
+        if not parent in LinkSearch.parent_lut:
+            break
+        parent = LinkSearch.parent_lut[parent]
+
+    if compound != None:
+        if compound in LinkSearch.scope_decl_lut:
+            for decl in LinkSearch.scope_decl_lut[compound]:
+                if decl.name == ident.name:
+                    return decl
+    return None
+    #raise Exception("Could not determine Implicit Decl")
 
 
 def get_next(state):

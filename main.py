@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 """Main function for generic c analyzer"""
 
 import argparse
