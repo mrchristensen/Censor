@@ -8,9 +8,9 @@ from os import path
 from ssl.correct_call_order import verify_openssl_correctness
 import yeti
 import utils
-from transforms import transform
 from omp.c_with_omp_generator import CWithOMPGenerator
 from cesk.limits import set_config
+from transforms import transform
 
 def main():
     """Parses arguments and calls correct tool"""

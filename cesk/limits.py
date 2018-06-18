@@ -106,6 +106,7 @@ class Config:
     """ Groups the necessary information to simulate
              different run time environments """
     def __init__(self, config_type):
+        self.type = config_type
         if config_type == ConfigTypes.GCC:
             self.num_rep = NumberRepresentation.TWOS_COMPLEMENT
             self.size_dict = GCC_SPICEY_BYTE_WIDTHS

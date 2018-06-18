@@ -1,6 +1,7 @@
 """ Computes the size and alignment based on values in limits.py """
 import pycparser.c_ast as AST
-from cesk.limits import StructPackingScheme as SPS, CONFIG
+import cesk.limits as limits
+from cesk.limits import StructPackingScheme as SPS
 
 def get_size_ast(ast_type_node, env=None):
     """returns the size in bytes of the ast type,
@@ -12,23 +13,22 @@ def get_size_and_alignment(ast_type, env=None):
     """returns size as an AST node and alignmentas an integer"""
     if isinstance(ast_type, AST.ArrayDecl):
         size, alignment = get_size_and_alignment(ast_type.type, env)
-        size = AST.BinaryOp('*', size, ast_type.dim)
+        if (isinstance(size, AST.Constant) and
+                isinstance(ast_type.dim, AST.Constant)):
+            size = AST.Constant('long', str(int(size.value) *
+                                            int(ast_type.dim.value)))
+        else:
+            size = AST.BinaryOp('*', size, ast_type.dim)
     elif isinstance(ast_type, (AST.Decl, AST.TypeDecl, AST.Typename)):
         size, alignment = get_size_and_alignment(ast_type.type, env)
     elif isinstance(ast_type, AST.FuncDecl):
         size = AST.Constant('long', 1)
         alignment = 1 #do not know what to do exactly
     elif isinstance(ast_type, AST.IdentifierType):
-        #TODO handle typedef'd Types
-        num_bytes = CONFIG.get_size(ast_type.names)
-        size = AST.Constant('long', str(num_bytes))
-        if num_bytes < CONFIG.get_word_size():
-            alignment = num_bytes
-        else:
-            alignment = CONFIG.get_word_size()
+        size, alignment = get_identifier_size(ast_type)
     elif isinstance(ast_type, AST.PtrDecl):
-        size = AST.Constant('long', str(CONFIG.get_word_size()))
-        alignment = CONFIG.get_word_size()
+        size = AST.Constant('long', str(limits.CONFIG.get_word_size()))
+        alignment = limits.CONFIG.get_word_size()
     elif isinstance(ast_type, AST.Struct):
         size, alignment = get_struct_size_and_align(ast_type, env)
     elif isinstance(ast_type, AST.Union):
@@ -36,9 +36,52 @@ def get_size_and_alignment(ast_type, env=None):
     else:
         raise Exception('Unknown Type '+str(ast_type))
 
-    if CONFIG.packing_scheme == SPS.PACT_COMPACT:
+    if limits.CONFIG.packing_scheme == SPS.PACT_COMPACT:
         alignment = 1
     return size, alignment
+
+def get_identifier_size(ast_type):
+    """ gets the size of simple types int, long, etc """
+    #TODO handle typedef'd Types
+    num_bytes = limits.CONFIG.get_size(ast_type.names)
+    size = AST.Constant('long', str(num_bytes))
+    if num_bytes < limits.CONFIG.get_word_size():
+        alignment = num_bytes
+    else:
+        alignment = limits.CONFIG.get_word_size()
+    return size, alignment
+
+def _size_compact(decls, env):
+    num_bytes = 0
+    alignment = 1
+    for decl in decls:
+        decl_size, decl_alignment = get_size_and_alignment(decl, env)
+        if isinstance(decl_size, AST.Constant):
+            num_bytes += int(decl_size.value)
+        else:
+            raise Exception("Not Implemented, Arrays not constant size")
+            #num_bytes = AST.BinaryOp('+',offset,decl_size)
+        if alignment < decl_alignment:
+            alignment = decl_alignment
+    return num_bytes, alignment
+
+def _size_std(decls, env):
+    num_bytes = 0
+    alignment = 1
+    for decl in decls:
+        decl_size, decl_alignment = get_size_and_alignment(decl, env)
+        if num_bytes % decl_alignment != 0:
+            num_bytes += decl_alignment - (num_bytes % decl_alignment)
+        if isinstance(decl_size, AST.Constant):
+            num_bytes += int(decl_size.value)
+        else:
+            raise Exception("Not Implemented, Arrays are not constant size")
+            #num_bytes = AST.BinaryOp('+',offset,decl_size)
+        if alignment < decl_alignment:
+            alignment = decl_alignment
+    if num_bytes % alignment != 0:
+        num_bytes += alignment - (num_bytes % alignment)
+    return num_bytes, alignment
 
 def get_struct_size_and_align(ast_type, env):
     """ Same as above, but only for structs """
@@ -48,26 +91,10 @@ def get_struct_size_and_align(ast_type, env):
             raise Exception("Environment needed to get size of struct")
         struct_type_string = type(ast_type).__name__ + " " + ast_type.name
         decls = env.get_type(struct_type_string).decls
-    if CONFIG.packing_scheme == SPS.PACT_COMPACT:
-        num_bytes = 0
-        alignment = 1
-        for decl in decls:
-            decl_size, decl_alignment = get_size_and_alignment(decl, env)
-            num_bytes += int(decl_size.value)
-            if alignment < decl_alignment:
-                alignment = decl_alignment
-    elif CONFIG.packing_scheme == SPS.GCC_STD:
-        num_bytes = 0
-        alignment = 1
-        for decl in decls:
-            decl_size, decl_alignment = get_size_and_alignment(decl, env)
-            if num_bytes % decl_alignment != 0:
-                num_bytes += decl_alignment - (num_bytes % decl_alignment)
-            num_bytes += int(decl_size.value)
-            if alignment < decl_alignment:
-                alignment = decl_alignment
-        if num_bytes % alignment != 0:
-            num_bytes += alignment - (num_bytes % alignment)
+    if limits.CONFIG.packing_scheme == SPS.PACT_COMPACT:
+        num_bytes, alignment = _size_compact(decls, env)
+    elif limits.CONFIG.packing_scheme == SPS.GCC_STD:
+        num_bytes, alignment = _size_std(decls, env)
     else:
         raise Exception("Unknown Packing Scheme")
 
@@ -92,3 +119,69 @@ def get_union_size_and_align(ast_type, env=None):
             alignment = decl_alignment
 
     return size, alignment
+
+def _offset_compact(decls, field, env):
+    offset = 0
+    alignment = 1
+    field_type = None
+    for decl in decls:
+        if decl.name == field.name:
+            field_type = decl.type
+            break
+        decl_size, decl_alignment = get_size_and_alignment(decl, env)
+        if isinstance(decl_size, AST.Constant):
+            offset += int(decl_size.value)
+        else:
+            raise Exception("Not Implemented, Arrays not constant size")
+            #offset = AST.BinaryOp('+',offset,decl_size)
+        if alignment < decl_alignment:
+            alignment = decl_alignment
+
+    return offset, field_type
+
+def _offset_std(decls, field, env):
+    offset = 0
+    alignment = 1
+    field_type = None
+    for decl in decls:
+        decl_size, decl_alignment = get_size_and_alignment(decl, env)
+        if offset % decl_alignment != 0:
+            offset += decl_alignment - (offset % decl_alignment)
+        if decl.name == field.name:
+            field_type = decl.type
+            break
+        if isinstance(decl_size, AST.Constant):
+            offset += int(decl_size.value)
+        else:
+            raise Exception("Not Implemented, Array is not constant size")
+            #offset = AST.BinaryOp('+',offset,decl_size)
+        if alignment < decl_alignment:
+            alignment = decl_alignment
+    if offset % alignment != 0:
+        offset += alignment - (offset % alignment)
+
+    return offset, field_type
+
+def get_struct_offset(struct_type, field, env):
+    """ Calculate and the offset and type of the field requested """
+    if isinstance(struct_type, AST.TypeDecl):
+        struct_type = struct_type.type
+    decls = struct_type.decls
+    if decls is None:
+        if env is None:
+            raise Exception("Environment needed to get size of struct")
+        struct_type_string = type(struct_type).__name__ + " " + struct_type.name
+        decls = env.get_type(struct_type_string).decls
+    field_type = None
+    if limits.CONFIG.packing_scheme == SPS.PACT_COMPACT:
+        offset, field_type = _offset_compact(decls, field, env)
+    elif limits.CONFIG.packing_scheme == SPS.GCC_STD:
+        offset, field_type = _offset_std(decls, field, env)
+    else:
+        raise Exception("Unknown Packing Scheme")
+
+    if field_type is None:
+        raise Exception("Field not found")
+
+    size = AST.Constant('long', str(offset))
+    return size, field_type

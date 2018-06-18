@@ -18,6 +18,7 @@ TernaryToIf < IfToIfGoto
 TernaryToIf < InsertExplicitTypeCasts
 TernaryToIf < LiftToCompoundBlock
 RemoveMultideminsionalArray < LiftToCompoundBlock
+RemoveMultideminsionalArray < ChangeToVoidPointer
 RemoveCompoundAssignment < InsertExplicitTypeCasts
 SwitchToIf < LiftToCompoundBlock
 SizeofType < LiftUnaryOp
@@ -56,6 +57,7 @@ from .simplify_omp_for import SimplifyOmpFor
 from .remove_multidimensional_arrays import RemoveMultidimensionalArray
 from .unary_op import LiftUnaryOp
 from .change_void_pointer import ChangeToVoidPointer
+from .struct_ref_to_pointer import StructRefToPointerArith
 
 # other imports
 from .id_generator import IDGenerator
@@ -120,6 +122,8 @@ def get_transformers(ast):
     yield (LiftUnaryOp,
            lambda ast: [id_generator, type_env_calc.get_environments(ast)])
     yield (ChangeToVoidPointer,
+           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
+    yield (StructRefToPointerArith,
            lambda ast: [id_generator, type_env_calc.get_environments(ast)])
     yield (LiftToCompoundBlock,
            lambda ast: [id_generator, type_env_calc.get_environments(ast)])

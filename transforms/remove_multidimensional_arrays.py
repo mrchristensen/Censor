@@ -1,4 +1,6 @@
 """
+Changes all array accesses to pointer arithmetic
+
 Examples:
 int array[3][4][5];
 array[1][2][3] = 100;
@@ -24,7 +26,7 @@ buf[temp]='m';
 from copy import deepcopy
 import pycparser.c_ast as AST
 from .lift_node import LiftNode
-from .type_helpers import make_temp_value, get_type
+from .type_helpers import make_temp_value, get_type, _is_array
 #possibly change names to Simplify Arrays and ArrayReferences
 class RemoveMultidimensionalArray(LiftNode):
     """Remove Multidimensional Arrays Transform"""
@@ -33,6 +35,12 @@ class RemoveMultidimensionalArray(LiftNode):
         """ Checks for array_ref nested inside a UnaryOp """
         if (node.op == '&') and isinstance(node.expr, AST.ArrayRef):
             node = self.visit_array_ref(node.expr, True)
+            return node
+
+        self.generic_visit(node)
+        if node.op == '*' and _is_array(get_type(node.expr, self.envr)):
+            node.expr = AST.UnaryOp('&', node.expr)
+
         return node
 
     def visit_ArrayRef(self, node): #pylint: disable=invalid-name
@@ -76,6 +84,10 @@ class RemoveMultidimensionalArray(LiftNode):
         #parent will be a binop
 
         while isinstance(parent.left, AST.ArrayRef):
+            if isinstance(parent.left.name, AST.ID):
+                name_type = self.envr.get_type(parent.left.name)
+                if _is_array(name_type):
+                    parent.left.name = AST.UnaryOp('&', parent.left.name)
             parent.left = AST.BinaryOp('+', parent.left.name,
                                        parent.left.subscript)
             parent.left = AST.UnaryOp('*', parent.left)

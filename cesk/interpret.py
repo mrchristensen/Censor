@@ -2,6 +2,9 @@
 import logging
 import pycparser.c_ast as AST
 from transforms.sizeof import get_size_ast
+from cesk.values import generate_constant_value
+from cesk.limits import StructPackingScheme as SPS
+import cesk.limits as limits
 logging.basicConfig(filename='logfile.txt', level=logging.DEBUG,
                     format='%(levelname)s: %(message)s', filemode='w')
 
@@ -36,9 +39,10 @@ class LinkSearch(AST.NodeVisitor):
         for i, child in enumerate(node):
             if isinstance(child, AST.Node):
                 if child in LinkSearch.parent_lut:
-                    print("Child: " + str(child))
-                    print("Old Parent: " + str(LinkSearch.parent_lut[child]))
-                    print(Exception("Node duplicated in tree: "))
+                    logging.debug("Child: " + str(child))
+                    logging.debug("Old Parent: " +
+                                  str(LinkSearch.parent_lut[child]))
+                    raise Exception("Node duplicated in tree: ")
                 LinkSearch.parent_lut[child] = node
                 LinkSearch.index_lut[child] = i
                 self.visit(child)
@@ -198,6 +202,7 @@ def execute(state):
                 print_string = stmt.args.exprs[0].value % (value.data)
             elif isinstance(stmt.args.exprs[0], AST.Cast):
                 # TODO cast the value not just grab from cast object
+                logging.debug("  DATA: "+str(value.data))
                 print_string = stmt.args.exprs[0].expr.value % (value.data)
             else:
                 raise Exception("printf does not know how to handle "
@@ -421,11 +426,9 @@ def handle_decl(decl, state):
             # a struct handle decl struct manages it
 
     elif isinstance(decl.type, AST.ArrayDecl):
-        ref_address = state.stor.get_next_address()
         data_address = handle_decl_array(decl.type, [], state)
-        state.envr.map_new_identifier(decl.name, ref_address)
-        state.stor.write(ref_address, data_address)
-        logging.debug(" Mapped "+str(name)+" to "+str(ref_address))
+        state.envr.map_new_identifier(decl.name, data_address)
+        logging.debug(" Mapped "+str(name)+" to "+str(data_address))
         if decl.init is not None:
             raise Exception("array init needs to be transformed")
 
@@ -488,16 +491,16 @@ def get_sizes(ast_type, list_so_far, state):
     elif isinstance(ast_type, AST.FuncDecl):
         raise Exception("Function Decl in struct not allowed")
     elif isinstance(ast_type, AST.IdentifierType):
-        num_bytes = CONFIG.get_size(ast_type.names)
-        if num_bytes < CONFIG.get_word_size():
+        num_bytes = limits.CONFIG.get_size(ast_type.names)
+        if num_bytes < limits.CONFIG.get_word_size():
             alignment = num_bytes
         else:
-            alignment = CONFIG.get_word_size()
+            alignment = limits.CONFIG.get_word_size()
         list_so_far.append(num_bytes)
     elif isinstance(ast_type, AST.PtrDecl):
-        size = CONFIG.get_word_size()
+        size = limits.CONFIG.get_word_size()
         list_so_far.append(size)
-        alignment = CONFIG.get_word_size()
+        alignment = limits.CONFIG.get_word_size()
     elif isinstance(ast_type, AST.Struct):
         alignment = get_struct_sizes(ast_type, list_so_far, state)
     elif isinstance(ast_type, AST.Union):
@@ -505,7 +508,7 @@ def get_sizes(ast_type, list_so_far, state):
     else:
         raise Exception('Unknown Type '+str(ast_type))
 
-    if CONFIG.packing_scheme == SPS.PACT_COMPACT:
+    if limits.CONFIG.packing_scheme == SPS.PACT_COMPACT:
         alignment = 1
     return alignment
 
@@ -531,13 +534,13 @@ def get_struct_sizes(ast_type, list_so_far, state):
             decls = LinkSearch.struct_lut[ast_type.name].decls
         else:
             raise Exception('Struct ' + ast_type.name + ' not found')
-    if CONFIG.packing_scheme == SPS.PACT_COMPACT:
+    if limits.CONFIG.packing_scheme == SPS.PACT_COMPACT:
         alignment = 1
         for decl in decls:
             decl_alignment = get_sizes(decl, list_so_far, state)
             if alignment < decl_alignment:
                 alignment = decl_alignment
-    elif CONFIG.packing_scheme == SPS.GCC_STD:
+    elif limits.CONFIG.packing_scheme == SPS.GCC_STD:
         num_bytes = 0
         alignment = 1
         for decl in decls:
@@ -747,5 +750,3 @@ def get_next(state):
 from cesk.structures import (State, Ctrl, Envr, AssignKont, ReturnKont, # pylint: disable=wrong-import-position
                              FunctionKont, LeftBinopKont, IfKont, VoidKont,
                              CastKont, throw)
-from cesk.values import generate_constant_value # pylint: disable=wrong-import-position
-from cesk.limits import CONFIG, StructPackingScheme as SPS # pylint: disable=wrong-import-position

@@ -30,7 +30,7 @@ int main()
           }
 
           censor02:
-
+          ;
 
         }
       }
@@ -51,7 +51,7 @@ int main()
       while(1);
     }
   censor06:
-
+  ;
 
   }
   {

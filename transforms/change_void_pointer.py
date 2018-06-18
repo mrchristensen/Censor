@@ -23,14 +23,21 @@ class ChangeToVoidPointer(LiftNode):
             left_type, right_type, node = self.arithmetic_to_void_pointer(node)
             if (_is_integral(left_type) and
                     (_is_ptr(right_type) or _is_array(right_type))):
+                if _is_array(right_type):
+                    node.right = AST.UnaryOp('&', node.right)
                 ptr_size = get_size_ast(right_type.type, self.envr)
-                node.left = AST.BinaryOp('*', node.left, ptr_size)
-                node.right = make_void_pointer(node.right)
-                node = AST.Cast(AST.PtrDecl([], right_type.type), node)
+                if ptr_size.value != '1':
+                    node.left = AST.BinaryOp('*', node.left, ptr_size)
+                    node.right = make_void_pointer(node.right)
+                    node = AST.Cast(AST.PtrDecl([], right_type.type), node)
         elif node.op == '-':
             left_type, right_type, node = self.arithmetic_to_void_pointer(node)
             if ((_is_ptr(left_type) or _is_array(left_type)) and
                     (_is_ptr(right_type) or _is_array(right_type))):
+#                if _is_array(left_type):
+#                    node.left = AST.UnaryOp('&',node.left)
+#                if _is_array(right_type):
+#                    node.left = AST.UnaryOp('&',node.right)
                 #This should only be allowed when they are both pointing to the
                 # same type of object. The result should equal the difference
                 # in index values of the two pointers
@@ -48,11 +55,13 @@ class ChangeToVoidPointer(LiftNode):
         right_type = get_type(node.right, self.envr)
         if (_is_integral(right_type) and
                 (_is_ptr(left_type) or _is_array(left_type))):
+            if _is_array(left_type):
+                node.left = AST.UnaryOp('&', node.left)
             ptr_size = get_size_ast(left_type.type, self.envr)
-            node.right = AST.BinaryOp('*', node.right, ptr_size)
-            node.left = make_void_pointer(node.left)
-            node = AST.Cast(AST.PtrDecl([], left_type.type), node)
-
+            if not isinstance(ptr_size, AST.Constant) or ptr_size.value != '1':
+                node.right = AST.BinaryOp('*', node.right, ptr_size)
+                node.left = make_void_pointer(node.left)
+                node = AST.Cast(AST.PtrDecl([], left_type.type), node)
         return left_type, right_type, node
 
 def make_void_pointer(node):

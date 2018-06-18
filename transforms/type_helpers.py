@@ -6,7 +6,7 @@ All references to the c specification refer to the version here:
 from copy import deepcopy
 from enum import Enum
 from pycparser.c_ast import * # pylint: disable=wildcard-import, unused-wildcard-import
-from cesk.limits import RANGES
+import cesk.limits as limits
 
 class Side(Enum):
     """Return type of function asking which type of a binary operand that
@@ -245,7 +245,7 @@ def _get_integral_range(type_node):
     # TODO: Add support for user-defined integral types that are
     # defined through typedef's or enums
     type_string = " ".join(type_node.type.names)
-    return RANGES[type_string]
+    return limits.RANGES[type_string]
 
 def _is_signed(int_range):
     """Takes a Range, says if that Range represents a signed integral type."""

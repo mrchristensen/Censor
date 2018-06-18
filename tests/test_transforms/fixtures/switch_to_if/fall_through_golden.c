@@ -23,7 +23,7 @@ int main()
       ;
     }
   censor04:
-
+  ;
 
   }
   {

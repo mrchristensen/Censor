@@ -201,7 +201,6 @@ class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
         """Reads the address the pointer points to and returns value"""
         if self.data == 0:
             raise Exception("SegFault")
-        logging.debug(' Data: ' + str(self.stor.read(self.data)))
         return self.stor.read(self.data)
 
     def index(self, stor, list_of_index):
@@ -379,9 +378,9 @@ def cast(value, typedeclt): #pylint: disable=unused-argument
     elif isinstance(typedeclt, pycparser.c_ast.PtrDecl):
         # TODO This code may need to be more thoroughly tested
         # TODO Document well, include questions about more obscure test cases
-        temp = typedeclt
-        while isinstance(temp, pycparser.c_ast.PtrDecl) or isinstance(temp, pycparser.c_ast.ArrayDecl):
-            temp = temp.type
+        #temp = typedeclt
+        #while isinstance(temp, pycparser.c_ast.PtrDecl) or isinstance(temp, pycparser.c_ast.ArrayDecl):
+        #    temp = temp.type
         # s = temp.type.names
         address = value.data
         n = generate_pointer_value(address, value.stor)

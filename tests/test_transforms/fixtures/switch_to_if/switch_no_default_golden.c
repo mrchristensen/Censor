@@ -21,7 +21,7 @@ int main()
       goto censor03;
     }
   censor03:
-
+  ;
 
   }
   {

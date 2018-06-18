@@ -234,7 +234,6 @@ class Stor:
     def read(self, address, size=None):
         """Read the contents of the store at address. Returns None if undefined.
         """
-        logging.debug("Address is: " + str(address))
 
         if address in self.memory:
             return self.memory[address]
@@ -244,7 +243,6 @@ class Stor:
 
         nearest_address = Stor.NULL
         for x in self.memory:
-            logging.debug("X is: " + str(x))
             if x.data < address:
                 nearest_address = x if x > nearest_address else nearest_address
  

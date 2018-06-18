@@ -45,6 +45,7 @@ SUITE = unittest.TestLoader().loadTestsFromNames(
         'test_transforms.test_omp_not_implemented',
         'test_transforms.test_sizeof_type',
         'test_transforms.test_change_void_pointer',
+        'test_transforms.test_struct_ref_to_pointer',
         'test_transforms.test_unary_op',
         'test_instrumenter.test_logger',
         'test_instrumenter.test_instrumenter',
