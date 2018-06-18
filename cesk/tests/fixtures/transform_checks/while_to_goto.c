@@ -12,6 +12,7 @@ int main(){
     while(j){
         j -= 1;
         sum += j;    
+        printf("%d\n",sum);
     }
 
     printf("%d\n",sum);

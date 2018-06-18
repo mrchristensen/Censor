@@ -42,8 +42,8 @@ class LinkSearch(AST.NodeVisitor):
         for i, child in enumerate(node):
             if isinstance(child, AST.Node):
                 if child in LinkSearch.parent_lut:
-                    logging.debug("Child: " + str(child))
-                    logging.debug("Old Parent: " +
+                    logging.debug("Child: %s", str(child))
+                    logging.debug("Old Parent: %s",
                                   str(LinkSearch.parent_lut[child]))
                     raise Exception("Node duplicated in tree: ")
                 LinkSearch.parent_lut[child] = node
@@ -222,7 +222,7 @@ def execute(state):
                 print_string = stmt.args.exprs[0].value % (value.data)
             elif isinstance(stmt.args.exprs[0], AST.Cast):
                 # TODO cast the value not just grab from cast object
-                logging.debug("  DATA: "+str(value.data))
+                logging.debug("  DATA: %s", str(value.data))
                 print_string = stmt.args.exprs[0].expr.value % (value.data)
             else:
                 raise Exception("printf does not know how to handle "
@@ -314,9 +314,8 @@ def execute(state):
             logging.debug("Goto left scope %s and entered %s",
                           str(state.envr.id), str(new_envr.id))
         else:
-            new_envr = state.envr
-            #logging.error('Need to make decisions on scope of forward jump')
-            raise Exception("Need to make decisions on scope of forward jump")
+            #forward jump into previously undefined scope
+            new_envr = create_forward_jump_envr(body, state)
 
         successors.append(State(new_ctrl, new_envr, state.stor, state.kont))
     elif isinstance(stmt, AST.ID):
@@ -729,6 +728,10 @@ def check_for_implicit_decl(ident):
         parent = LinkSearch.parent_lut[parent]
 
     if compound != None:
+        if compound in LinkSearch.envr_lut:
+            comp_envr = LinkSearch.envr_lut[compound]
+            if comp_envr.is_localy_defined(ident.name):
+                return None
         if compound in LinkSearch.scope_decl_lut:
             for decl in LinkSearch.scope_decl_lut[compound]:
                 if decl.name == ident.name:
@@ -736,6 +739,26 @@ def check_for_implicit_decl(ident):
     return None
     #raise Exception("Could not determine Implicit Decl")
 
+def create_forward_jump_envr(body, state): # pylint: disable=inconsistent-return-statements
+    """Recursively searches for a defined parent scope to inherit from"""
+    if body in LinkSearch.parent_lut:
+        compound = None
+        parent = LinkSearch.parent_lut[body]
+        while True:
+            logging.debug("Loop at %s", parent)
+            if isinstance(parent, AST.Compound):
+                compound = parent
+                break
+            if not parent in LinkSearch.parent_lut:
+                break
+            parent = LinkSearch.parent_lut[parent]
+        if compound in LinkSearch.envr_lut:
+            return Envr(LinkSearch.envr_lut[compound])
+        return Envr(create_forward_jump_envr(compound, state))
+    else:
+        #TODO does this work why?
+        #raise Exception("Expected parent of %s for forward jump", body)
+        return state.envr
 
 def get_next(state):
     """takes state and returns a state with ctrl for the next statement
@@ -769,6 +792,8 @@ def get_next(state):
                 parent_index = LinkSearch.index_lut[ctrl.body]
                 new_ctrl = Ctrl(parent_index, parent)
                 new_envr = state.envr.parent #fall off: return to parent scope
+                logging.debug("Fall off compound. Leaving scope %s to %s",
+                              state.envr.id, new_envr.id)
 
             else:
                 #if the parent is not a compound (probably an if statement)
