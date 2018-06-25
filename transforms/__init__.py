@@ -13,15 +13,14 @@ ForToWhile < WhileToDoWhile
 WhileToDoWhile < DoWhileToGoto
 DoWhileToGoto < LiftToCompoundBlock
 PragmaToOmpFor < SimplifyOmpFor
-SimplifyOmpFor < TernaryToIf
-TernaryToIf < IfToIfGoto
-TernaryToIf < InsertExplicitTypeCasts
-TernaryToIf < LiftToCompoundBlock
 RemoveMultideminsionalArray < LiftToCompoundBlock
 RemoveMultideminsionalArray < ChangeToVoidPointer
 RemoveCompoundAssignment < InsertExplicitTypeCasts
 SwitchToIf < LiftToCompoundBlock
 SizeofType < LiftUnaryOp
+Sequence < IfToIfGoto
+Sequence < DoWhileToGoto
+
 """
 
 # imports for transforms
@@ -31,7 +30,6 @@ from .while_to_do_while import WhileToDoWhile
 from .for_to_while import ForToWhile
 from .switch_if import SwitchToIf
 from .if_goto import IfToIfGoto
-from .ternary_to_if import TernaryToIf
 from .omp_parallel_for import PragmaToOmpParallelFor
 from .omp_parallel_sections import PragmaToOmpParallelSections
 from .omp_parallel import PragmaToOmpParallel
@@ -47,6 +45,7 @@ from .omp_atomic import PragmaToOmpAtomic
 from .omp_master import PragmaToOmpMaster
 from .omp_single import PragmaToOmpSingle
 from .omp_simd import PragmaToOmpSimd
+from .sequence import Sequence
 from .omp_not_implemented import OmpNotImplemented
 from .remove_compound_assignment import RemoveCompoundAssignment
 from .lift_to_compound_block import LiftToCompoundBlock
@@ -104,13 +103,13 @@ def get_transformers(ast):
            lambda ast: [type_env_calc.get_environments(ast)])
     yield (SimplifyOmpFor,
            lambda ast: [id_generator, type_env_calc.get_environments(ast)])
-    yield (TernaryToIf,
-           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
     yield (SwitchToIf, lambda ast: [id_generator])
     yield (IfToIfGoto, lambda ast: [id_generator])
     yield (ForToWhile, lambda ast: [])
     yield (WhileToDoWhile, lambda ast: [])
     yield (DoWhileToGoto, lambda ast: [id_generator])
+    yield (Sequence,
+           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
     yield (RemoveCompoundAssignment,
            lambda ast: [id_generator, type_env_calc.get_environments(ast)])
     yield (RemoveInitLists,
