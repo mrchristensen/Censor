@@ -1,7 +1,7 @@
 '''
     Sequential transform: puts all code between sequence points on a new line.
     After the Sequential transform, all sequence points will be at the end of
-    the full expression.
+    a full expression.
 
     =====================================================
     y = expr_1, expr_2, ... expr_n;

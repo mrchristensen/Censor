@@ -18,8 +18,8 @@ RemoveMultideminsionalArray < ChangeToVoidPointer
 RemoveCompoundAssignment < InsertExplicitTypeCasts
 SwitchToIf < LiftToCompoundBlock
 SizeofType < LiftUnaryOp
-Sequence < IfToIfGoto
-Sequence < DoWhileToGoto
+IfToIfGoto < Sequence
+DoWhileToGoto < Sequence
 
 """
 
