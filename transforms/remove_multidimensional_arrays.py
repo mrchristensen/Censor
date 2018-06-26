@@ -55,6 +55,7 @@ class RemoveMultidimensionalArray(LiftNode):
         #lift non_constant array decl dim to a value so that the size is
         # always stored in a known variable
         if not isinstance(node.dim, AST.Constant):
+            #add further checks if its a const id then no need to lift
             node.dim = self.lift_to_value(node.dim)
         return node
 
@@ -204,15 +205,10 @@ class RemoveMultidimensionalArray(LiftNode):
 
         return array_decl
 
-    def lift_subscript(self, array_ref):
-        """ Lifts Array subscript to a temparay value to insure that it
-            is stored in variable that will not change """
-        if not isinstance(array_ref.subscript, (AST.ID, AST.Constant)):
-            array_ref.subscript = self.lift_to_value(array_ref.subscript)
-
     def lift_to_value(self, value):
         """Lift node to compound block"""
         decl = make_temp_value(value, self.id_generator, self.envr)
+        decl.quals = ['const']
         self.insert_into_scope(decl)
         self.envr.add(decl.name, decl.type)
         return AST.ID(decl.name)

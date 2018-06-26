@@ -26,7 +26,7 @@ of your current scope.
 """
 
 from copy import deepcopy
-from pycparser.c_ast import ID, Struct, Union, Enum, FuncDecl
+from pycparser.c_ast import ID, Struct, Union, Enum, FuncDecl, TypeDecl
 from .node_transformer import NodeTransformer
 from .type_helpers import remove_identifier
 
@@ -74,6 +74,14 @@ class Envr:
             current = current.parent
         print(out)
 
+    def __contains__(self, key):
+        if key in self.map_to_type:
+            return True
+        elif self.parent is None:
+            return False
+        else:
+            return key in self.parent
+
 class TypeEnvironmentCalculator(NodeTransformer):
     """Aggregate type information for all of the scopes in the AST,
     return a dictionary mapping Compound nodes to the environment
@@ -104,6 +112,14 @@ class TypeEnvironmentCalculator(NodeTransformer):
     def visit_Typedef(self, node): # pylint: disable=invalid-name
         """Add typedefs to the type environment."""
         self.envr.add(node.name, node.type)
+        if isinstance(node.type, TypeDecl):
+            type_node = node.type.type
+            if isinstance(type_node, (Struct, Union, Enum)):
+                ident = type_node.name
+                if ident is not None:
+                    ident = type(type_node).__name__ + " " + ident
+                    if ident not in self.envr:
+                        self.envr.add(ident, type_node)
         return node
 
     def visit_Compound(self, node): # pylint: disable=invalid-name

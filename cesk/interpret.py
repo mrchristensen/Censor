@@ -62,7 +62,7 @@ class LinkSearch(AST.NodeVisitor):
                 if isinstance(parent, AST.Compound):
                     compound = parent
                     break
-                if not parent in LinkSearch.parent_lut:
+                if parent not in LinkSearch.parent_lut:
                     break
                 parent = LinkSearch.parent_lut[parent]
 
@@ -723,7 +723,7 @@ def check_for_implicit_decl(ident):
         if isinstance(parent, AST.Compound):
             compound = parent
             break
-        if not parent in LinkSearch.parent_lut:
+        if parent not in LinkSearch.parent_lut:
             break
         parent = LinkSearch.parent_lut[parent]
 
@@ -749,7 +749,7 @@ def create_forward_jump_envr(body, state): # pylint: disable=inconsistent-return
             if isinstance(parent, AST.Compound):
                 compound = parent
                 break
-            if not parent in LinkSearch.parent_lut:
+            if parent not in LinkSearch.parent_lut:
                 break
             parent = LinkSearch.parent_lut[parent]
         if compound in LinkSearch.envr_lut:

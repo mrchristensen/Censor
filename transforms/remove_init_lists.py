@@ -181,6 +181,8 @@ def flatten_struct_init(decl, env):
     typ = get_type(decl.name, env)
     fields = typ.type.decls
     inits = []
+    if decl.init is None:
+        return inits #Nothing to do
     for i, init in enumerate(decl.init.exprs):
         if not is_constant_expression(init):
             decl.show()
