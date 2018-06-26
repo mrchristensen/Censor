@@ -76,6 +76,7 @@ def remove_identifier(node):
         # recur
         return remove_identifier(node.type)
     else:
+        node.show()
         raise NotImplementedError()
 
 def add_identifier(node, ident):
@@ -202,7 +203,8 @@ def _is_integral(type_node):
     # defined through typedef's or enums
     if _is_float(type_node):
         return False
-    integral_ids = ['int', 'char', 'short', 'long', 'long long']
+    integral_ids = ['int', 'char', 'short', 'long',
+                    'long long', 'unsigned', 'signed']
     if isinstance(type_node, TypeDecl):
         if isinstance(type_node.type, IdentifierType):
             return bool([i for i in integral_ids if i in type_node.type.names])
@@ -376,7 +378,6 @@ def _get_structref_type(expr, env):
     """Resolve the type of a StructRef node."""
     # find the type of whatever is on the left of the . or ->
     type_decl = _get_type_helper(expr.name, env)
-
     if isinstance(type_decl, PtrDecl):
         type_decl = type_decl.type
 
