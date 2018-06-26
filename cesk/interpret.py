@@ -798,7 +798,7 @@ def get_next(state):
             else:
                 #if the parent is not a compound (probably an if statement)
                 new_ctrl = Ctrl(parent) #make a special ctrl and try again
-                new_envr = state.envr
+                new_envr = state.envr.parent
 
             return get_next(State(new_ctrl, new_envr, state.stor, state.kont))
 

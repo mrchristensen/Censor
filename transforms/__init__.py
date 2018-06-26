@@ -104,12 +104,12 @@ def get_transformers(ast):
     yield (SimplifyOmpFor,
            lambda ast: [id_generator, type_env_calc.get_environments(ast)])
     yield (SwitchToIf, lambda ast: [id_generator])
-    yield (IfToIfGoto, lambda ast: [id_generator])
     yield (ForToWhile, lambda ast: [])
     yield (WhileToDoWhile, lambda ast: [])
     yield (DoWhileToGoto, lambda ast: [id_generator])
     yield (Sequence,
            lambda ast: [id_generator, type_env_calc.get_environments(ast)])
+    yield (IfToIfGoto, lambda ast: [id_generator])
     yield (RemoveCompoundAssignment,
            lambda ast: [id_generator, type_env_calc.get_environments(ast)])
     yield (RemoveInitLists,

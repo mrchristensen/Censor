@@ -39,7 +39,7 @@ SUITE = unittest.TestLoader().loadTestsFromNames(
         'test_transforms.test_single_return',
         'test_transforms.test_remove_multidimensional_array',
         'test_transforms.test_lift_to_compound_block',
-        'test_transforms.test_ternary_to_if',
+        'test_transforms.test_sequence'
         'test_transforms.test_remove_init_lists',
         'test_transforms.test_simplify_omp_for',
         'test_transforms.test_omp_not_implemented',
