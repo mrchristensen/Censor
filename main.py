@@ -99,6 +99,7 @@ def run_tool(tool, ast):
     elif tool == "print":
         print_ast(ast)
     elif tool == "transform":
+        print('Starting transform......')
         transform(ast)
         print(CWithOMPGenerator().visit(ast))
     else:

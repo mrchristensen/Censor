@@ -80,7 +80,7 @@ class Schedule():
         Syntax: schedule(kind, chunk_size)
     """
 
-    def __init__(self, kind, chunk):
+    def __init__(self, kind, chunk='1'):
         self.kind = kind
         self.chunk = chunk
 

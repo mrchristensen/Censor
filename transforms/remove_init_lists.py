@@ -165,6 +165,9 @@ def flatten_array_init(decl):
     inits = []
     if decl.init is None:
         return inits
+    if not isinstance(decl.init, InitList):
+        decl.show()
+        raise NotImplementedError(_NOT_IMPLEMENTED_MESSAGE)
     for i, init in enumerate(decl.init.exprs):
         if not is_constant_expression(init):
             decl.show()
@@ -183,6 +186,9 @@ def flatten_struct_init(decl, env):
     inits = []
     if decl.init is None:
         return inits #Nothing to do
+    if not isinstance(decl.init, InitList):
+        decl.show()
+        raise NotImplementedError(_NOT_IMPLEMENTED_MESSAGE)
     for i, init in enumerate(decl.init.exprs):
         if not is_constant_expression(init):
             decl.show()

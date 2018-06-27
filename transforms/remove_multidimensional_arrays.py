@@ -56,7 +56,8 @@ class RemoveMultidimensionalArray(LiftNode):
         # always stored in a known variable
         if not isinstance(node.dim, AST.Constant):
             #add further checks if its a const id then no need to lift
-            node.dim = self.lift_to_value(node.dim)
+            if node.dim is not None:
+                node.dim = self.lift_to_value(node.dim)
         return node
 
     def visit_array_ref(self, array_ref, is_referenced=False):
