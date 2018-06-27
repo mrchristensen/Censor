@@ -315,11 +315,14 @@ class VoidKont(FunctionKont):
         self.parent_state = parent_state
 
     def satisfy(self, state, value=None):
+        new_envr = self.parent_state.envr
+        if new_envr is None:
+            raise Exception("Tried to close Global Scope")
         if value is not None:
             raise Exception("'return' with a value in block returning void")
         if isinstance(self.parent_state.kont, FunctionKont):
             #don't return out of function without return
-            new_state = State(self.parent_state.ctrl, state.envr, state.stor,
+            new_state = State(self.parent_state.ctrl, new_envr, state.stor,
                               self.parent_state.kont)
             return cesk.interpret.get_next(new_state)
         return self.parent_state.kont.satisfy(state)
@@ -355,7 +358,7 @@ class CastKont(Kont):
         self.to_type = to_type
 
     def satisfy(self, state, value):
-        cast_value = cast(value, self.to_type)
+        cast_value = cast(value, self.to_type, state.stor)
         return self.parent_kont.satisfy(state, cast_value)
         
 

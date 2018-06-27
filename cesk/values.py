@@ -368,7 +368,7 @@ def generate_struct(start_address, decls, stor):
     return Struct(start_address, decls, stor)
 
 
-def cast(value, typedeclt): #pylint: disable=unused-argument
+def cast(value, typedeclt, store=None): #pylint: disable=unused-argument
     """Casts the given value a  a value of the given type."""
     n = None
     #logging.debug('CAST: '+str(value)+" to type "+str(typedeclt))
@@ -378,12 +378,12 @@ def cast(value, typedeclt): #pylint: disable=unused-argument
     elif isinstance(typedeclt, pycparser.c_ast.PtrDecl):
         # TODO This code may need to be more thoroughly tested
         # TODO Document well, include questions about more obscure test cases
-        #temp = typedeclt
-        #while isinstance(temp, pycparser.c_ast.PtrDecl) or isinstance(temp, pycparser.c_ast.ArrayDecl):
-        #    temp = temp.type
-        # s = temp.type.names
-        address = value.data
-        n = generate_pointer_value(address, value.stor)
+        if isinstance(value, ReferenceValue): 
+            address = value.data
+            n = generate_pointer_value(address, value.stor)
+        else:
+            address = value.data
+            n = generate_pointer_value(address, store)
     elif isinstance(typedeclt, pycparser.c_ast.TypeDecl):
         s = typedeclt.type.names
         n = generate_constant_value(str(value.data), " ".join(s))

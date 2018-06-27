@@ -6,8 +6,10 @@ int factorial(int n) {
     }
     else {
         int censor0 = n-1;
-        return n*factorial(censor0);
-    }    
+        int temp = factorial(censor0);    
+        printf("%d\n",temp);
+        return n*temp;
+    }
 }
 
 int main() {

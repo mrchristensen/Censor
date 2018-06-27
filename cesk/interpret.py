@@ -131,7 +131,7 @@ def execute(state):
         new_state = State(new_ctrl, state.envr, state.stor, new_kont)
         successors.append(new_state)
     elif isinstance(stmt, AST.Compound):
-        # logging.debug("Compound")
+        logging.debug("Compound")
         new_ctrl = Ctrl(0, stmt)
         new_envr = Envr(state.envr)
         LinkSearch.envr_lut[stmt] = new_envr #save to table for goto lookup
@@ -249,11 +249,13 @@ def execute(state):
                 successors.append(get_next(state))
             else:
                 successors.append(state.kont.satisfy(state, pointer))
-
+        elif stmt.name.name == "free":
+            successors.append(get_next(state))
         else:
             if stmt.name.name not in LinkSearch.function_lut:
                 raise Exception("Undefined reference to " + stmt.name.name)
             else:
+                logging.debug(" Calling Function: %s", stmt.name.name)
                 func_def = LinkSearch.function_lut[stmt.name.name]
                 if func_def.decl.type.args is None:
                     param_list = []
@@ -279,6 +281,9 @@ def execute(state):
                 for decl, expr in zip(param_list, expr_list):
                     new_state = handle_decl(decl, new_state)
                     new_address = new_state.envr.get_address(decl.name)
+                    while isinstance(expr, AST.Cast):
+                        expr = expr.expr #ignore cast
+
                     if isinstance(expr, AST.Constant):
                         value = generate_constant_value(expr.value)
                     elif isinstance(expr, AST.ID):
@@ -289,7 +294,13 @@ def execute(state):
                                         "Constant or ID not " + str(expr))
                     new_state.stor.write(new_address, value)
 
-                new_kont = FunctionKont(state)
+                func_type = func_def.decl.type.type
+                if (isinstance(func_type, AST.TypeDecl and
+                        isinstance(func_type.type, AST.IdentifierType) and
+                        'void' in func_type.type.names
+                    new_kont = VoidKont(state)
+                else:
+                    new_kont = FunctionKont(state)
                 successors.append(State(new_ctrl,
                                         new_state.envr,
                                         new_state.stor,
@@ -301,7 +312,7 @@ def execute(state):
         logging.debug("FuncDef")
         raise Exception("FuncDef out of Global scope")
     elif isinstance(stmt, AST.Goto):
-        logging.debug('Goto')
+        logging.debug('Goto '+stmt.name)
         label_to = LinkSearch.label_lut[stmt.name]
         body = label_to
         while not isinstance(body, AST.Compound):
@@ -311,12 +322,12 @@ def execute(state):
         logging.debug('\t Body: %s', str(body))
         if body in LinkSearch.envr_lut:
             new_envr = LinkSearch.envr_lut[body]
-            logging.debug("Goto left scope %s and entered %s",
-                          str(state.envr.id), str(new_envr.id))
         else:
             #forward jump into previously undefined scope
             new_envr = create_forward_jump_envr(body, state)
 
+        logging.debug("Now leaving scope %s to %s", str(state.envr.id),
+                      str(new_envr.id))
         successors.append(State(new_ctrl, new_envr, state.stor, state.kont))
     elif isinstance(stmt, AST.ID):
         logging.debug("ID %s", stmt.name)
