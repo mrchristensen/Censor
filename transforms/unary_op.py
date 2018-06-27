@@ -1,16 +1,6 @@
 """ AST transform: unary ops in expressions such as:
 
-        y = ++x + x++ + x++;
-
-    into multiple assignments, like:
-
-        x = x + 1;
-        val_1 = x + x;
-        x = x + 1;
-        y = val_1 + x;
-        x = x + 1;
-
-    also sizeof is replaced by its constant equivalent
+    sizeof is replaced by its constant equivalent
     int x = sizeof(long long)
     -->
     int x = 8;

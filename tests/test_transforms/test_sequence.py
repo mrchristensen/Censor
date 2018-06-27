@@ -1,27 +1,27 @@
-"""Test TernaryToIf"""
+"""Test Sequence"""
 
-from transforms.ternary_to_if import TernaryToIf
+from transforms.sequence import Sequence
 from transforms.id_generator import IDGenerator
 from transforms.type_environment_calculator import TypeEnvironmentCalculator
 from helpers import GoldenTestCase
 
-class TestTernaryToIf(GoldenTestCase):
-    """Test TernaryToIf transform"""
+class TestSequence(GoldenTestCase):
+    """Test Sequence transform"""
 
     def setUp(self):
         """Set up test variables needed for GoldenTestCase"""
-        self.fixtures = '/test_transforms/fixtures/ternary_to_if'
+        self.fixtures = '/test_transforms/fixtures/sequence'
         self.transformer = None
 
     def transform(self, ast):
         """Transform input AST"""
         calculator = TypeEnvironmentCalculator()
-        self.transformer = TernaryToIf(
+        self.transformer = Sequence(
             IDGenerator(ast),
             calculator.get_environments(ast)
             )
         return self.transformer.visit(ast)
 
     def test_fixtures(self):
-        """Test TernaryToIf"""
+        """Test Sequence"""
         self.assert_all_transform_golden(self.transform, self.fixtures)

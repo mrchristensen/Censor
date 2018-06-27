@@ -179,6 +179,10 @@ def _get_type_helper(expr, env): # pylint: disable=too-many-return-statements,to
     elif isinstance(expr, FuncCall):
         func_decl = env.get_type(expr.name)
         return func_decl.type
+    elif isinstance(expr, ExprList): # is type of last expression
+        return _get_type_helper(expr.exprs[-1], env)
+    elif isinstance(expr, Assignment):
+        return _get_type_helper(expr.lvalue, env)
     else:
         raise NotImplementedError("Have not implemented get_type " +
                                   "for node type: " + type(expr).__name__)
