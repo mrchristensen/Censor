@@ -295,9 +295,9 @@ def execute(state):
                     new_state.stor.write(new_address, value)
 
                 func_type = func_def.decl.type.type
-                if (isinstance(func_type, AST.TypeDecl and
+                if (isinstance(func_type, AST.TypeDecl) and
                         isinstance(func_type.type, AST.IdentifierType) and
-                        'void' in func_type.type.names
+                        'void' in func_type.type.names):
                     new_kont = VoidKont(state)
                 else:
                     new_kont = FunctionKont(state)
