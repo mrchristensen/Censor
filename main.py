@@ -17,7 +17,7 @@ def main():
     """Parses arguments and calls correct tool"""
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("filename")
+    parser.add_argument("filename", nargs='+')
     parser.add_argument('--tool', '-t',
                         choices=['censor', 'yeti', 'cesk',
                                  'observer', 'ssl', 'print',
@@ -35,7 +35,7 @@ def main():
     parser.add_argument('--configuration', '-c',
                         required=False, type=str, help='limits for types')
     args = parser.parse_args()
-    dir_name = path.dirname(args.filename)
+    dir_name = path.dirname(args.filename[0])
 
     if args.pycparser is not None:
         sys.path.append(args.pycparser)
@@ -46,13 +46,17 @@ def main():
 
     import pycparser
 
-    temp = None
+    temp_files = [] #file need to remain to not be garbage collected and closed 
     if args.sanitize:
-        temp = tempfile.NamedTemporaryFile()
-        temp.write(open(args.filename, 'rb').read())
-        temp.flush()
-        utils.preserve_include_preprocess(temp.name)
-        args.filename = temp.name
+        temps = [] 
+        for filename in args.filename:
+            temp = tempfile.NamedTemporaryFile()
+            temp.write(open(filename, 'rb').read())
+            temp.flush()
+            utils.preserve_include_preprocess(temp.name)
+            temps.append(temp.name)
+            temp_files.append(temp)
+        args.filename = temps
 
     cpp_args = [
         '-nostdinc',
@@ -65,9 +69,11 @@ def main():
         cpp_args.extend([''.join(['-I', include]) \
                 for include in args.includes.split(',')])
 
-    ast = pycparser.parse_file(
-        args.filename, use_cpp=True, cpp_path='gcc', cpp_args=cpp_args
-        )
+    ast = pycparser.c_ast.FileAST([])
+    for filename in args.filename:
+        ast.ext += pycparser.parse_file(
+            filename, use_cpp=True, cpp_path='gcc', cpp_args=cpp_args
+            ).ext
 
     if args.configuration is not None:
         set_config(args.configuration)

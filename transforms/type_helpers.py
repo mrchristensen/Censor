@@ -117,6 +117,10 @@ def resolve_types(left, right): # pylint: disable=too-many-return-statements
         return _resolve_floating_types(left, right)
     elif _is_integral(left) and _is_integral(right):
         return _resolve_integral_types(left, right)
+    if _is_array(left) and _is_integral(right):
+        return Side.NOCAST
+    elif _is_integral(left) and _is_array(right):
+        return Side.NOCAST
     print("---left:")
     left.show()
     print("---right:")
@@ -227,8 +231,8 @@ def _is_float(type_node):
                     'double' in type_node.type.names
         return False
     elif isinstance(type_node, IdentifierType):
-        return 'float' in type_node.type.names or \
-                'double' in type_node.type.names
+        return 'float' in type_node.names or \
+                'double' in type_node.names
     return False
 
 def _is_arithmetic_type(typ):
@@ -369,7 +373,10 @@ def _get_unop_type(expr, env):
     elif expr.op in ['++', '--', '+', '-', '~', 'p--', 'p++']:
         return get_type(expr.expr, env)
     elif expr.op == '&':
-        return PtrDecl([], _get_type_helper(expr.expr, env))
+        type_expr = _get_type_helper(expr.expr, env)
+        if _is_array(type_expr):
+            type_expr = type_expr.type
+        return PtrDecl([], type_expr)
     elif expr.op == '*':
         type_of_operand = get_type(expr.expr, env)
         if not isinstance(type_of_operand, (PtrDecl, ArrayDecl)):
