@@ -17,9 +17,11 @@ RemoveMultideminsionalArray < LiftToCompoundBlock
 RemoveMultideminsionalArray < ChangeToVoidPointer
 RemoveCompoundAssignment < InsertExplicitTypeCasts
 SwitchToIf < LiftToCompoundBlock
+SwitchToIf < BreakToGoto
 SizeofType < LiftUnaryOp
 IfToIfGoto < Sequence
 DoWhileToGoto < Sequence
+BreakToGoto < DoWhileToGoto
 
 """
 
@@ -58,6 +60,7 @@ from .unary_op import LiftUnaryOp
 from .change_void_pointer import ChangeToVoidPointer
 from .struct_ref_to_pointer import StructRefToPointerArith
 from .remove_typedef import RemoveTypedef
+from .break_to_goto import BreakToGoto
 
 # other imports
 from .id_generator import IDGenerator
@@ -109,6 +112,8 @@ def get_transformers(ast):
     yield (SwitchToIf, lambda ast: [id_generator])
     yield (ForToWhile, lambda ast: [])
     yield (WhileToDoWhile, lambda ast: [])
+    yield (BreakToGoto,
+           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
     yield (DoWhileToGoto, lambda ast: [id_generator])
     yield (Sequence,
            lambda ast: [id_generator, type_env_calc.get_environments(ast)])
