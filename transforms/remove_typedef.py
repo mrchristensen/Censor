@@ -34,8 +34,7 @@ class RemoveTypedef(LiftNode):
         if node.name is None:
             node.name = self.id_generator.get_unique_id()
             struct_name = type(node).__name__ + " " + node.name
-            self.envr.add(struct_name,
-                          AST.TypeDecl(struct_name, [], node))
+            self.envr.add(struct_name, node)
         return node
 
     def visit_Typedef(self, node): #pylint: disable=invalid-name

@@ -90,7 +90,8 @@ def get_struct_size_and_align(ast_type, env):
         if env is None:
             raise Exception("Environment needed to get size of struct")
         struct_type_string = type(ast_type).__name__ + " " + ast_type.name
-        decls = env.get_type(struct_type_string).decls
+        struct = env.get_type(struct_type_string)
+        decls = struct.decls
     if limits.CONFIG.packing_scheme == SPS.PACT_COMPACT:
         num_bytes, alignment = _size_compact(decls, env)
     elif limits.CONFIG.packing_scheme == SPS.GCC_STD:

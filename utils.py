@@ -13,7 +13,9 @@ State = namedtuple('State', ['loc', 'store'])
 
 def find_main(ast):
     """Examines the AST for a unique main function."""
-    mains = [child for child in ast.ext if is_main(child)]
+    mains = []
+    for file_node in ast.ext:
+        mains += [child for child in file_node.ext if is_main(child)]
     if len(mains) == 1:
         return Function(mains[0])
     else:

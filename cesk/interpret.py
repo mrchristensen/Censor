@@ -230,7 +230,10 @@ def execute(state):
 
             print_string = print_string[1:][:-1] #drop quotes
             print(print_string.replace("\\n", "\n"), end="") #convert newlines
-            successors.append(get_next(state))
+            if isinstance(state.kont, FunctionKont): #Don't return to function
+                successors.append(get_next(state))
+            else:
+                successors.append(state.kont.satisfy(state, generate_constant_value("0")))
         elif stmt.name.name == "malloc":
             param = stmt.args.exprs[0]
             if isinstance(stmt.args.exprs[0], AST.Cast):
@@ -776,7 +779,7 @@ def get_next(state):
     to execute"""
     ctrl = state.ctrl
     if not isinstance(state.kont, FunctionKont):
-        print(Exception("CESK error: called get_next in bad context"))
+        raise Exception("CESK error: called get_next in bad context: "+str(state.kont))
         print(ctrl.stmt().coord)
         print("You are probably trying to get a value from something that " +
               "is not implemented. Defaulting to 0")

@@ -28,10 +28,12 @@ class LiftUnaryOp(LiftNode):
 
         node.expr = self.generic_visit(node.expr)
         if node.op == '!':
+            return node
             raise NotImplementedError()
         elif node.op in ['++', '--', 'p--', 'p++']:
             return self.inc_and_dec(node)
         elif node.op in ['+', '-', '~']:
+            return node
             raise NotImplementedError()
         elif node.op in ['&', '*']:
             node.expr = self.visit(node.expr)

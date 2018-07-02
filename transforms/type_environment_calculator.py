@@ -26,7 +26,8 @@ of your current scope.
 """
 
 from copy import deepcopy
-from pycparser.c_ast import ID, Struct, Union, Enum, FuncDecl, TypeDecl
+from pycparser.c_ast import ID, Struct, Union, Enum
+from pycparser.c_ast import FuncDecl, TypeDecl, FileAST
 from .node_transformer import NodeTransformer
 from .type_helpers import remove_identifier
 
@@ -82,6 +83,26 @@ class Envr:
         else:
             return key in self.parent
 
+class FileEnvr(Envr):
+    """ Overwrite some functions when handling at a file scope """
+ 
+    def add(self, ident, type_node):
+        """Add a new identifier to the mapping"""
+        if isinstance(ident, ID):
+            ident = ident.name
+#        if 'static' in type_node.quals:
+#            if ident in self.map_to_type:
+#                raise Exception("Redefinition of " + ident)
+#            else:
+#                self.map_to_type[ident] = type_node
+        if ident in self.parent.map_to_type:
+            if ident in self.map_to_type:
+                raise Exception("Redefinition of " + ident)
+            else:
+                self.map_to_type[ident] = type_node
+        else:
+            self.parent.map_to_type[ident] = type_node
+
 class TypeEnvironmentCalculator(NodeTransformer):
     """Aggregate type information for all of the scopes in the AST,
     return a dictionary mapping Compound nodes to the environment
@@ -96,18 +117,19 @@ class TypeEnvironmentCalculator(NodeTransformer):
     """
     def __init__(self):
         self.envr = None
-        self.environemnts = None
+        self.environments = {} 
         self.declared_not_defined = None
 
     def get_environments(self, ast):
         """Aggregate type information for all of the scopes in the AST,
         return a dictionary mapping Compound nodes to the environment
         representing their scope."""
-        self.envr = Envr()
-        self.environemnts = {"GLOBAL": self.envr}
-        self.declared_not_defined = set()
+        if not isinstance(ast, FileAST):
+            self.envr = Envr()
+            self.environments = {"GLOBAL": self.envr}
+            self.declared_not_defined = set()
         self.visit(ast)
-        return self.environemnts
+        return self.environments
 
     def visit_Typedef(self, node): # pylint: disable=invalid-name
         """Add typedefs to the type environment."""
@@ -127,8 +149,23 @@ class TypeEnvironmentCalculator(NodeTransformer):
         parent so that scoping is handled properly."""
         self.envr = Envr(self.envr)
         retval = self.generic_visit(node)
-        self.environemnts[node] = self.envr
+        self.environments[node] = self.envr
         self.envr = self.envr.parent
+        return retval
+
+    def visit_FileAST(self, node): # pylint: disable=invalid-name
+        """Create a new environment with the current environment as its
+        parent so that scoping is handled properly."""
+        if "GLOBAL" in self.environments:
+            self.envr = FileEnvr(self.envr)
+            retval = self.generic_visit(node)
+            self.environments[node] = self.envr
+            self.envr = self.envr.parent
+        else:
+            self.envr = Envr()
+            self.environments = {"GLOBAL": self.envr}
+            self.declared_not_defined = set()
+            retval = self.generic_visit(node)
         return retval
 
     def visit_FuncDef(self, node): # pylint: disable=invalid-name
@@ -148,7 +185,7 @@ class TypeEnvironmentCalculator(NodeTransformer):
             func_decl.args = self.visit(func_decl.args)
         node.body = self.generic_visit(node.body)
 
-        self.environemnts[node.body] = self.envr
+        self.environments[node.body] = self.envr
         self.envr = self.envr.parent
         return node
 

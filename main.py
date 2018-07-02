@@ -71,9 +71,9 @@ def main():
 
     ast = pycparser.c_ast.FileAST([])
     for filename in args.filename:
-        ast.ext += pycparser.parse_file(
+        ast.ext.append(pycparser.parse_file(
             filename, use_cpp=True, cpp_path='gcc', cpp_args=cpp_args
-            ).ext
+            ))
 
     if args.configuration is not None:
         set_config(args.configuration)

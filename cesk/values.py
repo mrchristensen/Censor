@@ -111,9 +111,13 @@ class Integer(ArithmeticValue): #pylint:disable=too-few-public-methods
 class Char(Integer):
     """Concrete implementation of an char Type"""
     def __init__(self, data, type_of='char'):
+        logging.debug("Make char with: "+str(data)+str(type_of))
         if isinstance(data, str):
-            char = data.replace("\'", "")
-            v = ord(char)
+            if '\'' in data:
+                char = data.replace("\'", "")
+                v = ord(char)
+            else:
+                v = data
         else:
             v = data
         super().__init__(v, type_of)
