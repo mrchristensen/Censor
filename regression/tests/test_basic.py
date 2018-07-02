@@ -1,6 +1,6 @@
 """ Run regression tests on basic test files. """
 
-from helpers import RegressionTestCase #pylint: disable=no-name-in-module
+from regression.tests.helpers import RegressionTestCase #pylint: disable=no-name-in-module
 
 class TestBasic(RegressionTestCase): #pylint: disable=no-name-in-module
     """ Test dataracebench micro-benchmakrs """

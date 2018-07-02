@@ -1,6 +1,6 @@
 """Test NodeTransformer"""
 
-from helpers import GoldenTestCase
+from tests.helpers import GoldenTestCase
 from transforms.node_transformer import NodeTransformer
 
 class TestNodeTransformer(GoldenTestCase):
