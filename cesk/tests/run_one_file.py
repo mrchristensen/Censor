@@ -11,7 +11,7 @@ class OneFileTest(CESKvsGCC):
     def test_file(self):
         """ Function that does the work """
         parser = argparse.ArgumentParser()
-        parser.add_argument("file_name")
+        parser.add_argument("file_name", nargs='+')
         parser.add_argument('--debug', '-d', action="store_true")
         parser.add_argument('--print', '-p', type=str, required=False)
         group = parser.add_mutually_exclusive_group()
@@ -27,19 +27,19 @@ class OneFileTest(CESKvsGCC):
                                    stdout=outfile)
             else:
                 subprocess.run(['python3', '../../main.py',
-                                '-t', 'print', args.file_name])
+                                '-t', 'print', *args.file_name])
         if args.gcc_only:
             print('Only running gcc')
-            print(run_c(args.file_name))
+            print(run_c(*args.file_name))
         elif args.cesk_only:
             print('Only running cesk_c')
             print(subprocess.run(['python3', '../../main.py', '-st', 'cesk',
-                                  '-c', 'cesk', args.file_name]))
+                                  '-c', 'cesk', *args.file_name]))
             if args.debug:
                 print("* * * * * * * Debug Statements * * * * * * *")
                 subprocess.run(['cat', 'logfile.txt'])
         else:
-            self.assert_same_output(args.file_name)
+            self.assert_same_output(*args.file_name)
 
 if __name__ == "__main__":
     TEST = OneFileTest()

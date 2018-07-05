@@ -4,7 +4,7 @@ all compound assignments such as "a += 4.5;"""
 from transforms.remove_compound_assignment import RemoveCompoundAssignment
 from transforms.id_generator import IDGenerator
 from transforms.type_environment_calculator import TypeEnvironmentCalculator
-from helpers import GoldenTestCase
+from tests.helpers import GoldenTestCase
 
 class TestRemoveCompoundAssignment(GoldenTestCase):
     """Test RemoveCompoundAssignment transform"""

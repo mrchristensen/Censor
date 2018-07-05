@@ -3,7 +3,7 @@
 from unittest import TestCase
 from pycparser.c_parser import CParser
 from transforms.id_generator import IDGenerator
-from helpers import get_fixture
+from tests.helpers import get_fixture
 
 
 class TestIDGenerator(TestCase):

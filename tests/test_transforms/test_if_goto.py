@@ -2,7 +2,7 @@
 
 from transforms.if_goto import IfToIfGoto
 from transforms.id_generator import IDGenerator
-from helpers import GoldenTestCase
+from tests.helpers import GoldenTestCase
 
 class TestIfToIfGoto(GoldenTestCase):
     """Test IfToIfGoto transform"""

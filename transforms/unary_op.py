@@ -33,10 +33,9 @@ class LiftUnaryOp(LiftNode):
             return self.inc_and_dec(node)
         elif node.op in ['+', '-', '~']:
             raise NotImplementedError()
-        elif node.op == '&':
-            return node #do nothing
-        elif node.op == '*':
-            return node #do nothing
+        elif node.op in ['&', '*']:
+            node.expr = self.visit(node.expr)
+            return node
         else:
             raise NotImplementedError()
 
@@ -46,16 +45,16 @@ class LiftUnaryOp(LiftNode):
             decl = make_temp_value(node.expr, self.id_generator, self.envr)
             binop = AST.BinaryOp('+', deepcopy(node.expr), constant_one())
             inc = AST.Assignment('=', deepcopy(node.expr), binop)
-            self.insert_into_scope((decl, inc))
+            self.insert_into_scope(decl, inc)
             self.envr.add(decl.name, decl.type)
-            node = deepcopy(decl.name)
+            node = AST.ID(decl.name)
         elif node.op == 'p--':
             decl = make_temp_value(node.expr, self.id_generator, self.envr)
             binop = AST.BinaryOp('-', deepcopy(node.expr), constant_one())
             inc = AST.Assignment('=', deepcopy(node.expr), binop)
-            self.insert_into_scope((decl, inc))
+            self.insert_into_scope(decl, inc)
             self.envr.add(decl.name, decl.type)
-            node = deepcopy(decl.name)
+            node = AST.ID(decl.name)
         elif node.op == '++':
             binop = AST.BinaryOp('+', deepcopy(node.expr), constant_one())
             inc = AST.Assignment('=', deepcopy(node.expr), binop)

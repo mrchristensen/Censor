@@ -18,7 +18,6 @@ class ChangeToVoidPointer(LiftNode):
     def visit_BinaryOp(self, node): #pylint: disable=invalid-name
         """ Looks for pointer arithmetic within BinaryOp ast """
         self.generic_visit(node)
-
         if node.op == '+':
             left_type, right_type, node = self.arithmetic_to_void_pointer(node)
             if (_is_integral(left_type) and
@@ -34,10 +33,6 @@ class ChangeToVoidPointer(LiftNode):
             left_type, right_type, node = self.arithmetic_to_void_pointer(node)
             if ((_is_ptr(left_type) or _is_array(left_type)) and
                     (_is_ptr(right_type) or _is_array(right_type))):
-#                if _is_array(left_type):
-#                    node.left = AST.UnaryOp('&',node.left)
-#                if _is_array(right_type):
-#                    node.left = AST.UnaryOp('&',node.right)
                 #This should only be allowed when they are both pointing to the
                 # same type of object. The result should equal the difference
                 # in index values of the two pointers
@@ -46,8 +41,22 @@ class ChangeToVoidPointer(LiftNode):
                 node.right = make_void_pointer(node.right)
                 ptr_size = get_size_ast(left_type.type, self.envr)
                 node = AST.BinaryOp('/', node, ptr_size)
-
+        elif node.op == '=':
+            if isinstance(node.right, AST.ID):
+                right_type = get_type(node.right, self.envr)
+                if _is_array(right_type):
+                        node.right = AST.UnaryOp('&', node.right)
         return node
+
+    def visit_Cast(self, node): #pylint: disable=invalid-name
+        self.generic_visit(node)
+        if isinstance(node.expr, AST.ID):
+            expr_type = get_type(node.expr, self.envr)
+            if _is_array(expr_type):
+                    node.expr = AST.UnaryOp('&', node.expr)
+        return node       
+
+
 
     def arithmetic_to_void_pointer(self, node):
         """ transforms binops of the from ptr + 8 or ptr - 10 """
