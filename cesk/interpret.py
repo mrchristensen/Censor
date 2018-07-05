@@ -37,7 +37,6 @@ class LinkSearch(AST.NodeVisitor):
             logging.debug('Store struct '+str(name)
                           +' with decls '+str(node.decls))
 
-
         #link children to parents via lut
         for i, child in enumerate(node):
             if isinstance(child, AST.Node):
@@ -230,7 +229,11 @@ def execute(state):
 
             print_string = print_string[1:][:-1] #drop quotes
             print(print_string.replace("\\n", "\n"), end="") #convert newlines
-            successors.append(get_next(state))
+            if isinstance(state.kont, FunctionKont): #Don't return to function
+                successors.append(get_next(state))
+            else:
+                successors.append(state.kont.satisfy(state,
+                                  generate_constant_value("0")))
         elif stmt.name.name == "malloc":
             param = stmt.args.exprs[0]
             if isinstance(stmt.args.exprs[0], AST.Cast):

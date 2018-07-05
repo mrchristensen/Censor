@@ -1,3 +1,6 @@
+#ifndef STDLIB_H
+#define STDLIB_H
+
 #include "_fake_defines.h"
 #include "_fake_typedefs.h"
 
@@ -10,3 +13,5 @@ extern void free (void *__ptr);
 extern double atof (const char *__nptr);
 extern int atoi (const char *__nptr);
 extern long int atol (const char *__nptr);
+
+#endif

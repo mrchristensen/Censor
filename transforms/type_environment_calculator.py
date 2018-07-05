@@ -165,6 +165,9 @@ class TypeEnvironmentCalculator(NodeTransformer):
     def visit_Decl(self, node): # pylint: disable=invalid-name
         """Visit Decl nodes so that we can save type information about
         identifiers in the environment."""
+        if 'extern' in node.storage:
+            return node
+
         type_node = deepcopy(node.type)
         ident = remove_identifier(type_node)
 

@@ -107,6 +107,7 @@ def run_tool(tool, ast):
     elif tool == "transform":
         print('Starting transform......')
         transform(ast)
+        utils.sanitize(ast)
         print(CWithOMPGenerator().visit(ast))
     else:
         print("No valid tool name given; defaulting to censor.")
