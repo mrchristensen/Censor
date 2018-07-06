@@ -80,5 +80,4 @@ int    sigtimedwait(const sigset_t *restrict, siginfo_t *restrict,
                 const struct timespec *restrict);
 int    sigwait(const sigset_t *restrict, int *restrict);
 int    sigwaitinfo(const sigset_t *restrict, siginfo_t *restrict);
-
 #endif
