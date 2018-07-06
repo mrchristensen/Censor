@@ -105,10 +105,9 @@ def run_tool(tool, ast):
     elif tool == "print":
         print_ast(ast)
     elif tool == "transform":
-        print('Starting transform......')
         transform(ast)
         utils.sanitize(ast)
-        print(CWithOMPGenerator().visit(ast))
+        print(CWithOMPGenerator().visit(ast).replace("#pragma BEGIN ",""))
     else:
         print("No valid tool name given; defaulting to censor.")
         censor.main(ast) #default to censor

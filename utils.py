@@ -85,7 +85,7 @@ def preserve_include_find_end(node, start_index):
 
     return -1
 
-def find_depenencies(path_to_makefile = "./",name_of_makefile = "Makefile"):
+def find_dependencies(path_to_makefile = "./",name_of_makefile = "Makefile"):
     '''Returns a list of Strings of all of the depenencies of a makefile.
     Currently extracts each "example.c" in all instances of "make -dn"
     outputting a "Considering target file 'example.c'."'''
@@ -105,8 +105,10 @@ def find_depenencies(path_to_makefile = "./",name_of_makefile = "Makefile"):
     output = [path_to_makefile + item for item in output if len(item) is not 0]
     dependencies = []
     index = 0
-    while index < len(output) - 1:
-        if output[index] != output[index + 1]:
+    while index < len(output):
+        if index == len(output) - 1:
+            dependencies.append(output[index])
+        elif output[index] != output[index + 1]:#check to see if file exists
             dependencies.append(output[index])
         else:
             index += 1 # skip duplicate and don't add either
