@@ -68,6 +68,7 @@ def main():
     if args.includes is not None:
         cpp_args.extend([''.join(['-I', include]) \
                 for include in args.includes.split(',')])
+        cpp_args.extend(['-DMAP_USE_HASHTABLE,SET_USE_RBTREE'])
 
     ast = pycparser.c_ast.FileAST([])
     for filename in args.filename:
@@ -116,6 +117,11 @@ def print_ast(ast):
     """ Steps to print the ast """
     print("BEFORE TRANSFORMS---------------------------------------")
     ast.show()
+    from copy import deepcopy
+    ast_copy = deepcopy(ast) 
+    utils.sanitize(ast_copy)
+    pyc_file = open("just_pyc.c","w+")
+    pyc_file.write(CWithOMPGenerator().visit(ast_copy).replace("#pragma BEGIN ",""))
     transform(ast)
     print("--------------------------AFTER TRANSFORMS----------------")
     ast.show()

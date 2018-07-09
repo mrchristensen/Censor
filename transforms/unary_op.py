@@ -77,4 +77,3 @@ def constant_one():
 def constant_zero():
     """ return the number 0 as an ast constant """
     return AST.Constant('int', '0')
-
