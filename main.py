@@ -70,6 +70,14 @@ def main():
                 for include in args.includes.split(',')])
         cpp_args.extend(['-DMAP_USE_HASHTABLE,SET_USE_RBTREE'])
 
+    #delete this when done debugging
+    #text = pycparser.preprocess_file(args.filename[0], cpp_path='gcc', cpp_args=cpp_args)
+
+    #pre_proccess_record = open('preprocced.txt','w+')
+    #pre_proccess_record.write(text)
+    #pre_proccess_record.close()
+    #end delete this
+
     ast = pycparser.c_ast.FileAST([])
     for filename in args.filename:
         ast.ext += pycparser.parse_file(
@@ -120,7 +128,7 @@ def print_ast(ast):
     from copy import deepcopy
     ast_copy = deepcopy(ast) 
     utils.sanitize(ast_copy)
-    pyc_file = open("just_pyc.c","w+")
+    pyc_file = open("just_pyc.c","w")
     pyc_file.write(CWithOMPGenerator().visit(ast_copy).replace("#pragma BEGIN ",""))
     transform(ast)
     print("--------------------------AFTER TRANSFORMS----------------")

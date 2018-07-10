@@ -146,6 +146,7 @@ typedef int uintptr_t;
 /* C99 greatest-width integer types */
 typedef int intmax_t;
 typedef int uintmax_t;
+typedef int imaxdiv_t;
 
 /* C99 stdbool.h bool type. _Bool is built-in in C99 */
 typedef _Bool bool;

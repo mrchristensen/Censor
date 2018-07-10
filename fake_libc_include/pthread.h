@@ -25,7 +25,7 @@ int   pthread_attr_setstackaddr(pthread_attr_t *, void *);
 int   pthread_attr_setstacksize(pthread_attr_t *, size_t);
 int   pthread_cancel(pthread_t);
 // there were mismatched parens in this function, I tried to fix them but I may have made an error
-void  pthread_cleanup_push((void*), void *);
+void  pthread_cleanup_push(void(void*), void *);
 void  pthread_cleanup_pop(int);
 int   pthread_cond_broadcast(pthread_cond_t *);
 int   pthread_cond_destroy(pthread_cond_t *);
