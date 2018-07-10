@@ -2,7 +2,7 @@
 
 from transforms.switch_if import SwitchToIf
 from transforms.id_generator import IDGenerator
-from helpers import GoldenTestCase
+from tests.helpers import GoldenTestCase
 
 class TestSwitchToIf(GoldenTestCase):
     """Test SwitchToGoto transform"""

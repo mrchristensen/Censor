@@ -1,6 +1,6 @@
 """Test WhileToDoWhile -- Replacing while with do while loops"""
 from transforms.while_to_do_while import WhileToDoWhile
-from helpers import GoldenTestCase
+from tests.helpers import GoldenTestCase
 
 
 class TestWhileToDoWhile(GoldenTestCase):

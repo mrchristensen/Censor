@@ -46,7 +46,8 @@ def main():
 
     import pycparser
 
-    temp_files = [] #file need to remain to not be garbage collected and closed 
+    temp_files = [] #file need to remain to not be garbage collected and closed
+    orig_name_map = {} 
     if args.sanitize:
         temps = [] 
         for filename in args.filename:
@@ -56,6 +57,7 @@ def main():
             utils.preserve_include_preprocess(temp.name)
             temps.append(temp.name)
             temp_files.append(temp)
+            orig_name_map[temp.name] = filename
         args.filename = temps
 
     cpp_args = [
@@ -68,6 +70,20 @@ def main():
     if args.includes is not None:
         cpp_args.extend([''.join(['-I', include]) \
                 for include in args.includes.split(',')])
+        cpp_args.extend(['-DMAP_USE_HASHTABLE,SET_USE_RBTREE'])
+
+    print(cpp_args)
+
+    #delete this when done debugging
+    pre_proccess_record = open('preprocessed.txt','w+')
+    for filename in args.filename:
+        print(orig_name_map[filename])
+        if orig_name_map[filename] == "/home/jjones95/openssl/apps/app_rand.c":
+            print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+            text = pycparser.preprocess_file('dummy_define.c '+filename, cpp_path='gcc', cpp_args=cpp_args)
+            pre_proccess_record.write(text)
+    pre_proccess_record.close()
+    #end delete this
 
     ast = pycparser.c_ast.FileAST([])
     for filename in args.filename:
@@ -105,9 +121,9 @@ def run_tool(tool, ast):
     elif tool == "print":
         print_ast(ast)
     elif tool == "transform":
-        print('Starting transform......')
         transform(ast)
-        print(CWithOMPGenerator().visit(ast))
+        utils.sanitize(ast)
+        print(CWithOMPGenerator().visit(ast).replace("#pragma BEGIN ",""))
     else:
         print("No valid tool name given; defaulting to censor.")
         censor.main(ast) #default to censor
@@ -116,6 +132,11 @@ def print_ast(ast):
     """ Steps to print the ast """
     print("BEFORE TRANSFORMS---------------------------------------")
     ast.show()
+    from copy import deepcopy
+    ast_copy = deepcopy(ast) 
+    utils.sanitize(ast_copy)
+    pyc_file = open("just_pyc.c","w")
+    pyc_file.write(CWithOMPGenerator().visit(ast_copy).replace("#pragma BEGIN ",""))
     transform(ast)
     print("--------------------------AFTER TRANSFORMS----------------")
     ast.show()

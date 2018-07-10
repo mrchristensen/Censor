@@ -28,12 +28,13 @@ class LiftUnaryOp(LiftNode):
 
         node.expr = self.generic_visit(node.expr)
         if node.op == '!':
-            return node
-            raise NotImplementedError()
+            return AST.BinaryOp("==", constant_zero(), node.expr) 
         elif node.op in ['++', '--', 'p--', 'p++']:
             return self.inc_and_dec(node)
         elif node.op in ['+', '-', '~']:
-            return node
+            if node.op == '-':
+                return AST.BinaryOp('-', constant_zero(), node.expr) 
+            node.show()
             raise NotImplementedError()
         elif node.op in ['&', '*']:
             node.expr = self.visit(node.expr)
@@ -72,3 +73,7 @@ class LiftUnaryOp(LiftNode):
 def constant_one():
     """ return the number 1 as an ast constant """
     return AST.Constant('int', '1')
+
+def constant_zero():
+    """ return the number 0 as an ast constant """
+    return AST.Constant('int', '0')

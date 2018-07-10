@@ -2,7 +2,7 @@
 
 from transforms.for_to_while import ForToWhile
 from transforms.omp_for import PragmaToOmpFor
-from helpers import GoldenTestCase
+from tests.helpers import GoldenTestCase
 
 class TestForToWhile(GoldenTestCase):
     """Test ForToWhile transform"""

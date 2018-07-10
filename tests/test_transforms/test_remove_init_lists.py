@@ -3,7 +3,7 @@
 from transforms.remove_init_lists import RemoveInitLists
 from transforms.id_generator import IDGenerator
 from transforms.type_environment_calculator import TypeEnvironmentCalculator
-from helpers import GoldenTestCase
+from tests.helpers import GoldenTestCase
 
 class TestRemoveInitLists(GoldenTestCase):
     """Test RemoveInitLists transform"""

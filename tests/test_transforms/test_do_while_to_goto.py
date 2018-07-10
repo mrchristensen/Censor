@@ -2,7 +2,7 @@
 
 from transforms.do_while_to_goto import DoWhileToGoto
 from transforms.id_generator import IDGenerator
-from helpers import GoldenTestCase
+from tests.helpers import GoldenTestCase
 
 class TestDoWhileToGoto(GoldenTestCase):
     """Test DoWhileToGoto transform"""

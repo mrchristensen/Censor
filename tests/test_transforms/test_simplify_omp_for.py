@@ -4,7 +4,7 @@ from transforms.simplify_omp_for import SimplifyOmpFor
 from transforms.omp_for import PragmaToOmpFor
 from transforms.id_generator import IDGenerator
 from transforms.type_environment_calculator import TypeEnvironmentCalculator
-from helpers import GoldenTestCase
+from tests.helpers import GoldenTestCase
 
 class TestRemoveCompoundAssignment(GoldenTestCase):
     """Test RemoveCompoundAssignment transform"""
