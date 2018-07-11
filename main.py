@@ -68,7 +68,7 @@ def main():
     if args.includes is not None:
         cpp_args.extend([''.join(['-I', include]) \
                 for include in args.includes.split(',')])
-        cpp_args.extend(['-DMAP_USE_HASHTABLE,SET_USE_RBTREE'])
+        cpp_args.extend(['-DMAP_USE_HASHTABLE -DSET_USE_RBTREE'])
 
     #delete this when done debugging
     #text = pycparser.preprocess_file(args.filename[0], cpp_path='gcc', cpp_args=cpp_args)
