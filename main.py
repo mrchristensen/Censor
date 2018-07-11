@@ -55,6 +55,7 @@ def main():
             temp.write(open(filename, 'rb').read())
             temp.flush()
             utils.preserve_include_preprocess(temp.name)
+            utils.remove_gcc_extentions(temp.name)
             temps.append(temp.name)
             temp_files.append(temp)
             orig_name_map[temp.name] = filename
@@ -70,19 +71,16 @@ def main():
     if args.includes is not None:
         cpp_args.extend([''.join(['-I', include]) \
                 for include in args.includes.split(',')])
-        cpp_args.extend(['-DMAP_USE_HASHTABLE,SET_USE_RBTREE'])
-
-    print(cpp_args)
+        cpp_args.extend(['-DMAP_USE_HASHTABLE -DSET_USE_RBTREE'])
 
     #delete this when done debugging
-    pre_proccess_record = open('preprocessed.txt','w+')
-    for filename in args.filename:
-        print(orig_name_map[filename])
-        if orig_name_map[filename] == "/home/jjones95/openssl/apps/app_rand.c":
-            print('++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
-            text = pycparser.preprocess_file('dummy_define.c '+filename, cpp_path='gcc', cpp_args=cpp_args)
-            pre_proccess_record.write(text)
-    pre_proccess_record.close()
+    print(cpp_args)
+    #pre_proccess_record = open('preprocessed.txt','w+')
+    #for filename in args.filename:
+    #    print(orig_name_map[filename])
+    #    text = pycparser.preprocess_file(filename, cpp_path='gcc', cpp_args=cpp_args)
+    #    pre_proccess_record.write(text)
+    #pre_proccess_record.close()
     #end delete this
 
     ast = pycparser.c_ast.FileAST([])

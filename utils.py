@@ -62,6 +62,15 @@ def preserve_include_preprocess(path):
     if res.returncode != 0:
         raise RuntimeError('Could not perform include preserve preprocessing!')
 
+def remove_gcc_extentions(path):
+    """ Run sed on source file to remove selected common gcc extentions
+    """
+    sed_path = os.path.dirname(os.path.realpath(__file__)) \
+               + r'/utils/remove_extentions.sed'
+    res = subprocess.run(['sed', '-i', '-rf', sed_path, path])
+    if res.returncode != 0:
+        raise RuntimeError('Could not remove extentions!')
+
 def preserve_include_postprocess(path):
     """ Run sed on transformed source file to remove fake_libc_includes and
         replace them with the original includes.
