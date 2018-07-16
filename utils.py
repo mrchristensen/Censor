@@ -61,15 +61,97 @@ def preserve_include_preprocess(path):
     res = subprocess.run(['sed', '-i', '-rf', sed_path, path])
     if res.returncode != 0:
         raise RuntimeError('Could not perform include preserve preprocessing!')
-
-def remove_gcc_extentions(path):
+import re
+def remove_gcc_extentions(text,path):
     """ Run sed on source file to remove selected common gcc extentions
     """
-    sed_path = os.path.dirname(os.path.realpath(__file__)) \
-               + r'/utils/remove_extentions.sed'
-    res = subprocess.run(['sed', '-i', '-rf', sed_path, path])
-    if res.returncode != 0:
-        raise RuntimeError('Could not remove extentions!')
+    pattern = r'(asm)|(__attribute__)|(\({)'
+    matches = re.finditer(pattern, text)
+    if matches is None:
+        return text
+    replacements = []
+    last_index = 0
+    for match in matches:
+        #match.group() start and end
+        if match.start() < last_index:
+            continue
+        if match.group() == 'asm':
+            end_index = volatile(match.end(), text)
+            end_index = paren_match(end_index, text)
+            if end_index == match.end():
+                continue
+            end_index = semicolon(end_index, text)
+            replacements.append((match.start(),end_index,''))
+            last_index = end_index
+
+        elif match.group() == '__attribute__':
+            end_index = paren_match(match.end(), text)
+            if end_index == match.end():
+                continue
+            replacements.append((match.start(),end_index,''))
+            last_index = end_index
+
+        elif match.group() == '({':
+            end_index = paren_match(match.start(), text)
+            if end_index == match.start():
+                continue
+            end_index = semicolon(end_index, text)
+            replacements.append((match.start(),end_index,'0;'))
+            last_index = end_index
+
+    altered_text = []
+    index = 0
+    for (begin, end, replace) in replacements:
+        altered_text += text[index:begin] + replace
+        index = end
+    altered_text += text[index:]
+
+    return "".join(altered_text)
+
+def paren_match(start_index, string):
+    """ finds end match of a paren ( returns that index, returns start_index if no paren found """
+    index = start_index
+    while string[index].isspace():
+        index+=1
+    
+    if string[index] == '(':
+        index+=1
+    else:
+        return start_index
+    parencount = 1
+    while parencount != 0:
+        if string[index] == '(':
+            parencount += 1
+        elif string[index] == ')':
+            parencount -= 1
+        index += 1
+    return index
+
+def semicolon(start_index, string):
+    """ finds end match of a paren ( returns that index, returns start_index if no paren found """
+    index = start_index
+    while string[index].isspace():
+        index+=1
+    
+    if string[index] == ';':
+        index+=1
+    else:
+        return start_index
+    
+    return index
+def volatile(start_index, string):
+    """ finds end match of a paren ( returns that index, returns start_index if no paren found """
+    index = start_index
+    while string[index].isspace():
+        index+=1
+    
+    if string[index:index+8] == 'volatile':
+        index+=8
+    else:
+        return start_index
+    
+    return index
+
 
 def preserve_include_postprocess(path):
     """ Run sed on transformed source file to remove fake_libc_includes and

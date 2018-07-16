@@ -326,7 +326,7 @@ int CRYPTO_mem_leaks(BIO *bio);
 # endif
 
 /* die if we have to */
-ossl_noreturn void OPENSSL_die(const char *assertion, const char *file, int line);
+/* censor_edit ossl_noreturn*/ void OPENSSL_die(const char *assertion, const char *file, int line);
 # if OPENSSL_API_COMPAT < 0x10100000L
 #  define OpenSSLDie(f,l,a) OPENSSL_die((a),(f),(l))
 # endif
@@ -441,7 +441,7 @@ CRYPTO_THREAD_ID CRYPTO_THREAD_get_current_id(void);
 int CRYPTO_THREAD_compare_id(CRYPTO_THREAD_ID a, CRYPTO_THREAD_ID b);
 
 
-# ifdef  __cplusplus
+#ifdef  __cplusplus
 }
-# endif
+#endif
 #endif

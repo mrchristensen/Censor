@@ -23,7 +23,7 @@ def main():
 
     string_of_includes = ""
     for filename in array_of_files:
-        string_of_includes += filename+" "
+        string_of_includes += filename+"\n"
 
     if args.outfile:
         outfile = open(args.outfile, "w+")
