@@ -63,7 +63,10 @@ def main():
         opensslfile += args.opensslDirectory + 'include/,'
         opensslfile += args.opensslDirectory + 'crypto/modes/,'
         opensslfile += args.opensslDirectory + 'apps/'
-        args.includes = opensslfile
+        if args.includes:
+            args.includes += ','+opensslfile
+        else:
+            args.includes = opensslfile
         cpp_args.extend(['-DMAP_USE_HASHTABLE', '-DSET_USE_RBTREE', '-DOPENSSLDIR=' + args.opensslDirectory])
 
     if args.includes is not None:
@@ -72,9 +75,19 @@ def main():
 
     ast = pycparser.c_ast.FileAST([])
     cparser = CParser()
-    database = shelve.open("utils/stored_file_asts")
+    if args.database:
+        database = shelve.open(args.database)
+        if 'map_of_includes' in database:
+            include_map = database['map_of_includes']
+        else:
+            include_map = {}
+    else:
+        database = None
+        include_map = None
+
     for filename in args.filename:
-        if orig_name_map[filename] in database:
+        if database and \
+           orig_name_map[filename] in database:
             continue
             file_ast = database[orig_name_map[filename]]
         else:
@@ -92,13 +105,15 @@ def main():
 
             #file_ast = pycparser.parse_file(filename)
             file_ast = cparser.parse(text, orig_name_map[filename])
-            database[orig_name_map[filename]] = file_ast
-            database.sync()
-            continue
+            if database:
+                database[orig_name_map[filename]] = file_ast
+                database.sync()
+                continue
             
         ast.ext.append(file_ast)
 
-    database.close()
+    if database:
+        database.close()
         
     if args.configuration is not None:
         set_config(args.configuration)
@@ -179,6 +194,8 @@ def build_parser():
                         required=False, type=str, help='limits for types')
     parser.add_argument('--opensslDirectory', '-o',
                         required=False, type=str, help='directory to openssl')
+    parser.add_argument('--database', '-d',
+                        required=False, type=str, help='database to fetch and store ast rather than use pycparser to produce')
     return parser
 
 if __name__ == "__main__":
