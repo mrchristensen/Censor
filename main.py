@@ -54,10 +54,21 @@ def main():
         ''.join(['-I', dir_name]),
         ''.join(['-I', dir_name, '/utilities']),
     ]
+
+    if args.opensslDirectory is not None:
+        opensslfile =  args.opensslDirectory + 'crypto/ec/curve448/arch_32/,'
+        opensslfile += args.opensslDirectory + 'crypto/ec/curve448/,'
+        opensslfile += args.opensslDirectory + ','
+        opensslfile += args.opensslDirectory + 'crypto/include/,'
+        opensslfile += args.opensslDirectory + 'include/,'
+        opensslfile += args.opensslDirectory + 'crypto/modes/,'
+        opensslfile += args.opensslDirectory + 'apps/'
+        args.includes = opensslfile
+        cpp_args.extend(['-DMAP_USE_HASHTABLE', '-DSET_USE_RBTREE', '-DOPENSSLDIR=' + args.opensslDirectory])
+
     if args.includes is not None:
         cpp_args.extend([''.join(['-I', include]) \
                 for include in args.includes.split(',')])
-        cpp_args.extend(['-DMAP_USE_HASHTABLE', '-DSET_USE_RBTREE', '-DOPENSSLDIR="/home/jjones95/openssl"'])
 
     ast = pycparser.c_ast.FileAST([])
     cparser = CParser()
@@ -166,6 +177,8 @@ def build_parser():
                         help='Comma separated includes for preprocessing')
     parser.add_argument('--configuration', '-c',
                         required=False, type=str, help='limits for types')
+    parser.add_argument('--opensslDirectory', '-o',
+                        required=False, type=str, help='directory to openssl')
     return parser
 
 if __name__ == "__main__":
