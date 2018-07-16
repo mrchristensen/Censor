@@ -64,7 +64,7 @@ def main():
     database = shelve.open("utils/stored_file_asts")
     for filename in args.filename:
         if orig_name_map[filename] in database:
-            #continue
+            continue
             file_ast = database[orig_name_map[filename]]
         else:
             text = pycparser.preprocess_file(filename, cpp_path='gcc',
@@ -74,14 +74,16 @@ def main():
             #preprocessed_file.close()
             text = utils.remove_gcc_extentions(text,filename)
 
-            #pre_proccess_record = open('preprocessed.txt','w')
-            #pre_proccess_record.write(orig_name_map[filename])
-            #pre_proccess_record.write(text)#orig_name_map[filename])
-            #pre_proccess_record.close()
+            pre_proccess_record = open('preprocessed.txt','w')
+            pre_proccess_record.write(orig_name_map[filename])
+            pre_proccess_record.write(text)#orig_name_map[filename])
+            pre_proccess_record.close()
 
             #file_ast = pycparser.parse_file(filename)
             file_ast = cparser.parse(text, orig_name_map[filename])
             database[orig_name_map[filename]] = file_ast
+            database.sync()
+            continue
             
         ast.ext.append(file_ast)
 

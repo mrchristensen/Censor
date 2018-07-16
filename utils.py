@@ -65,7 +65,7 @@ import re
 def remove_gcc_extentions(text,path):
     """ Run sed on source file to remove selected common gcc extentions
     """
-    pattern = r'(asm)|(__attribute__)|(\({)'
+    pattern = r'(asm)|(__restrict__)|(__inline__)|(__attribute(__)*)|(\({)'
     matches = re.finditer(pattern, text)
     if matches is None:
         return text
@@ -81,22 +81,34 @@ def remove_gcc_extentions(text,path):
             if end_index == match.end():
                 continue
             end_index = semicolon(end_index, text)
-            replacements.append((match.start(),end_index,''))
+            replacements.append((match.start(), end_index, ''))
             last_index = end_index
 
-        elif match.group() == '__attribute__':
+        elif (match.group() == '__attribute__' or
+              match.group() == '__attribute'):
             end_index = paren_match(match.end(), text)
             if end_index == match.end():
                 continue
-            replacements.append((match.start(),end_index,''))
+            replacements.append((match.start(), end_index, ''))
             last_index = end_index
 
+        elif match.group() == '__inline__':
+            replacements.append((match.start(), match.end(), 'inline'))
+            last_index = end_index
+
+        elif match.group() == '__restrict__':
+            replacements.append((match.start(), match.end(), ''))
+            last_index = end_index
         elif match.group() == '({':
             end_index = paren_match(match.start(), text)
             if end_index == match.start():
                 continue
+            before_semi_colon = end_index
             end_index = semicolon(end_index, text)
-            replacements.append((match.start(),end_index,'0;'))
+            if end_index == before_semi_colon:
+                replacements.append((match.start(), end_index, '0'))
+            else:
+                replacements.append((match.start(), end_index, '0;'))
             last_index = end_index
 
     altered_text = []

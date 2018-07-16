@@ -3,6 +3,12 @@
 #include "_fake_defines.h"
 #include "_fake_typedefs.h"
 
+typedef struct {
+    char * name;
+    int flags;
+} DIR;
+
+
 int            closedir(DIR *);
 DIR           *opendir(const char *);
 struct dirent *readdir(DIR *);
