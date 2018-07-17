@@ -5,6 +5,7 @@ import argparse
 import sys
 import tempfile
 from os import path
+import shelve
 
 from ssl.correct_call_order import verify_openssl_correctness
 import yeti
@@ -13,13 +14,11 @@ from omp.c_with_omp_generator import CWithOMPGenerator
 from cesk.limits import set_config
 from transforms import transform
 
-import shelve
-
 def main():
     """Parses arguments and calls correct tool"""
 
     parser = build_parser()
-    
+
     args = parser.parse_args()
     dir_name = path.dirname(args.filename[0])
 
@@ -34,9 +33,9 @@ def main():
     from pycparser.c_parser import CParser
 
     temp_files = [] #file need to remain to not be garbage collected and closed
-    orig_name_map = {} 
+    orig_name_map = {}
     if args.sanitize:
-        temps = [] 
+        temps = []
         for filename in args.filename:
             temp = tempfile.NamedTemporaryFile()
             temp.write(open(filename, 'rb').read())
@@ -56,7 +55,7 @@ def main():
     ]
 
     if args.opensslDirectory is not None:
-        opensslfile =  args.opensslDirectory + 'crypto/ec/curve448/arch_32/,'
+        opensslfile = args.opensslDirectory + 'crypto/ec/curve448/arch_32/,'
         opensslfile += args.opensslDirectory + 'crypto/ec/curve448/,'
         opensslfile += args.opensslDirectory + ','
         opensslfile += args.opensslDirectory + 'crypto/include/,'
@@ -67,7 +66,8 @@ def main():
             args.includes += ','+opensslfile
         else:
             args.includes = opensslfile
-        cpp_args.extend(['-DMAP_USE_HASHTABLE', '-DSET_USE_RBTREE', '-DOPENSSLDIR=' + args.opensslDirectory])
+        cpp_args.extend(['-DMAP_USE_HASHTABLE', '-DSET_USE_RBTREE',
+                        '-DOPENSSLDIR="' + args.opensslDirectory + '"'])
 
     if args.includes is not None:
         cpp_args.extend([''.join(['-I', include]) \
@@ -75,8 +75,10 @@ def main():
 
     ast = pycparser.c_ast.FileAST([])
     cparser = CParser()
+    database = None
     if args.database:
-        database = shelve.open(args.database)
+        print('opened database')
+        database = shelve.open(args.database, writeback=True)
         if 'map_of_includes' in database:
             include_map = database['map_of_includes']
         else:
@@ -86,35 +88,41 @@ def main():
         include_map = None
 
     for filename in args.filename:
-        if database and \
+        if database is not None and \
            orig_name_map[filename] in database:
+            print('Old: '+orig_name_map[filename])
             continue
             file_ast = database[orig_name_map[filename]]
         else:
+            print('New: '+orig_name_map[filename])
+            local_path = ["-I"+path.dirname(orig_name_map[filename])]
             text = pycparser.preprocess_file(filename, cpp_path='gcc',
-                                             cpp_args=cpp_args+["-I"+path.dirname(orig_name_map[filename])])
+                                             cpp_args=cpp_args+local_path)
             #preprocessed_file = open(filename, "w")
             #preprocessed_file.write(text)
             #preprocessed_file.close()
             text = utils.remove_gcc_extentions(text,filename)
 
-            pre_proccess_record = open('preprocessed.txt','w')
+            pre_proccess_record = open('preprocessed.txt', 'w')
             pre_proccess_record.write(orig_name_map[filename])
             pre_proccess_record.write(text)#orig_name_map[filename])
             pre_proccess_record.close()
 
             #file_ast = pycparser.parse_file(filename)
             file_ast = cparser.parse(text, orig_name_map[filename])
-            if database:
+            if database is not None:
+                utils.sanitize(file_ast, include_map)
+                database['map_of_includes'] = include_map
                 database[orig_name_map[filename]] = file_ast
                 database.sync()
+                print('Saved: '+orig_name_map[filename])
                 continue
-            
+
         ast.ext.append(file_ast)
 
-    if database:
+    if database is not None:
         database.close()
-        
+
     if args.configuration is not None:
         set_config(args.configuration)
     # the instrumenter needs to preserve includes until after
@@ -147,7 +155,7 @@ def run_tool(tool, ast):
     elif tool == "transform":
         transform(ast)
         utils.sanitize(ast)
-        print(CWithOMPGenerator().visit(ast).replace("#pragma BEGIN ",""))
+        print(CWithOMPGenerator().visit(ast).replace("#pragma BEGIN ", ""))
     else:
         print("No valid tool name given; defaulting to censor.")
         censor.main(ast) #default to censor
@@ -157,10 +165,10 @@ def print_ast(ast):
     print("BEFORE TRANSFORMS---------------------------------------")
     ast.show()
     from copy import deepcopy
-    ast_copy = deepcopy(ast) 
+    ast_copy = deepcopy(ast)
     utils.sanitize(ast_copy)
-    pyc_file = open("just_pyc.c","w")
-    pyc_file.write(CWithOMPGenerator().visit(ast_copy).replace("#pragma BEGIN ",""))
+    pyc_file = open("just_pyc.c", "w")
+    pyc_file.write(CWithOMPGenerator().visit(ast_copy).replace("#pragma BEGIN ", "")) #pylint: disable:line-too-long
     transform(ast)
     print("--------------------------AFTER TRANSFORMS----------------")
     ast.show()
@@ -174,6 +182,7 @@ def observe_ast(ast, observer, cesk):
     watchman.coverage(cesk.implemented_nodes())
 
 def build_parser():
+    """ Builds all of the option parameters """
     parser = argparse.ArgumentParser()
     parser.add_argument("filename", nargs='+')
     parser.add_argument('--tool', '-t',
@@ -195,7 +204,7 @@ def build_parser():
     parser.add_argument('--opensslDirectory', '-o',
                         required=False, type=str, help='directory to openssl')
     parser.add_argument('--database', '-d',
-                        required=False, type=str, help='database to fetch and store ast rather than use pycparser to produce')
+                        required=False, type=str, help='database to fetch and store ast rather than use pycparser to produce') #pylint: disable:line-too-long
     return parser
 
 if __name__ == "__main__":

@@ -1,0 +1,13 @@
+The goal is to parse the entirity of openssl.
+
+main.py will call pycparser for each c file you give it.
+To compile each of the you need to first get a list of all c files compiled.
+If there is a Makefile then you can extract that information with the ./build_imports.py 
+executable it takes a path to the makefile ex: /home/jjones95/openssl/. Then output
+is written to the file includes.c If the makefile is not named Makefile then please 
+specify the name with the -f option
+
+Then you are ready to run main.py, you need to give the list of the c files, the name of the 
+database in which to store the parsed ast's and give the path to openssl
+
+ex: ./main.py `cat includes.c` -d utils/stored_file_ast -o /home/jjones95/openssl/

@@ -25,12 +25,15 @@ def is_main(ext):
     """Determines if an AST object is a FuncDef named main."""
     return isinstance(ext, pycparser.c_ast.FuncDef) and ext.decl.name == 'main'
 
-def sanitize(ast):
+def sanitize(ast, include_map=None):
     """ Strip fake includes from preprocessed ast.
     """
     from transforms.helpers import NodeTransformer
     class Sanitizer(NodeTransformer):
         """Sanitizing NodeTransformer"""
+        def __init__(self, includes):
+            self.include_map = includes
+
         def visit_FileAST(self, node): #pylint: disable=invalid-name, no-self-use
             """Visit the FileAST and remove typedefs included by fake libc"""
             marks = []
@@ -41,8 +44,15 @@ def sanitize(ast):
                     end = preserve_include_find_end(node, i)
                     if end == -1:
                         raise RuntimeError("Could not find ending Pragma!")
-
-                    marks.append((i+1, end+1))
+                    if self.include_map:
+                        if child.string in self.include_map:
+                            child.string.replace("BEGIN", "Included")
+                            marks.append((i+1, end+1))
+                        else:
+                            #TODO write current file name 
+                            self.include_map[child.string] = "Filename"
+                    else:
+                        marks.append((i+1, end+1))
 
             diff = 0
             for (begin, end) in marks:
@@ -51,7 +61,7 @@ def sanitize(ast):
                 del node.ext[begin:end]
                 diff += end - begin
 
-    Sanitizer().visit(ast)
+    Sanitizer(include_map).visit(ast)
 
 def preserve_include_preprocess(path):
     """ Run sed on source file to preserve includes through gcc preprocessing
@@ -62,7 +72,7 @@ def preserve_include_preprocess(path):
     if res.returncode != 0:
         raise RuntimeError('Could not perform include preserve preprocessing!')
 import re
-def remove_gcc_extentions(text,path):
+def remove_gcc_extentions(text, path):
     """ Run sed on source file to remove selected common gcc extentions
     """
     pattern = r'(asm)|(__restrict__)|(__inline__)|(__attribute(__)*)|(\({)'
@@ -103,12 +113,12 @@ def remove_gcc_extentions(text,path):
             end_index = paren_match(match.start(), text)
             if end_index == match.start():
                 continue
-            before_semi_colon = end_index
-            end_index = semicolon(end_index, text)
-            if end_index == before_semi_colon:
-                replacements.append((match.start(), end_index, '0'))
-            else:
-                replacements.append((match.start(), end_index, '0;'))
+            #before_semi_colon = end_index
+            #end_index = semicolon(end_index, text)
+            #if end_index == before_semi_colon:
+            replacements.append((match.start(), end_index, '0'))
+            #else:
+            #    replacements.append((match.start(), end_index, '0;'))
             last_index = end_index
 
     altered_text = []
@@ -121,13 +131,13 @@ def remove_gcc_extentions(text,path):
     return "".join(altered_text)
 
 def paren_match(start_index, string):
-    """ finds end match of a paren ( returns that index, returns start_index if no paren found """
+    """ finds end match of a paren ( returns that index,
+    returns start_index if no paren found """
     index = start_index
     while string[index].isspace():
-        index+=1
-    
+        index += 1  
     if string[index] == '(':
-        index+=1
+        index += 1
     else:
         return start_index
     parencount = 1
@@ -140,7 +150,7 @@ def paren_match(start_index, string):
     return index
 
 def semicolon(start_index, string):
-    """ finds end match of a paren ( returns that index, returns start_index if no paren found """
+    """if semicolon"""
     index = start_index
     while string[index].isspace():
         index+=1

@@ -233,7 +233,7 @@ def execute(state):
                 successors.append(get_next(state))
             else:
                 successors.append(state.kont.satisfy(state,
-                                  generate_constant_value("0")))
+                    generate_constant_value("0")))
         elif stmt.name.name == "malloc":
             param = stmt.args.exprs[0]
             if isinstance(stmt.args.exprs[0], AST.Cast):
@@ -779,7 +779,8 @@ def get_next(state):
     to execute"""
     ctrl = state.ctrl
     if not isinstance(state.kont, FunctionKont):
-        raise Exception("CESK error: called get_next in bad context: "+str(state.kont))
+        #raise Exception("CESK error: called get_next in bad context: "
+        #                +str(state.kont))
         print(ctrl.stmt().coord)
         print("You are probably trying to get a value from something that " +
               "is not implemented. Defaulting to 0")
