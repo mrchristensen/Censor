@@ -197,11 +197,16 @@ class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
             return Integer(0, 'int')
         return Integer(int(self.data == other.data), 'int')
     
-    def dereference(self):
+    def dereference(self, bytes=None):
         """Reads the address the pointer points to and returns value"""
         if self.data == 0:
             raise Exception("SegFault")
-        return self.stor.read(self.data)
+        if bytes is None:
+            return self.stor.read(self.data)
+        else:
+            val = self.stor.read(self.data)
+
+            return val
 
     def index(self, stor, list_of_index):
         """Reads the address with a given offset from the pointer"""
