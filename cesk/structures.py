@@ -147,6 +147,7 @@ class Stor:
             self.pred_map = {}
             self.succ_map[Stor.NULL] = Stor.NULL
             self.pred_map[Stor.NULL] = Stor.NULL
+            self.size_map = {0:1}
         elif isinstance(to_copy, Stor):
             self.memory = to_copy.memory
             self.succ_map = to_copy.succ_map
@@ -160,6 +161,7 @@ class Stor:
         self.succ_map[pointer] = Stor.NULL 
         self.pred_map[pointer] = Stor.NULL
         self.address_counter += size
+        self.size_map[self.address_counter] = size
         return pointer
 
     def allocate_block(self, length, size=1):
@@ -168,11 +170,13 @@ class Stor:
         start_address = self.address_counter
         start_pointer = generate_pointer_value(self.address_counter, self)
 
+        self.size_map[start_address] = size
         self.pred_map[start_pointer] = Stor.NULL
         last_pointer = start_pointer
         logging.debug(length)
         while self.address_counter < (start_address + length * size):
             self.address_counter += size
+            self.size_map[self.address_counter] = size
             new_pointer = generate_pointer_value(self.address_counter, self)
             self.pred_map[new_pointer] = last_pointer
             self.succ_map[last_pointer] = new_pointer
@@ -186,11 +190,13 @@ class Stor:
         start_address = self.address_counter
         start_pointer = generate_pointer_value(self.address_counter, self)
         self.pred_map[start_pointer] = Stor.NULL
+        self.size_map[self.address_counter] = list_of_sizes[0]
         self.address_counter += list_of_sizes[0]
 
         pred = start_pointer
         for block_size in list_of_sizes[1:]:
             next_block = generate_pointer_value(self.address_counter, self)
+            self.size_map[self.address_counter] = block_size
             self.address_counter += block_size
             self.pred_map[next_block] = pred
             self.succ_map[pred] = next_block
@@ -207,14 +213,13 @@ class Stor:
         if offset > 0:
             for _ in range(offset):
                 new_pointer.offset += 1
-                diff = self.succ_map[new_pointer].data - new_pointer.data
-                if diff == new_pointer.offset:
+                if self.size_map[new_pointer.data] == new_pointer.offset:
                     new_pointer.offset = 0
                     new_pointer = self.succ_map[new_pointer]
         else:
             for _ in range(abs(offset)):
                 if 0 == new_pointer.offset:
-                    diff = new_pointer.data - self.pred_map[new_pointer].data
+                    diff = self.size_map[new_pointer.data]
                     new_pointer = self.pred_map[new_pointer]
                     new_pointer.offset = diff
                 new_pointer.offset -= 1
