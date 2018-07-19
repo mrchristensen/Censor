@@ -42,7 +42,6 @@ def implemented_nodes():
         'If',
         'Label',
         'Return',
-        'TernaryOp',
         'TypeDecl',
         'UnaryOp',
         'FileAST'
