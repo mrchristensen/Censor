@@ -13,7 +13,7 @@ class BreakToGoto(LiftNode):
         break_placer = BreakPlacer(self.id_generator)
         node = break_placer.generic_visit(node)
         if break_placer.label is not None:
-            self.append_to_scope(Label(break_placer.label,EmptyStatement()))
+            self.append_to_scope(Label(break_placer.label, EmptyStatement()))
         return node
 
 class BreakPlacer(NodeTransformer):
@@ -29,6 +29,6 @@ class BreakPlacer(NodeTransformer):
             self.label = self.id_generator.get_unique_id()
         return Goto(self.label)
 
-    def visit_DoWhile(self, node): #pylint: disable=invalid-name
+    def visit_DoWhile(self, node): #pylint: disable=invalid-name, no-self-use
         """Prevents visiting more loops"""
         return node # don't visit more loops

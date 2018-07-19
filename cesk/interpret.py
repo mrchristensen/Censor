@@ -315,7 +315,7 @@ def execute(state):
         logging.debug("FuncDef")
         raise Exception("FuncDef out of Global scope")
     elif isinstance(stmt, AST.Goto):
-        logging.debug('Goto '+stmt.name)
+        logging.debug('Goto %s', stmt.name)
         label_to = LinkSearch.label_lut[stmt.name]
         body = label_to
         while not isinstance(body, AST.Compound):

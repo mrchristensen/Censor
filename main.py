@@ -7,11 +7,12 @@ import tempfile
 from os import path
 
 from ssl.correct_call_order import verify_openssl_correctness
-import yeti
+import instrumenter
 import utils
 from omp.c_with_omp_generator import CWithOMPGenerator
 from cesk.limits import set_config
 from transforms import transform
+
 
 def main():
     """Parses arguments and calls correct tool"""
@@ -19,9 +20,9 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("filename", nargs='+')
     parser.add_argument('--tool', '-t',
-                        choices=['censor', 'yeti', 'cesk',
+                        choices=['censor', 'cesk',
                                  'observer', 'ssl', 'print',
-                                 'transform'],
+                                 'transform', 'instrumenter'],
                         required=False, type=str.lower,
                         help='the (case-insensitive) name of the analysis')
     parser.add_argument('--pycparser', '-p',
@@ -46,9 +47,9 @@ def main():
 
     import pycparser
 
-    temp_files = [] #file need to remain to not be garbage collected and closed 
+    temp_files = [] #file need to remain to not be garbage collected and closed
     if args.sanitize:
-        temps = [] 
+        temps = []
         for filename in args.filename:
             temp = tempfile.NamedTemporaryFile()
             temp.write(open(filename, 'rb').read())
@@ -93,9 +94,9 @@ def run_tool(tool, ast):
     import observer
     if tool == "censor":
         censor.main(ast)
-    elif tool == "yeti":
+    elif tool == "instrumenter":
         transform(ast)
-        yeti.main(ast)
+        instrumenter.main(ast)
     elif tool == "cesk":
         transform(ast)
         cesk.main(ast)

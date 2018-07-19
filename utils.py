@@ -1,6 +1,7 @@
 """Shared Utility Functions for c analyzers"""
 
 import os
+import platform
 import subprocess
 from collections import namedtuple
 import pycparser
@@ -56,7 +57,7 @@ def preserve_include_preprocess(path):
     """
     sed_path = os.path.dirname(os.path.realpath(__file__)) \
                + r'/utils/include_preserve.sed'
-    res = subprocess.run(['sed', '-i', '-rf', sed_path, path])
+    res = run_sed_file(sed_path, path)
     if res.returncode != 0:
         raise RuntimeError('Could not perform include preserve preprocessing!')
 
@@ -68,12 +69,16 @@ def preserve_include_postprocess(path):
                     + r'/utils/insert_includes.sed'
     deleting_sed = os.path.dirname(os.path.realpath(__file__)) \
                    + r'/utils/remove_fake_includes.sed'
-    subprocess.run(
-        ['sed', '-i', '-rf', inserting_sed, path],
-    )
-    subprocess.run(
-        ['sed', '-i', '-rf', deleting_sed, path],
-    )
+    run_sed_file(inserting_sed, path)
+    run_sed_file(deleting_sed, path)
+
+def run_sed_file(sed, path):
+    """ Runs the custom preprocessing on the files based on the sed version """
+    if platform.system() == 'Darwin':
+        return subprocess.run(['sed', '-Ef', sed, path])
+    else:
+        return subprocess.run(['sed', '-i', '-rf', sed, path])
+
 
 def preserve_include_find_end(node, start_index):
     """Find end of #pragma BEGIN include block and return index"""

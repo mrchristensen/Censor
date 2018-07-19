@@ -15,7 +15,7 @@ NOT_IMPLEMENTED = (
     CopyPrivate,
     Final,
     Linear
-    )
+)
 
 def implicit_reference(clause):
     """Return true if clause makes implicit reference"""
@@ -53,6 +53,7 @@ def node_to_address(node):
         return UnaryOp('&', ID(node))
     else:
         return UnaryOp('&', node)
+
 
 class Instrumenter(LiftNode): #pylint: disable=too-many-public-methods
     """InstrumentReadsAndWrites"""

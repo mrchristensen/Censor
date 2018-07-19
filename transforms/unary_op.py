@@ -8,10 +8,10 @@
 """
 
 from copy import deepcopy
+import pycparser.c_ast as AST
 from .lift_node import LiftNode
 from .type_helpers import get_type, make_temp_value
 from .sizeof import get_size_ast
-import pycparser.c_ast as AST
 # from .type_helpers import get_no_op
 # from .helpers import ensure_compound
 
