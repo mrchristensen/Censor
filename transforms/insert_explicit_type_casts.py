@@ -82,14 +82,14 @@ class InsertExplicitTypeCasts(NodeTransformer):
         """Handle type cast upon assignment whether part of a Decl or not."""
         ril_error_message = "RemoveInitLists must be done first."
 
-        rvalue = self.generic_visit(rvalue)
+        rvalue = self.visit(rvalue)
 
         if isinstance(type_node, TypeDecl) and \
             isinstance(type_node.type, Struct):
             return rvalue
             raise IncorrectTransformOrder(ril_error_message, rvalue)
         elif isinstance(type_node, (TypeDecl, PtrDecl)):
-            rvalue = cast_if_needed(type_node, self.visit(rvalue), self.env)
+            rvalue = cast_if_needed(type_node, rvalue, self.env)
         elif isinstance(type_node, ArrayDecl):
             if isinstance(rvalue, InitList):
                 raise IncorrectTransformOrder(ril_error_message, rvalue)

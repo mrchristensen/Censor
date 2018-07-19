@@ -6,7 +6,7 @@ import sys
 import pycparser
 from cesk.values import ReferenceValue, generate_default_value, cast
 from cesk.values import generate_pointer_value, generate_null_pointer
-# from cesk.interpret import execute #pylint:disable=all
+from cesk.values import generate_pointer
 
 def throw(string, state=None, exit_code=0):
     if state is not None:
@@ -157,27 +157,30 @@ class Stor:
 
     def get_next_address(self, size=1):
         """returns the next available storage address"""
-        pointer = generate_pointer_value(self.address_counter, self)
+        logging.info("Made address %d size %d",self.address_counter,size)
+        pointer = generate_pointer(self.address_counter, self)
         self.succ_map[pointer] = Stor.NULL 
         self.pred_map[pointer] = Stor.NULL
-        self.address_counter += size
         self.size_map[self.address_counter] = size
+        self.address_counter += 1 
         return pointer
 
     def allocate_block(self, length, size=1):
         """Moves the address counter to leave room for an array and returns
         start"""
         start_address = self.address_counter
-        start_pointer = generate_pointer_value(self.address_counter, self)
-
+        start_pointer = generate_pointer(self.address_counter, self)
         self.size_map[start_address] = size
+        self.address_counter += 1
+
         self.pred_map[start_pointer] = Stor.NULL
+        
         last_pointer = start_pointer
-        logging.debug(length)
         while self.address_counter < (start_address + length * size):
-            self.address_counter += size
+            new_pointer = generate_pointer(self.address_counter, self)
             self.size_map[self.address_counter] = size
-            new_pointer = generate_pointer_value(self.address_counter, self)
+            self.address_counter += 1
+            
             self.pred_map[new_pointer] = last_pointer
             self.succ_map[last_pointer] = new_pointer
             last_pointer = new_pointer
@@ -188,16 +191,16 @@ class Stor:
     def allocate_nonuniform_block(self, list_of_sizes):
         """Takes in a list of sizes as int and allocates and links a block in the stor for each size"""
         start_address = self.address_counter
-        start_pointer = generate_pointer_value(self.address_counter, self)
+        start_pointer = generate_pointer(self.address_counter, self)
         self.pred_map[start_pointer] = Stor.NULL
         self.size_map[self.address_counter] = list_of_sizes[0]
-        self.address_counter += list_of_sizes[0]
+        self.address_counter += 1
 
         pred = start_pointer
         for block_size in list_of_sizes[1:]:
-            next_block = generate_pointer_value(self.address_counter, self)
+            next_block = generate_pointer(self.address_counter, self)
             self.size_map[self.address_counter] = block_size
-            self.address_counter += block_size
+            self.address_counter += 1
             self.pred_map[next_block] = pred
             self.succ_map[pred] = next_block
             pred = next_block
@@ -209,7 +212,7 @@ class Stor:
 
     def add_offset_to_pointer(self, pointer, offset):
         # TODO Document what this function does
-        new_pointer = pointer
+        new_pointer = generate_pointer_value(pointer)
         if offset > 0:
             for _ in range(offset):
                 new_pointer.offset += 1
@@ -225,27 +228,17 @@ class Stor:
                 new_pointer.offset -= 1
         return new_pointer
             
-    # def read(self, address):
-    #     """Read the contents of the store at address. Returns None if undefined.
-    #     """
-
-    #     if address in self.memory:
-    #         return self.memory[address]
-    #     if address < self.address_counter:
-    #         return generate_default_value("int")
-    #     raise Exception("ERROR: tried to access an unalocated address: " +
-    #                      str(address))
-
-    def read(self, address, size=None):
+    def read(self, address):
         """Read the contents of the store at address. Returns None if undefined.
         """
 
         if address in self.memory:
             return self.memory[address]
-        if address > self.address_counter:
+        if address >= self.address_counter:
             raise Exception("ERROR: tried to access an unalocated address: " +
                             str(address))
 
+        #raise Exception("I think this should never happen"+str(address)+str(self.memory))
         nearest_address = Stor.NULL
         for x in self.memory:
             if x.data < address:
@@ -256,6 +249,27 @@ class Stor:
 
         return generate_default_value("int")
 
+    def get_nearest_address(self, address):
+        """ returns a pointer to the nearest address
+            with an offset set to make difference """
+        #address = generate_pointer(address, self) 
+        if address in self.memory:
+            return address
+        if address > self.address_counter:
+            return Stor.NULL
+
+        nearest_address = Stor.NULL
+        for x in self.memory:
+            if x.data > address:
+                break
+            nearest_address = x
+ 
+        if not nearest_address == Stor.NULL:
+            offset = address.data - nearest_address.data
+            return generate_pointer(nearest_address.data, self, offset)
+
+        return Stor.NULL
+       
 
     def write(self, address, value):
         """Write value to the store at address. If there is an existing value,
@@ -363,7 +377,7 @@ class CastKont(Kont):
         self.to_type = to_type
 
     def satisfy(self, state, value):
-        cast_value = cast(value, self.to_type, state.stor)
+        cast_value = cast(value, self.to_type, state)
         return self.parent_kont.satisfy(state, cast_value)
         
 

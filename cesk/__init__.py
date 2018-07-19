@@ -4,12 +4,13 @@ import logging
 from collections import deque
 from utils import find_main
 from cesk.structures import State, Ctrl, Envr, Stor, Halt, FunctionKont
-from cesk.interpret import execute, LinkSearch
+from cesk.interpret import execute
+import cesk.linksearch as ls
 def main(ast):
     """Injects execution into main funciton and maintains work queue"""
     #Search ast. link children to parents, map names FuncDef and Label nodes
-    LinkSearch().visit(ast)
-    logging.debug("Scope Decl LUT: %s", str(LinkSearch.scope_decl_lut))
+    ls.LinkSearch().visit(ast)
+    logging.debug("Scope Decl LUT: %s", str(ls.LinkSearch.scope_decl_lut))
     main_function = find_main(ast)[0]
 
     start_ctrl = Ctrl(main_function.body)

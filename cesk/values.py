@@ -21,8 +21,10 @@ BINOPS = {
 
 class ArithmeticValue:
     """Abstract class for polymorphism between abstract and concrete values"""
-    data = None
-    type_of = None
+    #data = None #store the value
+    #type_of = None #stores the type
+    #size = None #stores the size
+
     def perform_operation(self, operator, value):
         """Performs operation and returns value."""
         if operator in BINOPS:
@@ -71,22 +73,32 @@ class ArithmeticValue:
             return "(" + self.type_of + ") " + str(self.data)
         return super(ArithmeticValue,self).__str__() 
 
-
+ 
 class Integer(ArithmeticValue): #pylint:disable=too-few-public-methods
     """Concrete implementation of an Integral Type"""
     def bound(self, value):
         # TODO document
-        n = value - self.min_value
-        m = self.max_value - self.min_value + 1
-        k = n % m
-        x = k + self.min_value
-        return x
-    
+        if self.type_of != "":
+            n = value - self.min_value
+            m = self.max_value - self.min_value + 1
+            k = n % m
+            x = k + self.min_value
+            return x
+        else:
+            return value
+        
     def __init__(self, data, type_of):
-        assert type_of != None
-        self.type_of = type_of
-        self.min_value, self.max_value = limits.RANGES[type_of]
-        self.data = self.bound(int(data))
+        if type_of is None or type_of is "":
+            self.type_of = ""
+            self.size = None
+            self.min_value = 0
+            self.max_value = None
+            self.data = int(data)
+        else:
+            self.type_of = type_of
+            self.size = limits.CONFIG.get_size(type_of.split())
+            self.min_value, self.max_value = limits.RANGES[type_of]
+            self.data = self.bound(data)
 
     def __add__(self, other):
         value = self.bound(self.data + other.data)
@@ -107,6 +119,27 @@ class Integer(ArithmeticValue): #pylint:disable=too-few-public-methods
     def __mod__(self, other):
         value = self.bound(self.data % other.data)
         return Integer(value, self.type_of)
+
+    def get_value(self, start=0, num_bytes=None):
+        """value of the unsigned bits stored"""
+        if ((num_bytes is None) or
+                (start == 0 and num_bytes == self.size)):
+            if self.data < 0:
+                return pow(2, self.size) + self.data
+            else:
+                return self.data
+        assert start >= 0
+
+        result = self.data
+        if self.data < 0:
+            result += pow(2, self.size) #should never reach here if size is not initiallized
+
+        result //= 2**(start*8)
+        result %= pow(2, num_bytes*8)
+
+        return result
+
+
 
 class Char(Integer):
     """Concrete implementation of an char Type"""
@@ -141,7 +174,6 @@ class Char(Integer):
     def get_char(self): 
         return chr(self.data)
 
-
 class Float(ArithmeticValue):  #pylint:disable=too-few-public-methods
     """Concrete implementation of a float.
     NOTE: this class will represent 'float,' and 'double,' and 'long double'
@@ -152,6 +184,7 @@ class Float(ArithmeticValue):  #pylint:disable=too-few-public-methods
     def __init__(self, data, type_of):
         self.data = float(data)
         self.type_of = type_of
+        self.size = limits.CONFIG.get_size(type_of.split())
 
     def __add__(self, other):
         return Float(self.data + other.data, self.type_of)
@@ -165,11 +198,15 @@ class Float(ArithmeticValue):  #pylint:disable=too-few-public-methods
     def __truediv__(self, other):
         return Float(self.data / other.data, self.type_of)
 
+    def get_value(self, start=0, num_bytes=None):
+        """value of the unsigned bits stored"""
+        #TODO
+        return self.data
 
 class ReferenceValue(ArithmeticValue): #pylint:disable=all
     """Abstract Class for polymorphism between Arrays, Pointers, ect."""
 
-    def dereference(self, stor):
+    def dereference(self):
         pass
 
     def index(self, stor, list_of_index):
@@ -180,14 +217,13 @@ class ReferenceValue(ArithmeticValue): #pylint:disable=all
 
 
 class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
-    """Concrete implementation of a Pointer to any type."""
+    """Concrete implementation of a Pointer to a store address."""
 
-    # TODO Dallin: Check with Kyle, refused bequest.  Check Array
-    def __init__(self, address, holding_stor):
-        # self.address changed to self.data so that all the same functionality is present
+    def __init__(self, address, holding_stor, offset=0):
         self.data = int(address)
         self.stor = holding_stor
-        self.offset = 0 #stores the offset from the address of the 
+        self.size = limits.CONFIG.get_word_size()
+        self.offset = offset
 
     def __hash__(self):
         return self.data
@@ -197,16 +233,11 @@ class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
             return Integer(0, 'int')
         return Integer(int(self.data == other.data), 'int')
     
-    def dereference(self, bytes=None):
+    def dereference(self):
         """Reads the address the pointer points to and returns value"""
         if self.data == 0:
             raise Exception("SegFault")
-        if bytes is None:
-            return self.stor.read(self.data)
-        else:
-            val = self.stor.read(self.data)
-
-            return val
+        return self.stor.read(self.data)
 
     def index(self, stor, list_of_index):
         """Reads the address with a given offset from the pointer"""
@@ -245,99 +276,72 @@ class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
             raise Exception("Pointers can only be subtracted by int")
 
     def __str__(self):
-        return '<cesk.values.Pointer> at '+str(self.data)
+        return 'Address '+str(self.data)
 
-#Should not nead any more
-#class Array(ReferenceValue):
-#    """Concrete implementation of an Array of data"""
-#
-#    def __init__(self, start_address, list_of_sizes, stor):
-#        if not isinstance(start_address, ReferenceValue):
-#            raise Exception("start_address should be Pointer not " +
-#                            str(start_address))
-#        self.start_address = start_address
-#        self.list_of_sizes = list_of_sizes
-#        self.stor = stor
-#
-#    def dereference(self):
-#        """Reads the first item of the array"""
-#        if len(self.list_of_sizes) > 1:
-#            return self.start_address #could change this to return an array type    
-#        return self.start_address.dereference()
-#
-#    def index(self, stor, list_of_index):
-#        """Gets the object at a given index of an array. A[1][2]...[n]"""
-#        address = self.index_for_address(list_of_index)
-#        if len(self.list_of_sizes) > len(list_of_index):
-#            remaining_sizes = self.list_of_sizes[-len(list_of_index):]
-#            return generate_array(address, remaining_sizes, self.stor)
-#
-#        return address.dereference()
-#
-#    def index_for_address(self, list_of_index):
-#        """Calculates stride and finds the address for a given index"""
-#        
-#        if len(self.list_of_sizes) < len(list_of_index):
-#            raise Exception("Invalid ArrayRef on Array")
-#        offset = 0
-#        #the for loop calculates how many posistions to jump of a given set of indices and sizes of the subsections in the array
-#        num_indices = len(list_of_index)
-#        for i in range(num_indices):
-#            stride = 1
-#            for j in range(i+1, len(self.list_of_sizes)):
-#                stride = stride * self.list_of_sizes[j]
-#            offset = offset + list_of_index[i] * stride
-#
-#        #if less indices are given than are in the list of sizes it still needs to be treated as an array
-#        if num_indices < len(self.list_of_sizes):
-#            temp_address = self.stor.get_next_address()
-#            new_temp_array = generate_array(self.start_address+offset,self.list_of_sizes[num_indices-1:-1],self.stor)
-#            self.stor.write(temp_address, new_temp_array)
-#            return temp_address
-#
-#        return self.start_address + offset
-#
-#    def __add__(self, other):
-#        if isinstance(other, Integer):
-#            offset = other.data
-#        elif isinstance(other, int):
-#            offset = other
-#        else:
-#            raise Exception("Pointers can only be added to int")
-#        return self.stor.add_offset_to_pointer(self.start_address, offset)
-#    
-#    def __sub__(self, other):
-#        if isinstance(other, Integer):
-#            offset = -1 * other.data
-#        elif isinstance(other, int):
-#            offset = -1 * other
-#        else:
-#            raise Exception("Pointers can only be added to int")
-#        return self.stor.add_offset_to_pointer(self.start_address, offset)
-#
-#
-#
-#    def __str__(self):
-#        return '(Array) at '+str(self.start_address)
+    def get_value(self, start=0, num_bytes=None):
+        """value of the unsigned bits stored"""
+        if ((num_bytes is None) or
+                (start == 0 and num_bytes == self.size)):
+            return self.data
+
+        result = self.data
+        if self.data < 0:
+            result += pow(2, self.size) #should never reach here if size is not initiallized
+
+        result //= 2**(start*8)
+        result %= pow(2, num_bytes*8)
+
+        return result
 
 
-class Struct:
-    def __init__(self,address,decls,stor):
-        self.values = {}
-        self.stor = stor
-        self.data = address
-        
-        offset = 0
-        for decl in decls:
-            self.values[decl.name] = offset
-            offset += 1
-    
-    def get_value(self, name):
-        if name in self.values:
-            return self.data + self.values[name]
-        else:
-            raise Exception(str(name)+' not found in struct') 
+class PointerVal(Pointer):
+    """ Pointer to a store address with offset and size """
+    def __init__(self, address, holding_stor, read_size, offset):
+        self.data = int(address)
+        self.stor = holding_stor
+        self.size = limits.CONFIG.get_word_size()
+        self.type_of = 'pointer'
+        self.read_size = read_size
+        self.offset = offset #stores the offset from the address
+        logging.debug(" Made "+str(self))
 
+    def __hash__(self):
+        return self.data
+
+    def __eq__(self, other):
+        if not isinstance(other, ReferenceValue):
+            return Integer(0, 'int')
+        return Integer(int(self.data == other.data), 'int')
+
+    def dereference(self):
+        """Reads the address the pointer points to and returns value"""
+        if self.data == 0:
+            raise Exception("SegFault")
+        val = self.stor.read(self.data)
+        if self.offset == 0 and val.size == self.read_size:
+            return val
+        if val.size is None:
+            logging.debug("No size %s %d",str(val),self.offset)
+            return Integer(val.data // (2**(self.offset*8)),None)
+        logging.debug("Dereference val=%s at %d for %d/%d",str(val),self.offset,self.read_size,val.size)
+        result = 0
+        bytes_to_read = self.read_size
+        start = self.offset
+        ptr = PointerVal(self.data, self.stor, self.read_size, self.offset)
+        while bytes_to_read != 0:
+            num_possible = min(bytes_to_read, val.size - start)
+            result += val.get_value(start, num_possible) * pow(2, self.read_size - bytes_to_read)
+            bytes_to_read -= num_possible
+            if bytes_to_read > 0:
+                start = 0
+                ptr = self.stor.add_offset_to_pointer(ptr, num_possible)
+                val = self.stor.read(ptr.data)                
+            else:
+                break 
+        return Integer(result, None) 
+
+    def __str__(self):
+        return 'PointerVal at '+str(self.data)+'.'+str(self.offset) +' '+ str(self.read_size)
 
 # TODO Dallin: discuss default type_of with Kyle
 def generate_constant_value(value, type_of='int'):
@@ -345,35 +349,39 @@ def generate_constant_value(value, type_of='int'):
     if "char" in type_of:
         return Char(value, type_of)
     if "float" in type_of:
-        return Float(value, type_of)
-    return Integer(value, type_of)
+        return Float(value, 'double')
+    return Integer(int(value,0), type_of)
 
 
 def generate_default_value(typedecl): #pylint: disable=unused-argument
     """Generates a default value of the given type (used for uninitialized
     variables)."""
-    return generate_constant_value(0, typedecl)
+    return generate_constant_value("0", typedecl)
 
 
-def generate_pointer_value(address, stor):
+def generate_pointer(address, stor, offset=0):
     """Given a address (int) package it into a pointer"""
-    return Pointer(address, stor)
+    return Pointer(address, stor, offset)
 
+
+import cesk.linksearch as ls
+def generate_pointer_value(pointer, ptr_type=None, state=None):
+    """Given a address (int) package it into a pointer"""
+    if ptr_type is None:
+        if isinstance(pointer, PointerVal):
+            size = pointer.read_size
+        else:
+            size = pointer.dereference().size
+    else:
+        sizes = []
+        ls.get_sizes(ptr_type, sizes, state) #returns alignment
+        size = sum(sizes)
+    return PointerVal(pointer.data, pointer.stor, size, pointer.offset)
 
 def generate_null_pointer():
     return Pointer(0, None)
 
-
-def generate_array(start_address, list_of_sizes, stor):
-    #TODO this does not properly handle graph based stor
-    return Array(start_address, list_of_sizes, stor)
-
-
-def generate_struct(start_address, decls, stor):
-    return Struct(start_address, decls, stor)
-
-
-def cast(value, typedeclt, store=None): #pylint: disable=unused-argument
+def cast(value, typedeclt, state=None): #pylint: disable=unused-argument
     """Casts the given value a  a value of the given type."""
     n = None
     #logging.debug('CAST: '+str(value)+" to type "+str(typedeclt))
@@ -384,17 +392,16 @@ def cast(value, typedeclt, store=None): #pylint: disable=unused-argument
         # TODO This code may need to be more thoroughly tested
         # TODO Document well, include questions about more obscure test cases
         if isinstance(value, ReferenceValue): 
-            address = value.data
-            n = generate_pointer_value(address, value.stor)
+            n = generate_pointer_value(value, typedeclt.type, state)
         else:
-            address = value.data
-            n = generate_pointer_value(address, store)
+            address = state.stor.get_nearest_address(value.data)
+            n = generate_pointer_value(address, typedeclt.type, state)
     elif isinstance(typedeclt, pycparser.c_ast.TypeDecl):
-        s = typedeclt.type.names
-        n = generate_constant_value(str(value.data), " ".join(s))
+        types = typedeclt.type.names
+        n = generate_constant_value(str(value.data), " ".join(types))
     else:
         logging.error('\tUnsupported cast: ' + str(typedeclt.type))
         raise Exception("Unsupported cast")
     
     assert n.data != None
-    return n 
+    return n
