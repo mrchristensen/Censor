@@ -2,75 +2,12 @@
 import logging
 import pycparser.c_ast as AST
 from transforms.sizeof import get_size_ast
-from cesk.values import generate_constant_value
+from cesk.values import generate_constant_value, cast
 from cesk.limits import StructPackingScheme as SPS
+import cesk.linksearch as ls
 import cesk.limits as limits
 logging.basicConfig(filename='logfile.txt', level=logging.DEBUG,
                     format='%(levelname)s: %(message)s', filemode='w')
-
-class LinkSearch(AST.NodeVisitor):
-    """Holds various look-up-tables for functions, labels, etc."""
-    parent_lut = {}
-    index_lut = {}
-    label_lut = {}
-    envr_lut = {}
-    function_lut = {}
-    struct_lut = {}
-    scope_decl_lut = {}
-
-    def generic_visit(self, node):
-        # pylint: disable=too-many-branches
-        #create look-up-table (lut) for labels
-        if isinstance(node, AST.Label):
-            if node.name in LinkSearch.label_lut:
-                raise Exception("Duplicate label name")
-            LinkSearch.label_lut[node.name] = node
-
-        #create lut for functions
-        if isinstance(node, AST.FuncDef):
-            name = node.decl.name
-            LinkSearch.function_lut[name] = node
-
-        if isinstance(node, AST.Struct) and node.decls is not None:
-            name = node.name
-            LinkSearch.struct_lut[name] = node
-            logging.debug('Store struct '+str(name)
-                          +' with decls '+str(node.decls))
-
-        #link children to parents via lut
-        for i, child in enumerate(node):
-            if isinstance(child, AST.Node):
-                if child in LinkSearch.parent_lut:
-                    logging.debug("Child: %s", str(child))
-                    logging.debug("Old Parent: %s",
-                                  str(LinkSearch.parent_lut[child]))
-                    raise Exception("Node duplicated in tree: ")
-                LinkSearch.parent_lut[child] = node
-                LinkSearch.index_lut[child] = i
-                self.visit(child)
-        #if a node does not have a parent set it to none
-        if node not in LinkSearch.parent_lut:
-            LinkSearch.parent_lut[node] = None
-            LinkSearch.index_lut[node] = 0
-
-        #Make a list of Decls in compounds for continuation edge case 12
-        if isinstance(node, AST.Decl) and node in LinkSearch.parent_lut:
-            compound = None
-            parent = LinkSearch.parent_lut[node]
-            while True:
-                if isinstance(parent, AST.Compound):
-                    compound = parent
-                    break
-                if parent not in LinkSearch.parent_lut:
-                    break
-                parent = LinkSearch.parent_lut[parent]
-
-            if compound != None:
-                if compound in LinkSearch.scope_decl_lut:
-                    LinkSearch.scope_decl_lut[compound].append(node)
-                else:
-                    LinkSearch.scope_decl_lut[compound] = [node]
-        return node
 
 def execute(state):
     # pylint: disable=too-many-return-statements
@@ -86,20 +23,13 @@ def execute(state):
         # logging.debug("ArrayDecl")
         raise Exception("ArrayDecl should have been found as a child of Decl")
     elif isinstance(stmt, AST.ArrayRef):
-        logging.debug("ArrayRef")
-
-        address = get_address(stmt, state)
-        value = address.dereference()
-
-        logging.debug('   Address '+str(address)+'   Value: '+str(value))
-
-        if isinstance(state.kont, FunctionKont): #Don't return to function
-            successors.append(get_next(state))
-        else:
-            successors.append(state.kont.satisfy(state, value))
+        raise Exception("Array should be transformed")
     elif isinstance(stmt, AST.Assignment):
         logging.debug("Assignment")
         rexp = stmt.rvalue
+        #if isinstance(stmt.lvalue, AST.UnaryOp) and stmt.lvalue.op == '*':
+        #    laddress = get_address(stmt.lvalue.expr, state)
+        #else:
         laddress = get_address(stmt.lvalue, state)
         logging.debug('   %s', str(stmt.lvalue))
         logging.debug('   %s', str(laddress))
@@ -133,7 +63,7 @@ def execute(state):
         logging.debug("Compound")
         new_ctrl = Ctrl(0, stmt)
         new_envr = Envr(state.envr)
-        LinkSearch.envr_lut[stmt] = new_envr #save to table for goto lookup
+        ls.LinkSearch.envr_lut[stmt] = new_envr #save to table for goto lookup
         if stmt.block_items is None:
             successors.append(get_next(state))
         else:
@@ -144,8 +74,11 @@ def execute(state):
         # logging.debug("CompoundLiteral")
         successors.append(get_next(state))
     elif isinstance(stmt, AST.Constant):
-        logging.debug("Constant")
-        value = generate_constant_value(stmt.value, stmt.type)
+        logging.debug("Constant "+stmt.type)
+        if stmt.type == 'int':
+            value = generate_constant_value(stmt.value, 'long long '+stmt.type)
+        else:
+            value = generate_constant_value(stmt.value, stmt.type)
         if isinstance(state.kont, FunctionKont): #Don't return to function
             successors.append(get_next(state))
         else:
@@ -210,18 +143,19 @@ def execute(state):
         logging.error("For should be transformed to goto")
         successors.append(get_next(state))
     elif isinstance(stmt, AST.FuncCall):
-        # logging.debug("FuncCall")
+        logging.debug("FuncCall")
         if stmt.name.name == "printf":
             if isinstance(stmt.args.exprs[1], AST.Constant):
-                value = generate_constant_value(stmt.args.exprs[1].value)
+                value = generate_constant_value(stmt.args.exprs[1].value,
+                                                stmt.args.exprs[1].type)
             else:
-                value = get_address(stmt.args.exprs[1], state).dereference()
+                value = get_address(stmt.args.exprs[1], state).dereference() #todo maybe add size
 
             if isinstance(stmt.args.exprs[0], AST.Constant):
                 print_string = stmt.args.exprs[0].value % (value.data)
             elif isinstance(stmt.args.exprs[0], AST.Cast):
                 # TODO cast the value not just grab from cast object
-                logging.debug("  DATA: %s", str(value.data))
+                #value = cast(value, stmt.args.exprs[0].to_type, state)
                 print_string = stmt.args.exprs[0].expr.value % (value.data)
             else:
                 raise Exception("printf does not know how to handle "
@@ -241,9 +175,9 @@ def execute(state):
                 param = stmt.args.exprs[0].expr
 
             if isinstance(param, AST.Constant):
-                length = generate_constant_value(param.value).data
+                length = int(param.value,0)
             else:
-                length = get_address(param, state).dereference().data
+                length = get_address(param, state).dereference().data #todo maybe add size
             logging.debug("Length is: %s", str(length))
 
             pointer = state.stor.allocate_block(length)
@@ -255,11 +189,11 @@ def execute(state):
         elif stmt.name.name == "free":
             successors.append(get_next(state))
         else:
-            if stmt.name.name not in LinkSearch.function_lut:
+            if stmt.name.name not in ls.LinkSearch.function_lut:
                 raise Exception("Undefined reference to " + stmt.name.name)
             else:
                 logging.debug(" Calling Function: %s", stmt.name.name)
-                func_def = LinkSearch.function_lut[stmt.name.name]
+                func_def = ls.LinkSearch.function_lut[stmt.name.name]
                 if func_def.decl.type.args is None:
                     param_list = []
                 else:
@@ -285,13 +219,13 @@ def execute(state):
                     new_state = handle_decl(decl, new_state)
                     new_address = new_state.envr.get_address(decl.name)
                     while isinstance(expr, AST.Cast):
-                        expr = expr.expr #ignore cast
+                        expr = expr.expr #todo not ignore cast
 
                     if isinstance(expr, AST.Constant):
-                        value = generate_constant_value(expr.value)
+                        value = generate_constant_value(expr.value, expr.type)
                     elif isinstance(expr, AST.ID):
                         address = state.envr.get_address(expr.name)
-                        value = address.dereference()
+                        value = address.dereference() #safe
                     else:
                         raise Exception("Values passed to functions must be " +
                                         "Constant or ID not " + str(expr))
@@ -316,15 +250,15 @@ def execute(state):
         raise Exception("FuncDef out of Global scope")
     elif isinstance(stmt, AST.Goto):
         logging.debug('Goto '+stmt.name)
-        label_to = LinkSearch.label_lut[stmt.name]
+        label_to = ls.LinkSearch.label_lut[stmt.name]
         body = label_to
         while not isinstance(body, AST.Compound):
-            index = LinkSearch.index_lut[body]
-            body = LinkSearch.parent_lut[body]
+            index = ls.LinkSearch.index_lut[body]
+            body = ls.LinkSearch.parent_lut[body]
         new_ctrl = Ctrl(index, body)
         logging.debug('\t Body: %s', str(body))
-        if body in LinkSearch.envr_lut:
-            new_envr = LinkSearch.envr_lut[body]
+        if body in ls.LinkSearch.envr_lut:
+            new_envr = ls.LinkSearch.envr_lut[body]
         else:
             #forward jump into previously undefined scope
             new_envr = create_forward_jump_envr(body, state)
@@ -336,7 +270,7 @@ def execute(state):
         logging.debug("ID %s", stmt.name)
         name = stmt.name
         address = state.envr.get_address(name)
-        value = address.dereference()
+        value = address.dereference() #safe
         if value is None:
             raise Exception(name + ": " + str(state.stor.memory))
         if isinstance(state.kont, FunctionKont): #Don't return to function
@@ -382,28 +316,20 @@ def execute(state):
         #struct = stmt
         successors.append(get_next(state))
     elif isinstance(stmt, AST.StructRef):
-        # TODO transform to pointer arithmetic to avoid intermediate value
-        logging.debug("StructRef")
-        ref_address = get_address(stmt, state)
-        value = ref_address.dereference()
-
-        if isinstance(state.kont, FunctionKont):
-            successors.append(get_next(state))
-        else:
-            successors.append(state.kont.satisfy(state, value))
+        # transformed to pointer arithmetic to avoid intermediate value
+        raise Exception("StructRef should be transform to pointer arith")
     elif isinstance(stmt, AST.Switch):
-        # TODO tranform out
-        # logging.debug("Switch")
-        successors.append(get_next(state))
+        # tranformed
+        raise Exception("Switch should be tranformed") 
     elif isinstance(stmt, AST.TernaryOp):
         logging.error("TernaryOp should be removed by transform")
         raise Exception("TernaryOp should have been removed in the transforms")
     elif isinstance(stmt, AST.TypeDecl):
-        # logging.debug("TypeDecl")
         raise Exception("TypeDecl should have been found as child of Decl")
     elif isinstance(stmt, AST.Typedef):
-        # TODO
         # logging.debug("Typedef")
+        # typedef'ed names ares replaced by there values in
+        #    transform so just skip over
         successors.append(get_next(state))
     elif isinstance(stmt, AST.Typename):
         logging.error("Typename should appear only nested inside another type")
@@ -476,35 +402,25 @@ def handle_decl_array(array, list_of_sizes, state):
     """Calculates size and allocates Array. Returns address of first item"""
     logging.debug('  Array Decl')
     if isinstance(array.type, AST.ArrayDecl):
-        #Recursively add sizes array to list
         raise Exception("Multidim. arrays should be transformed to single")
-        #size = generate_constant_value(array.dim.value).data
-        #if size < 1:
-        #    raise Exception("Non-positive Array Sizes are not supported")
-        #list_of_sizes.append(size)
-        #return handle_decl_array(array.type, ref_address, list_of_sizes, state)
-
     elif isinstance(array.type, AST.TypeDecl):
         if isinstance(array.dim, AST.Constant):
-            size = generate_constant_value(array.dim.value).data
+            size = generate_constant_value(array.dim.value, array.dim.type).data
         elif isinstance(array.dim, AST.ID):
-            size = get_address(array.dim, state).dereference().data
+            size = get_address(array.dim, state).dereference().data #safe
         else:
             raise Exception("Unsupported ArrayDecl dimension "+str(array.dim))
 
         if size < 1:
             raise Exception("Non-positive Array Sizes are not supported")
-        #list_of_sizes.append(size)
-        #List of sizes populated: allocate the array
 
         length = size #reduce(lambda x, y: x*y, list_of_sizes)
         if length == 0: #TODO
             raise NotImplementedError("Arrays of size 0 not implemented")
         if isinstance(array.type.type, (AST.Struct, AST.Union)):
-            #TODO get data address from decl struct
             #TODO handle Union
             list_of_sizes = []
-            alignment = get_sizes(array, list_of_sizes, state) #pylint: disable=unused-variable
+            alignment = ls.get_sizes(array, list_of_sizes, state) #pylint: disable=unused-variable
             data_address = state.stor.allocate_nonuniform_block(list_of_sizes)
         else:
             data_address = state.stor.allocate_block(
@@ -514,106 +430,10 @@ def handle_decl_array(array, list_of_sizes, state):
     else:
         raise Exception("Declarations of " + str(array.type) +
                         " are not yet implemented")
-
-def get_sizes(ast_type, list_so_far, state):
-    """ Populates list_so_far with a list of sizes for each variable in
-        the struct """
-    if isinstance(ast_type, AST.ArrayDecl):
-        alignment = get_array_sizes(ast_type, list_so_far, state)
-    elif isinstance(ast_type, (AST.Decl, AST.TypeDecl, AST.Typename)):
-        alignment = get_sizes(ast_type.type, list_so_far, state)
-    elif isinstance(ast_type, AST.FuncDecl):
-        raise Exception("Function Decl in struct not allowed")
-    elif isinstance(ast_type, AST.IdentifierType):
-        num_bytes = limits.CONFIG.get_size(ast_type.names)
-        if num_bytes < limits.CONFIG.get_word_size():
-            alignment = num_bytes
-        else:
-            alignment = limits.CONFIG.get_word_size()
-        list_so_far.append(num_bytes)
-    elif isinstance(ast_type, AST.PtrDecl):
-        size = limits.CONFIG.get_word_size()
-        list_so_far.append(size)
-        alignment = limits.CONFIG.get_word_size()
-    elif isinstance(ast_type, AST.Struct):
-        alignment = get_struct_sizes(ast_type, list_so_far, state)
-    elif isinstance(ast_type, AST.Union):
-        alignment = get_union_sizes(ast_type, list_so_far, state)
-    else:
-        raise Exception('Unknown Type '+str(ast_type))
-
-    if limits.CONFIG.packing_scheme == SPS.PACT_COMPACT:
-        alignment = 1
-    return alignment
-
-def get_array_sizes(ast_type, list_so_far, state):
-    """ handles finding sizes and alignment for array type """
-    arr_list = []
-    alignment = get_sizes(ast_type.type, arr_list, state)
-    if isinstance(ast_type.dim, AST.Constant):
-        size = generate_constant_value(ast_type.dim.value).data
-    elif isinstance(ast_type.dim, AST.ID):
-        size = get_address(ast_type.dim, state).dereference().data
-    else:
-        raise Exception('Array dim must be constant or id')
-    for _ in range(size):
-        list_so_far.extend(arr_list)
-    return alignment
-
-def get_struct_sizes(ast_type, list_so_far, state):
-    """ handles finding sizes and alignment for struct type """
-    decls = ast_type.decls
-    if decls is None:
-        if ast_type.name in LinkSearch.struct_lut:
-            decls = LinkSearch.struct_lut[ast_type.name].decls
-        else:
-            raise Exception('Struct ' + ast_type.name + ' not found')
-    if limits.CONFIG.packing_scheme == SPS.PACT_COMPACT:
-        alignment = 1
-        for decl in decls:
-            decl_alignment = get_sizes(decl, list_so_far, state)
-            if alignment < decl_alignment:
-                alignment = decl_alignment
-    elif limits.CONFIG.packing_scheme == SPS.GCC_STD:
-        num_bytes = 0
-        alignment = 1
-        for decl in decls:
-            decl_alignment = get_sizes(decl, list_so_far, state)
-            if num_bytes % decl_alignment != 0:
-                buffer_size = decl_alignment - (num_bytes % decl_alignment)
-                list_so_far[-1] += buffer_size
-            num_bytes += list_so_far[-1]
-            if alignment < decl_alignment:
-                alignment = decl_alignment
-        if num_bytes % alignment != 0:
-            buffer_size = alignment - (num_bytes % alignment)
-            list_so_far[-1] += buffer_size
-    else:
-        raise Exception("Unknown Packing Scheme")
-    return alignment
-
-def get_union_sizes(ast_type, list_so_far, state):
-    """ handles finding sizes and alignment for union type """
-    decls = ast_type.decls
-    if decls is None:
-        #TODO
-        raise Exception("Union not handled yet")
-    size = None
-    alignment = None
-    for decl in ast_type.decls:
-        decl_size = []
-        decl_alignment = get_sizes(decl, decl_size, state)
-        if (size is None) or (size < decl_size[0]):
-            size = decl_size[0]
-        if (alignment is None) or (alignment < decl_alignment):
-            alignment = decl_alignment
-    list_so_far.append(size)
-    return alignment
-
 def handle_decl_struct(struct, state):
     """Handles struct declaration"""
     list_of_sizes = []
-    alignment = get_sizes(struct, list_of_sizes, state) #pylint: disable=unused-variable
+    alignment = ls.get_sizes(struct, list_of_sizes, state) #pylint: disable=unused-variable
     data_address = state.stor.allocate_nonuniform_block(list_of_sizes)
     return data_address
 
@@ -628,16 +448,17 @@ def handle_unary_op(opr, expr, state):
     elif opr == "*":
         if isinstance(expr, AST.ID):
             address = state.envr.get_address(expr)
-            pointer = address.dereference()
-            value = pointer.dereference()
+            pointer = address.dereference() #safe
+
+            value = pointer.dereference() #todo add size
         elif isinstance(expr, AST.UnaryOp) and expr.op == "&":
             address = get_address(expr.expr, state)
-            value = address.dereference()
+            value = address.dereference() #todo maybe add size
         elif (isinstance(expr, AST.Cast) and
               isinstance(expr.to_type, AST.PtrDecl)):
-            #only Cast that have a valid dereference are PtrDecl,
-            # and since we treat all ptr as void* skip the casting step
-            value = get_address(expr.expr, state).dereference().dereference()
+            temp = get_address(expr.expr, state).dereference()
+            address = cast(temp, expr.to_type, state)
+            value = address.dereference() #todo add size
         else:
             raise Exception("Unknown Case in UnaryOp: " + str(expr))
         return state.kont.satisfy(state, value)
@@ -675,24 +496,6 @@ def get_address(reference, state):
 
     elif isinstance(reference, AST.ArrayRef):
         raise Exception("ArrayRef needs to be transformed out")
-        #list_of_index = []
-        #array_ptr = get_address(reference.name, state)
-        #array = array_ptr.dereference()
-
-        #if isinstance(reference.subscript, AST.ID):
-        #    address = state.envr.get_address(reference.subscript.name)
-        #    index = address.dereference().data
-        #elif isinstance(reference.subscript, AST.Constant):
-        #    index = generate_constant_value(reference.subscript.value).data
-        #    #why not just = array.subscript.value
-        #else:
-        #    raise Exception("Array subscripts of type " +
-        #                    str(reference.subscript) +
-        #                    "are not yet implemented")
-
-        #list_of_index.insert(0, index)
-
-        #return array.index_for_address(list_of_index)
 
     elif isinstance(reference, AST.UnaryOp):
         unary_op = reference
@@ -700,14 +503,15 @@ def get_address(reference, state):
             name = unary_op.expr
             if isinstance(name, AST.ID):
                 pointer = state.envr.get_address(name)
-                return pointer.dereference()
+                return pointer.dereference() #safe
             elif isinstance(name, AST.UnaryOp) and name.op == "&":
                 return get_address(name.expr, state) #They cancel out
             elif (isinstance(name, AST.Cast) and
                   isinstance(name.to_type, AST.PtrDecl)):
-                #only Cast that have a valid dereference are PtrDecl,
-                # and since we treat all ptr as void* skip the casting step
-                return get_address(name.expr, state).dereference()
+                temp = get_address(name.expr, state)
+                temp = temp.dereference()
+                address = cast(temp, name.to_type, state)
+                return address
             else:
                 raise Exception("Unknown Case for UnaryOp, nested part is "
                                 + str(name))
@@ -717,12 +521,6 @@ def get_address(reference, state):
 
     elif isinstance(reference, AST.StructRef):
         raise Exception("Needs to be transformed to pointer arithmetic")
-        #ref = reference
-        #struct_ptr = get_address(ref.name, state)
-        #struct = struct_ptr.dereference()
-        #address = struct.get_value(ref.field.name)
-        #return address
-
     elif isinstance(reference, AST.Struct):
         #TODO
         raise NotImplementedError("Access to struct as a whole undefined still")
@@ -732,22 +530,22 @@ def get_address(reference, state):
 def check_for_implicit_decl(ident):
     """See continuation edge case 12. Determine if a implicit decl is needed"""
     compound = None
-    parent = LinkSearch.parent_lut[ident]
+    parent = ls.LinkSearch.parent_lut[ident]
     while True:
         if isinstance(parent, AST.Compound):
             compound = parent
             break
-        if parent not in LinkSearch.parent_lut:
+        if parent not in ls.LinkSearch.parent_lut:
             break
-        parent = LinkSearch.parent_lut[parent]
+        parent = ls.LinkSearch.parent_lut[parent]
 
     if compound != None:
-        if compound in LinkSearch.envr_lut:
-            comp_envr = LinkSearch.envr_lut[compound]
+        if compound in ls.LinkSearch.envr_lut:
+            comp_envr = ls.LinkSearch.envr_lut[compound]
             if comp_envr.is_localy_defined(ident.name):
                 return None
-        if compound in LinkSearch.scope_decl_lut:
-            for decl in LinkSearch.scope_decl_lut[compound]:
+        if compound in ls.LinkSearch.scope_decl_lut:
+            for decl in ls.LinkSearch.scope_decl_lut[compound]:
                 if decl.name == ident.name:
                     return decl
     return None
@@ -755,19 +553,19 @@ def check_for_implicit_decl(ident):
 
 def create_forward_jump_envr(body, state): # pylint: disable=inconsistent-return-statements
     """Recursively searches for a defined parent scope to inherit from"""
-    if body in LinkSearch.parent_lut:
+    if body in ls.LinkSearch.parent_lut:
         compound = None
-        parent = LinkSearch.parent_lut[body]
+        parent = ls.LinkSearch.parent_lut[body]
         while True:
             logging.debug("Loop at %s", parent)
             if isinstance(parent, AST.Compound):
                 compound = parent
                 break
-            if parent not in LinkSearch.parent_lut:
+            if parent not in ls.LinkSearch.parent_lut:
                 break
-            parent = LinkSearch.parent_lut[parent]
-        if compound in LinkSearch.envr_lut:
-            return Envr(LinkSearch.envr_lut[compound])
+            parent = ls.LinkSearch.parent_lut[parent]
+        if compound in ls.LinkSearch.envr_lut:
+            return Envr(ls.LinkSearch.envr_lut[compound])
         return Envr(create_forward_jump_envr(compound, state))
     else:
         #TODO does this work why?
@@ -792,7 +590,7 @@ def get_next(state):
             return State(new_ctrl, state.envr, state.stor, state.kont)
         else:
             #if we are falling off the end of a compound block
-            parent = LinkSearch.parent_lut[ctrl.body]
+            parent = ls.LinkSearch.parent_lut[ctrl.body]
             if parent is None:
                 #we are falling off and there is no parent block
                 #this is an end of a function call. Satisfy kont.
@@ -803,7 +601,7 @@ def get_next(state):
 
             elif isinstance(parent, AST.Compound):
                 #find current compound block position in the parent block
-                parent_index = LinkSearch.index_lut[ctrl.body]
+                parent_index = ls.LinkSearch.index_lut[ctrl.body]
                 new_ctrl = Ctrl(parent_index, parent)
                 new_envr = state.envr.parent #fall off: return to parent scope
                 logging.debug("Fall off compound. Leaving scope %s to %s",
@@ -819,10 +617,10 @@ def get_next(state):
     if ctrl.node is not None:
         #if it is a special ctrl as created by binop or assign
         #try to convert to normal ctrl and try again
-        parent = LinkSearch.parent_lut[ctrl.node]
+        parent = ls.LinkSearch.parent_lut[ctrl.node]
         if isinstance(parent, AST.Compound):
             #we found the compound we can create normal ctrl
-            parent_index = LinkSearch.index_lut[ctrl.node]
+            parent_index = ls.LinkSearch.index_lut[ctrl.node]
             new_ctrl = Ctrl(parent_index, parent)
         else:
             #we couldn't make a normal try again on parent

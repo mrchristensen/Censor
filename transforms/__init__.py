@@ -123,8 +123,6 @@ def get_transformers(ast):
            lambda ast: [id_generator, type_env_calc.get_environments(ast)])
     yield (RemoveInitLists,
            lambda ast: [id_generator, type_env_calc.get_environments(ast)])
-    yield (InsertExplicitTypeCasts,
-           lambda ast: [type_env_calc.get_environments(ast)])
     yield (RemoveMultidimensionalArray,
            lambda ast: [id_generator, type_env_calc.get_environments(ast)])
     yield (LiftUnaryOp,
@@ -135,6 +133,8 @@ def get_transformers(ast):
            lambda ast: [id_generator, type_env_calc.get_environments(ast)])
     yield (LiftToCompoundBlock,
            lambda ast: [id_generator, type_env_calc.get_environments(ast)])
+    yield (InsertExplicitTypeCasts,
+           lambda ast: [type_env_calc.get_environments(ast)])
     yield (SingleReturn, lambda ast: [id_generator])
     yield (AlphaName, lambda ast: [])
 

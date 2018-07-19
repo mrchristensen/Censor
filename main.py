@@ -124,14 +124,13 @@ def run_tool(tool, ast):
 def print_ast(ast):
     """ Steps to print the ast """
     print("BEFORE TRANSFORMS---------------------------------------")
-    ast.show()
     from copy import deepcopy
-    ast_copy = deepcopy(ast) 
-    utils.sanitize(ast_copy)
-    pyc_file = open("just_pyc.c","w")
-    pyc_file.write(CWithOMPGenerator().visit(ast_copy).replace("#pragma BEGIN ",""))
+    copy_ast = deepcopy(ast)
+    utils.sanitize(copy_ast)
+    copy_ast.show()
     transform(ast)
     print("--------------------------AFTER TRANSFORMS----------------")
+    utils.sanitize(ast)
     ast.show()
 
 def observe_ast(ast, observer, cesk):
