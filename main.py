@@ -46,9 +46,9 @@ def main():
 
     import pycparser
 
-    temp_files = [] #file need to remain to not be garbage collected and closed 
+    temp_files = [] #file need to remain to not be garbage collected and closed
     if args.sanitize:
-        temps = [] 
+        temps = []
         for filename in args.filename:
             temp = tempfile.NamedTemporaryFile()
             temp.write(open(filename, 'rb').read())
@@ -116,7 +116,7 @@ def run_tool(tool, ast):
     elif tool == "transform":
         transform(ast)
         utils.sanitize(ast)
-        print(CWithOMPGenerator().visit(ast).replace("#pragma BEGIN ",""))
+        print(CWithOMPGenerator().visit(ast).replace("#pragma BEGIN ", ""))
     else:
         print("No valid tool name given; defaulting to censor.")
         censor.main(ast) #default to censor

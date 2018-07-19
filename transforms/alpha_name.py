@@ -4,9 +4,9 @@ import copy
 import pycparser.c_ast as AST  # pylint: disable=wildcard-import, unused-wildcard-import
 from .node_transformer import NodeTransformer
 
-GLOBAL_IDS = set()
-FUNCTION_IDS = set()
-TO_RENAME_IN_SCOPE = [{}]
+GLOBAL_IDS = set() #IDs specific to global scope
+FUNCTION_IDS = set() #All IDs declared in that function so far
+TO_RENAME_IN_SCOPE = [{}] # record of how to rename variables that need renaming
 
 class AlphaName(NodeTransformer):
     """Renames all variables so that functions can contain removable scopes"""
@@ -17,7 +17,12 @@ class AlphaName(NodeTransformer):
         function_nodes = []
         for global_node in node.ext:
             if isinstance(global_node, AST.Decl):
-                GLOBAL_IDS.add(global_node.name)
+                if isinstance(global_node.type, AST.Enum):
+                    if global_node.type.values:
+                        for enum in global_node.type.values.enumerators:
+                            GLOBAL_IDS.add(enum.name)
+                else:
+                    GLOBAL_IDS.add(global_node.name)
             else:
                 function_nodes.append(global_node)
 
@@ -28,8 +33,12 @@ class AlphaName(NodeTransformer):
         TO_RENAME_IN_SCOPE[-1].clear()
         return node
 
+    def visit_Enumerator(self, node): # pylint: disable=invalid-name
+        '''All Enumerators are treated as decls'''
+        return self.visit_Decl(node)
+
     def visit_Struct(self, node): # pylint: disable=invalid-name
-        '''Don't transform Structs, their decls are isolated already'''
+        '''Don't transform Structs, their decls are unique already'''
         return node
 
     def visit_Compound(self, node): # pylint: disable=invalid-name
@@ -45,15 +54,18 @@ class AlphaName(NodeTransformer):
     def visit_Decl(self, node): # pylint: disable=invalid-name
         '''Check if id has been declared before,
             make new name if exists in different scope'''
-        if isinstance(node.type, AST.FuncDecl):
-            return self.generic_visit(node) # ignore
+        if isinstance(node, AST.Decl):
+            if isinstance(node.type, AST.FuncDecl):
+                return self.generic_visit(node) # ignore
+
+        self.generic_visit(node)
 
         if node.name in FUNCTION_IDS:
             self.rename_decl(node)
         else:
             FUNCTION_IDS.add(node.name)
 
-        return self.generic_visit(node)
+        return node
 
     def visit_ID(self, node): # pylint: disable=invalid-name
         '''Check ID to see if it should be changed, and change it.'''
@@ -62,10 +74,7 @@ class AlphaName(NodeTransformer):
         return self.generic_visit(node)
 
     def visit_FuncDef(self, node): # pylint: disable=invalid-name
-        '''set FUNCTION_IDS: a collection of all decl'd vars
-           add GLOBAL_IDs to set
-           generic visit
-           delete set'''
+        '''Handle FUNCTION_IDS'''
         FUNCTION_IDS.update(GLOBAL_IDS)
         self.generic_visit(node)
         FUNCTION_IDS.clear()
@@ -83,4 +92,5 @@ class AlphaName(NodeTransformer):
         FUNCTION_IDS.add(new_name)
         TO_RENAME_IN_SCOPE[-1][old_name] = new_name
         decl.name = new_name
-        decl.type.declname = new_name
+        if isinstance(decl, AST.Decl):
+            decl.type.declname = new_name
