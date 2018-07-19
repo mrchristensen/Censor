@@ -157,7 +157,6 @@ class Stor:
 
     def get_next_address(self, size=1):
         """returns the next available storage address"""
-        logging.info("Made address %d size %d",self.address_counter,size)
         pointer = generate_pointer(self.address_counter, self)
         self.succ_map[pointer] = Stor.NULL 
         self.pred_map[pointer] = Stor.NULL
@@ -381,25 +380,25 @@ class CastKont(Kont):
         return self.parent_kont.satisfy(state, cast_value)
         
 
-class IfKont(Kont):
-    """Continuation for if statement, moves ctrl to correct place"""
-    parent_state = None
-    iftrue = None
-    iffalse = None
-
-    def __init__(self, parent_state, iftrue, iffalse):
-        self.parent_state = parent_state
-        self.iftrue = iftrue
-        self.iffalse = iffalse
-
-    def satisfy(self, state, value):
-        if (value.get_truth_value()):
-            new_ctrl = Ctrl(self.iftrue)
-        elif self.iffalse is not None:
-            new_ctrl = Ctrl(self.iffalse)
-        else:
-            return cesk.interpret.get_next(self.parent_state)
-        return State(new_ctrl, state.envr, state.stor, self.parent_state.kont)
+#class IfKont(Kont):
+#    """Continuation for if statement, moves ctrl to correct place"""
+#    parent_state = None
+#    iftrue = None
+#    iffalse = None
+#
+#    def __init__(self, parent_state, iftrue, iffalse):
+#        self.parent_state = parent_state
+#        self.iftrue = iftrue
+#        self.iffalse = iffalse
+#
+#    def satisfy(self, state, value):
+#        if (value.get_truth_value()):
+#            new_ctrl = Ctrl(self.iftrue)
+#        elif self.iffalse is not None:
+#            new_ctrl = Ctrl(self.iffalse)
+#        else:
+#            return cesk.interpret.get_next(self.parent_state)
+#        return State(new_ctrl, state.envr, state.stor, self.parent_state.kont)
 
 class ReturnKont(Kont): #pylint: disable=too-few-public-methods
 
@@ -410,51 +409,51 @@ class ReturnKont(Kont): #pylint: disable=too-few-public-methods
         return self.parent_kont.satisfy(state, value)
 
 #Expresion Konts
-class LeftBinopKont(Kont):
-    """Continuation for the left side of a binary operator"""
-
-    parent_state = None 
-    operator = None
-    right_exp = None
-    return_kont = None
-
-    def __init__(self, parent_state, operator, rightExp, return_kont):
-        self.parent_state = parent_state
-        self.operator = operator
-        self.rightExp = rightExp
-        self.return_kont = return_kont
-
-    def satisfy(self, current_state, value):
-        left_result = value
-        right_kont = RightBinopKont(self.parent_state, left_result, self.operator,
-                                    self.return_kont)
-        return State(Ctrl(self.rightExp), current_state.envr,
-                     current_state.stor, right_kont)
-
-
-class RightBinopKont(Kont):
-    """Continuation for the right side of a binary operator"""
-
-    parent_state = None 
-    left_result = None
-    operator = None
-    return_kont = None
-
-    def __init__(self, parent_state, left_result, operator, return_kont):
-        self.parent_state = parent_state
-        self.left_result = left_result
-        self.operator = operator
-        self.return_kont = return_kont
-
-    def satisfy(self, state, value):
-        logging.debug( "   "+str(self.left_result)+str(self.operator)+str(value))
-        result = self.left_result.perform_operation(self.operator, value)
-        if isinstance(self.parent_state.kont, FunctionKont):
-            #don't return out of function without return
-            new_state = State(self.parent_state.ctrl, state.envr, state.stor,
-                              self.parent_state.kont)
-            return cesk.interpret.get_next(new_state)
-        return self.return_kont.satisfy(state, result)
+#class LeftBinopKont(Kont):
+#    """Continuation for the left side of a binary operator"""
+#
+#    parent_state = None 
+#    operator = None
+#    right_exp = None
+#    return_kont = None
+#
+#    def __init__(self, parent_state, operator, rightExp, return_kont):
+#        self.parent_state = parent_state
+#        self.operator = operator
+#        self.rightExp = rightExp
+#        self.return_kont = return_kont
+#
+#    def satisfy(self, current_state, value):
+#        left_result = value
+#        right_kont = RightBinopKont(self.parent_state, left_result, self.operator,
+#                                    self.return_kont)
+#        return State(Ctrl(self.rightExp), current_state.envr,
+#                     current_state.stor, right_kont)
+#
+#
+#class RightBinopKont(Kont):
+#    """Continuation for the right side of a binary operator"""
+#
+#    parent_state = None 
+#    left_result = None
+#    operator = None
+#    return_kont = None
+#
+#    def __init__(self, parent_state, left_result, operator, return_kont):
+#        self.parent_state = parent_state
+#        self.left_result = left_result
+#        self.operator = operator
+#        self.return_kont = return_kont
+#
+#    def satisfy(self, state, value):
+#        logging.debug( "   "+str(self.left_result)+str(self.operator)+str(value))
+#        result = self.left_result.perform_operation(self.operator, value)
+#        if isinstance(self.parent_state.kont, FunctionKont):
+#            #don't return out of function without return
+#            new_state = State(self.parent_state.ctrl, state.envr, state.stor,
+#                              self.parent_state.kont)
+#            return cesk.interpret.get_next(new_state)
+#        return self.return_kont.satisfy(state, result)
 
 # import is down here to allow for circular dependencies between structures.py and interpret.py
 import cesk.values # pylint: disable=wrong-import-position

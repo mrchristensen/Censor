@@ -37,10 +37,14 @@ def execute(state):
         #  the expression on the right side, and the state
         successors.append(handle_assignment(stmt.op, laddress, rexp, state))
     elif isinstance(stmt, AST.BinaryOp):
-        logging.debug("BinaryOp %s", str(stmt.op))
-        new_kont = LeftBinopKont(state, stmt.op, stmt.right, state.kont)
-        successors.append(State(Ctrl(stmt.left), state.envr, state.stor,
-                                new_kont))
+        left = get_value(stmt.left, state)
+        right = get_value(stmt.right, state)
+        value = left.perform_operation(stmt.op, right)
+        logging.debug("BinaryOp %s%s%s = %s",str(left), stmt.op, str(right), str(value))
+        if isinstance(state.kont, FunctionKont): #Don't return to function
+            successors.append(get_next(state))
+        else:
+            successors.append(state.kont.satisfy(state, value))
     elif isinstance(stmt, AST.Break):
         # TODO
         # logging.debug("Break")
@@ -53,12 +57,19 @@ def execute(state):
         # TODO
         logging.debug('Cast')
         new_ctrl = Ctrl(stmt.expr)
-        if isinstance(state.kont, FunctionKont): #don't return: don't cast
-            new_kont = state.kont
+        if isinstance(state.kont, FunctionKont):
+            new_kont = state.kont #don't return: castvalue not used
         else:
             new_kont = CastKont(state.kont, stmt.to_type)
         new_state = State(new_ctrl, state.envr, state.stor, new_kont)
         successors.append(new_state)
+        #old_value = get_address(stmt.expr, state).dereference()
+        #cast_value = cast(old_value, stmt.to_type, state)
+        #if isinstance(state.kont, FunctionKont): #Don't return to function
+        #    successors.append(get_next(state))
+        #else:
+        #    successors.append(state.kont.satisfy(state, cast_value))
+
     elif isinstance(stmt, AST.Compound):
         logging.debug("Compound")
         new_ctrl = Ctrl(0, stmt)
@@ -281,10 +292,15 @@ def execute(state):
         logging.error("IdentifierType should not appear on there own")
         successors.append(get_next(state))
     elif isinstance(stmt, AST.If):
-        # logging.debug("If")
-        new_kont = IfKont(state, stmt.iftrue, stmt.iffalse)
-        new_ctrl = Ctrl(stmt.cond)
-        successors.append(State(new_ctrl, state.envr, state.stor, new_kont))
+        logging.debug("If")
+        value = get_value(stmt.cond, state)
+        if value.get_truth_value():
+            new_ctrl = Ctrl(stmt.iftrue)
+            successors.append(State(new_ctrl, state.envr, state.stor, state.kont))
+        elif stmt.iffalse is not None:
+            raise Exception("False Branch should be transformed")
+        else:
+            successors.append(get_next(state))
     elif isinstance(stmt, AST.InitList):
         # TODO transform nested
         # Init list is tranformed
@@ -481,6 +497,21 @@ def handle_return(exp, state):
             throw("Exception: No return value was given in non-void function")
     return State(Ctrl(exp), state.envr, state.stor, returnable_kont)
 
+def get_value(stmt, state):
+    """ get value for simple id's constants or references and casts of them """
+    if isinstance(stmt, AST.Constant):
+        if stmt.type == 'int':
+            value = generate_constant_value(stmt.value, 'long long '+stmt.type)
+        else:
+            value = generate_constant_value(stmt.value, stmt.type)
+        return value
+    elif isinstance(stmt, AST.UnaryOp) and stmt.op == '&':
+        return get_address(stmt.expr, state)
+    elif isinstance(stmt, AST.Cast):
+        val = get_value(stmt.expr, state)
+        return cast(val, stmt.to_type, state)
+    else:
+        return get_address(stmt, state).dereference()
 def get_address(reference, state):
     # pylint: disable=too-many-branches
     """get_address"""
@@ -633,5 +664,5 @@ def get_next(state):
 # imports are down here to allow for circular dependencies between
 # structures.py and interpret.py
 from cesk.structures import (State, Ctrl, Envr, AssignKont, ReturnKont, # pylint: disable=wrong-import-position
-                             FunctionKont, LeftBinopKont, IfKont, VoidKont,
+                             FunctionKont, VoidKont,
                              CastKont, throw)
