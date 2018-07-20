@@ -91,7 +91,10 @@ class LiftToCompoundBlock(LiftNode):
         elif isinstance(value, (AST.StructRef, AST.ArrayRef)):
             ref = self.lift_to_ptr(value)
         elif isinstance(value, (AST.BinaryOp, AST.FuncCall)):
-            ref = self.lift_to_value(value)
+            if isinstance(value, AST.FuncCall) and value.name.name == "malloc":
+                pass # edge case: don't lift malloc
+            else:
+                ref = self.lift_to_value(value)
         if ref is not None:
             setattr(node, field, ref)
         return node
