@@ -26,8 +26,7 @@ struct object (*censor01)[5] = &obj->x;
 struct object *censor2 = &(*censor01)[3];
 int *censor03 = &(*censor02).prop;
 int censor04 = a + b;
-int censor05 = censor04 + c;
-*censor03 = censor05;
+*censor03 = censor04 + c;
 
 Special considerations:
 Pointers are always created for StructRef and ArrayRef nodes. This is because
@@ -86,7 +85,7 @@ class LiftToCompoundBlock(LiftNode):
             ref = self.lift_assignment(value)
         elif isinstance(value, AST.UnaryOp):
             ref = self.lift_unaryop(value)
-        elif isinstance(node, AST.Assignment):
+        elif isinstance(node, (AST.Assignment, AST.Decl)):
             ref = None
         elif isinstance(value, (AST.StructRef, AST.ArrayRef)):
             ref = self.lift_to_ptr(value)

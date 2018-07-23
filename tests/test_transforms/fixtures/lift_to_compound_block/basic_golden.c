@@ -10,10 +10,8 @@ int main()
   int censor07 = censor06 + 7;
   int censor08 = censor07 + 8;
   int censor09 = censor08 + 9;
-  int censor010 = censor09 + 10;
-  int y = censor010;
-  int censor011 = x * x;
-  int censor012 = y * y;
-  int censor013 = censor011 + censor012;
-  int r2 = censor013;
+  int y = censor09 + 10;
+  int censor010 = x * x;
+  int censor011 = y * y;
+  int r2 = censor010 + censor011;
 }
