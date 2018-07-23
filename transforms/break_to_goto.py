@@ -13,7 +13,7 @@ class BreakToGoto(LiftNode):
         break_placer = BreakPlacer(self.id_generator)
         node = break_placer.generic_visit(node)
         if break_placer.label is not None:
-            self.append_to_scope(Label(break_placer.label,EmptyStatement()))
+            self.append_to_scope(Label(break_placer.label, EmptyStatement()))
         return node
 
 class BreakPlacer(NodeTransformer):

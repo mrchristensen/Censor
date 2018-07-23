@@ -3,10 +3,8 @@ import logging
 import pycparser.c_ast as AST
 from transforms.sizeof import get_size_ast
 from cesk.values import generate_constant_value, cast
-from cesk.limits import StructPackingScheme as SPS
 import cesk.linksearch as ls
-import cesk.limits as limits
-logging.basicConfig(filename='logfile.txt', level=logging.DEBUG,
+logging.basicConfig(filename='logfile.txt', level=logging.INFO,
                     format='%(levelname)s: %(message)s', filemode='w')
 
 def execute(state):
@@ -20,7 +18,6 @@ def execute(state):
     successors = []
     stmt = state.ctrl.stmt()
     if isinstance(stmt, AST.ArrayDecl):
-        # logging.debug("ArrayDecl")
         raise Exception("ArrayDecl should have been found as a child of Decl")
     elif isinstance(stmt, AST.ArrayRef):
         raise Exception("Array should be transformed")
@@ -40,21 +37,21 @@ def execute(state):
         left = get_value(stmt.left, state)
         right = get_value(stmt.right, state)
         value = left.perform_operation(stmt.op, right)
-        logging.debug("BinaryOp %s%s%s = %s",str(left), stmt.op, str(right), str(value))
+        logging.debug("BinaryOp %s%s%s = %s", str(left), stmt.op,
+                      str(right), str(value))
         if isinstance(state.kont, FunctionKont): #Don't return to function
             successors.append(get_next(state))
         else:
             successors.append(state.kont.satisfy(state, value))
     elif isinstance(stmt, AST.Break):
-        # TODO
         # logging.debug("Break")
         raise Exception("Break has not yet been implemented")
     elif isinstance(stmt, AST.Case):
-        # TODO
-        # logging.debug("Case")
-        successors.append(get_next(state))
+        raise Exception("Case staments should be transformed out")
+        #logging.debug("Case")
+        #successors.append(get_next(state))
     elif isinstance(stmt, AST.Cast):
-        # TODO
+        # TODO try and remove Cast Kontinuations
         logging.debug('Cast')
         new_ctrl = Ctrl(stmt.expr)
         if isinstance(state.kont, FunctionKont):
@@ -86,16 +83,13 @@ def execute(state):
         successors.append(get_next(state))
     elif isinstance(stmt, AST.Constant):
         logging.debug("Constant "+stmt.type)
-        if stmt.type == 'int':
-            value = generate_constant_value(stmt.value, 'long long '+stmt.type)
-        else:
-            value = generate_constant_value(stmt.value, stmt.type)
+        value = generate_constant_value(stmt.value, stmt.type)
         if isinstance(state.kont, FunctionKont): #Don't return to function
             successors.append(get_next(state))
         else:
             successors.append(state.kont.satisfy(state, value))
     elif isinstance(stmt, AST.Continue):
-        # TODO
+        logging.error("Continue should be transformed out")
         # logging.debug("Continue")
         successors.append(get_next(state))
     elif isinstance(stmt, AST.Decl):
@@ -112,22 +106,21 @@ def execute(state):
             successors.append(state.kont.satisfy(state))
     elif isinstance(stmt, AST.DeclList):
         # Should be transformed to multiple Decl nodes
-        logging.error("DeclList should be transformed out")
-        successors.append(get_next(state))
+        raise Exception("DeclList should be transformed out")
+        #successors.append(get_next(state))
     elif isinstance(stmt, AST.Default):
-        # TODO
+        raise Exception("Default should be transformed")
         # logging.debug("Default")
-        successors.append(get_next(state))
+        #successors.append(get_next(state))
     elif isinstance(stmt, AST.DoWhile):
-        # TODO
+        raise Exception("DoWhile should be transformed")
         # logging.debug("DoWhile")
-        successors.append(get_next(state))
+        #successors.append(get_next(state))
     elif isinstance(stmt, AST.EllipsisParam):
         # TODO
         # logging.debug("EllipsisParam")
         successors.append(get_next(state))
     elif isinstance(stmt, AST.EmptyStatement):
-        # logging.debug("EmptyStatement")
         successors.append(get_next(state))
     elif isinstance(stmt, AST.Enum):
         # TODO
@@ -142,15 +135,11 @@ def execute(state):
         # logging.debug("EnumeratorList")
         successors.append(get_next(state))
     elif isinstance(stmt, AST.ExprList):
-        # TODO
-        # logging.debug("ExprList")
-        successors.append(get_next(state))
+        raise Exception("ExprList should only appear inside FuncCall/Decl")
     elif isinstance(stmt, AST.FileAST):
-        # TODO
-        # logging.debug("FileAST")
-        successors.append(get_next(state))
+        raise Exception("FileAST is not a valid control point")
     elif isinstance(stmt, AST.For):
-        # This should be transformed out
+        # TODO manage pragma omp for loops others are transformed
         logging.error("For should be transformed to goto")
         successors.append(get_next(state))
     elif isinstance(stmt, AST.FuncCall):
@@ -160,13 +149,11 @@ def execute(state):
                 value = generate_constant_value(stmt.args.exprs[1].value,
                                                 stmt.args.exprs[1].type)
             else:
-                value = get_address(stmt.args.exprs[1], state).dereference() #todo maybe add size
+                value = get_address(stmt.args.exprs[1], state).dereference()
 
             if isinstance(stmt.args.exprs[0], AST.Constant):
                 print_string = stmt.args.exprs[0].value % (value.data)
             elif isinstance(stmt.args.exprs[0], AST.Cast):
-                # TODO cast the value not just grab from cast object
-                #value = cast(value, stmt.args.exprs[0].to_type, state)
                 print_string = stmt.args.exprs[0].expr.value % (value.data)
             else:
                 raise Exception("printf does not know how to handle "
@@ -177,21 +164,22 @@ def execute(state):
             if isinstance(state.kont, FunctionKont): #Don't return to function
                 successors.append(get_next(state))
             else:
-                successors.append(state.kont.satisfy(state,
-                                  generate_constant_value("0")))
+                successors.append(
+                    state.kont.satisfy(state, generate_constant_value("0")))
         elif stmt.name.name == "malloc":
             param = stmt.args.exprs[0]
             if isinstance(stmt.args.exprs[0], AST.Cast):
-                # TODO cast the value not just brab from cast object
                 param = stmt.args.exprs[0].expr
 
             if isinstance(param, AST.Constant):
-                length = int(param.value,0)
+                length = int(param.value, 0)
             else:
-                length = get_address(param, state).dereference().data #todo maybe add size
-            logging.debug("Length is: %s", str(length))
+                length = get_address(param, state).dereference().data
+            logging.info("Malloc %d", length)
 
-            pointer = state.stor.allocate_block(length)
+            pointer = state.stor.get_next_address(length)
+            #pointer = state.stor.allocate_block(length)
+            #TODO find cause of error on basic func 12
 
             if isinstance(state.kont, FunctionKont): #Don't return to function
                 successors.append(get_next(state))
@@ -220,7 +208,6 @@ def execute(state):
                                     str(len(param_list)) +
                                     " parameters but received " +
                                     str(len(expr_list)))
-
 
                 new_ctrl = Ctrl(0, func_def.body)
                 new_envr = Envr(Envr.get_global_scope())
@@ -296,7 +283,8 @@ def execute(state):
         value = get_value(stmt.cond, state)
         if value.get_truth_value():
             new_ctrl = Ctrl(stmt.iftrue)
-            successors.append(State(new_ctrl, state.envr, state.stor, state.kont))
+            successors.append(State(new_ctrl, state.envr,
+                                    state.stor, state.kont))
         elif stmt.iffalse is not None:
             raise Exception("False Branch should be transformed")
         else:
@@ -336,7 +324,7 @@ def execute(state):
         raise Exception("StructRef should be transform to pointer arith")
     elif isinstance(stmt, AST.Switch):
         # tranformed
-        raise Exception("Switch should be tranformed") 
+        raise Exception("Switch should be tranformed")
     elif isinstance(stmt, AST.TernaryOp):
         logging.error("TernaryOp should be removed by transform")
         raise Exception("TernaryOp should have been removed in the transforms")
@@ -394,7 +382,8 @@ def handle_decl(decl, state):
                 and isinstance(decl.type, AST.TypeDecl)):
             ref_address = handle_decl_struct(decl.type.type, state)
         else:
-            size = int(get_size_ast(decl.type).value)
+            size_ast = get_size_ast(decl.type)
+            size = generate_constant_value(size_ast.value, size_ast.type).data
             ref_address = state.stor.get_next_address(size)
 
         state.envr.map_new_identifier(name, ref_address)
@@ -439,8 +428,9 @@ def handle_decl_array(array, list_of_sizes, state):
             alignment = ls.get_sizes(array, list_of_sizes, state) #pylint: disable=unused-variable
             data_address = state.stor.allocate_nonuniform_block(list_of_sizes)
         else:
-            data_address = state.stor.allocate_block(
-                length, int(get_size_ast(array.type).value))
+            constant = get_size_ast(array.type)
+            size = generate_constant_value(constant.value, constant.type).data
+            data_address = state.stor.allocate_block(length, size)
         #Allocated block: passing back the Array object that points to block
         return data_address
     else:
@@ -500,10 +490,7 @@ def handle_return(exp, state):
 def get_value(stmt, state):
     """ get value for simple id's constants or references and casts of them """
     if isinstance(stmt, AST.Constant):
-        if stmt.type == 'int':
-            value = generate_constant_value(stmt.value, 'long long '+stmt.type)
-        else:
-            value = generate_constant_value(stmt.value, stmt.type)
+        value = generate_constant_value(stmt.value, stmt.type)
         return value
     elif isinstance(stmt, AST.UnaryOp) and stmt.op == '&':
         return get_address(stmt.expr, state)

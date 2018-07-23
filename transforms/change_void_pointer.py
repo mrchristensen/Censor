@@ -45,16 +45,18 @@ class ChangeToVoidPointer(LiftNode):
             if isinstance(node.right, AST.ID):
                 right_type = get_type(node.right, self.envr)
                 if _is_array(right_type):
-                        node.right = AST.UnaryOp('&', node.right)
+                    node.right = AST.UnaryOp('&', node.right)
         return node
 
     def visit_Cast(self, node): #pylint: disable=invalid-name
+        """ Make sure to get the address of the array
+            maybe to chummy with the cesk interpreter """
         self.generic_visit(node)
         if isinstance(node.expr, AST.ID):
             expr_type = get_type(node.expr, self.envr)
             if _is_array(expr_type):
-                    node.expr = AST.UnaryOp('&', node.expr)
-        return node       
+                node.expr = AST.UnaryOp('&', node.expr)
+        return node
 
 
 

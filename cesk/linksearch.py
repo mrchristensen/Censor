@@ -1,7 +1,6 @@
 """Functions to interpret c code directly"""
 import logging
 import pycparser.c_ast as AST
-from transforms.sizeof import get_size_ast
 from cesk.limits import StructPackingScheme as SPS
 import cesk.limits as limits
 

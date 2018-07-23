@@ -1,4 +1,5 @@
 """ Computes the size and alignment based on values in limits.py """
+import re
 import pycparser.c_ast as AST
 import cesk.limits as limits
 from cesk.limits import StructPackingScheme as SPS
@@ -9,25 +10,30 @@ def get_size_ast(ast_type_node, env=None):
     size, _ = get_size_and_alignment(ast_type_node, env)
     return size
 
+def c_to_int(constant):
+    """ takes in a Constant ast node and returns a python int """
+    int_str = re.sub(r"l|u|L|U", "", constant.value)
+    return int(int_str, 0)
+
 def get_size_and_alignment(ast_type, env=None):
     """returns size as an AST node and alignmentas an integer"""
     if isinstance(ast_type, AST.ArrayDecl):
         size, alignment = get_size_and_alignment(ast_type.type, env)
         if (isinstance(size, AST.Constant) and
                 isinstance(ast_type.dim, AST.Constant)):
-            size = AST.Constant('long', str(int(size.value) *
-                                            int(ast_type.dim.value)))
+            size = AST.Constant('int', str(c_to_int(size) *
+                                           c_to_int(ast_type.dim))+'l')
         else:
             size = AST.BinaryOp('*', size, ast_type.dim)
     elif isinstance(ast_type, (AST.Decl, AST.TypeDecl, AST.Typename)):
         size, alignment = get_size_and_alignment(ast_type.type, env)
     elif isinstance(ast_type, AST.FuncDecl):
-        size = AST.Constant('long', 1)
+        size = AST.Constant('int', '1l')
         alignment = 1 #do not know what to do exactly
     elif isinstance(ast_type, AST.IdentifierType):
         size, alignment = get_identifier_size(ast_type)
     elif isinstance(ast_type, AST.PtrDecl):
-        size = AST.Constant('long', str(limits.CONFIG.get_word_size()))
+        size = AST.Constant('int', str(limits.CONFIG.get_word_size())+'l')
         alignment = limits.CONFIG.get_word_size()
     elif isinstance(ast_type, AST.Struct):
         size, alignment = get_struct_size_and_align(ast_type, env)
@@ -44,7 +50,7 @@ def get_identifier_size(ast_type):
     """ gets the size of simple types int, long, etc """
     #TODO handle typedef'd Types
     num_bytes = limits.CONFIG.get_size(ast_type.names)
-    size = AST.Constant('long', str(num_bytes))
+    size = AST.Constant('int', str(num_bytes)+'l')
     if num_bytes < limits.CONFIG.get_word_size():
         alignment = num_bytes
     else:
@@ -57,7 +63,7 @@ def _size_compact(decls, env):
     for decl in decls:
         decl_size, decl_alignment = get_size_and_alignment(decl, env)
         if isinstance(decl_size, AST.Constant):
-            num_bytes += int(decl_size.value)
+            num_bytes += c_to_int(decl_size)
         else:
             raise Exception("Not Implemented, Arrays not constant size")
             #num_bytes = AST.BinaryOp('+',offset,decl_size)
@@ -73,7 +79,7 @@ def _size_std(decls, env):
         if num_bytes % decl_alignment != 0:
             num_bytes += decl_alignment - (num_bytes % decl_alignment)
         if isinstance(decl_size, AST.Constant):
-            num_bytes += int(decl_size.value)
+            num_bytes += c_to_int(decl_size)
         else:
             raise Exception("Not Implemented, Arrays are not constant size")
             #num_bytes = AST.BinaryOp('+',offset,decl_size)
@@ -98,7 +104,7 @@ def get_struct_size_and_align(ast_type, env):
     else:
         raise Exception("Unknown Packing Scheme")
 
-    size = AST.Constant('long', str(num_bytes))
+    size = AST.Constant('int', str(num_bytes)+'l')
     return size, alignment
 
 def get_union_size_and_align(ast_type, env=None):
@@ -113,7 +119,7 @@ def get_union_size_and_align(ast_type, env=None):
     alignment = None
     for decl in ast_type.decls:
         decl_size, decl_alignment = get_size_and_alignment(decl, env)
-        if (size is None) or (int(size.value) < int(decl_size.value)):
+        if (size is None) or (c_to_int(size) < c_to_int(decl_size)):
             size = decl_size
         if (alignment is None) or (alignment < decl_alignment):
             alignment = decl_alignment
@@ -130,7 +136,7 @@ def _offset_compact(decls, field, env):
             break
         decl_size, decl_alignment = get_size_and_alignment(decl, env)
         if isinstance(decl_size, AST.Constant):
-            offset += int(decl_size.value)
+            offset += c_to_int(decl_size)
         else:
             raise Exception("Not Implemented, Arrays not constant size")
             #offset = AST.BinaryOp('+',offset,decl_size)
@@ -151,7 +157,7 @@ def _offset_std(decls, field, env):
             field_type = decl.type
             break
         if isinstance(decl_size, AST.Constant):
-            offset += int(decl_size.value)
+            offset += c_to_int(decl_size)
         else:
             raise Exception("Not Implemented, Array is not constant size")
             #offset = AST.BinaryOp('+',offset,decl_size)
@@ -183,5 +189,5 @@ def get_struct_offset(struct_type, field, env):
     if field_type is None:
         raise Exception("Field not found")
 
-    size = AST.Constant('long', str(offset))
+    size = AST.Constant('int', str(offset)+'l')
     return size, field_type

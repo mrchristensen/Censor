@@ -23,11 +23,13 @@ class OneFileTest(CESKvsGCC):
             if args.print != "":
                 with open(args.print, "w") as outfile:
                     subprocess.run(['python3', '../../main.py',
-                                    '-st', 'transform', *args.file_name],
+                                    '-st', 'transform',
+                                    '-c', 'cesk', *args.file_name],
                                    stdout=outfile)
             else:
                 subprocess.run(['python3', '../../main.py',
-                                '-t', 'print', *args.file_name])
+                                '-t', 'print',
+                                '-c', 'cesk', *args.file_name])
         if args.gcc_only:
             print('Only running gcc')
             print(run_c(*args.file_name))

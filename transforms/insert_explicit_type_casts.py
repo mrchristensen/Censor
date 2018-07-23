@@ -87,7 +87,7 @@ class InsertExplicitTypeCasts(NodeTransformer):
         if isinstance(type_node, TypeDecl) and \
             isinstance(type_node.type, Struct):
             return rvalue
-            raise IncorrectTransformOrder(ril_error_message, rvalue)
+            #raise IncorrectTransformOrder(ril_error_message, rvalue)
         elif isinstance(type_node, (TypeDecl, PtrDecl)):
             rvalue = cast_if_needed(type_node, rvalue, self.env)
         elif isinstance(type_node, ArrayDecl):

@@ -4,13 +4,14 @@ import logging
 import copy
 import sys
 import pycparser
-from cesk.values import ReferenceValue, generate_default_value, cast
-from cesk.values import generate_pointer_value, generate_null_pointer
-from cesk.values import generate_pointer
+from cesk.values import ReferenceValue, generate_unitialized_value, cast
+from cesk.values import copy_pointer, generate_null_pointer
+from cesk.values import generate_pointer, generate_value
 
 def throw(string, state=None, exit_code=0):
+    """ Controlled Exit on some error """
     if state is not None:
-       state.ctrl.stmt().show() 
+        state.ctrl.stmt().show()
     print(string)
     exit(exit_code)
 
@@ -47,23 +48,25 @@ class Ctrl: #pylint:disable=too-few-public-methods
     """Holds the control pointer or location of the program"""
 
     def construct_node(self, node):
+        """ sets the node """
         self.node = node
 
     def construct_body(self, index, body):
+        """ sets the index and body """
         self.index = index
-        self.body = body 
+        self.body = body
 
     def __init__(self, first, second=None):
         """There are two types of control: The normal ones that have an index in
-        a body, and the special ones that only hold a Node. This picks which 
+        a body, and the special ones that only hold a Node. This picks which
         constructor to use"""
         self.index = None
         self.body = None
         self.node = None
         if second is not None:
-            if (isinstance(second, pycparser.c_ast.FuncDef)):
+            if isinstance(second, pycparser.c_ast.FuncDef):
                 self.construct_body(first, second.body)
-            elif(isinstance(second, pycparser.c_ast.Compound)):
+            elif isinstance(second, pycparser.c_ast.Compound):
                 self.construct_body(first, second)
             else:
                 raise Exception("Ctrl init body not Compound or Function: " +
@@ -82,7 +85,7 @@ class Ctrl: #pylint:disable=too-few-public-methods
 
     def stmt(self):
         """Retrieves the statement at the location."""
-        if (self.node is not None):
+        if self.node is not None:
             return self.node
         return self.body.block_items[self.index]
 
@@ -91,35 +94,35 @@ class Envr:
     counter = 0
     global_scope = None
 
-    def __init__(self, parent = None):
+    def __init__(self, parent=None):
         self.map_to_address = {} #A set of IdToAddr mappings
         self.parent = parent
         self.id = Envr.counter
         Envr.counter = Envr.counter + 1
-        
+
     def get_global_scope():
         if Envr.global_scope is None:
             Envr.global_scope = Envr(None)
-        return Envr.global_scope 
+        return Envr.global_scope
 
     def get_address(self, ident):
         "looks up the address associated with an identifier"""
         #print("Looking up " + ident + " in scope " + str(self.id))
         while not isinstance(ident, str):
             ident = ident.name
-        if (ident in self.map_to_address):
+        if ident in self.map_to_address:
             return self.map_to_address[ident]
-        if (self.parent is not None):
+        if self.parent is not None:
             return self.parent.get_address(ident)
         while not isinstance(ident, str):
             ident = ident.name
         raise Exception(ident + " is not defined in this scope: " +
-                        str(self.id)) 
+                        str(self.id))
 
     def get_type(self, ident):
-        if (ident in self.map_to_type):
+        if ident in self.map_to_type:
             return self.map_to_type[ident]
-        if (self.parent is not None):
+        if self.parent is not None:
             return self.parent.get_type(ident)
         return None
 
@@ -137,150 +140,218 @@ class Envr:
 
 class Stor:
     """Represents the contents of memory at a moment in time."""
-    address_counter = 1 # start at 1 so that 0 can be nullptr
-    NULL = generate_null_pointer()
 
     def __init__(self, to_copy=None):
+        self.NULL = generate_null_pointer(self)
         if to_copy is None:
+            self.address_counter = 1 # start at 1 so that 0 can be nullptr
             self.memory = {}
             self.succ_map = {}
             self.pred_map = {}
-            self.succ_map[Stor.NULL] = Stor.NULL
-            self.pred_map[Stor.NULL] = Stor.NULL
-            self.size_map = {0:1}
-        elif isinstance(to_copy, Stor):
+            self.succ_map[self.NULL] = self.NULL
+            self.pred_map[self.NULL] = self.NULL
+        elif isinstance(to_copy, Stor): #shallow copy of stor
+            self.address_counter = to_copy.address_counter
             self.memory = to_copy.memory
             self.succ_map = to_copy.succ_map
             self.pred_map = to_copy.pred_map
         else:
             raise Exception("Stor Copy Constructor Expects a Stor Object")
 
+    def _make_new_address(self, size):
+        """ Alloc address for a certian size and store unitialized value """
+        logging.info("Alloc %d for %d bytes", self.address_counter, size)
+        pointer = generate_pointer(self.address_counter, self, size)
+        self.memory[pointer] = generate_unitialized_value(size)
+        self.address_counter += size
+        return pointer
+
     def get_next_address(self, size=1):
         """returns the next available storage address"""
-        pointer = generate_pointer(self.address_counter, self)
-        self.succ_map[pointer] = Stor.NULL 
-        self.pred_map[pointer] = Stor.NULL
-        self.size_map[self.address_counter] = size
-        self.address_counter += 1 
+        pointer = self._make_new_address(size)
+        self.succ_map[pointer] = self.NULL
+        self.pred_map[pointer] = self.NULL
         return pointer
 
     def allocate_block(self, length, size=1):
         """Moves the address counter to leave room for an array and returns
         start"""
         start_address = self.address_counter
-        start_pointer = generate_pointer(self.address_counter, self)
-        self.size_map[start_address] = size
-        self.address_counter += 1
+        start_pointer = self._make_new_address(size)
 
-        self.pred_map[start_pointer] = Stor.NULL
-        
+        self.pred_map[start_pointer] = self.NULL
+
         last_pointer = start_pointer
         while self.address_counter < (start_address + length * size):
-            new_pointer = generate_pointer(self.address_counter, self)
-            self.size_map[self.address_counter] = size
-            self.address_counter += 1
-            
+            new_pointer = self._make_new_address(size)
+
             self.pred_map[new_pointer] = last_pointer
             self.succ_map[last_pointer] = new_pointer
             last_pointer = new_pointer
-        self.succ_map[last_pointer] = Stor.NULL
+        self.succ_map[last_pointer] = self.NULL
 
         return start_pointer
 
     def allocate_nonuniform_block(self, list_of_sizes):
-        """Takes in a list of sizes as int and allocates and links a block in the stor for each size"""
-        start_address = self.address_counter
-        start_pointer = generate_pointer(self.address_counter, self)
-        self.pred_map[start_pointer] = Stor.NULL
-        self.size_map[self.address_counter] = list_of_sizes[0]
-        self.address_counter += 1
+        """ Takes in a list of sizes as int and allocates
+             and links a block in the stor for each size """
+        start_pointer = self._make_new_address(list_of_sizes[0])
+        self.pred_map[start_pointer] = self.NULL
 
-        pred = start_pointer
+        prev = start_pointer
         for block_size in list_of_sizes[1:]:
-            next_block = generate_pointer(self.address_counter, self)
-            self.size_map[self.address_counter] = block_size
-            self.address_counter += 1
-            self.pred_map[next_block] = pred
-            self.succ_map[pred] = next_block
-            pred = next_block
+            next_block = self._make_new_address(block_size)
+            self.pred_map[next_block] = prev
+            self.succ_map[prev] = next_block
+            prev = next_block
 
-        self.succ_map[pred] = Stor.NULL            
-        
+        self.succ_map[prev] = self.NULL
+
         return start_pointer
-
 
     def add_offset_to_pointer(self, pointer, offset):
         # TODO Document what this function does
-        new_pointer = generate_pointer_value(pointer)
+        new_pointer = copy_pointer(pointer)
+        if new_pointer not in self.memory:
+            if new_pointer.data == 0: #null is always null
+                return new_pointer
+            raise Exception("Invalid Pointer %s", str(new_pointer))
+        skip_size = self.memory[new_pointer].size
         if offset > 0:
             for _ in range(offset):
                 new_pointer.offset += 1
-                if self.size_map[new_pointer.data] == new_pointer.offset:
+                if skip_size == new_pointer.offset:
                     new_pointer.offset = 0
                     new_pointer = self.succ_map[new_pointer]
+                    if new_pointer.data == 0:
+                        return new_pointer
+                    skip_size = self.memory[new_pointer].size
         else:
             for _ in range(abs(offset)):
                 if 0 == new_pointer.offset:
-                    diff = self.size_map[new_pointer.data]
                     new_pointer = self.pred_map[new_pointer]
-                    new_pointer.offset = diff
+                    if new_pointer.data == 0:
+                        return new_pointer
+                    new_pointer.offset = self.memory[new_pointer].size
                 new_pointer.offset -= 1
         return new_pointer
-            
+
     def read(self, address):
         """Read the contents of the store at address. Returns None if undefined.
         """
+        logging.info(" Read %s", str(address))
 
-        if address in self.memory:
-            return self.memory[address]
-        if address >= self.address_counter:
+        if address not in self.memory:
+            raise Exception("Address Not in memory")
+        if address.data >= self.address_counter:
             raise Exception("ERROR: tried to access an unalocated address: " +
                             str(address))
 
-        #raise Exception("I think this should never happen"+str(address)+str(self.memory))
-        nearest_address = Stor.NULL
-        for x in self.memory:
-            if x.data < address:
-                nearest_address = x if x > nearest_address else nearest_address
- 
-        if not nearest_address == Stor.NULL:
-            return self.memory[nearest_address]
+        val = self.memory[address]
+        if address.offset == 0 and val.size == address.type_size:
+            return val #no special math needed
 
-        return generate_default_value("int")
+        result = 0
+        bytes_to_read = address.type_size
+        start = address.offset
+
+        ptr = copy_pointer(address)
+        while bytes_to_read != 0:
+            num_possible = min(bytes_to_read, val.size - start)
+            result += (val.get_value(start, num_possible) *
+                       (2**((address.type_size-bytes_to_read)*8)))
+            logging.debug("  Read %d byte(s) result so far = %d",
+                          num_possible, result)
+            bytes_to_read -= num_possible
+            if bytes_to_read > 0:
+                start = 0
+                ptr = self.add_offset_to_pointer(ptr, num_possible)
+                if ptr.data == 0:
+                    raise Exception("Segfault")
+                val = self.memory[ptr]
+
+        return generate_value(result, size=address.type_size)
 
     def get_nearest_address(self, address):
         """ returns a pointer to the nearest address
             with an offset set to make difference """
-        #address = generate_pointer(address, self) 
+        #address = generate_pointer(address, self)
+        #raise Exception("Do not want to be here")
+        logging.debug(" Look for address %d", address)
         if address in self.memory:
-            return address
-        if address > self.address_counter:
-            return Stor.NULL
+            return generate_pointer(address, self, None)
+        if address > self.address_counter or address == 0:
+            return self.NULL
 
-        nearest_address = Stor.NULL
+        nearest_address = self.NULL
         for x in self.memory:
             if x.data > address:
                 break
             nearest_address = x
- 
-        if not nearest_address == Stor.NULL:
+
+        if not nearest_address == self.NULL:
             offset = address.data - nearest_address.data
             return generate_pointer(nearest_address.data, self, offset)
 
-        return Stor.NULL
-       
+        return self.NULL
 
     def write(self, address, value):
         """Write value to the store at address. If there is an existing value,
         merge value into the existing value.
         """
+
+        logging.info('  Write '+str(value) + "  to  " + str(address))
+
         if not isinstance(address, ReferenceValue):
             raise Exception("Address should not be " + str(address))
-        if address in self.memory:
+        if address.data == 0 or address.data >= self.address_counter:
+            raise Exception("Segfault") #underflow or overflow
+        if address not in self.memory:
+            raise Exception("Unkown address %s", str(address))
+
+        old_value = self.memory[address]
+        if address.offset == 0 and value.size == old_value.size:
             self.memory[address] = value
-        else:
-            self.memory[address] = value
-        logging.debug('  '+str(self.memory[address]) + " writen to " + str(address))
+            return
+
+        bytes_to_write = value.size
+        bytes_written = 0
+
+        while bytes_to_write != 0:
+            if address.offset != 0:
+                new_data = old_value.get_value(0, address.offset)
+            else:
+                new_data = 0
+
+            bytes_in_store = old_value.size - address.offset
+            able_to_write = min(bytes_to_write,
+                                bytes_in_store)
+            new_data += (value.get_value(bytes_written, able_to_write) *
+                         (2**((address.offset+bytes_written)*8)))
+            bytes_to_write -= able_to_write
+            bytes_in_store -= able_to_write
+            bytes_written += able_to_write
+
+            if bytes_in_store > 0:
+                #get rest of object then write
+                offset = old_value.size - bytes_in_store
+                new_data += (old_value.get_value(offset, bytes_in_store) *
+                             (2**(offset*8)))
+                self._write_on_offset(address, new_data, old_value)
+            elif bytes_to_write > 0:
+                #more data left in value, write to store then continue
+                self._write_on_offset(address, new_data, old_value)
+                address = self.succ_map[address]
+                old_value = self.read(address)
+            else:
+                self._write_on_offset(address, new_data, old_value)
+                #neat finish write to store and be done
+
+    def _write_on_offset(self, address, new_data, old_value):
+        """ Manages how to write when mixing bytes """
+        self.memory[address] = generate_value(new_data,
+                                              old_value.type_of,
+                                              old_value.size)
 
     def print_memory_visualization(self):
         for (address, value) in self.memory:
@@ -288,7 +359,7 @@ class Stor:
                 print(bcolor.GREEN + str(value))
             else:
                 print(str(value))
-        
+
 #Base Class
 class Kont:
     """Abstract class for polymorphism of continuations"""
@@ -307,7 +378,7 @@ class Halt(Kont):
 
 class FunctionKont(Kont):
     """Continuation for function"""
-    
+
     def __init__(self, parent_state):
         self.parent_state = parent_state
 
@@ -353,7 +424,7 @@ class AssignKont(Kont):
     def __init__(self, address, parent_state):
         if not isinstance(address, ReferenceValue):
             raise Exception("Address should not be " + str(address))
-        self.address = address 
+        self.address = address
         self.parent_state = parent_state
 
     def satisfy(self, state, value):
@@ -365,7 +436,7 @@ class AssignKont(Kont):
                               self.parent_state.kont)
             return cesk.interpret.get_next(new_state)
         return_state = State(self.parent_state.ctrl, self.parent_state.envr,
-                             new_stor, self.parent_state.kont) 
+                             new_stor, self.parent_state.kont)
         return self.parent_state.kont.satisfy(return_state, value)
 
 class CastKont(Kont):
@@ -378,7 +449,6 @@ class CastKont(Kont):
     def satisfy(self, state, value):
         cast_value = cast(value, self.to_type, state)
         return self.parent_kont.satisfy(state, cast_value)
-        
 
 #class IfKont(Kont):
 #    """Continuation for if statement, moves ctrl to correct place"""
@@ -401,7 +471,7 @@ class CastKont(Kont):
 #        return State(new_ctrl, state.envr, state.stor, self.parent_state.kont)
 
 class ReturnKont(Kont): #pylint: disable=too-few-public-methods
-
+    """ Manages return of a function """
     def __init__(self, parent_kont):
         self.parent_kont = parent_kont
 
@@ -412,7 +482,7 @@ class ReturnKont(Kont): #pylint: disable=too-few-public-methods
 #class LeftBinopKont(Kont):
 #    """Continuation for the left side of a binary operator"""
 #
-#    parent_state = None 
+#    parent_state = None
 #    operator = None
 #    right_exp = None
 #    return_kont = None
@@ -425,8 +495,8 @@ class ReturnKont(Kont): #pylint: disable=too-few-public-methods
 #
 #    def satisfy(self, current_state, value):
 #        left_result = value
-#        right_kont = RightBinopKont(self.parent_state, left_result, self.operator,
-#                                    self.return_kont)
+#        right_kont = RightBinopKont(self.parent_state, left_result,
+#                                    self.operator, self.return_kont)
 #        return State(Ctrl(self.rightExp), current_state.envr,
 #                     current_state.stor, right_kont)
 #
@@ -434,7 +504,7 @@ class ReturnKont(Kont): #pylint: disable=too-few-public-methods
 #class RightBinopKont(Kont):
 #    """Continuation for the right side of a binary operator"""
 #
-#    parent_state = None 
+#    parent_state = None
 #    left_result = None
 #    operator = None
 #    return_kont = None
@@ -446,7 +516,6 @@ class ReturnKont(Kont): #pylint: disable=too-few-public-methods
 #        self.return_kont = return_kont
 #
 #    def satisfy(self, state, value):
-#        logging.debug( "   "+str(self.left_result)+str(self.operator)+str(value))
 #        result = self.left_result.perform_operation(self.operator, value)
 #        if isinstance(self.parent_state.kont, FunctionKont):
 #            #don't return out of function without return
@@ -455,6 +524,7 @@ class ReturnKont(Kont): #pylint: disable=too-few-public-methods
 #            return cesk.interpret.get_next(new_state)
 #        return self.return_kont.satisfy(state, result)
 
-# import is down here to allow for circular dependencies between structures.py and interpret.py
+# import is down here to allow for circular dependencies
+# between structures.py and interpret.py
 import cesk.values # pylint: disable=wrong-import-position
 import cesk.interpret # pylint: disable=wrong-import-position

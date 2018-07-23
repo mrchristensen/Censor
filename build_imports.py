@@ -2,13 +2,12 @@
 """Main function for generic c analyzer"""
 
 import argparse
-import sys
-from os import path
 
 import utils
 
 def main():
-
+    """ takes a path to a diretory with a make file
+        outputs the list of c files used by that make file """
     parser = argparse.ArgumentParser()
     parser.add_argument("directory")
     parser.add_argument('--outfile', '-o',
