@@ -14,7 +14,6 @@ int main()
   struct tnode **censor03 = &(*censor02)[i];
   i++;
   int (*censor04)[10] = &(*censor03)->data;
-  int *censor05 = &(*censor04)[i];
-  int d = *censor05;
+  int d = (*censor04)[i];
 }
 

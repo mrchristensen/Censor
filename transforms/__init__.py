@@ -61,6 +61,7 @@ from .change_void_pointer import ChangeToVoidPointer
 from .struct_ref_to_pointer import StructRefToPointerArith
 from .remove_typedef import RemoveTypedef
 from .break_to_goto import BreakToGoto
+from .alpha_name import AlphaName
 
 # other imports
 from .id_generator import IDGenerator
@@ -135,6 +136,7 @@ def get_transformers(ast):
     yield (InsertExplicitTypeCasts,
            lambda ast: [type_env_calc.get_environments(ast)])
     yield (SingleReturn, lambda ast: [id_generator])
+    yield (AlphaName, lambda ast: [])
 
 def transform(ast):
     """Perform each transform in package"""
