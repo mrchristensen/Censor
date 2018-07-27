@@ -301,7 +301,7 @@ class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
             offset = -1 * other
             return self.stor.add_offset_to_pointer(self, offset)
         elif isinstance(other, Pointer):
-            return self.data - other.data
+            return Integer(self.data - other.data, 'int')
         else:
             raise Exception("Pointers can only be subtracted by int")
 
@@ -326,7 +326,7 @@ class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
 def generate_constant_value(value, type_of='int'):
     """ Given a string, parse it as a constant value. """
     if type_of == 'string':
-        raise NotImplemented("Need to implement string constant")
+        raise NotImplementedError("Need to implement string constant")
         #return PtrDecl([], TypeDecl(None, [], IdentifierType(['char'])))
     elif type_of == 'float':
         if value[-1] in "fF":
@@ -340,20 +340,19 @@ def generate_constant_value(value, type_of='int'):
         if value[-1] in "uU":
             u = 'unsigned '
             value = value[:-1]
-        
         if value[-1] not in "lL":
             val = int(value, 0)
-            if val < limits.RANGES['unsigned '+type_of].max:
+            if val <= limits.RANGES['unsigned '+type_of].max:
                 return Integer(val, u+type_of)
         else:
             value = value[:-1]
         type_of = 'long '+type_of
         val = int(value, 0)
 
-        if val < limits.RANGES['unsigned '+type_of].max:
+        if val <= limits.RANGES['unsigned '+type_of].max:
             return Integer(val, u+type_of)
         type_of = 'long '+type_of
-        if val < limits.RANGES['unsigned '+type_of].max:
+        if val <= limits.RANGES['unsigned '+type_of].max:
             return Integer(val, u+type_of)
 
     elif type_of == 'char':

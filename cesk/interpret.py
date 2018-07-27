@@ -4,7 +4,7 @@ import pycparser.c_ast as AST
 from transforms.sizeof import get_size_ast
 from cesk.values import generate_constant_value, cast
 import cesk.linksearch as ls
-logging.basicConfig(filename='logfile.txt', level=logging.INFO,
+logging.basicConfig(filename='logfile.txt', level=logging.DEBUG,
                     format='%(levelname)s: %(message)s', filemode='w')
 
 def execute(state):

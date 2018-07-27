@@ -19,5 +19,4 @@ int main()
   for (int i = 0; i < 3; i++,c++){
       printf("%c",*(c));
   }
-  printf("\n");
 }

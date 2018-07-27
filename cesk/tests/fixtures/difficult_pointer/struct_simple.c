@@ -18,5 +18,4 @@ int main()
   char* c = (char*)tester;
   for (int i = 0; i < 3; i++)
     printf("%c",*c++);
-  printf("\n");
 }
