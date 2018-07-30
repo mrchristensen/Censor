@@ -82,7 +82,7 @@ def execute(state):
         # logging.debug("CompoundLiteral")
         successors.append(get_next(state))
     elif isinstance(stmt, AST.Constant):
-        logging.debug("Constant "+stmt.type)
+        logging.debug("Constant %s", stmt.type)
         value = generate_constant_value(stmt.value, stmt.type)
         if isinstance(state.kont, FunctionKont): #Don't return to function
             successors.append(get_next(state))
@@ -247,7 +247,7 @@ def execute(state):
         logging.debug("FuncDef")
         raise Exception("FuncDef out of Global scope")
     elif isinstance(stmt, AST.Goto):
-        logging.debug('Goto '+stmt.name)
+        logging.debug('Goto %s', stmt.name)
         label_to = ls.LinkSearch.label_lut[stmt.name]
         body = label_to
         while not isinstance(body, AST.Compound):
