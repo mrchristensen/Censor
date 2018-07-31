@@ -204,15 +204,20 @@ class Stor:
         to the next block if the offset extends beyond the bounds
         of the current block.
         """
+        logging.debug("Offsetting %s by %d", str(pointer), offset)
         new_pointer = copy_pointer(pointer)
         if new_pointer not in self.memory:
             if new_pointer.data == 0: #null is always null
+                new_pointer.offset += offset
                 return new_pointer
             raise Exception("Invalid Pointer " + str(new_pointer))
         skip_size = self.memory[new_pointer].size
         if offset > 0:
             while offset != 0:
                 if offset < skip_size - new_pointer.offset:
+                    new_pointer.offset += offset
+                    offset = 0
+                elif self.succ_map[new_pointer] is self.NULL:
                     new_pointer.offset += offset
                     offset = 0
                 else:
@@ -227,18 +232,22 @@ class Stor:
                 if new_pointer.offset + offset >= 0:
                     new_pointer.offset += offset
                     offset = 0
+                elif self.pred_map[new_pointer] is self.NULL:
+                    new_pointer.offset += offset
+                    offset = 0
                 else:
                     offset += new_pointer.offset
                     new_pointer = self.pred_map[new_pointer]
                     if new_pointer.data == 0:
                         return new_pointer
                     new_pointer.offset = self.memory[new_pointer].size
+        logging.debug("Pointer offset to %s", str(new_pointer))
         return new_pointer
 
     def read(self, address):
         """Read the contents of the store at address. Returns None if undefined.
         """
-        logging.info(" Read %s", str(address))
+        logging.info("Reading %s", str(address))
 
         if address not in self.memory:
             raise Exception("Address Not in memory")
@@ -256,6 +265,8 @@ class Stor:
 
         ptr = copy_pointer(address)
         while bytes_to_read != 0:
+            if ptr.offset >= val.size or ptr.offset < 0:
+                raise Exception("Segfault")
             num_possible = min(bytes_to_read, val.size - start)
             result += (val.get_value(start, num_possible) *
                        (2**((address.type_size-bytes_to_read)*8)))
@@ -263,8 +274,8 @@ class Stor:
                           num_possible, result)
             bytes_to_read -= num_possible
             if bytes_to_read > 0:
-                start = 0
                 ptr = self.add_offset_to_pointer(ptr, num_possible)
+                start = ptr.offset
                 if ptr.data == 0:
                     raise Exception("Segfault")
                 val = self.memory[ptr]
@@ -317,6 +328,9 @@ class Stor:
         bytes_written = 0
 
         while bytes_to_write != 0:
+            if address.offset >= old_value.size or address.offset < 0:
+                raise Exception("Segfault")
+
             if address.offset != 0:
                 new_data = old_value.get_value(0, address.offset)
             else:
