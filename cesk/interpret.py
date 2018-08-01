@@ -8,6 +8,9 @@ logging.basicConfig(filename='logfile.txt', level=logging.DEBUG,
                     format='%(levelname)s: %(message)s', filemode='w')
 
 def execute(state):
+    # pylint: disable=too-many-branches
+    # pylint: disable=too-many-statements
+    # pylint: disable=too-many-locals
     """Takes a state evaluates the stmt from ctrl and returns a set of
     states"""
     successors = []
