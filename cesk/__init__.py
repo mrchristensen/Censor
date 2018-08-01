@@ -14,7 +14,7 @@ def main(ast):
     main_function = find_main(ast)[0]
 
     start_ctrl = Ctrl(main_function.body)
-    halt_state = State(start_ctrl, Envr.get_global_scope(), Stor(), Halt())
+    halt_state = State(start_ctrl, Envr(), Stor(), Halt())
     # create start state as if main() has been called by halt
     start_state = State(start_ctrl, halt_state.envr, halt_state.stor,
                         FunctionKont(halt_state))
@@ -24,26 +24,3 @@ def main(ast):
         successors = execute(next_state)
         queue.extend(successors)
     raise Exception("Execution finished without Halt")
-
-def implemented_nodes():
-    """ Return set of nodes that the interpreter currently implements.
-    """
-    return {
-        'ArrayRef',
-        'Assignment',
-        'BinaryOp',
-        'Compound',
-        'Constant',
-        'Decl',
-        'FuncCall',
-        'FuncDecl',
-        'FuncDef',
-        'Goto',
-        'ID',
-        'If',
-        'Label',
-        'Return',
-        'TypeDecl',
-        'UnaryOp',
-        'FileAST'
-    }

@@ -95,15 +95,8 @@ class Envr:
     def __init__(self, parent=None):
         self.map_to_address = {} #A set of IdToAddr mappings
         self.parent = parent
-        self.id = Envr.counter
-        Envr.counter = Envr.counter + 1
-
-    @staticmethod
-    def get_global_scope():
-        '''Returns global scope, uses singleton pattern'''
-        if Envr.global_scope is None:
-            Envr.global_scope = Envr(None)
-        return Envr.global_scope
+        self.scope_id = Envr.counter
+        Envr.counter += 1
 
     def get_address(self, ident):
         "looks up the address associated with an identifier"""
@@ -114,10 +107,8 @@ class Envr:
             return self.map_to_address[ident]
         if self.parent is not None:
             return self.parent.get_address(ident)
-        while not isinstance(ident, str):
-            ident = ident.name
         raise Exception(ident + " is not defined in this scope: " +
-                        str(self.id))
+                        str(self.scope_id))
 
     def map_new_identifier(self, ident, address):
         """Add a new identifier to the mapping"""
@@ -131,8 +122,8 @@ class Stor:
     """Represents the contents of memory at a moment in time."""
 
     def __init__(self, to_copy=None):
-        self.NULL = generate_null_pointer(self)
         if to_copy is None:
+            self.NULL = generate_null_pointer(self)
             self.address_counter = 1 # start at 1 so that 0 can be nullptr
             self.memory = {}
             self.succ_map = {}
@@ -140,6 +131,7 @@ class Stor:
             self.succ_map[self.NULL] = self.NULL
             self.pred_map[self.NULL] = self.NULL
         elif isinstance(to_copy, Stor): #shallow copy of stor
+            self.NULL = to_copy.NULL
             self.address_counter = to_copy.address_counter
             self.memory = to_copy.memory
             self.succ_map = to_copy.succ_map

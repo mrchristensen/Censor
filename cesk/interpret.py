@@ -8,20 +8,12 @@ logging.basicConfig(filename='logfile.txt', level=logging.DEBUG,
                     format='%(levelname)s: %(message)s', filemode='w')
 
 def execute(state):
-    # pylint: disable=too-many-return-statements
-    # pylint: disable=too-many-branches
-    # pylint: disable=too-many-statements
-    # pylint: disable=too-many-locals
-    # pylint: disable=fixme
     """Takes a state evaluates the stmt from ctrl and returns a set of
     states"""
     successors = []
     stmt = state.ctrl.stmt()
-    if isinstance(stmt, AST.ArrayDecl):
-        raise Exception("ArrayDecl should have been found as a child of Decl")
-    elif isinstance(stmt, AST.ArrayRef):
-        raise Exception("Array should be transformed")
-    elif isinstance(stmt, AST.Assignment):
+    obj_name = stmt.__class__.__name__
+    if isinstance(stmt, AST.Assignment):
         logging.debug("Assignment")
         rexp = stmt.rvalue
         #if isinstance(stmt.lvalue, AST.UnaryOp) and stmt.lvalue.op == '*':
@@ -43,13 +35,6 @@ def execute(state):
             successors.append(get_next(state))
         else:
             successors.append(state.kont.satisfy(state, value))
-    elif isinstance(stmt, AST.Break):
-        # logging.debug("Break")
-        raise Exception("Break has not yet been implemented")
-    elif isinstance(stmt, AST.Case):
-        raise Exception("Case staments should be transformed out")
-        #logging.debug("Case")
-        #successors.append(get_next(state))
     elif isinstance(stmt, AST.Cast):
         # TODO try and remove Cast Kontinuations
         logging.debug('Cast')
@@ -66,21 +51,15 @@ def execute(state):
         #    successors.append(get_next(state))
         #else:
         #    successors.append(state.kont.satisfy(state, cast_value))
-
     elif isinstance(stmt, AST.Compound):
         logging.debug("Compound")
         new_ctrl = Ctrl(0, stmt)
-        new_envr = Envr(state.envr)
+        new_envr = state.envr
         ls.LinkSearch.envr_lut[stmt] = new_envr #save to table for goto lookup
         if stmt.block_items is None:
             successors.append(get_next(state))
         else:
             successors.append(State(new_ctrl, new_envr, state.stor, state.kont))
-
-    elif isinstance(stmt, AST.CompoundLiteral):
-        # TODO
-        # logging.debug("CompoundLiteral")
-        successors.append(get_next(state))
     elif isinstance(stmt, AST.Constant):
         logging.debug("Constant %s", stmt.type)
         value = generate_constant_value(stmt.value, stmt.type)
@@ -88,10 +67,6 @@ def execute(state):
             successors.append(get_next(state))
         else:
             successors.append(state.kont.satisfy(state, value))
-    elif isinstance(stmt, AST.Continue):
-        logging.error("Continue should be transformed out")
-        # logging.debug("Continue")
-        successors.append(get_next(state))
     elif isinstance(stmt, AST.Decl):
         logging.debug("Decl "+str(stmt.name)+'    '+str(stmt.type))
         handle_decl(stmt, state)
@@ -104,43 +79,7 @@ def execute(state):
             successors.append(get_next(state))
         else:
             successors.append(state.kont.satisfy(state))
-    elif isinstance(stmt, AST.DeclList):
-        # Should be transformed to multiple Decl nodes
-        raise Exception("DeclList should be transformed out")
-        #successors.append(get_next(state))
-    elif isinstance(stmt, AST.Default):
-        raise Exception("Default should be transformed")
-        # logging.debug("Default")
-        #successors.append(get_next(state))
-    elif isinstance(stmt, AST.DoWhile):
-        raise Exception("DoWhile should be transformed")
-        # logging.debug("DoWhile")
-        #successors.append(get_next(state))
-    elif isinstance(stmt, AST.EllipsisParam):
-        # TODO
-        # logging.debug("EllipsisParam")
-        successors.append(get_next(state))
     elif isinstance(stmt, AST.EmptyStatement):
-        successors.append(get_next(state))
-    elif isinstance(stmt, AST.Enum):
-        # TODO
-        # logging.debug("Enum")
-        successors.append(get_next(state))
-    elif isinstance(stmt, AST.Enumerator):
-        # TODO
-        # logging.debug("Enumerator")
-        successors.append(get_next(state))
-    elif isinstance(stmt, AST.EnumeratorList):
-        # TODO
-        # logging.debug("EnumeratorList")
-        successors.append(get_next(state))
-    elif isinstance(stmt, AST.ExprList):
-        raise Exception("ExprList should only appear inside FuncCall/Decl")
-    elif isinstance(stmt, AST.FileAST):
-        raise Exception("FileAST is not a valid control point")
-    elif isinstance(stmt, AST.For):
-        # TODO manage pragma omp for loops others are transformed
-        logging.error("For should be transformed to goto")
         successors.append(get_next(state))
     elif isinstance(stmt, AST.FuncCall):
         logging.debug("FuncCall")
@@ -210,8 +149,7 @@ def execute(state):
                                     str(len(expr_list)))
 
                 new_ctrl = Ctrl(0, func_def.body)
-                new_envr = Envr(Envr.get_global_scope())
-                new_state = State(new_ctrl, new_envr, state.stor, state.kont)
+                new_state = State(new_ctrl, Envr(), state.stor, state.kont)
 
                 for decl, expr in zip(param_list, expr_list):
                     new_state = handle_decl(decl, new_state)
@@ -240,12 +178,6 @@ def execute(state):
                                         new_state.envr,
                                         new_state.stor,
                                         new_kont))
-    elif isinstance(stmt, AST.FuncDecl):
-        logging.debug("FuncDecl")
-        raise Exception("FuncDecl out of Global scope")
-    elif isinstance(stmt, AST.FuncDef):
-        logging.debug("FuncDef")
-        raise Exception("FuncDef out of Global scope")
     elif isinstance(stmt, AST.Goto):
         logging.debug('Goto %s', stmt.name)
         label_to = ls.LinkSearch.label_lut[stmt.name]
@@ -259,10 +191,7 @@ def execute(state):
             new_envr = ls.LinkSearch.envr_lut[body]
         else:
             #forward jump into previously undefined scope
-            new_envr = create_forward_jump_envr(body, state)
-
-        logging.debug("Now leaving scope %s to %s", str(state.envr.id),
-                      str(new_envr.id))
+            new_envr = state.envr
         successors.append(State(new_ctrl, new_envr, state.stor, state.kont))
     elif isinstance(stmt, AST.ID):
         logging.debug("ID %s", stmt.name)
@@ -275,9 +204,6 @@ def execute(state):
             successors.append(get_next(state))
         else:
             successors.append(state.kont.satisfy(state, value))
-    elif isinstance(stmt, AST.IdentifierType):
-        logging.error("IdentifierType should not appear on there own")
-        successors.append(get_next(state))
     elif isinstance(stmt, AST.If):
         logging.debug("If")
         value = get_value(stmt.cond, state)
@@ -289,75 +215,97 @@ def execute(state):
             raise Exception("False Branch should be transformed")
         else:
             successors.append(get_next(state))
-    elif isinstance(stmt, AST.InitList):
-        # TODO transform nested
-        # Init list is tranformed
-        logging.error("InitList")
-        raise Exception("Initilizer List is not implemented")
-        #successors.append(get_next(state))
     elif isinstance(stmt, AST.Label):
-        # logging.debug("Label")
         new_ctrl = Ctrl(stmt.stmt)
         successors.append(State(new_ctrl, state.envr, state.stor, state.kont))
-    elif isinstance(stmt, AST.NamedInitializer):
-        # TODO
-        # logging.debug("NamedInitializer")
-        successors.append(get_next(state))
-    elif isinstance(stmt, AST.ParamList):
-        # TODO
-        # logging.debug("ParamList")
-        successors.append(get_next(state))
-    elif isinstance(stmt, AST.PtrDecl):
-        logging.error("PtrDecl should not appear outside of a decl")
-        successors.append(get_next(state))
     elif isinstance(stmt, AST.Return):
-        # logging.debug("Return")
-        exp = stmt.expr
-        successors.append(handle_return(exp, state))
-    elif isinstance(stmt, AST.Struct):
-        # TODO decide what to do with structs as a whole
-        # logging.debug("Struct")
-        #struct = stmt
-        successors.append(get_next(state))
-    elif isinstance(stmt, AST.StructRef):
-        # transformed to pointer arithmetic to avoid intermediate value
-        raise Exception("StructRef should be transform to pointer arith")
-    elif isinstance(stmt, AST.Switch):
-        # tranformed
-        raise Exception("Switch should be tranformed")
-    elif isinstance(stmt, AST.TernaryOp):
-        logging.error("TernaryOp should be removed by transform")
-        raise Exception("TernaryOp should have been removed in the transforms")
-    elif isinstance(stmt, AST.TypeDecl):
-        raise Exception("TypeDecl should have been found as child of Decl")
-    elif isinstance(stmt, AST.Typedef):
-        # logging.debug("Typedef")
-        # typedef'ed names ares replaced by there values in
-        #    transform so just skip over
-        successors.append(get_next(state))
-    elif isinstance(stmt, AST.Typename):
-        logging.error("Typename should appear only nested inside another type")
-        successors.append(get_next(state))
+        successors.append(handle_return(stmt.expr, state))
     elif isinstance(stmt, AST.UnaryOp):
         logging.debug("UnaryOp %s", stmt.op)
-        opr = stmt.op
-        expr = stmt.expr
-        successors.append(handle_unary_op(opr, expr, state))
-    elif isinstance(stmt, AST.Union):
-        # TODO
-        # logging.debug("Union")
-        successors.append(get_next(state))
-    elif isinstance(stmt, AST.While):
-        logging.error("While should be removed in the transform")
-        raise Exception("While should be removed in the transform")
-    elif isinstance(stmt, AST.Pragma):
-        # TODO
-        # logging.debug("Pragma")
-        successors.append(get_next(state))
+        successors.append(handle_unary_op(stmt.op, stmt.expr, state))
+    elif obj_name in should_be_transformed_nodes():
+        raise Exception(obj_name + " should be transformed but wasn't")
+    elif obj_name in todo_implement_nodes():
+        raise Exception(obj_name + " not yet implemented")
+    elif obj_name in should_not_find():
+        raise Exception(should_not_find()[obj_name])
     else:
         raise ValueError("Unknown C AST object type: {0}".format(stmt))
 
     return successors
+
+def implemented_nodes():
+    """ Return set of nodes that the interpreter currently implements.
+    """
+    return {
+        'Assignment',
+        'BinaryOp',
+        'Cast',
+        'Compound',
+        'Constant',
+        'Decl',
+        'EmptyStatement',
+        'FuncCall',
+        'Goto',
+        'ID',
+        'If',
+        'Label',
+        'Return',
+        'UnaryOp'
+    }
+
+def should_not_find():
+    """ Return map of nodes that the interpreter shouldn't find.
+    Includes reason why it should not be found
+    """
+    return {
+        'ArrayDecl':'ArrayDecl should have been found as a child of Decl',
+        'ExprList':'ExprList should only appear inside FuncCall/Decl',
+        'FileAST':'FileAST is not a valid control point',
+        'FuncDecl':'FuncDecl out of Global scope',
+        'FuncDef':'FuncDef out of Global scope',
+        'IdentifierType':'IdentifierType should not appear',
+        'PtrDecl':'PtrDecl should not appear outside of a decl',
+        'TypeDecl':'TypeDecl should have been found as child of Decl',
+        'Typename':'Typename should appear only nested inside another type'
+    }
+
+def todo_implement_nodes():
+    """ Return set of nodes that were marked as '#todo implement' at some point
+    """
+    # TODO these of course :)
+    return {
+        'CompoundLiteral',
+        'EllipsisParam',
+        'Enum',
+        'Enumerator',
+        'EnumeratorList',
+        'For',
+        'NamedInitializer',
+        'ParamList',
+        'Struct',
+        'Union',
+        'Pragma'
+    }
+
+def should_be_transformed_nodes():
+    """ Return set of nodes that should have been removed by transforms.
+    """
+    return {
+        'ArrayRef',
+        'Break',
+        'Case',
+        'Continue',
+        'DeclList',
+        'Default',
+        'DoWhile',
+        'InitList',
+        'StructRef',
+        'Switch',
+        'TernaryOp',
+        'Typedef',
+        'While'
+    }
 
 def handle_assignment(operator, address, exp, state):
     """Creates continuation to evaluate exp and assigns resulting value to the
@@ -374,7 +322,7 @@ def handle_decl(decl, state):
     """Maps the identifier to a new address and passes assignment part"""
     name = decl.name
     if state.envr.is_localy_defined(name):
-        logging.debug(str(Exception("Error: redefinition of " + name)))
+        logging.error("redefinition of %s", name)
 
     elif (isinstance(decl.type, (AST.TypeDecl,
                                  AST.PtrDecl))):
@@ -395,7 +343,7 @@ def handle_decl(decl, state):
         state.envr.map_new_identifier(decl.name, data_address)
         logging.debug(" Mapped "+str(name)+" to "+str(data_address))
         if decl.init is not None:
-            raise Exception("array init needs to be transformed")
+            raise Exception("array init should be transformed")
 
     else:
         raise Exception("Declarations of " + str(decl.type) +
@@ -420,10 +368,11 @@ def handle_decl_array(array, list_of_sizes, state):
             raise Exception("Non-positive Array Sizes are not supported")
 
         length = size #reduce(lambda x, y: x*y, list_of_sizes)
-        if length == 0: #TODO
+        if length == 0:
+            # TODO
             raise NotImplementedError("Arrays of size 0 not implemented")
         if isinstance(array.type.type, (AST.Struct, AST.Union)):
-            #TODO handle Union
+            # TODO handle Union
             list_of_sizes = []
             alignment = ls.get_sizes(array, list_of_sizes, state) #pylint: disable=unused-variable
             data_address = state.stor.allocate_nonuniform_block(list_of_sizes)
@@ -513,7 +462,7 @@ def get_address(reference, state):
         return address
 
     elif isinstance(reference, AST.ArrayRef):
-        raise Exception("ArrayRef needs to be transformed out")
+        raise Exception("ArrayRef should be transformed")
 
     elif isinstance(reference, AST.UnaryOp):
         unary_op = reference
@@ -538,9 +487,9 @@ def get_address(reference, state):
                             + unary_op.op)
 
     elif isinstance(reference, AST.StructRef):
-        raise Exception("Needs to be transformed to pointer arithmetic")
+        raise Exception("StructRef should be transformed to pointer arithmetic")
     elif isinstance(reference, AST.Struct):
-        #TODO
+        # TODO
         raise NotImplementedError("Access to struct as a whole undefined still")
     else:
         raise Exception("Unsupported lvalue " + str(reference))
@@ -567,28 +516,6 @@ def check_for_implicit_decl(ident):
                 if decl.name == ident.name:
                     return decl
     return None
-    #raise Exception("Could not determine Implicit Decl")
-
-def create_forward_jump_envr(body, state): # pylint: disable=inconsistent-return-statements
-    """Recursively searches for a defined parent scope to inherit from"""
-    if body in ls.LinkSearch.parent_lut:
-        compound = None
-        parent = ls.LinkSearch.parent_lut[body]
-        while True:
-            logging.debug("Loop at %s", parent)
-            if isinstance(parent, AST.Compound):
-                compound = parent
-                break
-            if parent not in ls.LinkSearch.parent_lut:
-                break
-            parent = ls.LinkSearch.parent_lut[parent]
-        if compound in ls.LinkSearch.envr_lut:
-            return Envr(ls.LinkSearch.envr_lut[compound])
-        return Envr(create_forward_jump_envr(compound, state))
-    else:
-        #TODO does this work why?
-        #raise Exception("Expected parent of %s for forward jump", body)
-        return state.envr
 
 def get_next(state):
     """takes state and returns a state with ctrl for the next statement
@@ -621,16 +548,12 @@ def get_next(state):
                 #find current compound block position in the parent block
                 parent_index = ls.LinkSearch.index_lut[ctrl.body]
                 new_ctrl = Ctrl(parent_index, parent)
-                new_envr = state.envr.parent #fall off: return to parent scope
-                logging.debug("Fall off compound. Leaving scope %s to %s",
-                              state.envr.id, new_envr.id)
 
             else:
                 #if the parent is not a compound (probably an if statement)
                 new_ctrl = Ctrl(parent) #make a special ctrl and try again
-                new_envr = state.envr.parent
 
-            return get_next(State(new_ctrl, new_envr, state.stor, state.kont))
+            return get_next(State(new_ctrl, state.envr, state.stor, state.kont))
 
     if ctrl.node is not None:
         #if it is a special ctrl as created by binop or assign
