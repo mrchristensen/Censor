@@ -1,11 +1,15 @@
 """Starts the CESK machine"""
 
 import logging
+import sys
 from collections import deque
+import errno
 from utils import find_main
 from cesk.structures import State, Ctrl, Envr, Stor, Halt, FunctionKont
 from cesk.interpret import execute
 import cesk.linksearch as ls
+from .structures import SegFault
+
 def main(ast):
     """Injects execution into main funciton and maintains work queue"""
     #Search ast. link children to parents, map names FuncDef and Label nodes
@@ -21,6 +25,10 @@ def main(ast):
     queue = deque([start_state])
     while queue: #is not empty
         next_state = queue.popleft()
-        successors = execute(next_state)
-        queue.extend(successors)
+        try:
+            successor = execute(next_state)
+        except SegFault: #pylint: disable=broad-except
+            print('segmentation fault (core dumped)')
+            sys.exit(errno.EFAULT)
+        queue.append(successor)
     raise Exception("Execution finished without Halt")

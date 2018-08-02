@@ -8,234 +8,156 @@ logging.basicConfig(filename='logfile.txt', level=logging.DEBUG,
                     format='%(levelname)s: %(message)s', filemode='w')
 
 def execute(state):
-    # pylint: disable=too-many-branches
-    # pylint: disable=too-many-statements
-    # pylint: disable=too-many-locals
     """Takes a state evaluates the stmt from ctrl and returns a set of
     states"""
-    successors = []
     stmt = state.ctrl.stmt()
     obj_name = stmt.__class__.__name__
-    if isinstance(stmt, AST.Assignment):
-        logging.debug("Assignment")
-        rexp = stmt.rvalue
-        #if isinstance(stmt.lvalue, AST.UnaryOp) and stmt.lvalue.op == '*':
-        #    laddress = get_address(stmt.lvalue.expr, state)
-        #else:
-        laddress = get_address(stmt.lvalue, state)
-        logging.debug('   %s', str(stmt.lvalue))
-        logging.debug('   %s', str(laddress))
-        # take an operater, address (ReferenceValue),
-        #  the expression on the right side, and the state
-        successors.append(handle_assignment(stmt.op, laddress, rexp, state))
-    elif isinstance(stmt, AST.BinaryOp):
-        left = get_value(stmt.left, state)
-        right = get_value(stmt.right, state)
-        value = left.perform_operation(stmt.op, right)
-        logging.debug("BinaryOp %s%s%s = %s", str(left), stmt.op,
-                      str(right), str(value))
-        if isinstance(state.kont, FunctionKont): #Don't return to function
-            successors.append(get_next(state))
-        else:
-            successors.append(state.kont.satisfy(state, value))
-    elif isinstance(stmt, AST.Cast):
-        # TODO try and remove Cast Kontinuations
-        logging.debug('Cast')
-        new_ctrl = Ctrl(stmt.expr)
-        if isinstance(state.kont, FunctionKont):
-            new_kont = state.kont #don't return: castvalue not used
-        else:
-            new_kont = CastKont(state.kont, stmt.to_type)
-        new_state = State(new_ctrl, state.envr, state.stor, new_kont)
-        successors.append(new_state)
-        #old_value = get_address(stmt.expr, state).dereference()
-        #cast_value = cast(old_value, stmt.to_type, state)
-        #if isinstance(state.kont, FunctionKont): #Don't return to function
-        #    successors.append(get_next(state))
-        #else:
-        #    successors.append(state.kont.satisfy(state, cast_value))
-    elif isinstance(stmt, AST.Compound):
-        logging.debug("Compound")
-        new_ctrl = Ctrl(0, stmt)
-        new_envr = state.envr
-        ls.LinkSearch.envr_lut[stmt] = new_envr #save to table for goto lookup
-        if stmt.block_items is None:
-            successors.append(get_next(state))
-        else:
-            successors.append(State(new_ctrl, new_envr, state.stor, state.kont))
-    elif isinstance(stmt, AST.Constant):
-        logging.debug("Constant %s", stmt.type)
-        value = generate_constant_value(stmt.value, stmt.type)
-        if isinstance(state.kont, FunctionKont): #Don't return to function
-            successors.append(get_next(state))
-        else:
-            successors.append(state.kont.satisfy(state, value))
-    elif isinstance(stmt, AST.Decl):
-        logging.debug("Decl "+str(stmt.name)+'    '+str(stmt.type))
-        handle_decl(stmt, state)
-        if stmt.init is not None:
-            new_address = state.envr.get_address(stmt.name)
-            new_state = handle_assignment("=", new_address, stmt.init, state)
-            successors.append(new_state)
-        elif isinstance(state.kont, FunctionKont):
-            #Don't return to function/do not execute function until called
-            successors.append(get_next(state))
-        else:
-            successors.append(state.kont.satisfy(state))
-    elif isinstance(stmt, AST.EmptyStatement):
-        successors.append(get_next(state))
-    elif isinstance(stmt, AST.FuncCall):
-        logging.debug("FuncCall")
-        if stmt.name.name == "printf":
-            if isinstance(stmt.args.exprs[1], AST.Constant):
-                value = generate_constant_value(stmt.args.exprs[1].value,
-                                                stmt.args.exprs[1].type)
-            else:
-                value = get_address(stmt.args.exprs[1], state).dereference()
-
-            if isinstance(stmt.args.exprs[0], AST.Constant):
-                print_string = stmt.args.exprs[0].value % (value.data)
-            elif isinstance(stmt.args.exprs[0], AST.Cast):
-                print_string = stmt.args.exprs[0].expr.value % (value.data)
-            else:
-                raise Exception("printf does not know how to handle "
-                                +str(stmt.args.exprs[0]))
-
-            print_string = print_string[1:][:-1] #drop quotes
-            print(print_string.replace("\\n", "\n"), end="") #convert newlines
-            if isinstance(state.kont, FunctionKont): #Don't return to function
-                successors.append(get_next(state))
-            else:
-                successors.append(
-                    state.kont.satisfy(state, generate_constant_value("0")))
-        elif stmt.name.name == "malloc":
-            param = stmt.args.exprs[0]
-            if isinstance(stmt.args.exprs[0], AST.Cast):
-                param = stmt.args.exprs[0].expr
-
-            if isinstance(param, AST.Constant):
-                length = int(param.value, 0)
-            else:
-                length = get_address(param, state).dereference().data
-            logging.info("Malloc %d", length)
-
-            pointer = state.stor.get_next_address(length)
-            #pointer = state.stor.allocate_block(length)
-            #TODO find cause of error on basic func 12
-
-            if isinstance(state.kont, FunctionKont): #Don't return to function
-                successors.append(get_next(state))
-            else:
-                successors.append(state.kont.satisfy(state, pointer))
-        elif stmt.name.name == "free":
-            successors.append(get_next(state))
-        else:
-            if stmt.name.name not in ls.LinkSearch.function_lut:
-                raise Exception("Undefined reference to " + stmt.name.name)
-            else:
-                logging.debug(" Calling Function: %s", stmt.name.name)
-                func_def = ls.LinkSearch.function_lut[stmt.name.name]
-                if func_def.decl.type.args is None:
-                    param_list = []
-                else:
-                    param_list = func_def.decl.type.args.params
-                if stmt.args is None:
-                    expr_list = []
-                else:
-                    expr_list = stmt.args.exprs
-
-                if len(expr_list) != len(param_list):
-                    raise Exception("Function " + stmt.name.name +
-                                    " expected " +
-                                    str(len(param_list)) +
-                                    " parameters but received " +
-                                    str(len(expr_list)))
-
-                new_ctrl = Ctrl(0, func_def.body)
-                new_state = State(new_ctrl, Envr(), state.stor, state.kont)
-
-                for decl, expr in zip(param_list, expr_list):
-                    new_state = handle_decl(decl, new_state)
-                    new_address = new_state.envr.get_address(decl.name)
-                    while isinstance(expr, AST.Cast):
-                        expr = expr.expr #todo not ignore cast
-
-                    if isinstance(expr, AST.Constant):
-                        value = generate_constant_value(expr.value, expr.type)
-                    elif isinstance(expr, AST.ID):
-                        address = state.envr.get_address(expr.name)
-                        value = address.dereference() #safe
-                    else:
-                        raise Exception("Values passed to functions must be " +
-                                        "Constant or ID not " + str(expr))
-                    new_state.stor.write(new_address, value)
-
-                func_type = func_def.decl.type.type
-                if (isinstance(func_type, AST.TypeDecl) and
-                        isinstance(func_type.type, AST.IdentifierType) and
-                        'void' in func_type.type.names):
-                    new_kont = VoidKont(state)
-                else:
-                    new_kont = FunctionKont(state)
-                successors.append(State(new_ctrl,
-                                        new_state.envr,
-                                        new_state.stor,
-                                        new_kont))
-    elif isinstance(stmt, AST.Goto):
-        logging.debug('Goto %s', stmt.name)
-        label_to = ls.LinkSearch.label_lut[stmt.name]
-        body = label_to
-        while not isinstance(body, AST.Compound):
-            index = ls.LinkSearch.index_lut[body]
-            body = ls.LinkSearch.parent_lut[body]
-        new_ctrl = Ctrl(index, body)
-        logging.debug('\t Body: %s', str(body))
-        if body in ls.LinkSearch.envr_lut:
-            new_envr = ls.LinkSearch.envr_lut[body]
-        else:
-            #forward jump into previously undefined scope
-            new_envr = state.envr
-        successors.append(State(new_ctrl, new_envr, state.stor, state.kont))
-    elif isinstance(stmt, AST.ID):
-        logging.debug("ID %s", stmt.name)
-        name = stmt.name
-        address = state.envr.get_address(name)
-        value = address.dereference() #safe
-        if value is None:
-            raise Exception(name + ": " + str(state.stor.memory))
-        if isinstance(state.kont, FunctionKont): #Don't return to function
-            successors.append(get_next(state))
-        else:
-            successors.append(state.kont.satisfy(state, value))
-    elif isinstance(stmt, AST.If):
-        logging.debug("If")
-        value = get_value(stmt.cond, state)
-        if value.get_truth_value():
-            new_ctrl = Ctrl(stmt.iftrue)
-            successors.append(State(new_ctrl, state.envr,
-                                    state.stor, state.kont))
-        elif stmt.iffalse is not None:
-            raise Exception("False Branch should be transformed")
-        else:
-            successors.append(get_next(state))
-    elif isinstance(stmt, AST.Label):
-        new_ctrl = Ctrl(stmt.stmt)
-        successors.append(State(new_ctrl, state.envr, state.stor, state.kont))
-    elif isinstance(stmt, AST.Return):
-        successors.append(handle_return(stmt.expr, state))
-    elif isinstance(stmt, AST.UnaryOp):
-        logging.debug("UnaryOp %s", stmt.op)
-        successors.append(handle_unary_op(stmt.op, stmt.expr, state))
+    if obj_name in implemented_nodes():
+        return handle(stmt, state)
     elif obj_name in should_be_transformed_nodes():
         raise Exception(obj_name + " should be transformed but wasn't")
     elif obj_name in todo_implement_nodes():
         raise Exception(obj_name + " not yet implemented")
     elif obj_name in should_not_find():
         raise Exception(should_not_find()[obj_name])
-    else:
-        raise ValueError("Unknown C AST object type: {0}".format(stmt))
 
-    return successors
+    raise ValueError("Unknown C AST object type: {0}".format(stmt))
+
+def handle(stmt, state):
+    '''Handles all implemented nodes'''
+    obj_name = stmt.__class__.__name__
+    method_name = "handle_" + obj_name
+    handle_node = globals()[method_name]
+    return handle_node(stmt, state)
+def handle_Label(stmt, state): # pylint: disable=invalid-name
+    '''Handles Labels'''
+    new_ctrl = Ctrl(stmt.stmt)
+    return State(new_ctrl, state.envr, state.stor, state.kont)
+def handle_If(stmt, state): # pylint: disable=invalid-name
+    '''Handles Ifs'''
+    logging.debug("If")
+    value = get_value(stmt.cond, state)
+    if value.get_truth_value():
+        new_ctrl = Ctrl(stmt.iftrue)
+        return State(new_ctrl, state.envr, state.stor, state.kont)
+    elif stmt.iffalse is not None:
+        raise Exception("False Branch should be transformed")
+    else:
+        return get_next(state)
+def handle_ID(stmt, state): # pylint: disable=invalid-name
+    '''Handles IDs'''
+    logging.debug("ID %s", stmt.name)
+    name = stmt.name
+    address = state.envr.get_address(name)
+    value = address.dereference() #safe
+    if value is None:
+        raise Exception(name + ": " + str(state.stor.memory))
+    if isinstance(state.kont, FunctionKont): #Don't return to function
+        return get_next(state)
+    else:
+        return state.kont.satisfy(state, value)
+def handle_Goto(stmt, state): # pylint: disable=invalid-name
+    '''Handles Gotos'''
+    logging.debug('Goto %s', stmt.name)
+    label_to = ls.LinkSearch.label_lut[stmt.name]
+    body = label_to
+    while not isinstance(body, AST.Compound):
+        index = ls.LinkSearch.index_lut[body]
+        body = ls.LinkSearch.parent_lut[body]
+    new_ctrl = Ctrl(index, body)
+    logging.debug('\t Body: %s', str(body))
+    if body in ls.LinkSearch.envr_lut:
+        new_envr = ls.LinkSearch.envr_lut[body]
+    else:
+        #forward jump into previously undefined scope
+        new_envr = state.envr
+    return State(new_ctrl, new_envr, state.stor, state.kont)
+def handle_FuncCall(stmt, state): # pylint: disable=invalid-name
+    '''Handles FuncCalls'''
+    logging.debug("FuncCall")
+    if stmt.name.name == "printf":
+        return printf(stmt, state)
+    elif stmt.name.name == "malloc":
+        return malloc(stmt, state)
+    elif stmt.name.name == "free":
+        return get_next(state)
+    else:
+        return func(stmt, state)
+def handle_EmptyStatement(stmt, state): #pylint: disable=invalid-name
+    '''Handles EmptyStatement'''
+    return get_next(state)
+def handle_Decl(stmt, state):#pylint: disable=invalid-name
+    '''Handles Decls'''
+    logging.debug("Decl "+str(stmt.name)+'    '+str(stmt.type))
+    decl_helper(stmt, state)
+    if stmt.init is not None:
+        new_address = state.envr.get_address(stmt.name)
+        new_state = assignment_helper("=", new_address, stmt.init, state)
+        return new_state
+    elif isinstance(state.kont, FunctionKont):
+        #Don't return to function/do not execute function until called
+        return get_next(state)
+    else:
+        return state.kont.satisfy(state)
+def handle_Constant(stmt, state): #pylint: disable=invalid-name
+    '''Handles Constants'''
+    logging.debug("Constant %s", stmt.type)
+    value = generate_constant_value(stmt.value, stmt.type)
+    if isinstance(state.kont, FunctionKont): #Don't return to function
+        return get_next(state)
+    else:
+        return state.kont.satisfy(state, value)
+def handle_Compound(stmt, state): #pylint: disable=invalid-name
+    '''Handles Compounds'''
+    logging.debug("Compound")
+    new_ctrl = Ctrl(0, stmt)
+    new_envr = state.envr
+    ls.LinkSearch.envr_lut[stmt] = new_envr #save to table for goto lookup
+    if stmt.block_items is None:
+        return get_next(state)
+    else:
+        return State(new_ctrl, new_envr, state.stor, state.kont)
+def handle_Cast(stmt, state): #pylint: disable=invalid-name
+    '''Handles Cast'''
+    # TODO try and remove Cast Kontinuations
+    logging.debug('Cast')
+    new_ctrl = Ctrl(stmt.expr)
+    if isinstance(state.kont, FunctionKont):
+        new_kont = state.kont #don't return: castvalue not used
+    else:
+        new_kont = CastKont(state.kont, stmt.to_type)
+    new_state = State(new_ctrl, state.envr, state.stor, new_kont)
+    return new_state
+    #old_value = get_address(stmt.expr, state).dereference()
+    #cast_value = cast(old_value, stmt.to_type, state)
+    #if isinstance(state.kont, FunctionKont): #Don't return to function
+    #    successors.append(get_next(state))
+    #else:
+    #    successors.append(state.kont.satisfy(state, cast_value))
+def handle_BinaryOp(stmt, state): #pylint: disable=invalid-name
+    '''Handles BinaryOps'''
+    left = get_value(stmt.left, state)
+    right = get_value(stmt.right, state)
+    value = left.perform_operation(stmt.op, right)
+    logging.debug("BinaryOp %s%s%s = %s", str(left), stmt.op,
+                  str(right), str(value))
+    if isinstance(state.kont, FunctionKont): #Don't return to function
+        return get_next(state)
+    else:
+        return state.kont.satisfy(state, value)
+def handle_Assignment(stmt, state): #pylint: disable=invalid-name
+    '''Handles Assignments'''
+    logging.debug("Assignment")
+    rexp = stmt.rvalue
+    #if isinstance(stmt.lvalue, AST.UnaryOp) and stmt.lvalue.op == '*':
+    #    laddress = get_address(stmt.lvalue.expr, state)
+    #else:
+    laddress = get_address(stmt.lvalue, state)
+    logging.debug('   %s', str(stmt.lvalue))
+    logging.debug('   %s', str(laddress))
+    # take an operater, address (ReferenceValue),
+    #  the expression on the right side, and the state
+    return assignment_helper(stmt.op, laddress, rexp, state)
 
 def implemented_nodes():
     """ Return set of nodes that the interpreter currently implements.
@@ -310,7 +232,7 @@ def should_be_transformed_nodes():
         'While'
     }
 
-def handle_assignment(operator, address, exp, state):
+def assignment_helper(operator, address, exp, state):
     """Creates continuation to evaluate exp and assigns resulting value to the
     given address"""
     #pylint: disable=too-many-function-args
@@ -321,7 +243,7 @@ def handle_assignment(operator, address, exp, state):
         raise Exception(operator + " is not yet implemented")
     return State(new_ctrl, state.envr, state.stor, new_kont)
 
-def handle_decl(decl, state):
+def decl_helper(decl, state):
     """Maps the identifier to a new address and passes assignment part"""
     name = decl.name
     if state.envr.is_localy_defined(name):
@@ -395,8 +317,11 @@ def handle_decl_struct(struct, state):
     data_address = state.stor.allocate_nonuniform_block(list_of_sizes)
     return data_address
 
-def handle_unary_op(opr, expr, state):
+def handle_UnaryOp(stmt, state): # pylint: disable=invalid-name
     """decodes and evaluates unary_ops"""
+    opr = stmt.op
+    expr = stmt.expr
+    logging.debug("UnaryOp %s", opr)
     if isinstance(state.kont, FunctionKont): #don't return to function
         return get_next(state)
 
@@ -423,9 +348,97 @@ def handle_unary_op(opr, expr, state):
     else:
         raise Exception(opr + " is not yet implemented")
 
+def printf(stmt, state):
+    '''performs printf'''
+    if isinstance(stmt.args.exprs[1], AST.Constant):
+        value = generate_constant_value(stmt.args.exprs[1].value,
+                                        stmt.args.exprs[1].type)
+    else:
+        value = get_address(stmt.args.exprs[1], state).dereference()
+    if isinstance(stmt.args.exprs[0], AST.Constant):
+        print_string = stmt.args.exprs[0].value % (value.data)
+    elif isinstance(stmt.args.exprs[0], AST.Cast):
+        print_string = stmt.args.exprs[0].expr.value % (value.data)
+    else:
+        raise Exception("printf does not know how to handle "
+                        +str(stmt.args.exprs[0]))
+    print_string = print_string[1:][:-1] #drop quotes
+    print(print_string.replace("\\n", "\n"), end="") #convert newlines
+    if isinstance(state.kont, FunctionKont): #Don't return to function
+        return get_next(state)
+    else:
+        return state.kont.satisfy(state, generate_constant_value("0"))
+def malloc(stmt, state):
+    '''performs malloc'''
+    param = stmt.args.exprs[0]
+    if isinstance(stmt.args.exprs[0], AST.Cast):
+        param = stmt.args.exprs[0].expr
+    if isinstance(param, AST.Constant):
+        length = int(param.value, 0)
+    else:
+        length = get_address(param, state).dereference().data
+    logging.info("Malloc %d", length)
+    pointer = state.stor.get_next_address(length)
+    #pointer = state.stor.allocate_block(length)
+    #TODO find cause of error on basic func 12
+    if isinstance(state.kont, FunctionKont): #Don't return to function
+        return get_next(state)
+    else:
+        return state.kont.satisfy(state, pointer)
+def func(stmt, state):
+    '''handles most function calls delegated by handle_FuncCall'''
+    if stmt.name.name not in ls.LinkSearch.function_lut:
+        raise Exception("Undefined reference to " + stmt.name.name)
+    else:
+        logging.debug(" Calling Function: %s", stmt.name.name)
+        func_def = ls.LinkSearch.function_lut[stmt.name.name]
+        if func_def.decl.type.args is None:
+            param_list = []
+        else:
+            param_list = func_def.decl.type.args.params
+        if stmt.args is None:
+            expr_list = []
+        else:
+            expr_list = stmt.args.exprs
+        if len(expr_list) != len(param_list):
+            raise Exception("Function " + stmt.name.name +
+                            " expected " +
+                            str(len(param_list)) +
+                            " parameters but received " +
+                            str(len(expr_list)))
+        new_ctrl = Ctrl(0, func_def.body)
+        new_state = State(new_ctrl, Envr(), state.stor, state.kont)
+        new_state = func_helper(param_list, expr_list, new_ctrl, state)
+        func_type = func_def.decl.type.type
+        if (isinstance(func_type, AST.TypeDecl) and
+                isinstance(func_type.type, AST.IdentifierType) and
+                'void' in func_type.type.names):
+            new_kont = VoidKont(state)
+        else:
+            new_kont = FunctionKont(state)
+    return State(new_ctrl, new_state.envr, new_state.stor, new_kont)
+def func_helper(param_list, expr_list, new_ctrl, state):
+    '''Prepares the next_state from param_list and expr_list'''
+    new_state = State(new_ctrl, Envr(), state.stor, state.kont)
+    for decl, expr in zip(param_list, expr_list):
+        new_state = decl_helper(decl, new_state)
+        new_address = new_state.envr.get_address(decl.name)
+        while isinstance(expr, AST.Cast):
+            expr = expr.expr #todo not ignore cast
+        if isinstance(expr, AST.Constant):
+            value = generate_constant_value(expr.value, expr.type)
+        elif isinstance(expr, AST.ID):
+            address = state.envr.get_address(expr.name)
+            value = address.dereference() #safe
+        else:
+            raise Exception("Values passed to functions must be " +
+                            "Constant or ID not " + str(expr))
+        new_state.stor.write(new_address, value)
+    return new_state
 
-def handle_return(exp, state):
+def handle_Return(stmt, state):# pylint: disable=invalid-name
     """makes a ReturnKont. The exp return value is passed to parent kont"""
+    exp = stmt.expr
     #All expressions refuse to return to FunctionKont to prevent expression
     # in statement position errors. Only ReturnKont will satisfy FunctionKont
     if isinstance(state.kont, FunctionKont):
@@ -460,7 +473,7 @@ def get_address(reference, state):
             checked_decl = check_for_implicit_decl(ident)
             if checked_decl != None:
                 logging.debug("Found implicit decl: %s", checked_decl.name)
-                handle_decl(checked_decl, state)
+                decl_helper(checked_decl, state)
         address = state.envr.get_address(ident.name)
         return address
 

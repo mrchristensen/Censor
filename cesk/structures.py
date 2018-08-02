@@ -6,6 +6,10 @@ from cesk.values import ReferenceValue, generate_unitialized_value, cast
 from cesk.values import copy_pointer, generate_null_pointer
 from cesk.values import generate_pointer, generate_value
 
+class SegFault(Exception):
+    '''Special Exception for Segmentation Faults'''
+    pass
+
 def throw(string, state=None, exit_code=0):
     """ Controlled Exit on some error """
     if state is not None:
@@ -258,7 +262,7 @@ class Stor:
         ptr = copy_pointer(address)
         while bytes_to_read != 0:
             if ptr.offset >= val.size or ptr.offset < 0:
-                raise Exception("Segfault")
+                raise SegFault()
             num_possible = min(bytes_to_read, val.size - start)
             result += (val.get_value(start, num_possible) *
                        (2**((address.type_size-bytes_to_read)*8)))
@@ -269,7 +273,7 @@ class Stor:
                 ptr = self.add_offset_to_pointer(ptr, num_possible)
                 start = ptr.offset
                 if ptr.data == 0:
-                    raise Exception("Segfault")
+                    raise SegFault()
                 val = self.memory[ptr]
 
         return generate_value(result, size=address.type_size)
@@ -307,7 +311,7 @@ class Stor:
         if not isinstance(address, ReferenceValue):
             raise Exception("Address should not be " + str(address))
         if address.data == 0 or address.data >= self.address_counter:
-            raise Exception("Segfault") #underflow or overflow
+            raise SegFault() #underflow or overflow
         if address not in self.memory:
             raise Exception("Unkown address " + str(address))
 
@@ -321,7 +325,7 @@ class Stor:
 
         while bytes_to_write != 0:
             if address.offset >= old_value.size or address.offset < 0:
-                raise Exception("Segfault")
+                raise SegFault()
 
             if address.offset != 0:
                 new_data = old_value.get_value(0, address.offset)
