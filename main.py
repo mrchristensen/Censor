@@ -70,15 +70,6 @@ def main():
                 for include in args.includes.split(',')])
         cpp_args.extend(['-DMAP_USE_HASHTABLE -DSET_USE_RBTREE'])
 
-    #delete this when done debugging
-    #text = pycparser.preprocess_file(args.filename[0],
-    #                                 cpp_path='gcc',
-    #                                 cpp_args=cpp_args)
-    #pre_proccess_record = open('preprocced.txt','w+')
-    #pre_proccess_record.write(text)
-    #pre_proccess_record.close()
-    #end delete this
-
     ast = pycparser.c_ast.FileAST([])
     for filename in args.filename:
         ast.ext += pycparser.parse_file(
@@ -92,9 +83,9 @@ def main():
     # if args.sanitize:
     #    utils.sanitize(ast)
 
-    run_tool(args.tool, ast)
+    run_tool(args.tool, ast, args)
 
-def run_tool(tool, ast):
+def run_tool(tool, ast, args):
     """ figure out what analysis is supposed to happen and call the
         appropriate one """
     import censor
@@ -108,6 +99,7 @@ def run_tool(tool, ast):
     elif tool == "cesk":
         transform(ast)
         cesk.main(ast)
+        print("Done")
     elif tool == "observer":
         observe_ast(ast, observer, cesk)
     elif tool == "ssl":
@@ -115,9 +107,12 @@ def run_tool(tool, ast):
     elif tool == "print":
         print_ast(ast)
     elif tool == "transform":
-        transform(ast)
-        utils.sanitize(ast)
-        print(CWithOMPGenerator().visit(ast).replace("#pragma BEGIN ", ""))
+#        transform(ast)
+        if args.sanitize:
+            utils.sanitize(ast)
+            print(CWithOMPGenerator().visit(ast).replace("#pragma BEGIN ", ""))
+        else:
+            print(CWithOMPGenerator().visit(ast))
     else:
         print("No valid tool name given; defaulting to censor.")
         censor.main(ast) #default to censor
