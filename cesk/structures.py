@@ -1,12 +1,14 @@
 """Holds the data structures for the CESK machine"""
 
 import logging
-import copy
-import sys
 import pycparser
 from cesk.values import ReferenceValue, generate_unitialized_value, cast
 from cesk.values import copy_pointer, generate_null_pointer
 from cesk.values import generate_pointer, generate_value
+
+class SegFault(Exception):
+    '''Special Exception for Segmentation Faults'''
+    pass
 
 def throw(string, state=None, exit_code=0):
     """ Controlled Exit on some error """
@@ -97,13 +99,8 @@ class Envr:
     def __init__(self, parent=None):
         self.map_to_address = {} #A set of IdToAddr mappings
         self.parent = parent
-        self.id = Envr.counter
-        Envr.counter = Envr.counter + 1
-
-    def get_global_scope():
-        if Envr.global_scope is None:
-            Envr.global_scope = Envr(None)
-        return Envr.global_scope
+        self.scope_id = Envr.counter
+        Envr.counter += 1
 
     def get_address(self, ident):
         "looks up the address associated with an identifier"""
@@ -114,25 +111,12 @@ class Envr:
             return self.map_to_address[ident]
         if self.parent is not None:
             return self.parent.get_address(ident)
-        while not isinstance(ident, str):
-            ident = ident.name
         raise Exception(ident + " is not defined in this scope: " +
-                        str(self.id))
-
-    def get_type(self, ident):
-        if ident in self.map_to_type:
-            return self.map_to_type[ident]
-        if self.parent is not None:
-            return self.parent.get_type(ident)
-        return None
+                        str(self.scope_id))
 
     def map_new_identifier(self, ident, address):
         """Add a new identifier to the mapping"""
         self.map_to_address[ident] = address
-
-    def is_defined(self, ident):
-        """returns if a given identifier is defined"""
-        return get_address(self, ident) is not None
 
     def is_localy_defined(self, ident):
         """returns if a given identifier is local to this scope"""
@@ -142,8 +126,8 @@ class Stor:
     """Represents the contents of memory at a moment in time."""
 
     def __init__(self, to_copy=None):
-        self.NULL = generate_null_pointer(self)
         if to_copy is None:
+            self.NULL = generate_null_pointer(self)
             self.address_counter = 1 # start at 1 so that 0 can be nullptr
             self.memory = {}
             self.succ_map = {}
@@ -151,6 +135,7 @@ class Stor:
             self.succ_map[self.NULL] = self.NULL
             self.pred_map[self.NULL] = self.NULL
         elif isinstance(to_copy, Stor): #shallow copy of stor
+            self.NULL = to_copy.NULL
             self.address_counter = to_copy.address_counter
             self.memory = to_copy.memory
             self.succ_map = to_copy.succ_map
@@ -210,36 +195,55 @@ class Stor:
         return start_pointer
 
     def add_offset_to_pointer(self, pointer, offset):
-        # TODO Document what this function does
+        """ updates the pointer's offset by the offset passed.
+        Using the predecessor and successor maps: pointers move
+        to the next block if the offset extends beyond the bounds
+        of the current block.
+        """
+        logging.debug("Offsetting %s by %d", str(pointer), offset)
         new_pointer = copy_pointer(pointer)
         if new_pointer not in self.memory:
             if new_pointer.data == 0: #null is always null
+                new_pointer.offset += offset
                 return new_pointer
-            raise Exception("Invalid Pointer %s", str(new_pointer))
+            raise Exception("Invalid Pointer " + str(new_pointer))
         skip_size = self.memory[new_pointer].size
         if offset > 0:
-            for _ in range(offset):
-                new_pointer.offset += 1
-                if skip_size == new_pointer.offset:
+            while offset != 0:
+                if offset < skip_size - new_pointer.offset:
+                    new_pointer.offset += offset
+                    offset = 0
+                elif self.succ_map[new_pointer] is self.NULL:
+                    new_pointer.offset += offset
+                    offset = 0
+                else:
+                    offset -= skip_size - new_pointer.offset
                     new_pointer.offset = 0
                     new_pointer = self.succ_map[new_pointer]
                     if new_pointer.data == 0:
                         return new_pointer
                     skip_size = self.memory[new_pointer].size
         else:
-            for _ in range(abs(offset)):
-                if 0 == new_pointer.offset:
+            while offset != 0:
+                if new_pointer.offset + offset >= 0:
+                    new_pointer.offset += offset
+                    offset = 0
+                elif self.pred_map[new_pointer] is self.NULL:
+                    new_pointer.offset += offset
+                    offset = 0
+                else:
+                    offset += new_pointer.offset
                     new_pointer = self.pred_map[new_pointer]
                     if new_pointer.data == 0:
                         return new_pointer
                     new_pointer.offset = self.memory[new_pointer].size
-                new_pointer.offset -= 1
+        logging.debug("Pointer offset to %s", str(new_pointer))
         return new_pointer
 
     def read(self, address):
         """Read the contents of the store at address. Returns None if undefined.
         """
-        logging.info(" Read %s", str(address))
+        logging.info("Reading %s", str(address))
 
         if address not in self.memory:
             raise Exception("Address Not in memory")
@@ -257,6 +261,8 @@ class Stor:
 
         ptr = copy_pointer(address)
         while bytes_to_read != 0:
+            if ptr.offset >= val.size or ptr.offset < 0:
+                raise SegFault()
             num_possible = min(bytes_to_read, val.size - start)
             result += (val.get_value(start, num_possible) *
                        (2**((address.type_size-bytes_to_read)*8)))
@@ -264,10 +270,10 @@ class Stor:
                           num_possible, result)
             bytes_to_read -= num_possible
             if bytes_to_read > 0:
-                start = 0
                 ptr = self.add_offset_to_pointer(ptr, num_possible)
+                start = ptr.offset
                 if ptr.data == 0:
-                    raise Exception("Segfault")
+                    raise SegFault()
                 val = self.memory[ptr]
 
         return generate_value(result, size=address.type_size)
@@ -284,12 +290,12 @@ class Stor:
             return self.NULL
 
         nearest_address = self.NULL
-        for x in self.memory:
-            if x.data > address:
+        for key in self.memory:
+            if key.data > address:
                 break
-            nearest_address = x
+            nearest_address = key
 
-        if not nearest_address == self.NULL:
+        if nearest_address != self.NULL:
             offset = address.data - nearest_address.data
             return generate_pointer(nearest_address.data, self, offset)
 
@@ -305,9 +311,9 @@ class Stor:
         if not isinstance(address, ReferenceValue):
             raise Exception("Address should not be " + str(address))
         if address.data == 0 or address.data >= self.address_counter:
-            raise Exception("Segfault") #underflow or overflow
+            raise SegFault() #underflow or overflow
         if address not in self.memory:
-            raise Exception("Unkown address %s", str(address))
+            raise Exception("Unkown address " + str(address))
 
         old_value = self.memory[address]
         if address.offset == 0 and value.size == old_value.size:
@@ -318,6 +324,9 @@ class Stor:
         bytes_written = 0
 
         while bytes_to_write != 0:
+            if address.offset >= old_value.size or address.offset < 0:
+                raise SegFault()
+
             if address.offset != 0:
                 new_data = old_value.get_value(0, address.offset)
             else:
@@ -353,23 +362,17 @@ class Stor:
                                               old_value.type_of,
                                               old_value.size)
 
-    def print_memory_visualization(self):
-        for (address, value) in self.memory:
-            if isinstance(value, values.Integer):
-                print(bcolor.GREEN + str(value))
-            else:
-                print(str(value))
-
 #Base Class
 class Kont:
     """Abstract class for polymorphism of continuations"""
-    def satisfy(self, current_state, value):
+    def satisfy(self, state, value):
+        '''Abstract Method'''
         pass
 
 #Special Konts
 class Halt(Kont):
     """Last continuation to execute"""
-    def satisfy(self, current_state, value=None):
+    def satisfy(self, state, value=None):
         if value is not None:
             exit(value.data)
         exit(0)
@@ -401,6 +404,7 @@ class VoidKont(FunctionKont):
     """Continuation for function returning void"""
 
     def __init__(self, parent_state):
+        super().__init__(parent_state)
         self.parent_state = parent_state
 
     def satisfy(self, state, value=None):
@@ -441,7 +445,7 @@ class AssignKont(Kont):
 
 class CastKont(Kont):
     """Continuation to cast to different types before satisfying the parent"""
-    #TODO
+
     def __init__(self, parent_kont, to_type):
         self.parent_kont = parent_kont
         self.to_type = to_type

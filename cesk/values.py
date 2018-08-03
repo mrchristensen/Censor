@@ -283,8 +283,6 @@ class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
         return self.stor.add_offset_to_pointer(self, offset)
 
     def __add__(self, other):
-        if self.data == 0:
-            return self
         if isinstance(other, Integer):
             offset = other.data
         elif isinstance(other, int):
