@@ -109,7 +109,7 @@ def run_tool(tool, ast):
     elif tool == "transform":
         transform(ast)
         utils.sanitize(ast)
-        print(CWithOMPGenerator().visit(ast).replace("#pragma BEGIN ",""))
+        print(CWithOMPGenerator().visit(ast).replace("#pragma BEGIN ", ""))
     else:
         print("No valid tool name given; defaulting to censor.")
         censor.main(ast) #default to censor
@@ -119,10 +119,11 @@ def print_ast(ast):
     print("BEFORE TRANSFORMS---------------------------------------")
     ast.show()
     from copy import deepcopy
-    ast_copy = deepcopy(ast) 
+    ast_copy = deepcopy(ast)
     utils.sanitize(ast_copy)
-    pyc_file = open("just_pyc.c","w+")
-    pyc_file.write(CWithOMPGenerator().visit(ast_copy).replace("#pragma BEGIN ",""))
+    pyc_file = open("just_pyc.c", "w+")
+    pyc_file.write(
+        CWithOMPGenerator().visit(ast_copy).replace("#pragma BEGIN ", ""))
     transform(ast)
     print("--------------------------AFTER TRANSFORMS----------------")
     ast.show()

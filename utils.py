@@ -90,7 +90,7 @@ def preserve_include_find_end(node, start_index):
 
     return -1
 
-def find_dependencies(path_to_makefile = "./",name_of_makefile = "Makefile"):
+def find_dependencies(path_to_makefile="./", name_of_makefile="Makefile"):
     '''Returns a list of Strings of all of the depenencies of a makefile.
     Currently extracts each "example.c" in all instances of "make -dn"
     outputting a "Considering target file 'example.c'."'''

@@ -232,8 +232,8 @@ def execute(state):
             if isinstance(state.kont, FunctionKont): #Don't return to function
                 successors.append(get_next(state))
             else:
-                successors.append(state.kont.satisfy(state,
-                                  generate_constant_value("0")))
+                successors.append(
+                    state.kont.satisfy(state, generate_constant_value("0")))
         elif stmt.name.name == "malloc":
             param = stmt.args.exprs[0]
             if isinstance(stmt.args.exprs[0], AST.Cast):
