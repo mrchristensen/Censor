@@ -27,7 +27,7 @@ class LinkSearch(AST.NodeVisitor):
             name = node.decl.name
             LinkSearch.function_lut[name] = node
 
-        if isinstance(node, AST.Struct) and node.decls is not None:
+        if isinstance(node, AST.Struct) and node.decls:
             name = node.name
             LinkSearch.struct_lut[name] = node
             logging.debug('Store struct '+str(name)

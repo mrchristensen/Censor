@@ -58,7 +58,7 @@ def get_size_identifier(identifiers):
     typ = None
     for identifier in identifiers:
         if identifier in ['long', 'float', 'double', 'char', 'short', 'void']:
-            if typ is not None:
+            if typ:
                 typ += ' '+identifier
             else:
                 typ = identifier

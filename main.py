@@ -107,7 +107,7 @@ def run_tool(tool, ast, args):
     elif tool == "print":
         print_ast(ast)
     elif tool == "transform":
-#        transform(ast)
+        transform(ast)
         if args.sanitize:
             utils.sanitize(ast)
             print(CWithOMPGenerator().visit(ast).replace("#pragma BEGIN ", ""))
@@ -119,13 +119,13 @@ def run_tool(tool, ast, args):
 
 def print_ast(ast):
     """ Steps to print the ast """
-    print("BEFORE TRANSFORMS---------------------------------------")
+    print("--------------------------BEFORE TRANSFORMS--------------------------")
     from copy import deepcopy
     copy_ast = deepcopy(ast)
     utils.sanitize(copy_ast)
     copy_ast.show()
     transform(ast)
-    print("--------------------------AFTER TRANSFORMS----------------")
+    print("--------------------------AFTER TRANSFORMS--------------------------")
     utils.sanitize(ast)
     ast.show()
 

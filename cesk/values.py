@@ -69,7 +69,7 @@ class ArithmeticValue:
         return Integer(int(self.data >= other.data), 'int')
 
     def __str__(self):
-        if self.data is not None:
+        if self.data:
             return "(" + self.type_of + ") " + str(self.data)
         return super(ArithmeticValue,self).__str__()
 
