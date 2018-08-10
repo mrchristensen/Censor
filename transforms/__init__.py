@@ -19,7 +19,7 @@ RemoveCompoundAssignment < InsertExplicitTypeCasts
 SwitchToIf < LiftToCompoundBlock
 SwitchToIf < BreakToGoto
 SizeofType < LiftUnaryOp
-IfToIfGoto < Sequence
+Sequence < IfToIfGoto
 DoWhileToGoto < Sequence
 BreakToGoto < DoWhileToGoto
 

@@ -84,6 +84,8 @@ class AlphaName(NodeTransformer):
         '''Handle FUNCTION_IDS'''
         FUNCTION_IDS.update(GLOBAL_IDS)
         self.generic_visit(node)
+        TO_RENAME_STACK_MAP.clear()
+        RE_DECLS_IN_SCOPE[-1].clear()
         FUNCTION_IDS.clear()
         return node
 
