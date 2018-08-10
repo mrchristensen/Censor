@@ -10,13 +10,6 @@ class SegFault(Exception):
     '''Special Exception for Segmentation Faults'''
     pass
 
-def throw(string, state=None, exit_code=0):
-    """ Controlled Exit on some error """
-    if state is not None:
-        state.ctrl.stmt().show()
-    print(string)
-    exit(exit_code)
-
 class State: #pylint:disable=too-few-public-methods
     """Holds a program state"""
     ctrl = None #control
@@ -65,7 +58,7 @@ class Ctrl: #pylint:disable=too-few-public-methods
         self.index = None
         self.body = None
         self.node = None
-        if second is not None:
+        if second:
             if isinstance(second, pycparser.c_ast.FuncDef):
                 self.construct_body(first, second.body)
             elif isinstance(second, pycparser.c_ast.Compound):
@@ -73,7 +66,7 @@ class Ctrl: #pylint:disable=too-few-public-methods
             else:
                 raise Exception("Ctrl init body not Compound or Function: " +
                                 str(second))
-        elif first is not None:
+        elif first:
             self.construct_node(first)
         else:
             raise Exception("Malformed Ctrl init")
@@ -87,30 +80,25 @@ class Ctrl: #pylint:disable=too-few-public-methods
 
     def stmt(self):
         """Retrieves the statement at the location."""
-        if self.node is not None:
+        if self.node:
             return self.node
         return self.body.block_items[self.index]
 
 class Envr:
     """Holds the enviorment (a maping of identifiers to addresses)"""
     counter = 0
-    global_scope = None
 
-    def __init__(self, parent=None):
+    def __init__(self):
         self.map_to_address = {} #A set of IdToAddr mappings
-        self.parent = parent
         self.scope_id = Envr.counter
         Envr.counter += 1
 
     def get_address(self, ident):
         "looks up the address associated with an identifier"""
-        #print("Looking up " + ident + " in scope " + str(self.id))
         while not isinstance(ident, str):
             ident = ident.name
         if ident in self.map_to_address:
             return self.map_to_address[ident]
-        if self.parent is not None:
-            return self.parent.get_address(ident)
         raise Exception(ident + " is not defined in this scope: " +
                         str(self.scope_id))
 
@@ -306,7 +294,7 @@ class Stor:
         merge value into the existing value.
         """
 
-        logging.info('  Write '+str(value) + "  to  " + str(address))
+        logging.info('  Write %s  to  %s', str(value), str(address))
 
         if not isinstance(address, ReferenceValue):
             raise Exception("Address should not be " + str(address))
@@ -363,23 +351,23 @@ class Stor:
                                               old_value.size)
 
 #Base Class
-class Kont:
+class Kont: #pylint: disable=too-few-public-methods
     """Abstract class for polymorphism of continuations"""
     def satisfy(self, state, value):
         '''Abstract Method'''
         pass
 
 #Special Konts
-class Halt(Kont):
+class Halt(Kont): #pylint: disable=too-few-public-methods
     """Last continuation to execute"""
     def satisfy(self, state, value=None):
-        if value is not None:
+        if value:
             exit(value.data)
         exit(0)
 
 #Function Konts
 
-class FunctionKont(Kont):
+class FunctionKont(Kont): #pylint: disable=too-few-public-methods
     """Continuation for function"""
 
     def __init__(self, parent_state):
@@ -400,7 +388,7 @@ class FunctionKont(Kont):
         new_state = State(state.ctrl, new_envr, state.stor, state.kont)
         return self.parent_state.kont.satisfy(new_state, value)
 
-class VoidKont(FunctionKont):
+class VoidKont(FunctionKont): #pylint: disable=too-few-public-methods
     """Continuation for function returning void"""
 
     def __init__(self, parent_state):
@@ -411,7 +399,7 @@ class VoidKont(FunctionKont):
         new_envr = self.parent_state.envr
         if new_envr is None:
             raise Exception("Tried to close Global Scope")
-        if value is not None:
+        if value:
             raise Exception("'return' with a value in block returning void")
         if isinstance(self.parent_state.kont, FunctionKont):
             #don't return out of function without return
@@ -421,7 +409,7 @@ class VoidKont(FunctionKont):
         return self.parent_state.kont.satisfy(state)
 
 #Statement Konts
-class AssignKont(Kont):
+class AssignKont(Kont): #pylint: disable=too-few-public-methods
     """Continuaton created by assignment requires a Value to assign to an
     address"""
 
@@ -443,7 +431,7 @@ class AssignKont(Kont):
                              new_stor, self.parent_state.kont)
         return self.parent_state.kont.satisfy(return_state, value)
 
-class CastKont(Kont):
+class CastKont(Kont): #pylint: disable=too-few-public-methods
     """Continuation to cast to different types before satisfying the parent"""
 
     def __init__(self, parent_kont, to_type):

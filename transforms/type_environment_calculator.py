@@ -30,8 +30,8 @@ from pycparser.c_ast import ID, Struct, Union, Enum, FuncDecl, TypeDecl
 from .node_transformer import NodeTransformer
 from .type_helpers import remove_identifier
 
-class Envr:
-    """Holds the enviorment (a mapping of identifiers to types)"""
+class Enviornment:
+    """Holds the enviornment (a mapping of identifiers to types)"""
     parent = None
 
     def __init__(self, parent=None):
@@ -115,7 +115,7 @@ class TypeEnvironmentCalculator(NodeTransformer):
         """Aggregate type information for all of the scopes in the AST,
         return a dictionary mapping Compound nodes to the environment
         representing their scope."""
-        self.envr = Envr()
+        self.envr = Enviornment()
         self.environemnts = {"GLOBAL": self.envr}
         self.declared_not_defined = set()
         self.visit(ast)
@@ -137,7 +137,7 @@ class TypeEnvironmentCalculator(NodeTransformer):
     def visit_Compound(self, node): # pylint: disable=invalid-name
         """Create a new environment with the current environment as its
         parent so that scoping is handled properly."""
-        self.envr = Envr(self.envr)
+        self.envr = Enviornment(self.envr)
         retval = self.generic_visit(node)
         self.environemnts[node] = self.envr
         self.envr = self.envr.parent
@@ -153,7 +153,7 @@ class TypeEnvironmentCalculator(NodeTransformer):
             ident = remove_identifier(type_node)
             self.envr.add(ident, type_node)
 
-        self.envr = Envr(self.envr)
+        self.envr = Enviornment(self.envr)
 
         func_decl = node.decl.type
         if func_decl.args != None:
@@ -166,7 +166,7 @@ class TypeEnvironmentCalculator(NodeTransformer):
 
     def visit_For(self, node): # pylint: disable=invalid-name
         """The for loop header should have its own scope."""
-        self.envr = Envr(self.envr)
+        self.envr = Enviornment(self.envr)
         node.init = self.visit(node.init)
         # don't need to visit node.cond or node.next because they can't
         # have Declarations in them

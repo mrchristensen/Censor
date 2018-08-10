@@ -42,7 +42,7 @@ def handle_If(stmt, state): # pylint: disable=invalid-name
     if value.get_truth_value():
         new_ctrl = Ctrl(stmt.iftrue)
         return State(new_ctrl, state.envr, state.stor, state.kont)
-    elif stmt.iffalse is not None:
+    elif stmt.iffalse:
         raise Exception("False Branch should be transformed")
     else:
         return get_next(state)
@@ -90,14 +90,15 @@ def handle_FuncCall(stmt, state): # pylint: disable=invalid-name
         return func(stmt, state)
 
 def handle_EmptyStatement(stmt, state): #pylint: disable=invalid-name
+     #pylint: disable=unused-argument
     '''Handles EmptyStatement'''
     return get_next(state)
 
 def handle_Decl(stmt, state):#pylint: disable=invalid-name
     '''Handles Decls'''
-    logging.debug("Decl "+str(stmt.name)+'    '+str(stmt.type))
+    logging.debug("Decl %s    %s", str(stmt.name), str(stmt.type))
     decl_helper(stmt, state)
-    if stmt.init is not None:
+    if stmt.init:
         new_address = state.envr.get_address(stmt.name)
         new_state = assignment_helper("=", new_address, stmt.init, state)
         return new_state
@@ -274,8 +275,8 @@ def decl_helper(decl, state):
     elif isinstance(decl.type, AST.ArrayDecl):
         data_address = handle_decl_array(decl.type, [], state)
         state.envr.map_new_identifier(decl.name, data_address)
-        logging.debug(" Mapped "+str(name)+" to "+str(data_address))
-        if decl.init is not None:
+        logging.debug(" Mapped %s to %s", str(name), str(data_address))
+        if decl.init:
             raise Exception("array init should be transformed")
 
     else:
@@ -358,15 +359,18 @@ def handle_UnaryOp(stmt, state): # pylint: disable=invalid-name
 
 def printf(stmt, state):
     '''performs printf'''
-    if isinstance(stmt.args.exprs[1], AST.Constant):
-        value = generate_constant_value(stmt.args.exprs[1].value,
-                                        stmt.args.exprs[1].type)
-    else:
-        value = get_address(stmt.args.exprs[1], state).dereference()
+    value_array = []
+    for i in range(1, len(stmt.args.exprs)):
+        expr = stmt.args.exprs[i]
+        if isinstance(expr, AST.Constant):
+            value = generate_constant_value(expr.value, expr.type)
+        else:
+            value = get_address(expr, state).dereference()
+        value_array.append(value.data)
     if isinstance(stmt.args.exprs[0], AST.Constant):
-        print_string = stmt.args.exprs[0].value % (value.data)
+        print_string = stmt.args.exprs[0].value % tuple(value_array)
     elif isinstance(stmt.args.exprs[0], AST.Cast):
-        print_string = stmt.args.exprs[0].expr.value % (value.data)
+        print_string = stmt.args.exprs[0].expr.value % tuple(value_array)
     else:
         raise Exception("printf does not know how to handle "
                         +str(stmt.args.exprs[0]))
@@ -415,7 +419,6 @@ def func(stmt, state):
                             " parameters but received " +
                             str(len(expr_list)))
         new_ctrl = Ctrl(0, func_def.body)
-        new_state = State(new_ctrl, Envr(), state.stor, state.kont)
         new_state = func_helper(param_list, expr_list, new_ctrl, state)
         func_type = func_def.decl.type.type
         if (isinstance(func_type, AST.TypeDecl) and
@@ -457,7 +460,7 @@ def handle_Return(stmt, state):# pylint: disable=invalid-name
         if isinstance(state.kont, VoidKont):
             return state.kont.satisfy(state)
         else:
-            throw("Exception: No return value was given in non-void function")
+            raise Exception("No return value was given in non-void function")
     return State(Ctrl(exp), state.envr, state.stor, returnable_kont)
 
 def get_value(stmt, state):
@@ -480,7 +483,7 @@ def get_address(reference, state):
         ident = reference
         if not state.envr.is_localy_defined(ident):
             checked_decl = check_for_implicit_decl(ident)
-            if checked_decl != None:
+            if checked_decl is not None:
                 logging.debug("Found implicit decl: %s", checked_decl.name)
                 decl_helper(checked_decl, state)
         address = state.envr.get_address(ident.name)
@@ -531,7 +534,7 @@ def check_for_implicit_decl(ident):
             break
         parent = ls.LinkSearch.parent_lut[parent]
 
-    if compound != None:
+    if compound is not None:
         if compound in ls.LinkSearch.envr_lut:
             comp_envr = ls.LinkSearch.envr_lut[compound]
             if comp_envr.is_localy_defined(ident.name):
@@ -553,7 +556,7 @@ def get_next(state):
               "is not implemented. Defaulting to 0")
         state.kont.satisfy(state, generate_constant_value("0"))
 
-    if ctrl.body is not None: #if a standard compound-block:index ctrl
+    if ctrl.body: #if a standard compound-block:index ctrl
         if ctrl.index + 1 < len(ctrl.body.block_items):
             #if there are more items in the compound block go to next
             new_ctrl = ctrl + 1
@@ -580,7 +583,7 @@ def get_next(state):
 
             return get_next(State(new_ctrl, state.envr, state.stor, state.kont))
 
-    if ctrl.node is not None:
+    if ctrl.node:
         #if it is a special ctrl as created by binop or assign
         #try to convert to normal ctrl and try again
         parent = ls.LinkSearch.parent_lut[ctrl.node]
@@ -600,4 +603,4 @@ def get_next(state):
 # structures.py and interpret.py
 from cesk.structures import (State, Ctrl, Envr, AssignKont, ReturnKont, # pylint: disable=wrong-import-position
                              FunctionKont, VoidKont,
-                             CastKont, throw)
+                             CastKont)

@@ -89,12 +89,18 @@ class Sequence(LiftNode):
             elements[i] = self.visit(val)
             if isinstance(elements[i], (ID, Constant)):
                 continue
-            else:
-                generator = self.id_generator
-                decl_1 = make_temp_value(elements[i], generator, self.envr)
-                self.envr.add(decl_1.name, decl_1.type)
-                self.insert_into_scope(decl_1)
-                elements[i] = ID(decl_1.name)
+            generator = self.id_generator
+            if isinstance(elements[i], UnaryOp):
+                if elements[i].op == '*' or elements[i].op == '&':
+                    decl_1 = make_temp_value(elements[i].expr, generator, self.envr)
+                    self.envr.add(decl_1.name, decl_1.type)
+                    self.insert_into_scope(decl_1)
+                    elements[i].expr = ID(decl_1.name)
+                    continue
+            decl_1 = make_temp_value(elements[i], generator, self.envr)
+            self.envr.add(decl_1.name, decl_1.type)
+            self.insert_into_scope(decl_1)
+            elements[i] = ID(decl_1.name)
         return node
 
     def visit_TernaryOp(self, node): # pylint: disable=invalid-name
