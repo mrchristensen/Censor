@@ -27,6 +27,7 @@ BreakToGoto < DoWhileToGoto
 
 # imports for transforms
 from .sizeof_type import SizeofType
+from .correct_pragma_placement import CorrectPragmaPlacement
 from .do_while_to_goto import DoWhileToGoto
 from .while_to_do_while import WhileToDoWhile
 from .for_to_while import ForToWhile
@@ -88,6 +89,7 @@ def get_transformers(ast):
 
     # Each dependency function must take one argument so that we can easily
     # chain transformations together without worrying about arity.
+    yield (CorrectPragmaPlacement, lambda ast: [])
     yield (PragmaToOmpParallelSections, lambda ast: [])
     yield (PragmaToOmpParallelFor, lambda ast: [])
     yield (PragmaToOmpParallel, lambda ast: [])
@@ -118,25 +120,25 @@ def get_transformers(ast):
     yield (DoWhileToGoto, lambda ast: [id_generator])
     yield (Sequence,
            lambda ast: [id_generator, type_env_calc.get_environments(ast)])
-    #yield (IfToIfGoto, lambda ast: [id_generator])
-    #yield (RemoveCompoundAssignment,
-    #       lambda ast: [id_generator, type_env_calc.get_environments(ast)])
-    #yield (RemoveInitLists,
-    #       lambda ast: [id_generator, type_env_calc.get_environments(ast)])
-    #yield (RemoveMultidimensionalArray,
-    #       lambda ast: [id_generator, type_env_calc.get_environments(ast)])
-    #yield (LiftUnaryOp,
-    #       lambda ast: [id_generator, type_env_calc.get_environments(ast)])
-    #yield (ChangeToVoidPointer,
-    #       lambda ast: [id_generator, type_env_calc.get_environments(ast)])
-    #yield (StructRefToPointerArith,
-    #       lambda ast: [id_generator, type_env_calc.get_environments(ast)])
-    #yield (LiftToCompoundBlock,
-    #       lambda ast: [id_generator, type_env_calc.get_environments(ast)])
-    #yield (InsertExplicitTypeCasts,
-    #       lambda ast: [type_env_calc.get_environments(ast)])
-    #yield (SingleReturn, lambda ast: [id_generator])
-    #yield (AlphaName, lambda ast: [])
+    yield (IfToIfGoto, lambda ast: [id_generator])
+    yield (RemoveCompoundAssignment,
+           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
+    yield (RemoveInitLists,
+           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
+    yield (RemoveMultidimensionalArray,
+           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
+    yield (LiftUnaryOp,
+           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
+    yield (ChangeToVoidPointer,
+           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
+    yield (StructRefToPointerArith,
+           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
+    yield (LiftToCompoundBlock,
+           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
+    yield (InsertExplicitTypeCasts,
+           lambda ast: [type_env_calc.get_environments(ast)])
+    yield (SingleReturn, lambda ast: [id_generator])
+    yield (AlphaName, lambda ast: [])
 
 def transform(ast):
     """Perform each transform in package"""
