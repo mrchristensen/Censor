@@ -89,19 +89,22 @@ class Sequence(LiftNode):
             elements[i] = self.visit(val)
             if isinstance(elements[i], (ID, Constant)):
                 continue
-            generator = self.id_generator
             if isinstance(elements[i], UnaryOp):
                 if elements[i].op == '*' or elements[i].op == '&':
-                    decl_1 = make_temp_value(elements[i].expr, generator, self.envr)
-                    self.envr.add(decl_1.name, decl_1.type)
-                    self.insert_into_scope(decl_1)
-                    elements[i].expr = ID(decl_1.name)
+                    if isinstance(elements[i].expr, (ID, Constant)):
+                        continue
+                    elements[i].expr = self.lift_from_func(elements[i].expr)
                     continue
-            decl_1 = make_temp_value(elements[i], generator, self.envr)
-            self.envr.add(decl_1.name, decl_1.type)
-            self.insert_into_scope(decl_1)
-            elements[i] = ID(decl_1.name)
+            elements[i] = self.lift_from_func(elements[i])
         return node
+
+    def lift_from_func(self, val):
+        '''Lifts value'''
+        generator = self.id_generator
+        decl_1 = make_temp_value(val, generator, self.envr)
+        self.envr.add(decl_1.name, decl_1.type)
+        self.insert_into_scope(decl_1)
+        return ID(decl_1.name)
 
     def visit_TernaryOp(self, node): # pylint: disable=invalid-name
         """Transform Ternary to If"""
@@ -126,43 +129,29 @@ class Sequence(LiftNode):
 
     def visit_BinaryOp(self, node): # pylint: disable=invalid-name
         """Special case for each binaryOp || and &&"""
+        if node.op != '&&' and node.op != '||':
+            self.generic_visit(node)
+            return node
+
+        #initalize variables
+        decl_1 = make_temp_value(node, self.id_generator, self.envr)
+        val_1 = decl_1.name
+        self.envr.add(val_1, decl_1.type)
 
         if node.op == '&&':
-            #initalize variables
-            decl_1 = make_temp_value(node, self.id_generator, self.envr)
             decl_1.init = Constant('int', '0')
-            val_1 = decl_1.name
-            self.envr.add(val_1, decl_1.type)
+            condition = node.left
 
-            #express if statement
-            if_true = BinaryOp('!=', node.right, Constant('int', '0'))
-            if_true = Assignment('=', ID(val_1), if_true)
-            if_compound = Compound([if_true])
-
-            self.environments[if_compound] = self.envr
-            if_statement = If(node.left, if_compound, None)
-            self.generic_visit(if_statement)
-            self.insert_into_scope(decl_1, if_statement)
-            return ID(val_1)
-
-        elif node.op == '||':
-            #initalize variables
-            decl_1 = make_temp_value(node, self.id_generator, self.envr)
+        else: # case ||
             decl_1.init = Constant('int', '1')
-            val_1 = decl_1.name
-            self.envr.add(val_1, decl_1.type)
-
-            #express if statement
-            if_true = BinaryOp('!=', node.right, Constant('int', '0'))
-            if_true = Assignment('=', ID(val_1), if_true)
             condition = BinaryOp('==', node.left, Constant('int', '0'))
-            if_compound = Compound([if_true])
 
-            self.environments[if_compound] = self.envr
-            if_statement = If(condition, if_compound, None)
-            self.generic_visit(if_statement)
-            self.insert_into_scope(decl_1, if_statement)
-            return ID(val_1)
-
-        self.generic_visit(node)
-        return node
+        #add if statement
+        if_true = BinaryOp('!=', node.right, Constant('int', '0'))
+        if_true = Assignment('=', ID(val_1), if_true)
+        if_compound = Compound([if_true])
+        if_statement = If(condition, if_compound, None)
+        self.environments[if_compound] = self.envr
+        self.generic_visit(if_statement)
+        self.insert_into_scope(decl_1, if_statement)
+        return ID(val_1)
