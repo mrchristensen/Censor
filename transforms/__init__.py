@@ -118,25 +118,25 @@ def get_transformers(ast):
     yield (DoWhileToGoto, lambda ast: [id_generator])
     yield (Sequence,
            lambda ast: [id_generator, type_env_calc.get_environments(ast)])
-    yield (IfToIfGoto, lambda ast: [id_generator])
-    yield (RemoveCompoundAssignment,
-           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
-    yield (RemoveInitLists,
-           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
-    yield (RemoveMultidimensionalArray,
-           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
-    yield (LiftUnaryOp,
-           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
-    yield (ChangeToVoidPointer,
-           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
-    yield (StructRefToPointerArith,
-           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
-    yield (LiftToCompoundBlock,
-           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
-    yield (InsertExplicitTypeCasts,
-           lambda ast: [type_env_calc.get_environments(ast)])
-    yield (SingleReturn, lambda ast: [id_generator])
-    yield (AlphaName, lambda ast: [])
+    #yield (IfToIfGoto, lambda ast: [id_generator])
+    #yield (RemoveCompoundAssignment,
+    #       lambda ast: [id_generator, type_env_calc.get_environments(ast)])
+    #yield (RemoveInitLists,
+    #       lambda ast: [id_generator, type_env_calc.get_environments(ast)])
+    #yield (RemoveMultidimensionalArray,
+    #       lambda ast: [id_generator, type_env_calc.get_environments(ast)])
+    #yield (LiftUnaryOp,
+    #       lambda ast: [id_generator, type_env_calc.get_environments(ast)])
+    #yield (ChangeToVoidPointer,
+    #       lambda ast: [id_generator, type_env_calc.get_environments(ast)])
+    #yield (StructRefToPointerArith,
+    #       lambda ast: [id_generator, type_env_calc.get_environments(ast)])
+    #yield (LiftToCompoundBlock,
+    #       lambda ast: [id_generator, type_env_calc.get_environments(ast)])
+    #yield (InsertExplicitTypeCasts,
+    #       lambda ast: [type_env_calc.get_environments(ast)])
+    #yield (SingleReturn, lambda ast: [id_generator])
+    #yield (AlphaName, lambda ast: [])
 
 def transform(ast):
     """Perform each transform in package"""

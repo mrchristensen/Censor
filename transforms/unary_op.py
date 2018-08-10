@@ -18,6 +18,11 @@ import pycparser.c_ast as AST
 class LiftUnaryOp(LiftNode):
     """ Tranforms unary operators into another equivalent AST"""
 
+    def visit_For(self, node):
+        """ Ignore items within a For loop conditions """
+        node.stmt = self.visit(node.stmt)
+        return node
+
     def visit_UnaryOp(self, node): #pylint: disable=invalid-name
         """ Special parsing of UnaryOp AST nodes """
         #  Recursively remove Unary Ops

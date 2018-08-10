@@ -6,7 +6,7 @@ from collections import deque
 import errno
 from utils import find_main
 from cesk.structures import State, Ctrl, Envr, Stor, Halt, FunctionKont
-from cesk.interpret import execute
+from cesk.interpret import execute, implemented_nodes as impl_nodes
 import cesk.linksearch as ls
 from .structures import SegFault
 
@@ -32,3 +32,6 @@ def main(ast):
             sys.exit(errno.EFAULT)
         queue.append(successor)
     raise Exception("Execution finished without Halt")
+
+def implemented_nodes():
+    return impl_nodes()

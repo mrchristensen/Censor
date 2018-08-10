@@ -29,10 +29,12 @@ def handle(stmt, state):
     method_name = "handle_" + obj_name
     handle_node = globals()[method_name]
     return handle_node(stmt, state)
+
 def handle_Label(stmt, state): # pylint: disable=invalid-name
     '''Handles Labels'''
     new_ctrl = Ctrl(stmt.stmt)
     return State(new_ctrl, state.envr, state.stor, state.kont)
+
 def handle_If(stmt, state): # pylint: disable=invalid-name
     '''Handles Ifs'''
     logging.debug("If")
@@ -44,6 +46,7 @@ def handle_If(stmt, state): # pylint: disable=invalid-name
         raise Exception("False Branch should be transformed")
     else:
         return get_next(state)
+
 def handle_ID(stmt, state): # pylint: disable=invalid-name
     '''Handles IDs'''
     logging.debug("ID %s", stmt.name)
@@ -56,6 +59,7 @@ def handle_ID(stmt, state): # pylint: disable=invalid-name
         return get_next(state)
     else:
         return state.kont.satisfy(state, value)
+
 def handle_Goto(stmt, state): # pylint: disable=invalid-name
     '''Handles Gotos'''
     logging.debug('Goto %s', stmt.name)
@@ -72,6 +76,7 @@ def handle_Goto(stmt, state): # pylint: disable=invalid-name
         #forward jump into previously undefined scope
         new_envr = state.envr
     return State(new_ctrl, new_envr, state.stor, state.kont)
+
 def handle_FuncCall(stmt, state): # pylint: disable=invalid-name
     '''Handles FuncCalls'''
     logging.debug("FuncCall")
@@ -83,9 +88,11 @@ def handle_FuncCall(stmt, state): # pylint: disable=invalid-name
         return get_next(state)
     else:
         return func(stmt, state)
+
 def handle_EmptyStatement(stmt, state): #pylint: disable=invalid-name
     '''Handles EmptyStatement'''
     return get_next(state)
+
 def handle_Decl(stmt, state):#pylint: disable=invalid-name
     '''Handles Decls'''
     logging.debug("Decl "+str(stmt.name)+'    '+str(stmt.type))
@@ -95,18 +102,19 @@ def handle_Decl(stmt, state):#pylint: disable=invalid-name
         new_state = assignment_helper("=", new_address, stmt.init, state)
         return new_state
     elif isinstance(state.kont, FunctionKont):
-        #Don't return to function/do not execute function until called
         return get_next(state)
     else:
         return state.kont.satisfy(state)
+
 def handle_Constant(stmt, state): #pylint: disable=invalid-name
     '''Handles Constants'''
     logging.debug("Constant %s", stmt.type)
     value = generate_constant_value(stmt.value, stmt.type)
-    if isinstance(state.kont, FunctionKont): #Don't return to function
+    if isinstance(state.kont, FunctionKont):
         return get_next(state)
     else:
         return state.kont.satisfy(state, value)
+
 def handle_Compound(stmt, state): #pylint: disable=invalid-name
     '''Handles Compounds'''
     logging.debug("Compound")
@@ -117,13 +125,14 @@ def handle_Compound(stmt, state): #pylint: disable=invalid-name
         return get_next(state)
     else:
         return State(new_ctrl, new_envr, state.stor, state.kont)
+
 def handle_Cast(stmt, state): #pylint: disable=invalid-name
     '''Handles Cast'''
     # TODO try and remove Cast Kontinuations
     logging.debug('Cast')
     new_ctrl = Ctrl(stmt.expr)
     if isinstance(state.kont, FunctionKont):
-        new_kont = state.kont #don't return: castvalue not used
+        new_kont = state.kont #ignore cast b/c it is not used
     else:
         new_kont = CastKont(state.kont, stmt.to_type)
     new_state = State(new_ctrl, state.envr, state.stor, new_kont)
@@ -134,6 +143,7 @@ def handle_Cast(stmt, state): #pylint: disable=invalid-name
     #    successors.append(get_next(state))
     #else:
     #    successors.append(state.kont.satisfy(state, cast_value))
+
 def handle_BinaryOp(stmt, state): #pylint: disable=invalid-name
     '''Handles BinaryOps'''
     left = get_value(stmt.left, state)
@@ -145,16 +155,14 @@ def handle_BinaryOp(stmt, state): #pylint: disable=invalid-name
         return get_next(state)
     else:
         return state.kont.satisfy(state, value)
+
 def handle_Assignment(stmt, state): #pylint: disable=invalid-name
     '''Handles Assignments'''
     logging.debug("Assignment")
     rexp = stmt.rvalue
-    #if isinstance(stmt.lvalue, AST.UnaryOp) and stmt.lvalue.op == '*':
-    #    laddress = get_address(stmt.lvalue.expr, state)
-    #else:
+
     laddress = get_address(stmt.lvalue, state)
-    logging.debug('   %s', str(stmt.lvalue))
-    logging.debug('   %s', str(laddress))
+
     # take an operater, address (ReferenceValue),
     #  the expression on the right side, and the state
     return assignment_helper(stmt.op, laddress, rexp, state)
@@ -322,12 +330,9 @@ def handle_UnaryOp(stmt, state): # pylint: disable=invalid-name
     opr = stmt.op
     expr = stmt.expr
     logging.debug("UnaryOp %s", opr)
-    if isinstance(state.kont, FunctionKont): #don't return to function
-        return get_next(state)
 
     if opr == "&":
         value = get_address(expr, state)
-        return state.kont.satisfy(state, value)
     elif opr == "*":
         if isinstance(expr, AST.ID):
             address = state.envr.get_address(expr)
@@ -344,9 +349,12 @@ def handle_UnaryOp(stmt, state): # pylint: disable=invalid-name
             value = address.dereference() #todo add size
         else:
             raise Exception("Unknown Case in UnaryOp: " + str(expr))
-        return state.kont.satisfy(state, value)
     else:
         raise Exception(opr + " is not yet implemented")
+
+    if isinstance(state.kont, FunctionKont):
+        return get_next(state)
+    return state.kont.satisfy(state, value)
 
 def printf(stmt, state):
     '''performs printf'''
@@ -464,6 +472,7 @@ def get_value(stmt, state):
         return cast(val, stmt.to_type, state)
     else:
         return get_address(stmt, state).dereference()
+
 def get_address(reference, state):
     # pylint: disable=too-many-branches
     """get_address"""

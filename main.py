@@ -107,7 +107,7 @@ def run_tool(tool, ast, args):
     elif tool == "print":
         print_ast(ast)
     elif tool == "transform":
-#        transform(ast)
+        transform(ast)
         if args.sanitize:
             utils.sanitize(ast)
             print(CWithOMPGenerator().visit(ast).replace("#pragma BEGIN ", ""))

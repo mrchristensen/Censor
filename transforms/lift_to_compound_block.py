@@ -89,9 +89,15 @@ class LiftToCompoundBlock(LiftNode):
             ref = None
         elif isinstance(value, (AST.StructRef, AST.ArrayRef)):
             ref = self.lift_to_ptr(value)
-        elif isinstance(value, (AST.BinaryOp, AST.FuncCall)):
-            if isinstance(value, AST.FuncCall) and value.name.name == "malloc":
-                pass # edge case: don't lift malloc
+        elif isinstance(value, AST.FuncCall):
+            if value.name.name == "malloc":
+                pass # edge case: don't lift malloc (so that the cast type remains with it)
+            else:
+                ref = self.lift_to_value(value)
+        elif isinstance(value, AST.BinaryOp):
+            if (isinstance(value.left, AST.Constant) and
+                    isinstance(value.right, AST.Constant)):
+                ref = self.propagate_constant(value)
             else:
                 ref = self.lift_to_value(value)
         if ref is not None:
@@ -112,6 +118,40 @@ class LiftToCompoundBlock(LiftNode):
         self.insert_into_scope(decl)
         self.envr.add(decl.name, decl.type)
         return AST.ID(decl.name)
+
+    def propagate_constant(self, binop):
+        """ If both sides are a constant combine into a sigle constant """
+        result_type = 'int'
+        if binop.left.type == 'int':
+            left_value = int(binop.left.value.translate({ord(c):None for c in 'uUlL'}), 0)
+        elif binop.left.type == 'float':
+            left_value = float(binop.left.value.translate({ord(c):None for c in 'fFlL'}))
+            result_type = 'float'
+        else:
+            return self.lift_to_value(binop)
+        if binop.right.type == 'int':
+            right_value = int(binop.right.value.translate({ord(c):None for c in 'uUlL'}), 0)
+        elif binop.right.type == 'float':
+            right_value = float(binop.right.value.translate({ord(c):None for c in 'fFlL'}))
+            result_type = 'float'
+        else:
+            return self.lift_to_value(binop)
+        
+        if binop.op == '+':
+            return AST.Constant(result_type, str(left_value + right_value))
+        elif binop.op == '-':
+            return AST.Constant(result_type, str(left_value - right_value))
+        elif binop.op == '*':
+            return AST.Constant(result_type, str(left_value * right_value))
+        elif binop.op == '%':
+            return AST.Constant(result_type, str(left_value % right_value))
+        elif binop.op == '/':
+            if result_type == 'int':
+                return AST.Constant(result_type, str(left_value // right_value))
+            else:
+                return AST.Constant(result_type, str(left_value / right_value))
+
+        return self.lift_to_value(binop)
 
     def lift_assignment(self, value):
         """Lift node to compound block"""

@@ -38,6 +38,7 @@ class RemoveMultidimensionalArray(LiftNode):
             return node
 
         self.generic_visit(node)
+        #TODO check proper behavior
         if node.op == '*' and _is_array(get_type(node.expr, self.envr)):
             node.expr = AST.UnaryOp('&', node.expr)
 
@@ -56,7 +57,10 @@ class RemoveMultidimensionalArray(LiftNode):
         # always stored in a known variable
         if not isinstance(node.dim, AST.Constant):
             #add further checks if its a const id then no need to lift
-            if node.dim is not None:
+            name = node
+            while not isinstance(name, AST.TypeDecl):
+                name = name.type
+            if not self.envr.is_global(name.declname) and node.dim is not None:
                 node.dim = self.lift_to_value(node.dim)
         return node
 
@@ -210,6 +214,7 @@ class RemoveMultidimensionalArray(LiftNode):
         """Lift node to compound block"""
         decl = make_temp_value(value, self.id_generator, self.envr)
         decl.quals = ['const']
+        decl.type.quals += ['const']
         self.insert_into_scope(decl)
         self.envr.add(decl.name, decl.type)
         return AST.ID(decl.name)

@@ -37,7 +37,7 @@ class Envr:
     def __init__(self, parent=None):
         self.parent = parent
         self.map_to_type = {}
-
+ 
     def get_type(self, ident):
         """Returns the type currently associated with the given
         identifier"""
@@ -73,6 +73,18 @@ class Envr:
                 out += "\n\t" + ident
             current = current.parent
         print(out)
+
+    def is_global(self, ident):
+        """ Returns whether or not the indentifieris global """
+        if ident in self.map_to_type:
+            if self.parent is None:
+                return True
+            else:
+                return False
+        elif self.parent is None:
+            return False
+        else:
+            return self.parent.is_global(ident)
 
     def __contains__(self, key):
         if key in self.map_to_type:
@@ -165,8 +177,9 @@ class TypeEnvironmentCalculator(NodeTransformer):
     def visit_Decl(self, node): # pylint: disable=invalid-name
         """Visit Decl nodes so that we can save type information about
         identifiers in the environment."""
-        if 'extern' in node.storage:
-            return node
+        #if 'extern' in node.storage:
+        #    return node
+        # handle extern, static, etc properly
 
         type_node = deepcopy(node.type)
         ident = remove_identifier(type_node)
