@@ -115,15 +115,15 @@ class Stor:
 
     def __init__(self, to_copy=None):
         if to_copy is None:
-            self.NULL = generate_null_pointer(self)
+            self.null_addr = generate_null_pointer(self)
             self.address_counter = 1 # start at 1 so that 0 can be nullptr
             self.memory = {}
             self.succ_map = {}
             self.pred_map = {}
-            self.succ_map[self.NULL] = self.NULL
-            self.pred_map[self.NULL] = self.NULL
+            self.succ_map[self.null_addr] = self.null_addr
+            self.pred_map[self.null_addr] = self.null_addr
         elif isinstance(to_copy, Stor): #shallow copy of stor
-            self.NULL = to_copy.NULL
+            self.null_addr = to_copy.NULL
             self.address_counter = to_copy.address_counter
             self.memory = to_copy.memory
             self.succ_map = to_copy.succ_map
@@ -142,8 +142,8 @@ class Stor:
     def get_next_address(self, size=1):
         """returns the next available storage address"""
         pointer = self._make_new_address(size)
-        self.succ_map[pointer] = self.NULL
-        self.pred_map[pointer] = self.NULL
+        self.succ_map[pointer] = self.null_addr
+        self.pred_map[pointer] = self.null_addr
         return pointer
 
     def allocate_block(self, length, size=1):
@@ -152,7 +152,7 @@ class Stor:
         start_address = self.address_counter
         start_pointer = self._make_new_address(size)
 
-        self.pred_map[start_pointer] = self.NULL
+        self.pred_map[start_pointer] = self.null_addr
 
         last_pointer = start_pointer
         while self.address_counter < (start_address + length * size):
@@ -161,7 +161,7 @@ class Stor:
             self.pred_map[new_pointer] = last_pointer
             self.succ_map[last_pointer] = new_pointer
             last_pointer = new_pointer
-        self.succ_map[last_pointer] = self.NULL
+        self.succ_map[last_pointer] = self.null_addr
 
         return start_pointer
 
@@ -169,7 +169,7 @@ class Stor:
         """ Takes in a list of sizes as int and allocates
              and links a block in the stor for each size """
         start_pointer = self._make_new_address(list_of_sizes[0])
-        self.pred_map[start_pointer] = self.NULL
+        self.pred_map[start_pointer] = self.null_addr
 
         prev = start_pointer
         for block_size in list_of_sizes[1:]:
@@ -178,11 +178,11 @@ class Stor:
             self.succ_map[prev] = next_block
             prev = next_block
 
-        self.succ_map[prev] = self.NULL
+        self.succ_map[prev] = self.null_addr
 
         return start_pointer
 
-    def add_offset_to_pointer(self, pointer, offset):
+    def add_offset_to_pointer(self, pointer, offset): #pylint: disable=too-many-branches
         """ updates the pointer's offset by the offset passed.
         Using the predecessor and successor maps: pointers move
         to the next block if the offset extends beyond the bounds
@@ -201,7 +201,7 @@ class Stor:
                 if offset < skip_size - new_pointer.offset:
                     new_pointer.offset += offset
                     offset = 0
-                elif self.succ_map[new_pointer] is self.NULL:
+                elif self.succ_map[new_pointer] is self.null_addr:
                     new_pointer.offset += offset
                     offset = 0
                 else:
@@ -216,7 +216,7 @@ class Stor:
                 if new_pointer.offset + offset >= 0:
                     new_pointer.offset += offset
                     offset = 0
-                elif self.pred_map[new_pointer] is self.NULL:
+                elif self.pred_map[new_pointer] is self.null_addr:
                     new_pointer.offset += offset
                     offset = 0
                 else:
@@ -275,19 +275,19 @@ class Stor:
         if address in self.memory:
             return generate_pointer(address, self, None)
         if address > self.address_counter or address == 0:
-            return self.NULL
+            return self.null_addr
 
-        nearest_address = self.NULL
+        nearest_address = self.null_addr
         for key in self.memory:
             if key.data > address:
                 break
             nearest_address = key
 
-        if nearest_address != self.NULL:
+        if nearest_address != self.null_addr:
             offset = address.data - nearest_address.data
             return generate_pointer(nearest_address.data, self, offset)
 
-        return self.NULL
+        return self.null_addr
 
     def write(self, address, value):
         """Write value to the store at address. If there is an existing value,

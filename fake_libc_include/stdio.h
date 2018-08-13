@@ -3,6 +3,10 @@
 #include "_fake_defines.h"
 #include "_fake_typedefs.h"
 
+unsigned int stdin = 0;
+unsigned int stdout = 1;
+unsigned int stderr = 2;
+
 void     clearerr(FILE *);
 char    *ctermid(char *);
 int      dprintf(int, const char *restrict, ...);

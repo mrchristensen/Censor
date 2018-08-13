@@ -168,10 +168,10 @@ def flatten_array_init(decl):
     if decl.init is None:
         return inits
     if not isinstance(decl.init, InitList):
-        return inits 
-        #TODO
-        decl.show()
-        raise NotImplementedError(_NOT_IMPLEMENTED_MESSAGE)
+        return inits
+        #TODO allow for other types of Array initilization
+        #decl.show()
+        #raise NotImplementedError(_NOT_IMPLEMENTED_MESSAGE)
     for i, init in enumerate(decl.init.exprs):
         if not is_constant_expression(init):
             decl.show()

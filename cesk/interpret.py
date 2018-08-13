@@ -436,14 +436,8 @@ def func_helper(param_list, expr_list, new_ctrl, state):
         new_address = new_state.envr.get_address(decl.name)
         while isinstance(expr, AST.Cast):
             expr = expr.expr #todo not ignore cast
-        if isinstance(expr, AST.Constant):
-            value = generate_constant_value(expr.value, expr.type)
-        elif isinstance(expr, AST.ID):
-            address = state.envr.get_address(expr.name)
-            value = address.dereference() #safe
-        else:
-            raise Exception("Values passed to functions must be " +
-                            "Constant or ID not " + str(expr))
+
+        value = get_value(expr, state)
         new_state.stor.write(new_address, value)
     return new_state
 

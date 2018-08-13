@@ -44,14 +44,30 @@ class RemoveMultidimensionalArray(LiftNode):
 
         return node
 
+    def visit_FuncDecl(self, node): #pylint: disable=invalid-name
+        """ Change the declaration of an array param to a pointer """
+        param_list = node.args
+        if param_list is None:
+            return self.generic_visit(node)
+
+        for index, param in enumerate(param_list.params):
+            if (isinstance(param, AST.Decl) and
+                    isinstance(param.type, AST.ArrayDecl)):
+                param.type = self.visit_ArrayDecl(param.type, True)
+            else:
+                param_list.params[index] = self.visit(param)
+        node = self.generic_visit(node)
+
+        return node
+
     def visit_ArrayRef(self, node): #pylint: disable=invalid-name
         """ Simplifies ArrayRef to a single dimension """
         node = self.visit_array_ref(node)
         return node
 
-    def visit_ArrayDecl(self, node): #pylint: disable=invalid-name
+    def visit_ArrayDecl(self, node, in_func_decl=False): #pylint: disable=invalid-name
         """ Simplifies Arrays to a single dimension """
-        self.visit_array_decl(node)
+        node = self.visit_array_decl(node)
         node = self.generic_visit(node)
         #lift non_constant array decl dim to a value so that the size is
         # always stored in a known variable
@@ -62,7 +78,22 @@ class RemoveMultidimensionalArray(LiftNode):
                 name = name.type
             if not self.envr.is_global(name.declname) and node.dim is not None:
                 node.dim = self.lift_to_value(node.dim)
+
+        if in_func_decl:
+            node = AST.PtrDecl(None, node.type)
+
         return node
+
+    def visit_array_decl(self, array_decl): #pylint: disable=no-self-use
+        """ Visit a combines nested array_decl nodes """
+        temp = array_decl.type
+        #copy = deepcopy(array_decl) #might need this for type aliasing
+        while isinstance(temp, AST.ArrayDecl):
+            array_decl.dim = AST.BinaryOp('*', array_decl.dim, temp.dim)
+            array_decl.type = temp.type
+            temp = temp.type
+
+        return array_decl
 
     def visit_array_ref(self, array_ref, is_referenced=False):
         """Visits and simplifies array ref to single dimension with
@@ -88,7 +119,6 @@ class RemoveMultidimensionalArray(LiftNode):
             parent = array_ref
 
         #parent will be a binop
-
         while isinstance(parent.left, AST.ArrayRef):
             if isinstance(parent.left.name, AST.ID):
                 name_type = self.envr.get_type(parent.left.name)
@@ -198,17 +228,6 @@ class RemoveMultidimensionalArray(LiftNode):
             return AST.PtrDecl(typ.quals, subpart)
         else:
             return None
-
-    def visit_array_decl(self, array_decl): #pylint: disable=no-self-use
-        """ Visit a combines nested array_decl nodes """
-        temp = array_decl.type
-        #copy = deepcopy(array_decl) #might need this for type aliasing
-        while isinstance(temp, AST.ArrayDecl):
-            array_decl.dim = AST.BinaryOp('*', array_decl.dim, temp.dim)
-            array_decl.type = temp.type
-            temp = temp.type
-
-        return array_decl
 
     def lift_to_value(self, value):
         """Lift node to compound block"""

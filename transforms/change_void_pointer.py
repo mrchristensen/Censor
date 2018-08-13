@@ -58,13 +58,25 @@ class ChangeToVoidPointer(LiftNode):
                 node.expr = self.add_reference_array(node.expr)
         return node
 
+    def visit_FuncCall(self, node): #pylint: disable=invalid-name
+        """ To make sure array id's are referenced when passed as a parameter
+            This is a nicety for the cesk interpreter """
+        node = self.generic_visit(node)
+        if node.args is None:
+            return node
+        for index, param in enumerate(node.args.exprs):
+            param_type = get_type(param, self.envr)
+            if _is_array(param_type):
+                node.args.exprs[index] = self.add_reference_array(param)
+        return node
+
     def add_reference_array(self, node):
         """ Because the interpreter see only an id or memory access at a
             location add the reference to get the location explicity """
         #TODO does not work for arrays that are parametersi
-        #b/c arrays are incorrectly typed as arrays when they are pointers 
-        #return AST.UnaryOp('&', node) #cesk interpreter needs
-        return node #more correct for type reasons
+        #b/c arrays are incorrectly typed as arrays when they are pointers
+        return AST.UnaryOp('&', node) #cesk interpreter needs
+        #return node #more correct for type reasons
 
     def arithmetic_to_void_pointer(self, node):
         """ transforms binops of the from ptr + 8 or ptr - 10 """

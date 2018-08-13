@@ -73,6 +73,8 @@ class InsertExplicitTypeCasts(NodeTransformer):
                 rest_args = True
             else:
                 arg_type = get_type(formal_args[i].type, self.env)
+                if isinstance(arg_type, ArrayDecl):
+                    arg_type = PtrDecl(None, arg_type.type)
                 remove_identifier(arg_type)
                 args[i] = cast_if_needed(arg_type, arg, self.env)
 

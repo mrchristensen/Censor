@@ -37,7 +37,7 @@ class Enviornment:
     def __init__(self, parent=None):
         self.parent = parent
         self.map_to_type = {}
- 
+
     def get_type(self, ident):
         """Returns the type currently associated with the given
         identifier"""
@@ -77,10 +77,7 @@ class Enviornment:
     def is_global(self, ident):
         """ Returns whether or not the indentifieris global """
         if ident in self.map_to_type:
-            if self.parent is None:
-                return True
-            else:
-                return False
+            return self.parent is None
         elif self.parent is None:
             return False
         else:
@@ -110,6 +107,7 @@ class TypeEnvironmentCalculator(NodeTransformer):
         self.envr = None
         self.environemnts = None
         self.declared_not_defined = None
+        self.in_func_param = False
 
     def get_environments(self, ast):
         """Aggregate type information for all of the scopes in the AST,
@@ -177,9 +175,7 @@ class TypeEnvironmentCalculator(NodeTransformer):
     def visit_Decl(self, node): # pylint: disable=invalid-name
         """Visit Decl nodes so that we can save type information about
         identifiers in the environment."""
-        #if 'extern' in node.storage:
-        #    return node
-        # handle extern, static, etc properly
+        #TODO handle extern, static, etc properly
 
         type_node = deepcopy(node.type)
         ident = remove_identifier(type_node)

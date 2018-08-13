@@ -34,4 +34,5 @@ def main(ast):
     raise Exception("Execution finished without Halt")
 
 def implemented_nodes():
+    """ returns a list of implemented node type names """
     return impl_nodes()

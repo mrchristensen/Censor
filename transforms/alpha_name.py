@@ -106,5 +106,7 @@ class AlphaName(NodeTransformer):
         RE_DECLS_IN_SCOPE[-1].add(old_name)
         TO_RENAME_STACK_MAP[old_name].append(new_name)
         decl.name = new_name
-        if isinstance(decl, AST.Decl):
-            decl.type.declname = new_name
+        decl_type = decl.type
+        while not isinstance(decl_type, AST.TypeDecl):
+            decl_type = decl_type.type
+        decl_type.declname = new_name

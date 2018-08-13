@@ -91,7 +91,7 @@ class LiftToCompoundBlock(LiftNode):
             ref = self.lift_to_ptr(value)
         elif isinstance(value, AST.FuncCall):
             if value.name.name == "malloc":
-                pass # edge case: don't lift malloc (so that the cast type remains with it)
+                pass # edge case: don't lift malloc (cast type remains)
             else:
                 ref = self.lift_to_value(value)
         elif isinstance(value, AST.BinaryOp):
@@ -123,35 +123,45 @@ class LiftToCompoundBlock(LiftNode):
         """ If both sides are a constant combine into a sigle constant """
         result_type = 'int'
         if binop.left.type == 'int':
-            left_value = int(binop.left.value.translate({ord(c):None for c in 'uUlL'}), 0)
+            left_value = int(binop.left.value.translate(
+                {ord(c):None for c in 'uUlL'}), 0)
         elif binop.left.type == 'float':
-            left_value = float(binop.left.value.translate({ord(c):None for c in 'fFlL'}))
+            left_value = float(binop.left.value.translate(
+                {ord(c):None for c in 'fFlL'}))
             result_type = 'float'
         else:
             return self.lift_to_value(binop)
         if binop.right.type == 'int':
-            right_value = int(binop.right.value.translate({ord(c):None for c in 'uUlL'}), 0)
+            right_value = int(binop.right.value.translate(
+                {ord(c):None for c in 'uUlL'}), 0)
         elif binop.right.type == 'float':
-            right_value = float(binop.right.value.translate({ord(c):None for c in 'fFlL'}))
+            right_value = float(binop.right.value.translate(
+                {ord(c):None for c in 'fFlL'}))
             result_type = 'float'
         else:
             return self.lift_to_value(binop)
-        
+
+        return self.perform_operation(binop, result_type,
+                                      left_value, right_value)
+
+    def perform_operation(self, binop, result_type, left_value, right_value):
+        """ Combines two constants  """
         if binop.op == '+':
-            return AST.Constant(result_type, str(left_value + right_value))
+            value = AST.Constant(result_type, str(left_value + right_value))
         elif binop.op == '-':
-            return AST.Constant(result_type, str(left_value - right_value))
+            value = AST.Constant(result_type, str(left_value - right_value))
         elif binop.op == '*':
-            return AST.Constant(result_type, str(left_value * right_value))
+            value = AST.Constant(result_type, str(left_value * right_value))
         elif binop.op == '%':
-            return AST.Constant(result_type, str(left_value % right_value))
+            value = AST.Constant(result_type, str(left_value % right_value))
         elif binop.op == '/':
             if result_type == 'int':
-                return AST.Constant(result_type, str(left_value // right_value))
+                value = AST.Constant(result_type, str(left_value//right_value))
             else:
-                return AST.Constant(result_type, str(left_value / right_value))
-
-        return self.lift_to_value(binop)
+                value = AST.Constant(result_type, str(left_value / right_value))
+        else:
+            value = self.lift_to_value(binop)
+        return value
 
     def lift_assignment(self, value):
         """Lift node to compound block"""
