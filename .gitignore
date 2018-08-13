@@ -11,3 +11,4 @@ yacctab.py
 .idea
 logfile.txt
 cesk/tests/tmp/*
+instrumenter/scripts/sandbox/*

@@ -16,7 +16,7 @@ def find_end_include(node, lib):
     #pragma BEGIN #include<lib>
     If no match is found then return -1
     """
-    for i, child in enumerate(node):
+    for i, child in enumerate(node.children()):
         if is_include(child, lib):
             return preserve_include_find_end(node, i)
     return -1
@@ -33,7 +33,7 @@ class IncludeDependencies(NodeTransformer):
         has_dep = {}
         for dep in self.deps:
             has_dep[dep] = False
-        for _, child in enumerate(node):
+        for child in node.children():
             for dep in self.deps:
                 if is_include(child, dep):
                     has_dep[dep] = True

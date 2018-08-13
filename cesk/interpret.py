@@ -232,8 +232,8 @@ def execute(state):
             if isinstance(state.kont, FunctionKont): #Don't return to function
                 successors.append(get_next(state))
             else:
-                successors.append(state.kont.satisfy(state,
-                                  generate_constant_value("0")))
+                successors.append(
+                    state.kont.satisfy(state, generate_constant_value("0")))
         elif stmt.name.name == "malloc":
             param = stmt.args.exprs[0]
             if isinstance(stmt.args.exprs[0], AST.Cast):
@@ -315,7 +315,7 @@ def execute(state):
         logging.debug("FuncDef")
         raise Exception("FuncDef out of Global scope")
     elif isinstance(stmt, AST.Goto):
-        logging.debug('Goto '+stmt.name)
+        logging.debug('Goto %s', stmt.name)
         label_to = LinkSearch.label_lut[stmt.name]
         body = label_to
         while not isinstance(body, AST.Compound):

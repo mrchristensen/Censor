@@ -345,7 +345,9 @@ def _get_binop_type(expr, env):
     elif expr.op in ['%', '*', '+', '-', '/', '^', '|', '&', '<<', '>>']:
         left_type = get_type(expr.left, env)
         right_type = get_type(expr.right, env)
-        if _is_ptr(left_type):
+        if _is_ptr(left_type) and _is_ptr(right_type):
+            result_type = TypeDecl(None, [], IdentifierType(['int']))
+        elif _is_ptr(left_type):
             result_type = left_type
         elif _is_ptr(right_type):
             result_type = right_type

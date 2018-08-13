@@ -1,7 +1,6 @@
 """Test """
 
-from helpers import GoldenTestCase
-from transforms.sequence import Sequence
+from tests.helpers import GoldenTestCase
 from transforms.id_generator import IDGenerator
 from transforms.break_to_goto import BreakToGoto
 from transforms.type_environment_calculator import TypeEnvironmentCalculator
