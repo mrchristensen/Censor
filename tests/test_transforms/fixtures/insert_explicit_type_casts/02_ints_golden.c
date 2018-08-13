@@ -16,5 +16,5 @@ int main()
   a = a + a;
   a = (char) ((((short) a) + b) + (c + ((int) a)));
   a = (char) (((unsigned short) a) + f);
-  a = (char) (((unsigned long long int) (((long long int) (((unsigned long int) (((long int) ((((unsigned short) ((b + c) + ((int) d))) + f) + g)) + h)) + i)) + j)) + k);
+  a = (char) (((unsigned long long int) (((long long int) (((unsigned long int) (((long int) ((((unsigned short) ((b + c) + ((short) d))) + f) + g)) + h)) + i)) + j)) + k);
 }

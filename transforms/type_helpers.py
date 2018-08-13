@@ -108,7 +108,7 @@ def resolve_types(left, right): # pylint: disable=too-many-return-statements
     elif _is_integral(left) and _is_ptr(right):
         return Side.NOCAST
     elif _is_ptr(left) and _is_ptr(right):
-        return TypeDecl(None, [], IdentifierType(['int']))
+        return Side.NOCAST
     elif _is_float(left) and _is_integral(right):
         return Side.LEFT
     elif _is_integral(left) and _is_float(right):
@@ -345,22 +345,21 @@ def _get_binop_type(expr, env):
     elif expr.op in ['%', '*', '+', '-', '/', '^', '|', '&', '<<', '>>']:
         left_type = get_type(expr.left, env)
         right_type = get_type(expr.right, env)
-        if _is_ptr(left_type) and _is_ptr(right_type):
-            result_type = TypeDecl(None, [], IdentifierType(['int']))
-        elif _is_ptr(left_type):
-            result_type = left_type
-        elif _is_ptr(right_type):
-            result_type = right_type
-        elif _is_array(left_type):
-            result_type = PtrDecl([], left_type.type)
+        if _is_array(left_type):
+            left_type = PtrDecl([], left_type.type)
         elif _is_array(right_type):
-            result_type = PtrDecl([], right_type.type)
+            right_type = PtrDecl([], right_type.type)
+        resolved_type = resolve_types(left_type, right_type)
+        if resolved_type == Side.LEFT:
+            result_type = left_type
+        elif resolved_type == Side.RIGHT:
+            result_type = right_type
+        elif _is_ptr(left_type) and _is_ptr(right_type):
+            result_type = TypeDecl(None, [], IdentifierType(['int']))
+        elif _is_ptr(right_type):
+            return right_type
         else:
-            resolved_type = resolve_types(left_type, right_type)
-            if resolved_type == Side.LEFT:
-                result_type = left_type
-            else:
-                result_type = right_type
+            result_type = left_type
         return result_type
     else:
         raise NotImplementedError()
@@ -382,7 +381,8 @@ def _get_unop_type(expr, env):
     elif expr.op == '*':
         type_of_operand = get_type(expr.expr, env)
         if not isinstance(type_of_operand, (PtrDecl, ArrayDecl)):
-            raise Exception("Attempting to dereference a non-pointer.")
+            raise Exception("Attempting to dereference a non-pointer."+
+                            str(type_of_operand))
         return type_of_operand.type
     else:
         raise NotImplementedError()

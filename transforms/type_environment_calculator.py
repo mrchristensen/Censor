@@ -30,8 +30,8 @@ from pycparser.c_ast import ID, Struct, Union, Enum, FuncDecl, TypeDecl
 from .node_transformer import NodeTransformer
 from .type_helpers import remove_identifier
 
-class Envr:
-    """Holds the enviorment (a mapping of identifiers to types)"""
+class Enviornment:
+    """Holds the enviornment (a mapping of identifiers to types)"""
     parent = None
 
     def __init__(self, parent=None):
@@ -74,6 +74,15 @@ class Envr:
             current = current.parent
         print(out)
 
+    def is_global(self, ident):
+        """ Returns whether or not the indentifieris global """
+        if ident in self.map_to_type:
+            return self.parent is None
+        elif self.parent is None:
+            return False
+        else:
+            return self.parent.is_global(ident)
+
     def __contains__(self, key):
         if key in self.map_to_type:
             return True
@@ -98,12 +107,13 @@ class TypeEnvironmentCalculator(NodeTransformer):
         self.envr = None
         self.environemnts = None
         self.declared_not_defined = None
+        self.in_func_param = False
 
     def get_environments(self, ast):
         """Aggregate type information for all of the scopes in the AST,
         return a dictionary mapping Compound nodes to the environment
         representing their scope."""
-        self.envr = Envr()
+        self.envr = Enviornment()
         self.environemnts = {"GLOBAL": self.envr}
         self.declared_not_defined = set()
         self.visit(ast)
@@ -125,7 +135,7 @@ class TypeEnvironmentCalculator(NodeTransformer):
     def visit_Compound(self, node): # pylint: disable=invalid-name
         """Create a new environment with the current environment as its
         parent so that scoping is handled properly."""
-        self.envr = Envr(self.envr)
+        self.envr = Enviornment(self.envr)
         retval = self.generic_visit(node)
         self.environemnts[node] = self.envr
         self.envr = self.envr.parent
@@ -141,7 +151,7 @@ class TypeEnvironmentCalculator(NodeTransformer):
             ident = remove_identifier(type_node)
             self.envr.add(ident, type_node)
 
-        self.envr = Envr(self.envr)
+        self.envr = Enviornment(self.envr)
 
         func_decl = node.decl.type
         if func_decl.args != None:
@@ -154,7 +164,7 @@ class TypeEnvironmentCalculator(NodeTransformer):
 
     def visit_For(self, node): # pylint: disable=invalid-name
         """The for loop header should have its own scope."""
-        self.envr = Envr(self.envr)
+        self.envr = Enviornment(self.envr)
         node.init = self.visit(node.init)
         # don't need to visit node.cond or node.next because they can't
         # have Declarations in them
@@ -165,8 +175,7 @@ class TypeEnvironmentCalculator(NodeTransformer):
     def visit_Decl(self, node): # pylint: disable=invalid-name
         """Visit Decl nodes so that we can save type information about
         identifiers in the environment."""
-        if 'extern' in node.storage:
-            return node
+        #TODO handle extern, static, etc properly
 
         type_node = deepcopy(node.type)
         ident = remove_identifier(type_node)

@@ -132,8 +132,10 @@ class RemoveInitLists(NodeTransformer):
         """Flatten initializer lists that happen in non-global scope."""
         if isinstance(node.type, ArrayDecl) and node.init:
             retval = [node]
-            retval += flatten_array_init(node)
-            node.init = None
+            result = flatten_array_init(node)
+            if result != []:
+                retval += result
+                node.init = None
             return retval
         elif isinstance(node.type, TypeDecl) and \
             isinstance(node.type.type, Struct) and node.init:
@@ -166,8 +168,10 @@ def flatten_array_init(decl):
     if decl.init is None:
         return inits
     if not isinstance(decl.init, InitList):
-        decl.show()
-        raise NotImplementedError(_NOT_IMPLEMENTED_MESSAGE)
+        return inits
+        #TODO allow for other types of Array initilization
+        #decl.show()
+        #raise NotImplementedError(_NOT_IMPLEMENTED_MESSAGE)
     for i, init in enumerate(decl.init.exprs):
         if not is_constant_expression(init):
             decl.show()

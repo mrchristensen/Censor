@@ -9,7 +9,8 @@ SUITE = unittest.TestLoader().loadTestsFromNames(
     [
         'basic_functionality',
         'continuation_edge_cases',
-        'transform_checks'
+        'transform_checks',
+        'difficult_pointer'
     ]
 )
 TESTRESULT = unittest.TextTestRunner(verbosity=1).run(SUITE)

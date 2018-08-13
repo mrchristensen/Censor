@@ -18,8 +18,8 @@ from .sizeof import get_size_ast
 class LiftUnaryOp(LiftNode):
     """ Tranforms unary operators into another equivalent AST"""
 
-    def visit_For(self, node): # pylint: disable=invalid-name
-        """Leave For conditions alone"""
+    def visit_For(self, node): #pylint: disable=invalid-name
+        """ Ignore items within a For loop conditions """
         node.stmt = self.visit(node.stmt)
         return node
 
