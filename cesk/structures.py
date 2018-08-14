@@ -119,6 +119,7 @@ class Stor:
             self.null_addr = generate_null_pointer(self)
             self.address_counter = 1 # start at 1 so that 0 can be nullptr
             self.memory = {}
+            self.kont = {}
             self.succ_map = {}
             self.pred_map = {}
             self.succ_map[self.null_addr] = self.null_addr
@@ -127,6 +128,7 @@ class Stor:
             self.null_addr = to_copy.null_addr
             self.address_counter = to_copy.address_counter
             self.memory = to_copy.memory
+            self.kont = to_copy.kont
             self.succ_map = to_copy.succ_map
             self.pred_map = to_copy.pred_map
         else:
@@ -347,6 +349,14 @@ class Stor:
                                               old_value.type_of,
                                               old_value.size)
 
+    def write_kont(self, kont_addr, kai):
+        self.kont[kont_addr] = kai
+
+    def read_kont(self, kont_addr):
+        if kont_addr not in self.memory:
+            raise Exception("Address not in memory")
+        return self.kont[kont_addr]
+
 #Base Class
 class Kont: #pylint: disable=too-few-public-methods
     """Abstract class for polymorphism of continuations"""
@@ -372,10 +382,7 @@ class FunctionKont(Kont): #pylint: disable=too-few-public-methods
 
     def satisfy(self, state, value):
         new_envr = self.parent_state.envr
-        if new_envr is None:
-            raise Exception("Tried to close Global Scope")
         if self.address:
-            # if returns to assignment, write rvalue to lvalue
             state.stor.write(self.address, value)
         if isinstance(self.parent_state.kont, FunctionKont):
             #don't return out of function without return

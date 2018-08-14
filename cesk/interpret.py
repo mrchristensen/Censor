@@ -25,8 +25,7 @@ def execute(state):
 
 def handle(stmt, state):
     '''Handles all implemented nodes'''
-    obj_name = stmt.__class__.__name__
-    method_name = "handle_" + obj_name
+    method_name = "handle_" + stmt.__class__.__name__
     handle_node = globals()[method_name]
     return handle_node(stmt, state)
 
@@ -97,12 +96,12 @@ def handle_Constant(stmt, state): #pylint: disable=invalid-name
 def handle_Compound(stmt, state): #pylint: disable=invalid-name
     '''Handles Compounds'''
     logging.debug("Compound")
-    new_ctrl = Ctrl(0, stmt)
-    new_envr = state.envr
-    ls.LinkSearch.envr_lut[stmt] = new_envr #save to table for goto lookup
     if stmt.block_items is None:
         return get_next(state)
     else:
+        new_ctrl = Ctrl(0, stmt)
+        new_envr = state.envr
+        ls.LinkSearch.envr_lut[stmt] = new_envr #save to table for goto lookup
         return State(new_ctrl, new_envr, state.stor, state.kont)
 
 def handle_Cast(stmt, state): #pylint: disable=invalid-name
@@ -119,10 +118,7 @@ def handle_Assignment(stmt, state): #pylint: disable=invalid-name
     '''Handles Assignments'''
     logging.debug("Assignment")
     rexp = stmt.rvalue
-
     laddress = get_address(stmt.lvalue, state)
-
-    #  the expression on the right side, and the state
     return assignment_helper(stmt.op, laddress, rexp, state)
 
 def implemented_nodes():
@@ -327,11 +323,9 @@ def printf(stmt, state):
         raise Exception("printf does not know how to handle "
                         +str(stmt.args.exprs[0]))
     print_string = print_string[1:][:-1] #drop quotes
-    print(print_string.replace("\\n", "\n"), end="") #convert newlines
-    if isinstance(state.kont, FunctionKont): #Don't return to function
-        return get_next(state)
-    else:
-        return state.kont.satisfy(state, generate_constant_value("0"))
+    print_string = print_string.replace("\\n", "\n")
+    print(print_string, end ="") #convert newlines
+    return get_next(state)
 def malloc(stmt, state):
     '''performs malloc'''
     param = stmt.args.exprs[0]
@@ -367,19 +361,19 @@ def func(stmt, state, address = None):
                             str(len(param_list)) +
                             " parameters but received " +
                             str(len(expr_list)))
-        new_ctrl = Ctrl(0, func_def.body)
-        new_state = func_helper(param_list, expr_list, new_ctrl, state)
-        new_kont = FunctionKont(state, address)
-    return State(new_ctrl, new_state.envr, new_state.stor, new_kont)
-def func_helper(param_list, expr_list, new_ctrl, state):
+    return func_helper(param_list, expr_list, func_def, state, address)
+
+def func_helper(param_list, expr_list, func_def, state, address):
     '''Prepares the next_state from param_list and expr_list'''
-    new_state = State(new_ctrl, Envr(), state.stor, state.kont)
+    next_ctrl = Ctrl(0, func_def.body) # f_0
+    next_envr = Envr() # allocf
+    next_kont = FunctionKont(state, address) # allocK
+    kai = State(state.ctrl, state.envr, None, state.kont)
+    state.stor.write_kont(next_kont, kai) # stor = stor[a_k'->K]
+    new_state = State(next_ctrl, next_envr, state.stor, next_kont)
     for decl, expr in zip(param_list, expr_list):
         new_state = decl_helper(decl, new_state)
         new_address = new_state.envr.get_address(decl.name)
-        while isinstance(expr, AST.Cast):
-            expr = expr.expr #todo not ignore cast
-
         value = get_value(expr, state)
         new_state.stor.write(new_address, value)
     return new_state
