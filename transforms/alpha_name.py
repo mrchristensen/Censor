@@ -17,12 +17,7 @@ class AlphaName(NodeTransformer):
         function_nodes = []
         for global_node in node.ext:
             if isinstance(global_node, AST.Decl):
-                if isinstance(global_node.type, AST.Enum):
-                    if global_node.type.values:
-                        for enum in global_node.type.values.enumerators:
-                            GLOBAL_IDS.add(enum.name)
-                else:
-                    GLOBAL_IDS.add(global_node.name)
+                GLOBAL_IDS.add(global_node.name)
             else:
                 function_nodes.append(global_node)
 
@@ -33,10 +28,6 @@ class AlphaName(NodeTransformer):
         TO_RENAME_STACK_MAP.clear()
         RE_DECLS_IN_SCOPE[-1].clear()
         return node
-
-    def visit_Enumerator(self, node): # pylint: disable=invalid-name
-        '''All Enumerators are treated as decls'''
-        return self.visit_Decl(node)
 
     def visit_Struct(self, node): # pylint: disable=invalid-name
         '''Don't transform Structs, their decls are unique already'''

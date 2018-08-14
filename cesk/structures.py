@@ -2,6 +2,7 @@
 
 import logging
 import pycparser
+import pycparser.c_ast as AST
 from cesk.values import ReferenceValue, generate_unitialized_value, cast
 from cesk.values import copy_pointer, generate_null_pointer
 from cesk.values import generate_pointer, generate_value
@@ -123,7 +124,7 @@ class Stor:
             self.succ_map[self.null_addr] = self.null_addr
             self.pred_map[self.null_addr] = self.null_addr
         elif isinstance(to_copy, Stor): #shallow copy of stor
-            self.null_addr = to_copy.NULL
+            self.null_addr = to_copy.null_addr
             self.address_counter = to_copy.address_counter
             self.memory = to_copy.memory
             self.succ_map = to_copy.succ_map
@@ -198,10 +199,8 @@ class Stor:
         skip_size = self.memory[new_pointer].size
         if offset > 0:
             while offset != 0:
-                if offset < skip_size - new_pointer.offset:
-                    new_pointer.offset += offset
-                    offset = 0
-                elif self.succ_map[new_pointer] is self.null_addr:
+                if (offset < skip_size - new_pointer.offset or
+                        self.succ_map[new_pointer] is self.null_addr):
                     new_pointer.offset += offset
                     offset = 0
                 else:
@@ -213,10 +212,8 @@ class Stor:
                     skip_size = self.memory[new_pointer].size
         else:
             while offset != 0:
-                if new_pointer.offset + offset >= 0:
-                    new_pointer.offset += offset
-                    offset = 0
-                elif self.pred_map[new_pointer] is self.null_addr:
+                if (new_pointer.offset + offset >= 0 or
+                        self.pred_map[new_pointer] is self.null_addr):
                     new_pointer.offset += offset
                     offset = 0
                 else:
@@ -366,21 +363,21 @@ class Halt(Kont): #pylint: disable=too-few-public-methods
         exit(0)
 
 #Function Konts
-
 class FunctionKont(Kont): #pylint: disable=too-few-public-methods
     """Continuation for function"""
 
-    def __init__(self, parent_state):
+    def __init__(self, parent_state, address = None):
         self.parent_state = parent_state
+        self.address = address
 
     def satisfy(self, state, value):
-        if value is None:
-            raise Exception("'return' expected return value")
         new_envr = self.parent_state.envr
         if new_envr is None:
             raise Exception("Tried to close Global Scope")
+        if self.address:
+            # if returns to assignment, write rvalue to lvalue
+            state.stor.write(self.address, value)
         if isinstance(self.parent_state.kont, FunctionKont):
-            #in the case of a function call in statement position
             #don't return out of function without return
             new_state = State(self.parent_state.ctrl, new_envr, state.stor,
                               self.parent_state.kont)
@@ -388,59 +385,56 @@ class FunctionKont(Kont): #pylint: disable=too-few-public-methods
         new_state = State(state.ctrl, new_envr, state.stor, state.kont)
         return self.parent_state.kont.satisfy(new_state, value)
 
-class VoidKont(FunctionKont): #pylint: disable=too-few-public-methods
-    """Continuation for function returning void"""
+# #Statement Konts
+# class AssignKont(Kont): #pylint: disable=too-few-public-methods
+#     """Continuaton created by assignment requires a Value to assign to an
+#     address"""
 
-    def __init__(self, parent_state):
-        super().__init__(parent_state)
-        self.parent_state = parent_state
+#     def __init__(self, address, parent_state):
+#         if not isinstance(address, ReferenceValue):
+#             raise Exception("Address should not be " + str(address))
+#         self.address = address
+#         self.parent_state = parent_state
 
-    def satisfy(self, state, value=None):
-        new_envr = self.parent_state.envr
-        if new_envr is None:
-            raise Exception("Tried to close Global Scope")
-        if value:
-            raise Exception("'return' with a value in block returning void")
-        if isinstance(self.parent_state.kont, FunctionKont):
-            #don't return out of function without return
-            new_state = State(self.parent_state.ctrl, new_envr, state.stor,
-                              self.parent_state.kont)
-            return cesk.interpret.get_next(new_state)
-        return self.parent_state.kont.satisfy(state)
+#     def satisfy(self, state, value):
+#         # can assume parent_kont is always a FunctionKont
+#         state.stor.write(self.address, value)
+#         new_state = State(self.parent_state.ctrl, state.envr, state.stor,
+#                           self.parent_state.kont)
+#         return cesk.interpret.get_next(new_state)
 
-#Statement Konts
-class AssignKont(Kont): #pylint: disable=too-few-public-methods
-    """Continuaton created by assignment requires a Value to assign to an
-    address"""
+# class CastKont(Kont): #pylint: disable=too-few-public-methods
+#     """Continuation to cast to different types before satisfying the parent"""
 
-    def __init__(self, address, parent_state):
-        if not isinstance(address, ReferenceValue):
-            raise Exception("Address should not be " + str(address))
-        self.address = address
-        self.parent_state = parent_state
+#     def __init__(self, parent_kont, to_type):
+#         self.parent_kont = parent_kont
+#         self.to_type = to_type
 
-    def satisfy(self, state, value):
-        new_stor = state.stor
-        new_stor.write(self.address, value)
-        if isinstance(self.parent_state.kont, FunctionKont):
-            #don't return out of function without return
-            new_state = State(self.parent_state.ctrl, state.envr, new_stor,
-                              self.parent_state.kont)
-            return cesk.interpret.get_next(new_state)
-        return_state = State(self.parent_state.ctrl, self.parent_state.envr,
-                             new_stor, self.parent_state.kont)
-        return self.parent_state.kont.satisfy(return_state, value)
+#     def satisfy(self, state, value):
+#         cast_value = cast(value, self.to_type, state)
+#         return self.parent_kont.satisfy(state, cast_value)
 
-class CastKont(Kont): #pylint: disable=too-few-public-methods
-    """Continuation to cast to different types before satisfying the parent"""
+# class VoidKont(FunctionKont): #pylint: disable=too-few-public-methods
+#     """Continuation for function returning void"""
 
-    def __init__(self, parent_kont, to_type):
-        self.parent_kont = parent_kont
-        self.to_type = to_type
+#     def __init__(self, parent_state):
+#         super().__init__(parent_state)
+#         self.parent_state = parent_state
 
-    def satisfy(self, state, value):
-        cast_value = cast(value, self.to_type, state)
-        return self.parent_kont.satisfy(state, cast_value)
+#     def satisfy(self, state, value):
+#         new_envr = self.parent_state.envr
+#         if new_envr is None:
+#             raise Exception("Tried to close Global Scope")
+#         if isinstance(self.parent_state.kont, FunctionKont):
+#             #don't return out of function without return
+#             new_state = State(self.parent_state.ctrl, new_envr, state.stor,
+#                               self.parent_state.kont)
+#             return cesk.interpret.get_next(new_state)
+#         if value:
+#             new_state = State(state.ctrl, new_envr, state.stor, state.kont)
+#         else:
+#             new_state = state
+#         return self.parent_state.kont.satisfy(new_state, value)
 
 #class IfKont(Kont):
 #    """Continuation for if statement, moves ctrl to correct place"""
@@ -462,13 +456,13 @@ class CastKont(Kont): #pylint: disable=too-few-public-methods
 #            return cesk.interpret.get_next(self.parent_state)
 #        return State(new_ctrl, state.envr, state.stor, self.parent_state.kont)
 
-class ReturnKont(Kont): #pylint: disable=too-few-public-methods
-    """ Manages return of a function """
-    def __init__(self, parent_kont):
-        self.parent_kont = parent_kont
+# class ReturnKont(Kont): #pylint: disable=too-few-public-methods
+#     """ Manages return of a function """
+#     def __init__(self, parent_kont):
+#         self.parent_kont = parent_kont
 
-    def satisfy(self, state, value):
-        return self.parent_kont.satisfy(state, value)
+#     def satisfy(self, state, value):
+#         return self.parent_kont.satisfy(state, value)
 
 #Expresion Konts
 #class LeftBinopKont(Kont):

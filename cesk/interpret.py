@@ -50,44 +50,29 @@ def handle_If(stmt, state): # pylint: disable=invalid-name
 def handle_ID(stmt, state): # pylint: disable=invalid-name
     '''Handles IDs'''
     logging.debug("ID %s", stmt.name)
-    name = stmt.name
-    address = state.envr.get_address(name)
-    value = address.dereference() #safe
-    if value is None:
-        raise Exception(name + ": " + str(state.stor.memory))
-    if isinstance(state.kont, FunctionKont): #Don't return to function
-        return get_next(state)
-    else:
-        return state.kont.satisfy(state, value)
+    return get_next(state)
 
 def handle_Goto(stmt, state): # pylint: disable=invalid-name
     '''Handles Gotos'''
     logging.debug('Goto %s', stmt.name)
-    label_to = ls.LinkSearch.label_lut[stmt.name]
-    body = label_to
+    body = ls.LinkSearch.label_lut[stmt.name]
     while not isinstance(body, AST.Compound):
         index = ls.LinkSearch.index_lut[body]
         body = ls.LinkSearch.parent_lut[body]
     new_ctrl = Ctrl(index, body)
-    logging.debug('\t Body: %s', str(body))
-    if body in ls.LinkSearch.envr_lut:
-        new_envr = ls.LinkSearch.envr_lut[body]
-    else:
-        #forward jump into previously undefined scope
-        new_envr = state.envr
-    return State(new_ctrl, new_envr, state.stor, state.kont)
+    return State(new_ctrl, state.envr, state.stor, state.kont)
 
-def handle_FuncCall(stmt, state): # pylint: disable=invalid-name
+def handle_FuncCall(stmt, state, address = None): # pylint: disable=invalid-name
     '''Handles FuncCalls'''
     logging.debug("FuncCall")
     if stmt.name.name == "printf":
         return printf(stmt, state)
     elif stmt.name.name == "malloc":
-        return malloc(stmt, state)
+        return get_next(state)
     elif stmt.name.name == "free":
         return get_next(state)
     else:
-        return func(stmt, state)
+        return func(stmt, state, address)
 
 def handle_EmptyStatement(stmt, state): #pylint: disable=invalid-name
      #pylint: disable=unused-argument
@@ -100,21 +85,14 @@ def handle_Decl(stmt, state):#pylint: disable=invalid-name
     decl_helper(stmt, state)
     if stmt.init:
         new_address = state.envr.get_address(stmt.name)
-        new_state = assignment_helper("=", new_address, stmt.init, state)
-        return new_state
-    elif isinstance(state.kont, FunctionKont):
-        return get_next(state)
+        return assignment_helper("=", new_address, stmt.init, state)
     else:
-        return state.kont.satisfy(state)
+        return get_next(state)
 
 def handle_Constant(stmt, state): #pylint: disable=invalid-name
     '''Handles Constants'''
     logging.debug("Constant %s", stmt.type)
-    value = generate_constant_value(stmt.value, stmt.type)
-    if isinstance(state.kont, FunctionKont):
-        return get_next(state)
-    else:
-        return state.kont.satisfy(state, value)
+    return get_next(state)
 
 def handle_Compound(stmt, state): #pylint: disable=invalid-name
     '''Handles Compounds'''
@@ -129,33 +107,13 @@ def handle_Compound(stmt, state): #pylint: disable=invalid-name
 
 def handle_Cast(stmt, state): #pylint: disable=invalid-name
     '''Handles Cast'''
-    # TODO try and remove Cast Kontinuations
     logging.debug('Cast')
-    new_ctrl = Ctrl(stmt.expr)
-    if isinstance(state.kont, FunctionKont):
-        new_kont = state.kont #ignore cast b/c it is not used
-    else:
-        new_kont = CastKont(state.kont, stmt.to_type)
-    new_state = State(new_ctrl, state.envr, state.stor, new_kont)
-    return new_state
-    #old_value = get_address(stmt.expr, state).dereference()
-    #cast_value = cast(old_value, stmt.to_type, state)
-    #if isinstance(state.kont, FunctionKont): #Don't return to function
-    #    successors.append(get_next(state))
-    #else:
-    #    successors.append(state.kont.satisfy(state, cast_value))
+    return get_next(state)
 
 def handle_BinaryOp(stmt, state): #pylint: disable=invalid-name
     '''Handles BinaryOps'''
-    left = get_value(stmt.left, state)
-    right = get_value(stmt.right, state)
-    value = left.perform_operation(stmt.op, right)
-    logging.debug("BinaryOp %s%s%s = %s", str(left), stmt.op,
-                  str(right), str(value))
-    if isinstance(state.kont, FunctionKont): #Don't return to function
-        return get_next(state)
-    else:
-        return state.kont.satisfy(state, value)
+    logging.debug("BinaryOp")
+    return get_next(state)
 
 def handle_Assignment(stmt, state): #pylint: disable=invalid-name
     '''Handles Assignments'''
@@ -164,7 +122,6 @@ def handle_Assignment(stmt, state): #pylint: disable=invalid-name
 
     laddress = get_address(stmt.lvalue, state)
 
-    # take an operater, address (ReferenceValue),
     #  the expression on the right side, and the state
     return assignment_helper(stmt.op, laddress, rexp, state)
 
@@ -246,8 +203,15 @@ def assignment_helper(operator, address, exp, state):
     given address"""
     #pylint: disable=too-many-function-args
     if operator == '=':
-        new_ctrl = Ctrl(exp) #build special ctrl for exp
-        new_kont = AssignKont(address, state)
+        if isinstance(exp, AST.FuncCall) and not is_malloc(exp):
+            return handle_FuncCall(exp, state, address)
+        elif (is_malloc(exp) or (isinstance(exp, AST.Cast) and
+              is_malloc(exp.expr))):
+            return malloc_helper(exp, state, address)
+        else:
+            value = get_value(exp, state)
+            state.stor.write(address, value)
+            return get_next(state)
     else:
         raise Exception(operator + " is not yet implemented")
     return State(new_ctrl, state.envr, state.stor, new_kont)
@@ -284,7 +248,14 @@ def decl_helper(decl, state):
                         " are not yet implemented")
 
     return state
-
+def malloc_helper(exp, state, address):
+    if isinstance(exp, AST.Cast):
+        malloc_result = malloc(exp.expr, state)
+        malloc_result = cast(malloc_result, exp.to_type, state)
+    else:
+        malloc_result = malloc(exp, state) # if malloc is assigned to a void*
+    state.stor.write(address, malloc_result)
+    return get_next(state)
 def handle_decl_array(array, list_of_sizes, state):
     """Calculates size and allocates Array. Returns address of first item"""
     logging.debug('  Array Decl')
@@ -331,31 +302,12 @@ def handle_UnaryOp(stmt, state): # pylint: disable=invalid-name
     opr = stmt.op
     expr = stmt.expr
     logging.debug("UnaryOp %s", opr)
-
-    if opr == "&":
-        value = get_address(expr, state)
-    elif opr == "*":
-        if isinstance(expr, AST.ID):
-            address = state.envr.get_address(expr)
-            pointer = address.dereference() #safe
-
-            value = pointer.dereference() #todo add size
-        elif isinstance(expr, AST.UnaryOp) and expr.op == "&":
-            address = get_address(expr.expr, state)
-            value = address.dereference() #todo maybe add size
-        elif (isinstance(expr, AST.Cast) and
-              isinstance(expr.to_type, AST.PtrDecl)):
-            temp = get_address(expr.expr, state).dereference()
-            address = cast(temp, expr.to_type, state)
-            value = address.dereference() #todo add size
-        else:
-            raise Exception("Unknown Case in UnaryOp: " + str(expr))
-    else:
-        raise Exception(opr + " is not yet implemented")
-
-    if isinstance(state.kont, FunctionKont):
-        return get_next(state)
-    return state.kont.satisfy(state, value)
+    # note: may reference for reads/writes
+    # if opr == "&":
+    #     value = get_address(expr, state)
+    # elif opr == "*":
+    #     value = get_value(expr, state)
+    return get_next(state)
 
 def printf(stmt, state):
     '''performs printf'''
@@ -391,13 +343,10 @@ def malloc(stmt, state):
         length = get_address(param, state).dereference().data
     logging.info("Malloc %d", length)
     pointer = state.stor.get_next_address(length)
-    #pointer = state.stor.allocate_block(length)
-    #TODO find cause of error on basic func 12
-    if isinstance(state.kont, FunctionKont): #Don't return to function
-        return get_next(state)
-    else:
-        return state.kont.satisfy(state, pointer)
-def func(stmt, state):
+    # assume malloc is always in an assignment and/or cast
+    return pointer
+
+def func(stmt, state, address = None):
     '''handles most function calls delegated by handle_FuncCall'''
     if stmt.name.name not in ls.LinkSearch.function_lut:
         raise Exception("Undefined reference to " + stmt.name.name)
@@ -420,13 +369,7 @@ def func(stmt, state):
                             str(len(expr_list)))
         new_ctrl = Ctrl(0, func_def.body)
         new_state = func_helper(param_list, expr_list, new_ctrl, state)
-        func_type = func_def.decl.type.type
-        if (isinstance(func_type, AST.TypeDecl) and
-                isinstance(func_type.type, AST.IdentifierType) and
-                'void' in func_type.type.names):
-            new_kont = VoidKont(state)
-        else:
-            new_kont = FunctionKont(state)
+        new_kont = FunctionKont(state, address)
     return State(new_ctrl, new_state.envr, new_state.stor, new_kont)
 def func_helper(param_list, expr_list, new_ctrl, state):
     '''Prepares the next_state from param_list and expr_list'''
@@ -442,33 +385,39 @@ def func_helper(param_list, expr_list, new_ctrl, state):
     return new_state
 
 def handle_Return(stmt, state):# pylint: disable=invalid-name
-    """makes a ReturnKont. The exp return value is passed to parent kont"""
+    """satisfies kont"""
     exp = stmt.expr
-    #All expressions refuse to return to FunctionKont to prevent expression
-    # in statement position errors. Only ReturnKont will satisfy FunctionKont
-    if isinstance(state.kont, FunctionKont):
-        returnable_kont = ReturnKont(state.kont)
-    else:
-        raise Exception("Unexpected return statement: "+str(state.kont))
     if exp is None:
-        if isinstance(state.kont, VoidKont):
-            return state.kont.satisfy(state)
-        else:
-            raise Exception("No return value was given in non-void function")
-    return State(Ctrl(exp), state.envr, state.stor, returnable_kont)
+        return state.kont.satisfy(state, None)
+    else:
+        name = exp.name
+        address = state.envr.get_address(name)
+        value = address.dereference() #safe
+        return state.kont.satisfy(state, value)
+    # return State(Ctrl(exp), state.envr, state.stor, returnable_kont)
 
 def get_value(stmt, state):
     """ get value for simple id's constants or references and casts of them """
     if isinstance(stmt, AST.Constant):
         value = generate_constant_value(stmt.value, stmt.type)
         return value
-    elif isinstance(stmt, AST.UnaryOp) and stmt.op == '&':
-        return get_address(stmt.expr, state)
+    elif isinstance(stmt, AST.ID):
+        return get_address(stmt, state).dereference()
     elif isinstance(stmt, AST.Cast):
         val = get_value(stmt.expr, state)
         return cast(val, stmt.to_type, state)
-    else:
+    elif isinstance(stmt, AST.BinaryOp):
+        left = get_value(stmt.left, state)
+        right = get_value(stmt.right, state)
+        return left.perform_operation(stmt.op, right)
+    elif isinstance(stmt, AST.UnaryOp) and stmt.op == '&':
+        return get_address(stmt.expr, state)
+    elif isinstance(stmt, AST.UnaryOp) and stmt.op == '*':
         return get_address(stmt, state).dereference()
+    elif isinstance(stmt, AST.FuncCall):
+        raise Exception("Cannot get value from " + stmt.name.name + "()")
+    else:
+        raise Exception("Cannot get value from " + stmt.__class__.__name__)
 
 def get_address(reference, state):
     # pylint: disable=too-many-branches
@@ -539,6 +488,10 @@ def check_for_implicit_decl(ident):
                     return decl
     return None
 
+def is_malloc(stmt):
+    return (isinstance(stmt, AST.FuncCall) and
+            stmt.name.name == 'malloc')
+
 def get_next(state):
     """takes state and returns a state with ctrl for the next statement
     to execute"""
@@ -560,10 +513,6 @@ def get_next(state):
             parent = ls.LinkSearch.parent_lut[ctrl.body]
             if parent is None:
                 #we are falling off and there is no parent block
-                #this is an end of a function call. Satisfy kont.
-                if isinstance(state.kont, VoidKont):
-                    return state.kont.satisfy()
-                else:
                     raise Exception("Expected Return Statement")
 
             elif isinstance(parent, AST.Compound):
@@ -594,6 +543,4 @@ def get_next(state):
 
 # imports are down here to allow for circular dependencies between
 # structures.py and interpret.py
-from cesk.structures import (State, Ctrl, Envr, AssignKont, ReturnKont, # pylint: disable=wrong-import-position
-                             FunctionKont, VoidKont,
-                             CastKont)
+from cesk.structures import (State, Ctrl, Envr, FunctionKont) # pylint: disable=wrong-import-position

@@ -9,12 +9,10 @@ class TestAlphaName(GoldenTestCase):
     def setUp(self):
         """Set up test variables needed for GoldenTestCase"""
         self.fixtures = '/test_transforms/fixtures/alpha_name'
-        self.transformer = None
 
     def transform(self, ast):
         """Transform input AST"""
-        self.transformer = AlphaName()
-        return self.transformer.visit(ast)
+        return AlphaName().visit(ast)
 
     def test_fixtures(self):
         """Test AlphaName"""

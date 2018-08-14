@@ -50,8 +50,11 @@ def cast_if_needed(type_node, expr, env):
     # if they are integral or floating types. If we ever have a deep compare
     # method than can decide equality of any arbitrary ast nodes, we should
     # use that to decide type unification over all types
+    expr_type = get_type(expr, env)
+    if str(type_node) == str(expr_type):
+        return expr
+
     if _is_integral(type_node) or _is_float(type_node):
-        expr_type = get_type(expr, env)
         if resolve_types(type_node, expr_type) == Side.NOCAST:
             return expr
     elif isinstance(type_node, ArrayDecl):
