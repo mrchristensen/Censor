@@ -84,8 +84,9 @@ def handle_Decl(stmt, state):#pylint: disable=invalid-name
     logging.debug("Decl %s    %s", str(stmt.name), str(stmt.type))
     decl_helper(stmt, state)
     if stmt.init:
-        new_address = state.envr.get_address(stmt.name)
-        return assignment_helper("=", new_address, stmt.init, state)
+        frame_address = state.envr.get_frame_address(stmt.name)
+        address = state.envr.get_address(frame_address)
+        return assignment_helper("=", address, stmt.init, state)
     else:
         return get_next(state)
 
@@ -232,13 +233,15 @@ def decl_helper(decl, state):
             size = generate_constant_value(size_ast.value, size_ast.type).data
             ref_address = state.stor.get_next_address(size)
 
-        state.envr.map_new_identifier(name, ref_address)
+        frame_address = state.envr.get_frame_address(name)
+        state.envr.map_new_identifier(frame_address, ref_address)
             #the address is mapped then if additional space is need for
             # a struct handle decl struct manages it
 
     elif isinstance(decl.type, AST.ArrayDecl):
         data_address = handle_decl_array(decl.type, [], state)
-        state.envr.map_new_identifier(decl.name, data_address)
+        frame_address = state.envr.get_frame_address(decl.name)
+        state.envr.map_new_identifier(frame_address, data_address)
         logging.debug(" Mapped %s to %s", str(name), str(data_address))
         if decl.init:
             raise Exception("array init should be transformed")
@@ -376,7 +379,8 @@ def func_helper(param_list, expr_list, new_ctrl, state):
     new_state = State(new_ctrl, Envr(), state.stor, state.kont)
     for decl, expr in zip(param_list, expr_list):
         new_state = decl_helper(decl, new_state)
-        new_address = new_state.envr.get_address(decl.name)
+        frame_address = new_state.envr.get_frame_address(decl.name)
+        new_address = new_state.envr.get_address(frame_address)
         while isinstance(expr, AST.Cast):
             expr = expr.expr #todo not ignore cast
 
@@ -390,8 +394,8 @@ def handle_Return(stmt, state):# pylint: disable=invalid-name
     if exp is None:
         return state.kont.satisfy(state, None)
     else:
-        name = exp.name
-        address = state.envr.get_address(name)
+        frame_address = state.envr.get_frame_address(exp.name)
+        address = state.envr.get_address(frame_address)
         value = address.dereference() #safe
         return state.kont.satisfy(state, value)
     # return State(Ctrl(exp), state.envr, state.stor, returnable_kont)
@@ -424,12 +428,13 @@ def get_address(reference, state):
     """get_address"""
     if isinstance(reference, AST.ID):
         ident = reference
-        if not state.envr.is_localy_defined(ident):
+        frame_address = state.envr.get_frame_address(ident)
+        if not state.envr.is_localy_defined(frame_address):
             checked_decl = check_for_implicit_decl(ident)
             if checked_decl is not None:
                 logging.debug("Found implicit decl: %s", checked_decl.name)
                 decl_helper(checked_decl, state)
-        address = state.envr.get_address(ident.name)
+        address = state.envr.get_address(frame_address)
         return address
 
     elif isinstance(reference, AST.ArrayRef):
@@ -440,7 +445,8 @@ def get_address(reference, state):
         if unary_op.op == "*":
             name = unary_op.expr
             if isinstance(name, AST.ID):
-                pointer = state.envr.get_address(name)
+                frame_address = state.envr.get_frame_address(name)
+                pointer = state.envr.get_address(frame_address)
                 return pointer.dereference() #safe
             elif isinstance(name, AST.UnaryOp) and name.op == "&":
                 return get_address(name.expr, state) #They cancel out

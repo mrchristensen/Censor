@@ -5,7 +5,7 @@ import pycparser
 import pycparser.c_ast as AST
 from cesk.values import ReferenceValue, generate_unitialized_value, cast
 from cesk.values import copy_pointer, generate_null_pointer
-from cesk.values import generate_pointer, generate_value
+from cesk.values import generate_pointer, generate_value, generate_frame_address
 
 class SegFault(Exception):
     '''Special Exception for Segmentation Faults'''
@@ -87,29 +87,40 @@ class Ctrl: #pylint:disable=too-few-public-methods
 
 class Envr:
     """Holds the enviorment (a maping of identifiers to addresses)"""
-    counter = 0
+    counter = 1 #counter to track which frame you are in
+    global_id = 0
+    global_identifiers = {}
 
     def __init__(self):
         self.map_to_address = {} #A set of IdToAddr mappings
         self.scope_id = Envr.counter
         Envr.counter += 1
 
-    def get_address(self, ident):
-        "looks up the address associated with an identifier"""
+    def get_frame_address(self, ident):
+        """ Returns the Frame Address """
         while not isinstance(ident, str):
             ident = ident.name
+        return generate_frame_address(self.scope_id, ident)
+
+    def get_address(self, ident):
+        """looks up the address associated with an identifier"""
         if ident in self.map_to_address:
             return self.map_to_address[ident]
+        elif ident in Envr.global_identifiers:
+            return Envr.global_identifiers[ident]
         raise Exception(ident + " is not defined in this scope: " +
                         str(self.scope_id))
 
-    def map_new_identifier(self, ident, address):
+    def map_new_identifier(self, frame_addr, ptr_address):
         """Add a new identifier to the mapping"""
-        self.map_to_address[ident] = address
+        self.map_to_address[frame_addr] = ptr_address
 
     def is_localy_defined(self, ident):
         """returns if a given identifier is local to this scope"""
         return ident in self.map_to_address
+    def is_globaly_defined(self, ident):
+        """returns if a given identifier is local to this scope"""
+        return ident in Envr.global_identifiers
 
 class Stor:
     """Represents the contents of memory at a moment in time."""

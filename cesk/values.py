@@ -167,8 +167,6 @@ class Integer(ArithmeticValue): #pylint:disable=too-few-public-methods
 
         return result
 
-
-
 class Char(Integer):
     """Concrete implementation of an char Type"""
     def __init__(self, data, type_of='char'):
@@ -242,6 +240,33 @@ class ReferenceValue(ArithmeticValue): #pylint:disable=all
 
     def index_for_address(self, stor, list_of_index):
         pass
+
+class FrameAddress(ReferenceValue):
+    """ Contains a link between frame and id """
+
+    def __init__(self, frame_id, ident):
+        self.frame = frame_id
+        self.ident = ident
+
+    def get_frame(self):
+        """ Returns frame identifier """
+        return self.frame
+
+    def get_id(self):
+        """ Returns identifier name """
+        return self.ident
+
+    def get_stor_addr(self, stor):
+        """ Reads from the stor to get value of identifier """
+        pass
+
+    def __hash__(self):
+        return 1+43*hash(self.ident)+73*hash(self.frame)
+
+    def __eq__(self, other):
+        if not isinstance(other, FrameAddress):
+            return False
+        return self.ident == other.ident and self.frame == other.frame
 
 
 class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
@@ -410,6 +435,10 @@ def copy_pointer(pointer, ptr_type=None, state=None):
 def generate_null_pointer(stor):
     """ Build a pointer that will not dereference """
     return Pointer(0, stor, 1)
+
+def generate_frame_address(frame, ident):
+    """ Build a Frame Address """
+    return FrameAddress(frame, ident)
 
 def cast(value, typedeclt, state=None): #pylint: disable=unused-argument
     """Casts the given value a  a value of the given type."""
