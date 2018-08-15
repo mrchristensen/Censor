@@ -32,7 +32,7 @@ def handle(stmt, state):
 def handle_Label(stmt, state): # pylint: disable=invalid-name
     '''Handles Labels'''
     new_ctrl = Ctrl(stmt.stmt)
-    return State(new_ctrl, state.envr, state.stor, state.kont)
+    return State(new_ctrl, state.envr, state.stor, state.kont_addr)
 
 def handle_If(stmt, state): # pylint: disable=invalid-name
     '''Handles Ifs'''
@@ -40,7 +40,7 @@ def handle_If(stmt, state): # pylint: disable=invalid-name
     value = get_value(stmt.cond, state)
     if value.get_truth_value():
         new_ctrl = Ctrl(stmt.iftrue)
-        return State(new_ctrl, state.envr, state.stor, state.kont)
+        return State(new_ctrl, state.envr, state.stor, state.kont_addr)
     elif stmt.iffalse:
         raise Exception("False Branch should be transformed")
     else:
@@ -59,7 +59,7 @@ def handle_Goto(stmt, state): # pylint: disable=invalid-name
         index = ls.LinkSearch.index_lut[body]
         body = ls.LinkSearch.parent_lut[body]
     new_ctrl = Ctrl(index, body)
-    return State(new_ctrl, state.envr, state.stor, state.kont)
+    return State(new_ctrl, state.envr, state.stor, state.kont_addr)
 
 def handle_FuncCall(stmt, state, address = None): # pylint: disable=invalid-name
     '''Handles FuncCalls'''
@@ -102,7 +102,7 @@ def handle_Compound(stmt, state): #pylint: disable=invalid-name
         new_ctrl = Ctrl(0, stmt)
         new_envr = state.envr
         ls.LinkSearch.envr_lut[stmt] = new_envr #save to table for goto lookup
-        return State(new_ctrl, new_envr, state.stor, state.kont)
+        return State(new_ctrl, new_envr, state.stor, state.kont_addr)
 
 def handle_Cast(stmt, state): #pylint: disable=invalid-name
     '''Handles Cast'''
@@ -367,10 +367,10 @@ def func_helper(param_list, expr_list, func_def, state, address):
     '''Prepares the next_state from param_list and expr_list'''
     next_ctrl = Ctrl(0, func_def.body) # f_0
     next_envr = Envr() # allocf
-    next_kont = FunctionKont(state, address) # allocK
-    kai = State(state.ctrl, state.envr, None, state.kont)
-    state.stor.write_kont(next_kont, kai) # stor = stor[a_k'->K]
-    new_state = State(next_ctrl, next_envr, state.stor, next_kont)
+    kont = Kont(state, address)
+    kont_addr = Kont.allocK()
+    state.stor.write_kont(kont_addr, kont) # stor = stor[a_k'->K]
+    new_state = State(next_ctrl, next_envr, state.stor, kont_addr)
     for decl, expr in zip(param_list, expr_list):
         new_state = decl_helper(decl, new_state)
         new_address = new_state.envr.get_address(decl.name)
@@ -381,13 +381,11 @@ def func_helper(param_list, expr_list, func_def, state, address):
 def handle_Return(stmt, state):# pylint: disable=invalid-name
     """satisfies kont"""
     exp = stmt.expr
-    if exp is None:
-        return state.kont.satisfy(state, None)
-    else:
-        name = exp.name
-        address = state.envr.get_address(name)
+    value = None
+    if exp:
+        address = state.envr.get_address(exp.name)
         value = address.dereference() #safe
-        return state.kont.satisfy(state, value)
+    return state.get_kont().invoke(state, value)
     # return State(Ctrl(exp), state.envr, state.stor, returnable_kont)
 
 def get_value(stmt, state):
@@ -490,18 +488,12 @@ def get_next(state):
     """takes state and returns a state with ctrl for the next statement
     to execute"""
     ctrl = state.ctrl
-    if not isinstance(state.kont, FunctionKont):
-        print(Exception("CESK error: called get_next in bad context"))
-        print(ctrl.stmt().coord)
-        print("You are probably trying to get a value from something that " +
-              "is not implemented. Defaulting to 0")
-        state.kont.satisfy(state, generate_constant_value("0"))
 
     if ctrl.body: #if a standard compound-block:index ctrl
         if ctrl.index + 1 < len(ctrl.body.block_items):
             #if there are more items in the compound block go to next
             new_ctrl = ctrl + 1
-            return State(new_ctrl, state.envr, state.stor, state.kont)
+            return State(new_ctrl, state.envr, state.stor, state.kont_addr)
         else:
             #if we are falling off the end of a compound block
             parent = ls.LinkSearch.parent_lut[ctrl.body]
@@ -518,7 +510,7 @@ def get_next(state):
                 #if the parent is not a compound (probably an if statement)
                 new_ctrl = Ctrl(parent) #make a special ctrl and try again
 
-            return get_next(State(new_ctrl, state.envr, state.stor, state.kont))
+            return get_next(State(new_ctrl, state.envr, state.stor, state.kont_addr))
 
     if ctrl.node:
         #if it is a special ctrl as created by binop or assign
@@ -531,10 +523,10 @@ def get_next(state):
         else:
             #we couldn't make a normal try again on parent
             new_ctrl = Ctrl(parent)
-        return get_next(State(new_ctrl, state.envr, state.stor, state.kont))
+        return get_next(State(new_ctrl, state.envr, state.stor, state.kont_addr))
 
     raise Exception("Malformed ctrl: this should have been unreachable")
 
 # imports are down here to allow for circular dependencies between
 # structures.py and interpret.py
-from cesk.structures import (State, Ctrl, Envr, FunctionKont) # pylint: disable=wrong-import-position
+from cesk.structures import (State, Ctrl, Envr, Kont) # pylint: disable=wrong-import-position

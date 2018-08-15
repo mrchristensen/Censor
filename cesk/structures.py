@@ -16,13 +16,13 @@ class State: #pylint:disable=too-few-public-methods
     ctrl = None #control
     envr = None  #environment
     stor = None #store
-    kont = None #k(c)ontinuation
+    kont_addr = None #k(c)ontinuation Address
 
-    def __init__(self, ctrl, envr, stor, kont):
+    def __init__(self, ctrl, envr, stor, kont_addr):
         self.set_ctrl(ctrl)
         self.set_envr(envr)
         self.set_stor(stor)
-        self.set_kont(kont)
+        self.set_kont_addr(kont_addr)
 
     def set_ctrl(self, ctrl):
         """attaches a control object to the state"""
@@ -36,9 +36,16 @@ class State: #pylint:disable=too-few-public-methods
         """attaches a stor object to the state"""
         self.stor = stor
 
-    def set_kont(self, kont):
-        """attaches a kont object to the state"""
-        self.kont = kont
+    def set_kont_addr(self, kont_addr):
+        """attaches a kont_addr object to the state"""
+        self.kont_addr = kont_addr
+
+    def get_kont(self):
+        '''returns kont'''
+        if self.kont_addr is 0:
+            return None #halt kont
+        else:
+            return self.stor.read_kont(self.kont_addr)
 
 class Ctrl: #pylint:disable=too-few-public-methods
     """Holds the control pointer or location of the program"""
@@ -353,169 +360,34 @@ class Stor:
         self.kont[kont_addr] = kai
 
     def read_kont(self, kont_addr):
-        if kont_addr not in self.memory:
-            raise Exception("Address not in memory")
+        if kont_addr not in self.kont:
+            raise Exception("Address not in memory: " + str(kont_addr))
         return self.kont[kont_addr]
 
-#Base Class
 class Kont: #pylint: disable=too-few-public-methods
-    """Abstract class for polymorphism of continuations"""
-    def satisfy(self, state, value):
-        '''Abstract Method'''
-        pass
-
-#Special Konts
-class Halt(Kont): #pylint: disable=too-few-public-methods
-    """Last continuation to execute"""
-    def satisfy(self, state, value=None):
-        if value:
-            exit(value.data)
-        exit(0)
-
-#Function Konts
-class FunctionKont(Kont): #pylint: disable=too-few-public-methods
-    """Continuation for function"""
+    """Kontinuations"""
+    
+    allocK_address = 0
+    @staticmethod
+    def allocK():
+        value = Kont.allocK_address
+        Kont.allocK_address += 1
+        return value
 
     def __init__(self, parent_state, address = None):
-        self.parent_state = parent_state
-        self.address = address
+        self.ctrl = parent_state.ctrl
+        self.envr = parent_state.envr
+        self.kont_addr = parent_state.kont_addr
+        self.address = address # If Kont returns to an assignment
 
-    def satisfy(self, state, value):
-        new_envr = self.parent_state.envr
+    def invoke(self, state, value):
+        if self.kont_addr is 0:
+            exit(0)
         if self.address:
             state.stor.write(self.address, value)
-        if isinstance(self.parent_state.kont, FunctionKont):
-            #don't return out of function without return
-            new_state = State(self.parent_state.ctrl, new_envr, state.stor,
-                              self.parent_state.kont)
-            return cesk.interpret.get_next(new_state)
-        new_state = State(state.ctrl, new_envr, state.stor, state.kont)
-        return self.parent_state.kont.satisfy(new_state, value)
-
-# #Statement Konts
-# class AssignKont(Kont): #pylint: disable=too-few-public-methods
-#     """Continuaton created by assignment requires a Value to assign to an
-#     address"""
-
-#     def __init__(self, address, parent_state):
-#         if not isinstance(address, ReferenceValue):
-#             raise Exception("Address should not be " + str(address))
-#         self.address = address
-#         self.parent_state = parent_state
-
-#     def satisfy(self, state, value):
-#         # can assume parent_kont is always a FunctionKont
-#         state.stor.write(self.address, value)
-#         new_state = State(self.parent_state.ctrl, state.envr, state.stor,
-#                           self.parent_state.kont)
-#         return cesk.interpret.get_next(new_state)
-
-# class CastKont(Kont): #pylint: disable=too-few-public-methods
-#     """Continuation to cast to different types before satisfying the parent"""
-
-#     def __init__(self, parent_kont, to_type):
-#         self.parent_kont = parent_kont
-#         self.to_type = to_type
-
-#     def satisfy(self, state, value):
-#         cast_value = cast(value, self.to_type, state)
-#         return self.parent_kont.satisfy(state, cast_value)
-
-# class VoidKont(FunctionKont): #pylint: disable=too-few-public-methods
-#     """Continuation for function returning void"""
-
-#     def __init__(self, parent_state):
-#         super().__init__(parent_state)
-#         self.parent_state = parent_state
-
-#     def satisfy(self, state, value):
-#         new_envr = self.parent_state.envr
-#         if new_envr is None:
-#             raise Exception("Tried to close Global Scope")
-#         if isinstance(self.parent_state.kont, FunctionKont):
-#             #don't return out of function without return
-#             new_state = State(self.parent_state.ctrl, new_envr, state.stor,
-#                               self.parent_state.kont)
-#             return cesk.interpret.get_next(new_state)
-#         if value:
-#             new_state = State(state.ctrl, new_envr, state.stor, state.kont)
-#         else:
-#             new_state = state
-#         return self.parent_state.kont.satisfy(new_state, value)
-
-#class IfKont(Kont):
-#    """Continuation for if statement, moves ctrl to correct place"""
-#    parent_state = None
-#    iftrue = None
-#    iffalse = None
-#
-#    def __init__(self, parent_state, iftrue, iffalse):
-#        self.parent_state = parent_state
-#        self.iftrue = iftrue
-#        self.iffalse = iffalse
-#
-#    def satisfy(self, state, value):
-#        if (value.get_truth_value()):
-#            new_ctrl = Ctrl(self.iftrue)
-#        elif self.iffalse is not None:
-#            new_ctrl = Ctrl(self.iffalse)
-#        else:
-#            return cesk.interpret.get_next(self.parent_state)
-#        return State(new_ctrl, state.envr, state.stor, self.parent_state.kont)
-
-# class ReturnKont(Kont): #pylint: disable=too-few-public-methods
-#     """ Manages return of a function """
-#     def __init__(self, parent_kont):
-#         self.parent_kont = parent_kont
-
-#     def satisfy(self, state, value):
-#         return self.parent_kont.satisfy(state, value)
-
-#Expresion Konts
-#class LeftBinopKont(Kont):
-#    """Continuation for the left side of a binary operator"""
-#
-#    parent_state = None
-#    operator = None
-#    right_exp = None
-#    return_kont = None
-#
-#    def __init__(self, parent_state, operator, rightExp, return_kont):
-#        self.parent_state = parent_state
-#        self.operator = operator
-#        self.rightExp = rightExp
-#        self.return_kont = return_kont
-#
-#    def satisfy(self, current_state, value):
-#        left_result = value
-#        right_kont = RightBinopKont(self.parent_state, left_result,
-#                                    self.operator, self.return_kont)
-#        return State(Ctrl(self.rightExp), current_state.envr,
-#                     current_state.stor, right_kont)
-#
-#
-#class RightBinopKont(Kont):
-#    """Continuation for the right side of a binary operator"""
-#
-#    parent_state = None
-#    left_result = None
-#    operator = None
-#    return_kont = None
-#
-#    def __init__(self, parent_state, left_result, operator, return_kont):
-#        self.parent_state = parent_state
-#        self.left_result = left_result
-#        self.operator = operator
-#        self.return_kont = return_kont
-#
-#    def satisfy(self, state, value):
-#        result = self.left_result.perform_operation(self.operator, value)
-#        if isinstance(self.parent_state.kont, FunctionKont):
-#            #don't return out of function without return
-#            new_state = State(self.parent_state.ctrl, state.envr, state.stor,
-#                              self.parent_state.kont)
-#            return cesk.interpret.get_next(new_state)
-#        return self.return_kont.satisfy(state, result)
+        new_state = State(self.ctrl, self.envr,
+                          state.stor, self.kont_addr)
+        return cesk.interpret.get_next(new_state)
 
 # import is down here to allow for circular dependencies
 # between structures.py and interpret.py
