@@ -5,7 +5,7 @@ import sys
 from collections import deque
 import errno
 from utils import find_main
-from cesk.structures import State, Ctrl, Envr, Stor, Halt, FunctionKont
+from cesk.structures import State, Ctrl, Envr, Stor, Kont
 from cesk.interpret import execute, implemented_nodes as impl_nodes
 import cesk.linksearch as ls
 from .structures import SegFault
@@ -17,11 +17,8 @@ def main(ast):
     logging.debug("Scope Decl LUT: %s", str(ls.LinkSearch.scope_decl_lut))
     main_function = find_main(ast)[0]
 
-    start_ctrl = Ctrl(main_function.body)
-    halt_state = State(start_ctrl, Envr(), Stor(), Halt())
-    # create start state as if main() has been called by halt
-    start_state = State(start_ctrl, halt_state.envr, halt_state.stor,
-                        FunctionKont(halt_state))
+    start_state = prepare_start_state(main_function)
+
     queue = deque([start_state])
     while queue: #is not empty
         next_state = queue.popleft()
@@ -36,3 +33,14 @@ def main(ast):
 def implemented_nodes():
     """ returns a list of implemented node type names """
     return impl_nodes()
+
+def prepare_start_state(main_function):
+    '''Creates the first state'''
+    halt_state = State(None, None, None, Kont.allocK()) # zero is halt kont
+    start_ctrl = Ctrl(main_function.body)
+    start_envr = Envr()
+    start_stor = Stor()
+    kont_addr = Kont.allocK()
+    kai = Kont(halt_state)
+    start_stor.write_kont(kont_addr, kai)
+    return State(start_ctrl, start_envr, start_stor, kont_addr)

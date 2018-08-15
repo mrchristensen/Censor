@@ -7,6 +7,7 @@ from copy import deepcopy
 from enum import Enum
 from pycparser.c_ast import * # pylint: disable=wildcard-import, unused-wildcard-import
 import cesk.limits as limits
+import io 
 
 class Side(Enum):
     """Return type of function asking which type of a binary operand that
@@ -51,7 +52,11 @@ def cast_if_needed(type_node, expr, env):
     # method than can decide equality of any arbitrary ast nodes, we should
     # use that to decide type unification over all types
     expr_type = get_type(expr, env)
-    if str(type_node) == str(expr_type):
+    expr_str = io.StringIO()
+    type_str = io.StringIO()
+    type_node.show(buf=type_str)
+    expr_type.show(buf=expr_str)
+    if type_str.getvalue() == expr_str.getvalue():
         return expr
 
     if _is_integral(type_node) or _is_float(type_node):
