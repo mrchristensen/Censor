@@ -44,12 +44,12 @@ def handle_If(stmt, state): # pylint: disable=invalid-name
     elif stmt.iffalse:
         raise Exception("False Branch should be transformed")
     else:
-        return get_next(state)
+        return state.get_next()
 
 def handle_ID(stmt, state): # pylint: disable=invalid-name
     '''Handles IDs'''
     logging.debug("ID %s", stmt.name)
-    return get_next(state)
+    return state.get_next()
 
 def handle_Goto(stmt, state): # pylint: disable=invalid-name
     '''Handles Gotos'''
@@ -67,16 +67,16 @@ def handle_FuncCall(stmt, state, address = None): # pylint: disable=invalid-name
     if stmt.name.name == "printf":
         return printf(stmt, state)
     elif stmt.name.name == "malloc":
-        return get_next(state)
+        return state.get_next()
     elif stmt.name.name == "free":
-        return get_next(state)
+        return state.get_next()
     else:
         return func(stmt, state, address)
 
 def handle_EmptyStatement(stmt, state): #pylint: disable=invalid-name
      #pylint: disable=unused-argument
     '''Handles EmptyStatement'''
-    return get_next(state)
+    return state.get_next()
 
 def handle_Decl(stmt, state):#pylint: disable=invalid-name
     '''Handles Decls'''
@@ -87,18 +87,18 @@ def handle_Decl(stmt, state):#pylint: disable=invalid-name
         address = state.envr.get_address(frame_address)
         return assignment_helper("=", address, stmt.init, state)
     else:
-        return get_next(state)
+        return state.get_next()
 
 def handle_Constant(stmt, state): #pylint: disable=invalid-name
     '''Handles Constants'''
     logging.debug("Constant %s", stmt.type)
-    return get_next(state)
+    return state.get_next()
 
 def handle_Compound(stmt, state): #pylint: disable=invalid-name
     '''Handles Compounds'''
     logging.debug("Compound")
     if stmt.block_items is None:
-        return get_next(state)
+        return state.get_next()
     else:
         new_ctrl = Ctrl(0, stmt)
         new_envr = state.envr
@@ -108,12 +108,12 @@ def handle_Compound(stmt, state): #pylint: disable=invalid-name
 def handle_Cast(stmt, state): #pylint: disable=invalid-name
     '''Handles Cast'''
     logging.debug('Cast')
-    return get_next(state)
+    return state.get_next()
 
 def handle_BinaryOp(stmt, state): #pylint: disable=invalid-name
     '''Handles BinaryOps'''
     logging.debug("BinaryOp")
-    return get_next(state)
+    return state.get_next()
 
 def handle_Assignment(stmt, state): #pylint: disable=invalid-name
     '''Handles Assignments'''
@@ -208,7 +208,7 @@ def assignment_helper(operator, address, exp, state):
         else:
             value = get_value(exp, state)
             state.stor.write(address, value)
-            return get_next(state)
+            return state.get_next()
     else:
         raise Exception(operator + " is not yet implemented")
     return State(new_ctrl, state.envr, state.stor, new_kont)
@@ -254,7 +254,7 @@ def malloc_helper(exp, state, address):
     else:
         malloc_result = malloc(exp, state) # if malloc is assigned to a void*
     state.stor.write(address, malloc_result)
-    return get_next(state)
+    return state.get_next()
 def handle_decl_array(array, list_of_sizes, state):
     """Calculates size and allocates Array. Returns address of first item"""
     logging.debug('  Array Decl')
@@ -306,7 +306,7 @@ def handle_UnaryOp(stmt, state): # pylint: disable=invalid-name
     #     value = get_address(expr, state)
     # elif opr == "*":
     #     value = get_value(expr, state)
-    return get_next(state)
+    return state.get_next()
 
 def printf(stmt, state):
     '''performs printf'''
@@ -328,7 +328,7 @@ def printf(stmt, state):
     print_string = print_string[1:][:-1] #drop quotes
     print_string = print_string.replace("\\n", "\n")
     print(print_string, end ="") #convert newlines
-    return get_next(state)
+    return state.get_next()
 def malloc(stmt, state):
     '''performs malloc'''
     param = stmt.args.exprs[0]
@@ -491,49 +491,6 @@ def check_for_implicit_decl(ident):
 def is_malloc(stmt):
     return (isinstance(stmt, AST.FuncCall) and
             stmt.name.name == 'malloc')
-
-def get_next(state):
-    """takes state and returns a state with ctrl for the next statement
-    to execute"""
-    ctrl = state.ctrl
-
-    if ctrl.body: #if a standard compound-block:index ctrl
-        if ctrl.index + 1 < len(ctrl.body.block_items):
-            #if there are more items in the compound block go to next
-            new_ctrl = ctrl + 1
-            return State(new_ctrl, state.envr, state.stor, state.kont_addr)
-        else:
-            #if we are falling off the end of a compound block
-            parent = ls.LinkSearch.parent_lut[ctrl.body]
-            if parent is None:
-                #we are falling off and there is no parent block
-                    raise Exception("Expected Return Statement")
-
-            elif isinstance(parent, AST.Compound):
-                #find current compound block position in the parent block
-                parent_index = ls.LinkSearch.index_lut[ctrl.body]
-                new_ctrl = Ctrl(parent_index, parent)
-
-            else:
-                #if the parent is not a compound (probably an if statement)
-                new_ctrl = Ctrl(parent) #make a special ctrl and try again
-
-            return get_next(State(new_ctrl, state.envr, state.stor, state.kont_addr))
-
-    if ctrl.node:
-        #if it is a special ctrl as created by binop or assign
-        #try to convert to normal ctrl and try again
-        parent = ls.LinkSearch.parent_lut[ctrl.node]
-        if isinstance(parent, AST.Compound):
-            #we found the compound we can create normal ctrl
-            parent_index = ls.LinkSearch.index_lut[ctrl.node]
-            new_ctrl = Ctrl(parent_index, parent)
-        else:
-            #we couldn't make a normal try again on parent
-            new_ctrl = Ctrl(parent)
-        return get_next(State(new_ctrl, state.envr, state.stor, state.kont_addr))
-
-    raise Exception("Malformed ctrl: this should have been unreachable")
 
 # imports are down here to allow for circular dependencies between
 # structures.py and interpret.py
