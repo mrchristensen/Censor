@@ -3,6 +3,7 @@
 import logging
 import pycparser
 import pycparser.c_ast as AST
+import cesk.linksearch as ls
 from cesk.values import ReferenceValue, generate_unitialized_value, cast
 from cesk.values import copy_pointer, generate_null_pointer
 from cesk.values import generate_pointer, generate_value, generate_frame_address
@@ -47,6 +48,10 @@ class State: #pylint:disable=too-few-public-methods
         else:
             return self.stor.read_kont(self.kont_addr)
 
+    def get_next(self):
+        next_ctrl = self.ctrl.get_next()
+        return State(next_ctrl, self.envr, self.stor, self.kont_addr)
+
 class Ctrl: #pylint:disable=too-few-public-methods
     """Holds the control pointer or location of the program"""
 
@@ -79,18 +84,53 @@ class Ctrl: #pylint:disable=too-few-public-methods
         else:
             raise Exception("Malformed Ctrl init")
 
-    def __add__(self, offset):
-        """Returns the location in the same function with the line number offset
-        by the value offset. This is used most commonly as loc+1 to get the
-        syntactic successor to a Location.
-        """
-        return Ctrl(self.index+offset, self.body)
-
     def stmt(self):
         """Retrieves the statement at the location."""
         if self.node:
             return self.node
         return self.body.block_items[self.index]
+
+    def get_next(self):
+        """takes state and returns a state with ctrl for the next statement
+        to execute"""
+
+        if self.body: #if a standard compound-block:index ctrl
+            if self.index + 1 < len(self.body.block_items):
+                #if there are more items in the compound block go to next
+                return Ctrl(self.index + 1, self.body)
+
+            else:
+                #if we are falling off the end of a compound block
+                parent = ls.LinkSearch.parent_lut[self.body]
+                if parent is None:
+                    #we are falling off and there is no parent block
+                        raise Exception("Expected Return Statement")
+
+                elif isinstance(parent, AST.Compound):
+                    #find current compound block position in the parent block
+                    parent_index = ls.LinkSearch.index_lut[self.body]
+                    new_ctrl = Ctrl(parent_index, parent)
+
+                else:
+                    #if the parent is not a compound (probably an if statement)
+                    new_ctrl = Ctrl(parent) #make a special ctrl and try again
+
+                return new_ctrl.get_next()
+
+        if self.node:
+            #if it is a special ctrl as created by binop or assign
+            #try to convert to normal ctrl and try again
+            parent = ls.LinkSearch.parent_lut[self.node]
+            if isinstance(parent, AST.Compound):
+                #we found the compound we can create normal ctrl
+                parent_index = ls.LinkSearch.index_lut[self.node]
+                new_ctrl = Ctrl(parent_index, parent)
+            else:
+                #we couldn't make a normal try again on parent
+                new_ctrl = Ctrl(parent)
+            return new_ctrl.get_next()
+
+        raise Exception("Malformed ctrl: this should have been unreachable")
 
 class Envr:
     """Holds the enviorment (a maping of identifiers to addresses)"""
@@ -398,9 +438,7 @@ class Kont: #pylint: disable=too-few-public-methods
             state.stor.write(self.address, value)
         new_state = State(self.ctrl, self.envr,
                           state.stor, self.kont_addr)
-        return cesk.interpret.get_next(new_state)
+        return new_state.get_next()
 
 # import is down here to allow for circular dependencies
-# between structures.py and interpret.py
 import cesk.values # pylint: disable=wrong-import-position
-import cesk.interpret # pylint: disable=wrong-import-position
