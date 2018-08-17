@@ -42,7 +42,7 @@ class State: #pylint:disable=too-few-public-methods
 
     def get_kont(self):
         '''returns kont'''
-        if self.kont_addr is 0:
+        if self.kont_addr == 0:
             return None #halt kont
         else:
             return self.stor.read_kont(self.kont_addr)
@@ -210,7 +210,7 @@ class Stor:
         of the current block.
         """
         logging.debug("Offsetting %s by %d", str(pointer), offset)
-        new_pointer = copy_pointer(pointer)
+        new_pointer = pointer#copy_pointer(pointer)
         if new_pointer not in self.memory:
             if new_pointer.data == 0: #null is always null
                 new_pointer.offset += offset

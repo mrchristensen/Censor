@@ -235,15 +235,77 @@ class ReferenceValue(ArithmeticValue): #pylint:disable=all
     def dereference(self):
         pass
 
-    def index(self, stor, list_of_index):
-        pass
+class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
+    """Concrete implementation of a Pointer to a store address."""
 
-    def index_for_address(self, stor, list_of_index):
-        pass
+    def __init__(self, address, holding_stor, type_size, offset=0):
+        self.data = int(address)
+        self.stor = holding_stor
+        self.size = limits.CONFIG.get_word_size()
+        self.type_size = type_size
+        self.offset = offset
+        self.type_of = 'pointer'
 
-class FrameAddress(ReferenceValue):
+    def __hash__(self):
+        return self.data
+
+    def __eq__(self, other):
+        if not isinstance(other, ReferenceValue):
+            return Integer(0, 'int')
+        return Integer(int(self.data == other.data), 'int')
+    
+    def dereference(self, stor):
+        """Reads the address the pointer points to and returns value"""
+        if self.data == 0:
+            raise Exception("SegFault")
+        if self.offset < 0 or self.offset >= self.type_size:
+            offset = self.offset
+            self.offset = 0
+            stor.add_offset_to_pointer(self, offset)
+        return stor.read(self)
+
+    def __add__(self, other):
+        if isinstance(other, Integer):
+            self.offset += other.data
+        elif isinstance(other, int):
+            self.offset += other
+        else:
+            raise Exception("Pointers can only be added to int")
+        return self#.stor.add_offset_to_pointer(self, offset)
+
+    def __sub__(self, other):
+        if isinstance(other, Integer):
+            self.offset += -1 * other.data
+            return self#.stor.add_offset_to_pointer(self, offset)
+        elif isinstance(other, int):
+            self.offset += -1 * other
+            return self#.stor.add_offset_to_pointer(self, offset)
+        elif isinstance(other, Pointer):
+            return Integer((self.get_value() - other.get_value()), 'int')
+        else:
+            raise Exception("Pointers can only be subtracted by int")
+
+    def __str__(self):
+        return 'Pointer at '+str(self.data)+'.'+str(self.offset) +' size '+ str(self.type_size)
+
+    def get_value(self, start=-1, num_bytes=None):
+        """ value of the unsigned bits stored from start to start+num_bytes """
+        result = self.data + self.offset
+        if self.data < 0:
+            result += pow(2, self.size)
+        if ((start == -1) or
+                (start == 0 and num_bytes == self.size)):
+            return result
+
+        result //= 2**(start*8)
+        result %= pow(2, num_bytes*8)
+
+        return result
+
+class FrameAddress(Pointer):
     """ Contains a link between frame and id """
 
+    #def __init__(self, address, holding_stor, type_size, offset=0):
     def __init__(self, frame_id, ident):
         self.frame = frame_id
         self.ident = ident
@@ -268,82 +330,6 @@ class FrameAddress(ReferenceValue):
             return False
         return self.ident == other.ident and self.frame == other.frame
 
-
-class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
-    """Concrete implementation of a Pointer to a store address."""
-
-    def __init__(self, address, holding_stor, type_size, offset=0):
-        self.data = int(address)
-        self.stor = holding_stor
-        self.size = limits.CONFIG.get_word_size()
-        self.type_size = type_size
-        self.offset = offset
-        self.type_of = 'pointer'
-
-    def __hash__(self):
-        return self.data
-
-    def __eq__(self, other):
-        if not isinstance(other, ReferenceValue):
-            return Integer(0, 'int')
-        return Integer(int(self.data == other.data), 'int')
-    
-    def dereference(self):
-        """Reads the address the pointer points to and returns value"""
-        if self.data == 0:
-            raise Exception("SegFault")
-        return self.stor.read(self)
-
-    def index(self, stor, list_of_index):
-        """Reads the address with a given offset from the pointer"""
-        return self.index_for_address(list_of_index).dereference()
-
-    def index_for_address(self, list_with_offset):
-        """Finds the address with a given offset from the pointer"""
-        if self.data == 0:
-            raise Exception("SegFault")
-        if len(list_with_offset) != 1:
-            raise Exception("Invalid ArrayRef on Pointer")
-        offset = list_with_offset[0]
-        return self.stor.add_offset_to_pointer(self, offset)
-
-    def __add__(self, other):
-        if isinstance(other, Integer):
-            offset = other.data
-        elif isinstance(other, int):
-            offset = other
-        else:
-            raise Exception("Pointers can only be added to int")
-        return self.stor.add_offset_to_pointer(self, offset)
-
-    def __sub__(self, other):
-        if isinstance(other, Integer):
-            offset = -1 * other.data
-            return self.stor.add_offset_to_pointer(self, offset)
-        elif isinstance(other, int):
-            offset = -1 * other
-            return self.stor.add_offset_to_pointer(self, offset)
-        elif isinstance(other, Pointer):
-            return Integer(self.data - other.data, 'int')
-        else:
-            raise Exception("Pointers can only be subtracted by int")
-
-    def __str__(self):
-        return 'Pointer at '+str(self.data)+'.'+str(self.offset) +' size '+ str(self.type_size)
-
-    def get_value(self, start=-1, num_bytes=None):
-        """ value of the unsigned bits stored from start to start+num_bytes """
-        result = self.data + self.offset
-        if self.data < 0:
-            result += pow(2, self.size)
-        if ((start == -1) or
-                (start == 0 and num_bytes == self.size)):
-            return result
-
-        result //= 2**(start*8)
-        result %= pow(2, num_bytes*8)
-
-        return result
 
 # needs to know what size it needs to be sometimes
 def generate_constant_value(value, type_of='int'):

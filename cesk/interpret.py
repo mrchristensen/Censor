@@ -264,7 +264,7 @@ def handle_decl_array(array, list_of_sizes, state):
         if isinstance(array.dim, AST.Constant):
             size = generate_constant_value(array.dim.value, array.dim.type).data
         elif isinstance(array.dim, AST.ID):
-            size = get_address(array.dim, state).dereference().data #safe
+            size = get_address(array.dim, state).dereference(state.stor).data #safe
         else:
             raise Exception("Unsupported ArrayDecl dimension "+str(array.dim))
 
@@ -316,7 +316,7 @@ def printf(stmt, state):
         if isinstance(expr, AST.Constant):
             value = generate_constant_value(expr.value, expr.type)
         else:
-            value = get_address(expr, state).dereference()
+            value = get_address(expr, state).dereference(state.stor)
         value_array.append(value.data)
     if isinstance(stmt.args.exprs[0], AST.Constant):
         print_string = stmt.args.exprs[0].value % tuple(value_array)
@@ -337,7 +337,7 @@ def malloc(stmt, state):
     if isinstance(param, AST.Constant):
         length = int(param.value, 0)
     else:
-        length = get_address(param, state).dereference().data
+        length = get_address(param, state).dereference(state.stor).data
     logging.info("Malloc %d", length)
     pointer = state.stor.get_next_address(length)
     # assume malloc is always in an assignment and/or cast
@@ -390,7 +390,8 @@ def handle_Return(stmt, state):# pylint: disable=invalid-name
     if exp:
         frame_address = state.envr.get_frame_address(exp.name)
         address = state.envr.get_address(frame_address)
-        value = address.dereference() #safe
+        value = address.dereference(state.stor) #safe
+    #TODO invoke a list rather then a single call
     return state.get_kont().invoke(state, value)
     # return State(Ctrl(exp), state.envr, state.stor, returnable_kont)
 
@@ -400,7 +401,7 @@ def get_value(stmt, state):
         value = generate_constant_value(stmt.value, stmt.type)
         return value
     elif isinstance(stmt, AST.ID):
-        return get_address(stmt, state).dereference()
+        return get_address(stmt, state).dereference(state.stor)
     elif isinstance(stmt, AST.Cast):
         val = get_value(stmt.expr, state)
         return cast(val, stmt.to_type, state)
@@ -411,7 +412,7 @@ def get_value(stmt, state):
     elif isinstance(stmt, AST.UnaryOp) and stmt.op == '&':
         return get_address(stmt.expr, state)
     elif isinstance(stmt, AST.UnaryOp) and stmt.op == '*':
-        return get_address(stmt, state).dereference()
+        return get_address(stmt, state).dereference(state.stor)
     elif isinstance(stmt, AST.FuncCall):
         raise Exception("Cannot get value from " + stmt.name.name + "()")
     else:
@@ -441,13 +442,13 @@ def get_address(reference, state):
             if isinstance(name, AST.ID):
                 frame_address = state.envr.get_frame_address(name)
                 pointer = state.envr.get_address(frame_address)
-                return pointer.dereference() #safe
+                return pointer.dereference(state.stor) #safe
             elif isinstance(name, AST.UnaryOp) and name.op == "&":
                 return get_address(name.expr, state) #They cancel out
             elif (isinstance(name, AST.Cast) and
                   isinstance(name.to_type, AST.PtrDecl)):
                 temp = get_address(name.expr, state)
-                temp = temp.dereference()
+                temp = temp.dereference(state.stor)
                 address = cast(temp, name.to_type, state)
                 return address
             else:
