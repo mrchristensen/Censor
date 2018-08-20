@@ -4,10 +4,10 @@ All references to the c specification refer to the version here:
     http://www.open-std.org/jtc1/sc22/WG14/www/docs/n1256.pdf
 """
 from copy import deepcopy
+import io
 from enum import Enum
 from pycparser.c_ast import * # pylint: disable=wildcard-import, unused-wildcard-import
 import cesk.limits as limits
-import io 
 
 class Side(Enum):
     """Return type of function asking which type of a binary operand that

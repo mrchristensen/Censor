@@ -3,6 +3,7 @@ import logging
 import pycparser.c_ast as AST
 from transforms.sizeof import get_size_ast
 from cesk.values import generate_constant_value, cast
+from cesk.structures import (State, Ctrl, Envr, Kont)
 import cesk.linksearch as ls
 logging.basicConfig(filename='logfile.txt', level=logging.DEBUG,
                     format='%(levelname)s: %(message)s', filemode='w')
@@ -61,7 +62,7 @@ def handle_Goto(stmt, state): # pylint: disable=invalid-name
     new_ctrl = Ctrl(index, body)
     return State(new_ctrl, state.envr, state.stor, state.kont_addr)
 
-def handle_FuncCall(stmt, state, address = None): # pylint: disable=invalid-name
+def handle_FuncCall(stmt, state, address=None): # pylint: disable=invalid-name
     '''Handles FuncCalls'''
     logging.debug("FuncCall")
     if stmt.name.name == "printf":
@@ -83,8 +84,7 @@ def handle_Decl(stmt, state):#pylint: disable=invalid-name
     logging.debug("Decl %s    %s", str(stmt.name), str(stmt.type))
     decl_helper(stmt, state)
     if stmt.init:
-        frame_address = state.envr.get_frame_address(stmt.name)
-        address = state.envr.get_address(frame_address)
+        address = state.envr.get_address(stmt.name)
         return assignment_helper("=", address, stmt.init, state)
     else:
         return state.get_next()
@@ -105,14 +105,18 @@ def handle_Compound(stmt, state): #pylint: disable=invalid-name
         ls.LinkSearch.envr_lut[stmt] = new_envr #save to table for goto lookup
         return State(new_ctrl, new_envr, state.stor, state.kont_addr)
 
-def handle_Cast(stmt, state): #pylint: disable=invalid-name
+def handle_Cast(stmt, state): #pylint: disable=invalid-name,unused-argument
     '''Handles Cast'''
     logging.debug('Cast')
+    #is not evaluated becase the operator is not stored
+    # anywhere so should not affect the program
     return state.get_next()
 
-def handle_BinaryOp(stmt, state): #pylint: disable=invalid-name
+def handle_BinaryOp(stmt, state): #pylint: disable=invalid-name,unused-argument
     '''Handles BinaryOps'''
     logging.debug("BinaryOp")
+    #is not evaluated becase the operator is not stored
+    # anywhere so should not affect the program
     return state.get_next()
 
 def handle_Assignment(stmt, state): #pylint: disable=invalid-name
@@ -203,7 +207,7 @@ def assignment_helper(operator, address, exp, state):
         if isinstance(exp, AST.FuncCall) and not is_malloc(exp):
             return handle_FuncCall(exp, state, address)
         elif (is_malloc(exp) or (isinstance(exp, AST.Cast) and
-              is_malloc(exp.expr))):
+                                 is_malloc(exp.expr))):
             return malloc_helper(exp, state, address)
         else:
             value = get_value(exp, state)
@@ -211,12 +215,12 @@ def assignment_helper(operator, address, exp, state):
             return state.get_next()
     else:
         raise Exception(operator + " is not yet implemented")
-    return State(new_ctrl, state.envr, state.stor, new_kont)
 
 def decl_helper(decl, state):
     """Maps the identifier to a new address and passes assignment part"""
     name = decl.name
     if state.envr.is_localy_defined(name):
+        #happens if decl appears in loop
         logging.error("redefinition of %s", name)
 
     elif (isinstance(decl.type, (AST.TypeDecl,
@@ -229,15 +233,13 @@ def decl_helper(decl, state):
             size = generate_constant_value(size_ast.value, size_ast.type).data
             ref_address = state.stor.get_next_address(size)
 
-        frame_address = state.envr.get_frame_address(name)
-        state.envr.map_new_identifier(frame_address, ref_address)
+        state.envr.map_new_identifier(name, ref_address)
             #the address is mapped then if additional space is need for
             # a struct handle decl struct manages it
 
     elif isinstance(decl.type, AST.ArrayDecl):
         data_address = handle_decl_array(decl.type, [], state)
-        frame_address = state.envr.get_frame_address(decl.name)
-        state.envr.map_new_identifier(frame_address, data_address)
+        state.envr.map_new_identifier(decl.name, data_address)
         logging.debug(" Mapped %s to %s", str(name), str(data_address))
         if decl.init:
             raise Exception("array init should be transformed")
@@ -248,13 +250,16 @@ def decl_helper(decl, state):
 
     return state
 def malloc_helper(exp, state, address):
+    """ Calls malloc and evaluates the cast """
     if isinstance(exp, AST.Cast):
+        #TODO use cast to break the malloc'ed area in to blocks
         malloc_result = malloc(exp.expr, state)
         malloc_result = cast(malloc_result, exp.to_type, state)
     else:
         malloc_result = malloc(exp, state) # if malloc is assigned to a void*
     state.stor.write(address, malloc_result)
     return state.get_next()
+
 def handle_decl_array(array, list_of_sizes, state):
     """Calculates size and allocates Array. Returns address of first item"""
     logging.debug('  Array Decl')
@@ -264,7 +269,7 @@ def handle_decl_array(array, list_of_sizes, state):
         if isinstance(array.dim, AST.Constant):
             size = generate_constant_value(array.dim.value, array.dim.type).data
         elif isinstance(array.dim, AST.ID):
-            size = get_address(array.dim, state).dereference(state.stor).data #safe
+            size = state.stor.read(get_address(array.dim, state)).data #safe
         else:
             raise Exception("Unsupported ArrayDecl dimension "+str(array.dim))
 
@@ -289,6 +294,7 @@ def handle_decl_array(array, list_of_sizes, state):
     else:
         raise Exception("Declarations of " + str(array.type) +
                         " are not yet implemented")
+
 def handle_decl_struct(struct, state):
     """Handles struct declaration"""
     list_of_sizes = []
@@ -296,11 +302,11 @@ def handle_decl_struct(struct, state):
     data_address = state.stor.allocate_nonuniform_block(list_of_sizes)
     return data_address
 
-def handle_UnaryOp(stmt, state): # pylint: disable=invalid-name
+def handle_UnaryOp(stmt, state): # pylint: disable=invalid-name,unused-argument
     """decodes and evaluates unary_ops"""
-    opr = stmt.op
-    expr = stmt.expr
-    logging.debug("UnaryOp %s", opr)
+    #opr = stmt.op
+    #expr = stmt.expr
+    #logging.debug("UnaryOp %s", opr)
     # note: may reference for reads/writes
     # if opr == "&":
     #     value = get_address(expr, state)
@@ -316,7 +322,7 @@ def printf(stmt, state):
         if isinstance(expr, AST.Constant):
             value = generate_constant_value(expr.value, expr.type)
         else:
-            value = get_address(expr, state).dereference(state.stor)
+            value = state.stor.read(get_address(expr, state))
         value_array.append(value.data)
     if isinstance(stmt.args.exprs[0], AST.Constant):
         print_string = stmt.args.exprs[0].value % tuple(value_array)
@@ -327,7 +333,7 @@ def printf(stmt, state):
                         +str(stmt.args.exprs[0]))
     print_string = print_string[1:][:-1] #drop quotes
     print_string = print_string.replace("\\n", "\n")
-    print(print_string, end ="") #convert newlines
+    print(print_string, end="") #convert newlines
     return state.get_next()
 def malloc(stmt, state):
     '''performs malloc'''
@@ -337,13 +343,13 @@ def malloc(stmt, state):
     if isinstance(param, AST.Constant):
         length = int(param.value, 0)
     else:
-        length = get_address(param, state).dereference(state.stor).data
+        length = state.stor.read(get_address(param, state)).data
     logging.info("Malloc %d", length)
     pointer = state.stor.get_next_address(length)
     # assume malloc is always in an assignment and/or cast
     return pointer
 
-def func(stmt, state, address = None):
+def func(stmt, state, address=None):
     '''handles most function calls delegated by handle_FuncCall'''
     if stmt.name.name not in ls.LinkSearch.function_lut:
         raise Exception("Undefined reference to " + stmt.name.name)
@@ -376,8 +382,7 @@ def func_helper(param_list, expr_list, func_def, state, address):
     new_state = State(next_ctrl, next_envr, state.stor, kont_addr)
     for decl, expr in zip(param_list, expr_list):
         new_state = decl_helper(decl, new_state)
-        frame_address = new_state.envr.get_frame_address(decl.name)
-        new_address = new_state.envr.get_address(frame_address)
+        new_address = new_state.envr.get_address(decl.name)
 
         value = get_value(expr, state)
         new_state.stor.write(new_address, value)
@@ -387,10 +392,9 @@ def handle_Return(stmt, state):# pylint: disable=invalid-name
     """satisfies kont"""
     exp = stmt.expr
     value = None
-    if exp:
-        frame_address = state.envr.get_frame_address(exp.name)
-        address = state.envr.get_address(frame_address)
-        value = address.dereference(state.stor) #safe
+    if exp: #exp is always an ID because of transforms
+        address = state.envr.get_address(exp.name)
+        value = state.stor.read(address) #safe
     #TODO invoke a list rather then a single call
     return state.get_kont().invoke(state, value)
     # return State(Ctrl(exp), state.envr, state.stor, returnable_kont)
@@ -401,7 +405,7 @@ def get_value(stmt, state):
         value = generate_constant_value(stmt.value, stmt.type)
         return value
     elif isinstance(stmt, AST.ID):
-        return get_address(stmt, state).dereference(state.stor)
+        return state.stor.read(get_address(stmt, state))
     elif isinstance(stmt, AST.Cast):
         val = get_value(stmt.expr, state)
         return cast(val, stmt.to_type, state)
@@ -412,7 +416,7 @@ def get_value(stmt, state):
     elif isinstance(stmt, AST.UnaryOp) and stmt.op == '&':
         return get_address(stmt.expr, state)
     elif isinstance(stmt, AST.UnaryOp) and stmt.op == '*':
-        return get_address(stmt, state).dereference(state.stor)
+        return state.stor.read(get_address(stmt, state))
     elif isinstance(stmt, AST.FuncCall):
         raise Exception("Cannot get value from " + stmt.name.name + "()")
     else:
@@ -423,13 +427,12 @@ def get_address(reference, state):
     """get_address"""
     if isinstance(reference, AST.ID):
         ident = reference
-        frame_address = state.envr.get_frame_address(ident)
-        if not state.envr.is_localy_defined(frame_address):
+        if not state.envr.is_localy_defined(ident):
             checked_decl = check_for_implicit_decl(ident)
             if checked_decl is not None:
                 logging.debug("Found implicit decl: %s", checked_decl.name)
                 decl_helper(checked_decl, state)
-        address = state.envr.get_address(frame_address)
+        address = state.envr.get_address(ident)
         return address
 
     elif isinstance(reference, AST.ArrayRef):
@@ -440,15 +443,14 @@ def get_address(reference, state):
         if unary_op.op == "*":
             name = unary_op.expr
             if isinstance(name, AST.ID):
-                frame_address = state.envr.get_frame_address(name)
-                pointer = state.envr.get_address(frame_address)
-                return pointer.dereference(state.stor) #safe
+                pointer = state.envr.get_address(name)
+                return state.stor.read(pointer) #safe
             elif isinstance(name, AST.UnaryOp) and name.op == "&":
                 return get_address(name.expr, state) #They cancel out
             elif (isinstance(name, AST.Cast) and
                   isinstance(name.to_type, AST.PtrDecl)):
                 temp = get_address(name.expr, state)
-                temp = temp.dereference(state.stor)
+                temp = state.stor.read(temp)
                 address = cast(temp, name.to_type, state)
                 return address
             else:
@@ -490,9 +492,6 @@ def check_for_implicit_decl(ident):
     return None
 
 def is_malloc(stmt):
+    """ check to see if a function is a call to malloc """
     return (isinstance(stmt, AST.FuncCall) and
             stmt.name.name == 'malloc')
-
-# imports are down here to allow for circular dependencies between
-# structures.py and interpret.py
-from cesk.structures import (State, Ctrl, Envr, Kont) # pylint: disable=wrong-import-position

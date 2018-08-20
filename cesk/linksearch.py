@@ -13,6 +13,7 @@ class LinkSearch(AST.NodeVisitor):
     function_lut = {}
     struct_lut = {}
     scope_decl_lut = {}
+    global_decl_list = []
 
     def generic_visit(self, node):
         # pylint: disable=too-many-branches
@@ -66,6 +67,11 @@ class LinkSearch(AST.NodeVisitor):
                     LinkSearch.scope_decl_lut[compound].append(node)
                 else:
                     LinkSearch.scope_decl_lut[compound] = [node]
+            else: #is global, or part of struct
+                parent = LinkSearch.parent_lut[node]
+                if (not isinstance(node.type, (AST.FuncDecl, AST.Struct))
+                        and isinstance(parent, AST.FileAST)):
+                    LinkSearch.global_decl_list.append(node)
         return node
 
 
@@ -107,7 +113,7 @@ def get_array_sizes(ast_type, list_so_far, state):
     if isinstance(ast_type.dim, AST.Constant):
         size = int(ast_type.dim.value)
     elif isinstance(ast_type.dim, AST.ID):
-        size = state.envr.get_address(ast_type.dim).dereference().data #safe
+        size = state.stor.read(state.envr.get_address(ast_type.dim)).data #safe
     else:
         raise Exception('Array dim must be constant or id')
     for _ in range(size):

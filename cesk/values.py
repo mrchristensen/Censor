@@ -4,6 +4,7 @@ import cesk.limits as limits
 import pycparser
 import logging
 from pydoc import locate
+import cesk.linksearch as ls
 
 BINOPS = {
     "+" : "__add__",
@@ -238,9 +239,8 @@ class ReferenceValue(ArithmeticValue): #pylint:disable=all
 class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
     """Concrete implementation of a Pointer to a store address."""
 
-    def __init__(self, address, holding_stor, type_size, offset=0):
+    def __init__(self, address, type_size, offset=0):
         self.data = int(address)
-        self.stor = holding_stor
         self.size = limits.CONFIG.get_word_size()
         self.type_size = type_size
         self.offset = offset
@@ -254,15 +254,20 @@ class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
             return Integer(0, 'int')
         return Integer(int(self.data == other.data), 'int')
     
-    def dereference(self, stor):
-        """Reads the address the pointer points to and returns value"""
-        if self.data == 0:
-            raise Exception("SegFault")
-        if self.offset < 0 or self.offset >= self.type_size:
-            offset = self.offset
-            self.offset = 0
-            stor.add_offset_to_pointer(self, offset)
-        return stor.read(self)
+    #def dereference(self, stor):
+    #    """Reads the address the pointer points to and returns value"""
+    #    if self.data == 0:
+    #        raise Exception("SegFault")
+    #    return stor.read(self)
+
+    def update(self, stor):
+        """ moves the pointer along the pred and succ map """
+        #if self.offset < 0 or self.offset >= self.type_size:
+        offset = self.offset
+        self.offset = 0
+        ptr = stor.add_offset_to_pointer(self, offset)
+        self.offset = ptr.offset
+        self.data = ptr.data
 
     def __add__(self, other):
         if isinstance(other, Integer):
@@ -305,10 +310,11 @@ class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
 class FrameAddress(Pointer):
     """ Contains a link between frame and id """
 
-    #def __init__(self, address, holding_stor, type_size, offset=0):
-    def __init__(self, frame_id, ident):
+    #def __init__(self, address, type_size, offset=0):
+    def __init__(self, frame_id, ident, pointer):
         self.frame = frame_id
         self.ident = ident
+        super(FrameAddress, self).__init__(pointer.data, pointer.type_size) #offset should always be 0
 
     def get_frame(self):
         """ Returns frame identifier """
@@ -322,13 +328,13 @@ class FrameAddress(Pointer):
         """ Reads from the stor to get value of identifier """
         pass
 
-    def __hash__(self):
-        return 1+43*hash(self.ident)+73*hash(self.frame)
+#    def __hash__(self):
+#        return 1+43*hash(self.ident)+73*hash(self.frame)
 
-    def __eq__(self, other):
-        if not isinstance(other, FrameAddress):
-            return False
-        return self.ident == other.ident and self.frame == other.frame
+#    def __eq__(self, other):
+#        if not isinstance(other, FrameAddress):
+#            return False
+#        return self.ident == other.ident and self.frame == other.frame
 
 
 # needs to know what size it needs to be sometimes
@@ -401,12 +407,10 @@ def generate_default_value(size):
     return value
 
 
-def generate_pointer(address, stor, size):
+def generate_pointer(address, size):
     """Given a address (int) package it into a pointer"""
-    return Pointer(address, stor, size, 0)
+    return Pointer(address, size, 0)
 
-
-import cesk.linksearch as ls
 def copy_pointer(pointer, ptr_type=None, state=None):
     """ Given a point a type and the state
         generate the cast if needed pointer (shallow copy of pointer) """
@@ -416,37 +420,37 @@ def copy_pointer(pointer, ptr_type=None, state=None):
         sizes = []
         ls.get_sizes(ptr_type, sizes, state) #returns alignment
         size = sum(sizes)
-    return Pointer(pointer.data, pointer.stor, size, pointer.offset)
+    return Pointer(pointer.data, size, pointer.offset)
 
-def generate_null_pointer(stor):
+def generate_null_pointer():
     """ Build a pointer that will not dereference """
-    return Pointer(0, stor, 1)
+    return Pointer(0, 1)
 
-def generate_frame_address(frame, ident):
+def generate_frame_address(frame, ident, pointer):
     """ Build a Frame Address """
-    return FrameAddress(frame, ident)
+    return FrameAddress(frame, ident, pointer)
 
 def cast(value, typedeclt, state=None): #pylint: disable=unused-argument
     """Casts the given value a  a value of the given type."""
-    n = None
+    result = None
 
     if isinstance(typedeclt, pycparser.c_ast.Typename):
-        n = cast(value, typedeclt.type, state)
+        result = cast(value, typedeclt.type, state)
     elif isinstance(typedeclt, pycparser.c_ast.PtrDecl):
         if isinstance(value, ReferenceValue): 
-            n = copy_pointer(value, typedeclt.type, state)
+            result = copy_pointer(value, typedeclt.type, state)
         else:
             #normal number being turned into a pointer not valid to dereference
             #TODO manage tracking of this
             logging.debug(" Cast %s to %s", str(value), str(typedeclt))
             address = state.stor.get_nearest_address(value.data)
-            n = copy_pointer(address, typedeclt.type, state)
+            result = copy_pointer(address, typedeclt.type, state)
     elif isinstance(typedeclt, pycparser.c_ast.TypeDecl):
         types = typedeclt.type.names
-        n = generate_value(value.get_value(), " ".join(types))
+        result = generate_value(value.get_value(), " ".join(types))
     else:
         logging.error('\tUnsupported cast: ' + str(typedeclt.type))
         raise Exception("Unsupported cast")
     
-    assert n.data != None
-    return n
+    assert result.data != None
+    return result
