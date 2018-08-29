@@ -16,11 +16,10 @@ from transforms import transform
 
 def main():
     """Parses arguments and calls correct tool"""
-
     parser = argparse.ArgumentParser()
     parser.add_argument("filename", nargs='+')
     parser.add_argument('--tool', '-t',
-                        choices=['censor', 'cesk',
+                        choices=['censor', 'cesk', 'save',
                                  'observer', 'ssl', 'print',
                                  'transform', 'instrumenter'],
                         required=False, type=str.lower,
@@ -38,14 +37,8 @@ def main():
     args = parser.parse_args()
     dir_name = path.dirname(args.filename[0])
 
-    if args.pycparser is not None:
-        sys.path.append(args.pycparser)
-        fake_libc_path = path.join(args.pycparser, r'utils/fake_libc_include/')
-    else:
-        args.pycparser = path.dirname(path.abspath(__file__))
-        fake_libc_path = path.join(args.pycparser, r'fake_libc_include/')
-
-    import pycparser
+    if args.configuration is not None:
+        set_config(args.configuration)
 
     temp_files = [] #file need to remain to not be garbage collected and closed
     if args.sanitize:
@@ -58,6 +51,21 @@ def main():
             temps.append(temp.name)
             temp_files.append(temp)
         args.filename = temps
+
+    if args.tool != "save": # check if pickle file exists
+        ast = utils.load_object(args.filename[0][:-2] + ".pkl")
+        run_tool(args.tool, ast, args)
+        return
+
+
+    if args.pycparser is not None:
+        sys.path.append(args.pycparser)
+        fake_libc_path = path.join(args.pycparser, r'utils/fake_libc_include/')
+    else:
+        args.pycparser = path.dirname(path.abspath(__file__))
+        fake_libc_path = path.join(args.pycparser, r'fake_libc_include/')
+
+    import pycparser
 
     cpp_args = [
         '-nostdinc',
@@ -77,8 +85,6 @@ def main():
             filename, use_cpp=True, cpp_path='gcc', cpp_args=cpp_args
             ).ext
 
-    if args.configuration is not None:
-        set_config(args.configuration)
     # the instrumenter needs to preserve includes until after
     # instrumentation
     # if args.sanitize:
@@ -100,13 +106,15 @@ def run_tool(tool, ast, args):
     elif tool == "cesk":
         transform(ast)
         cesk.main(ast)
-        print("Done")
     elif tool == "observer":
         observe_ast(ast, observer, cesk)
     elif tool == "ssl":
         verify_openssl_correctness(ast)
     elif tool == "print":
         print_ast(ast)
+    elif tool == "save":
+        savefile_name = args.filename[0][:-2] + ".pkl"
+        utils.save_object(ast, savefile_name)
     elif tool == "transform":
         transform(ast)
         if args.sanitize:

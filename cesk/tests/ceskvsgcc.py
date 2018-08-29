@@ -27,6 +27,7 @@ class CESKvsGCC(TestCase):
                 print("PASSED:   ", end='')
                 sys.stdout.write(RESET)
                 print(path.basename(file_path))
+                return "Passed"
             else:
                 sys.stdout.write(RED)
                 print("FAILED:   ", end='')
@@ -37,12 +38,14 @@ class CESKvsGCC(TestCase):
                 print("Actual (cesk): ")
                 print(str(cesk_out))
                 #raise self.failureException()
+                return "Failed"
         except Exception as exception: #pylint: disable=broad-except
             if str(exception) == 'Segfault':
                 sys.stdout.write(BLUE)
                 print("SEGFAULT: ", end='')
                 sys.stdout.write(RESET)
                 print(path.basename(file_path))
+                return "Segfault"
             else:
                 sys.stdout.write(RED)
                 print("FAILED:   ", end='')
@@ -54,15 +57,17 @@ class CESKvsGCC(TestCase):
         output under gcc and under our cesk interpreter"""
         files = sorted([path.join(folder, f) for f in listdir(folder)
                         if f.endswith('.c')])
-        for file in files:
-            self.assert_same_output(file)
+        # for file in files:
+        #     self.assert_same_output(file)
+        result = map(self.assert_same_output, files)
+        print(list(result))
 
 def run_c_cesk(file_path):
     """runs a c source file using the cesk tool, returns stdout as a byte
     string."""
     try:
         stdout = subprocess.check_output(['python3', '../../main.py',
-                                          '-st', 'cesk', '-c', 'cesk',
+                                          '-t', 'cesk', '-c', 'cesk',
                                           file_path])
     except subprocess.CalledProcessError as exception:
         if exception.returncode == errno.EFAULT:

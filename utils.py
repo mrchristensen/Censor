@@ -5,6 +5,7 @@ import platform
 import subprocess
 from collections import namedtuple
 import pycparser
+import pickle
 
 Function = namedtuple('Function', ['funcDef'])
 
@@ -79,6 +80,13 @@ def run_sed_file(sed, path):
     else:
         return subprocess.run(['sed', '-i', '-rf', sed, path])
 
+def save_object(obj, filename):
+    with open(filename, 'wb') as output:  # Overwrites any existing file.
+        pickle.dump(obj, output, pickle.HIGHEST_PROTOCOL)
+
+def load_object(filename):
+    with open(filename, 'rb') as input:
+        return pickle.load(input)
 
 def preserve_include_find_end(node, start_index):
     """Find end of #pragma BEGIN include block and return index"""

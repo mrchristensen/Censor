@@ -1,6 +1,7 @@
 *~
 *.sw?
 *.iml
+*.pkl
 pycparser
 __pycache__
 lextab.py
