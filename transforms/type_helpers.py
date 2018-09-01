@@ -50,7 +50,7 @@ def make_temp_value(expr, id_generator, env):
 
 def cast_if_needed(type_node, expr, env):
     """Decides if it is necessary to cast the given expr to be assigned to a
-       variable of the given type, or if the types are already unified."""
+       variable of the given type or if the types are already unified."""
     expr_type = get_type(expr, env)
     expr_str = io.StringIO()
     type_str = io.StringIO()
