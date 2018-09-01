@@ -50,10 +50,6 @@ def make_temp_value(expr, id_generator, env):
 def cast_if_needed(type_node, expr, env):
     """Decides if it is necessary to cast the given expr to the given type,
     or if the types are already unified."""
-    # TODO: currently, this function can only decide if two types are unified
-    # if they are integral or floating types. If we ever have a deep compare
-    # method than can decide equality of any arbitrary ast nodes, we should
-    # use that to decide type unification over all types
     expr_type = get_type(expr, env)
     expr_str = io.StringIO()
     type_str = io.StringIO()
