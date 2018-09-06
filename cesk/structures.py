@@ -419,7 +419,9 @@ class Stor:
 
     def write_kont(self, kont_addr, kai):
         """ records the continuation for the continuation address """
-        self.kont[kont_addr] = kai
+        if kont_addr not in self.kont:
+            self.kont[kont_addr] = set()
+        self.kont[kont_addr].add(kai)
 
     def read_kont(self, kont_addr):
         """ returns the continuation(s) for the given kont_addr """

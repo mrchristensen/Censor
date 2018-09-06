@@ -14,7 +14,10 @@ def execute(state):
     stmt = state.ctrl.stmt()
     obj_name = stmt.__class__.__name__
     if obj_name in implemented_nodes():
-        return handle(stmt, state)
+        states = handle(stmt, state)
+        if not isinstance(states, set):
+            states = {states}
+        return states
     elif obj_name in should_be_transformed_nodes():
         raise Exception(obj_name + " should be transformed but wasn't")
     elif obj_name in todo_implement_nodes():
@@ -396,7 +399,10 @@ def handle_Return(stmt, state):# pylint: disable=invalid-name
         address = state.envr.get_address(exp.name)
         value = state.stor.read(address) #safe
     #TODO invoke a list rather then a single call
-    return state.get_kont().invoke(state, value)
+    ret_set = set()
+    for kont in state.get_kont():
+        ret_set.add(kont.invoke(state, value))
+    return ret_set
     # return State(Ctrl(exp), state.envr, state.stor, returnable_kont)
 
 def get_value(stmt, state):

@@ -24,11 +24,11 @@ def main(ast):
     while queue: #is not empty
         next_state = queue.popleft()
         try:
-            successor = execute(next_state)
+            successors = execute(next_state)
         except SegFault: #pylint: disable=broad-except
             print('segmentation fault (core dumped)')
             sys.exit(errno.EFAULT)
-        queue.append(successor)
+        queue.extend(successors)
     raise Exception("Execution finished without Halt")
 
 def implemented_nodes():
