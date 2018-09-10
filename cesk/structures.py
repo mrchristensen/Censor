@@ -449,7 +449,7 @@ class Kont: #pylint: disable=too-few-public-methods
     def invoke(self, state, value):
         """ Evaluates the return of a function """
         if self.kont_addr is 0:
-            exit(0)
+            return None
         if self.address:
             state.stor.write(self.address, value)
         new_state = State(self.ctrl, self.envr,

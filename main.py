@@ -100,7 +100,6 @@ def run_tool(tool, ast, args):
     elif tool == "cesk":
         transform(ast)
         cesk.main(ast)
-        print("Done")
     elif tool == "observer":
         observe_ast(ast, observer, cesk)
     elif tool == "ssl":

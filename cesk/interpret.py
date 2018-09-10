@@ -401,7 +401,9 @@ def handle_Return(stmt, state):# pylint: disable=invalid-name
     #TODO invoke a list rather then a single call
     ret_set = set()
     for kont in state.get_kont():
-        ret_set.add(kont.invoke(state, value))
+        k = kont.invoke(state, value)
+        if k is not None:
+            ret_set.add(k)
     return ret_set
     # return State(Ctrl(exp), state.envr, state.stor, returnable_kont)
 

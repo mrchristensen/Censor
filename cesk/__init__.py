@@ -29,7 +29,7 @@ def main(ast):
             print('segmentation fault (core dumped)')
             sys.exit(errno.EFAULT)
         queue.extend(successors)
-    raise Exception("Execution finished without Halt")
+    #raise Exception("Execution finished without Halt")
 
 def implemented_nodes():
     """ returns a list of implemented node type names """
