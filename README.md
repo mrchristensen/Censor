@@ -38,7 +38,5 @@ As a temporary fix, we cloned the pycparser master branch from github (https://g
 
 #Testing
 
-To run all regression tests run `all_tests.py` in the tests directory to run regression suite
-
-The cesk interpreter are the exception. Their tests can be found in cesk/tests. Run `all_tests.py` to test
-You can easily test just one c interpreted file by running `run_one_file.py <cfile>`
+- Tests can be found in /tests, /cesk/tests, and /regression/tests.
+- Execute `python3 all_tests.py` to run the tests.
