@@ -8,15 +8,20 @@
 """
 
 from copy import deepcopy
+import pycparser.c_ast as AST
 from .lift_node import LiftNode
 from .type_helpers import get_type, make_temp_value
 from .sizeof import get_size_ast
-import pycparser.c_ast as AST
 # from .type_helpers import get_no_op
 # from .helpers import ensure_compound
 
 class LiftUnaryOp(LiftNode):
     """ Tranforms unary operators into another equivalent AST"""
+
+    def visit_For(self, node): #pylint: disable=invalid-name
+        """ Ignore items within a For loop conditions """
+        node.stmt = self.visit(node.stmt)
+        return node
 
     def visit_UnaryOp(self, node): #pylint: disable=invalid-name
         """ Special parsing of UnaryOp AST nodes """
@@ -28,12 +33,12 @@ class LiftUnaryOp(LiftNode):
 
         node.expr = self.generic_visit(node.expr)
         if node.op == '!':
-            return AST.BinaryOp("==", constant_zero(), node.expr) 
+            return AST.BinaryOp("==", constant_zero(), node.expr)
         elif node.op in ['++', '--', 'p--', 'p++']:
             return self.inc_and_dec(node)
         elif node.op in ['+', '-', '~']:
             if node.op == '-':
-                return AST.BinaryOp('-', constant_zero(), node.expr) 
+                return AST.BinaryOp('-', constant_zero(), node.expr)
             node.show()
             raise NotImplementedError()
         elif node.op in ['&', '*']:

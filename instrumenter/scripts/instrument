@@ -1,0 +1,22 @@
+#!/bin/bash
+
+INPUT_FILE=instrumenter_test.c
+OUTPUT_FILE=yeti_instrumented.c
+LOG_FILE=yeti_out.log
+
+CENSOR_DIR=/Users/kamenomagic/dev/python/censor
+BENCH_DIR=$CENSOR_DIR/regression/dataracebench/micro-benchmarks
+MAIN_PY=$CENSOR_DIR/main.py
+BENCH_UTILS=$BENCH_DIR/utilities
+BENCH_INCLUDES="$BENCH_DIR,$BENCH_UTILS"
+BENCH_FLAGS="-DPOLYBENCH_NO_FLUSH_CACHE -DPOLYBENCH_TIME -D_POSIX_C_SOURCE=200112L"
+
+python3 $MAIN_PY $INPUT_FILE --tool instrumenter --sanitize --includes $BENCH_INCLUDES
+
+if [ `uname` == "Darwin" ]; then
+    echo "Detected mac"
+    clang -Xpreprocessor -fopenmp -lomp $OUTPUT_FILE "$BENCH_UTILS/polybench.c" "$BENCH_FLAGS"
+else
+    gcc -fopenmp -lm $OUTPUT_FILE "$BENCH_UTILS/polybench.c" "$BENCH_FLAGS"
+fi
+./a.out > $LOG_FILE

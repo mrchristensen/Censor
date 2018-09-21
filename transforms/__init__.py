@@ -19,7 +19,7 @@ RemoveCompoundAssignment < InsertExplicitTypeCasts
 SwitchToIf < LiftToCompoundBlock
 SwitchToIf < BreakToGoto
 SizeofType < LiftUnaryOp
-IfToIfGoto < Sequence
+Sequence < IfToIfGoto
 DoWhileToGoto < Sequence
 BreakToGoto < DoWhileToGoto
 
@@ -27,6 +27,7 @@ BreakToGoto < DoWhileToGoto
 
 # imports for transforms
 from .sizeof_type import SizeofType
+from .correct_pragma_placement import CorrectPragmaPlacement
 from .do_while_to_goto import DoWhileToGoto
 from .while_to_do_while import WhileToDoWhile
 from .for_to_while import ForToWhile
@@ -61,6 +62,7 @@ from .change_void_pointer import ChangeToVoidPointer
 from .struct_ref_to_pointer import StructRefToPointerArith
 from .remove_typedef import RemoveTypedef
 from .break_to_goto import BreakToGoto
+from .alpha_name import AlphaName
 
 # other imports
 from .id_generator import IDGenerator
@@ -87,6 +89,7 @@ def get_transformers(ast):
 
     # Each dependency function must take one argument so that we can easily
     # chain transformations together without worrying about arity.
+    yield (CorrectPragmaPlacement, lambda ast: [])
     yield (PragmaToOmpParallelSections, lambda ast: [])
     yield (PragmaToOmpParallelFor, lambda ast: [])
     yield (PragmaToOmpParallel, lambda ast: [])
@@ -122,8 +125,6 @@ def get_transformers(ast):
            lambda ast: [id_generator, type_env_calc.get_environments(ast)])
     yield (RemoveInitLists,
            lambda ast: [id_generator, type_env_calc.get_environments(ast)])
-    yield (InsertExplicitTypeCasts,
-           lambda ast: [type_env_calc.get_environments(ast)])
     yield (RemoveMultidimensionalArray,
            lambda ast: [id_generator, type_env_calc.get_environments(ast)])
     yield (LiftUnaryOp,
@@ -132,9 +133,12 @@ def get_transformers(ast):
            lambda ast: [id_generator, type_env_calc.get_environments(ast)])
     yield (StructRefToPointerArith,
            lambda ast: [id_generator, type_env_calc.get_environments(ast)])
+    yield (InsertExplicitTypeCasts,
+           lambda ast: [type_env_calc.get_environments(ast)])
     yield (LiftToCompoundBlock,
            lambda ast: [id_generator, type_env_calc.get_environments(ast)])
     yield (SingleReturn, lambda ast: [id_generator])
+    yield (AlphaName, lambda ast: [])
 
 def transform(ast):
     """Perform each transform in package"""

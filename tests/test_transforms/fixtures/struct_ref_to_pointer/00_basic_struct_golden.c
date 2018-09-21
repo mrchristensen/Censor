@@ -8,8 +8,8 @@ struct one
 int main()
 {
   struct one tester;
-  *((int *) (((void *) (&tester)) + 0));
-  *((long *) (((void *) (&tester)) + 4));
-  *((char *) (((void *) (&tester)) + 8));
+  *((int *) (((void *) (&tester)) + 0l));
+  *((long *) (((void *) (&tester)) + 4l));
+  *((char *) (((void *) (&tester)) + 8l));
   return 0;
 }

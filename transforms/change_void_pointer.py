@@ -23,7 +23,7 @@ class ChangeToVoidPointer(LiftNode):
             if (_is_integral(left_type) and
                     (_is_ptr(right_type) or _is_array(right_type))):
                 if _is_array(right_type):
-                    node.right = AST.UnaryOp('&', node.right)
+                    node.right = self.add_reference_array(node.right)
                 ptr_size = get_size_ast(right_type.type, self.envr)
                 if ptr_size.value != '1':
                     node.left = AST.BinaryOp('*', node.left, ptr_size)
@@ -45,18 +45,38 @@ class ChangeToVoidPointer(LiftNode):
             if isinstance(node.right, AST.ID):
                 right_type = get_type(node.right, self.envr)
                 if _is_array(right_type):
-                        node.right = AST.UnaryOp('&', node.right)
+                    node.right = self.add_reference_array(node.right)
         return node
 
     def visit_Cast(self, node): #pylint: disable=invalid-name
+        """ Make sure to get the address of the array
+            maybe to chummy with the cesk interpreter """
         self.generic_visit(node)
         if isinstance(node.expr, AST.ID):
             expr_type = get_type(node.expr, self.envr)
             if _is_array(expr_type):
-                    node.expr = AST.UnaryOp('&', node.expr)
-        return node       
+                node.expr = self.add_reference_array(node.expr)
+        return node
 
+    def visit_FuncCall(self, node): #pylint: disable=invalid-name
+        """ To make sure array id's are referenced when passed as a parameter
+            This is a nicety for the cesk interpreter """
+        node = self.generic_visit(node)
+        if node.args is None:
+            return node
+        for index, param in enumerate(node.args.exprs):
+            param_type = get_type(param, self.envr)
+            if _is_array(param_type):
+                node.args.exprs[index] = self.add_reference_array(param)
+        return node
 
+    def add_reference_array(self, node):
+        """ Because the interpreter see only an id or memory access at a
+            location add the reference to get the location explicity """
+        #TODO does not work for arrays that are parametersi
+        #b/c arrays are incorrectly typed as arrays when they are pointers
+        return AST.UnaryOp('&', node) #cesk interpreter needs
+        #return node #more correct for type reasons
 
     def arithmetic_to_void_pointer(self, node):
         """ transforms binops of the from ptr + 8 or ptr - 10 """
@@ -65,7 +85,7 @@ class ChangeToVoidPointer(LiftNode):
         if (_is_integral(right_type) and
                 (_is_ptr(left_type) or _is_array(left_type))):
             if _is_array(left_type):
-                node.left = AST.UnaryOp('&', node.left)
+                node.left = self.add_reference_array(node.left)
             ptr_size = get_size_ast(left_type.type, self.envr)
             if not isinstance(ptr_size, AST.Constant) or ptr_size.value != '1':
                 node.right = AST.BinaryOp('*', node.right, ptr_size)

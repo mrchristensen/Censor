@@ -45,6 +45,7 @@ void censorXX_INIT_GLOBALS() {
 }
 """
 # after having four lines of pycparser import, I decided to do them all at once
+from copy import deepcopy
 from pycparser.c_ast import * # pylint: disable=wildcard-import, unused-wildcard-import
 from .node_transformer import NodeTransformer
 from .helpers import prepend_statement
@@ -102,7 +103,8 @@ class RemoveInitLists(NodeTransformer):
         func_type = TypeDecl(func_name, [], IdentifierType(["void"]))
         init_globals_decl = Decl(func_name, [], [], [],
                                  FuncDecl(ParamList([]), func_type), None, None)
-        init_globals_def = FuncDef(init_globals_decl, [], Compound([]))
+        init_globals_def = FuncDef(deepcopy(init_globals_decl),
+                                   [], Compound([]))
         init_globals_call = FuncCall(ID(func_name), ExprList([]))
 
         main_index = None
@@ -132,8 +134,10 @@ class RemoveInitLists(NodeTransformer):
         """Flatten initializer lists that happen in non-global scope."""
         if isinstance(node.type, ArrayDecl) and node.init:
             retval = [node]
-            retval += flatten_array_init(node)
-            node.init = None
+            result = flatten_array_init(node)
+            if result != []:
+                retval += result
+                node.init = None
             return retval
         elif isinstance(node.type, TypeDecl) and \
             isinstance(node.type.type, Struct) and node.init:
@@ -166,8 +170,10 @@ def flatten_array_init(decl):
     if decl.init is None:
         return inits
     if not isinstance(decl.init, InitList):
-        decl.show()
-        raise NotImplementedError(_NOT_IMPLEMENTED_MESSAGE)
+        return inits
+        #TODO allow for other types of Array initilization
+        #decl.show()
+        #raise NotImplementedError(_NOT_IMPLEMENTED_MESSAGE)
     for i, init in enumerate(decl.init.exprs):
         if not is_constant_expression(init):
             decl.show()
@@ -188,9 +194,9 @@ def flatten_struct_init(decl, env):
         return inits #Nothing to do
     if not isinstance(decl.init, InitList):
         inits.append(Assignment("=", ID(decl.name), decl.init))
-        return inits 
-        decl.show()
-        raise NotImplementedError(_NOT_IMPLEMENTED_MESSAGE)
+        return inits
+        #decl.show()
+        #raise NotImplementedError(_NOT_IMPLEMENTED_MESSAGE)
     for i, init in enumerate(decl.init.exprs):
         #if not is_constant_expression(init):
         #    decl.show()

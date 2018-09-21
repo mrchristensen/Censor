@@ -1,7 +1,6 @@
-"""Test """
+""" Test """
 
 from helpers import GoldenTestCase
-from transforms.sequence import Sequence
 from transforms.id_generator import IDGenerator
 from transforms.break_to_goto import BreakToGoto
 from transforms.type_environment_calculator import TypeEnvironmentCalculator
@@ -10,7 +9,7 @@ from transforms.type_environment_calculator import TypeEnvironmentCalculator
 class TestBreakToGoto(GoldenTestCase):
     """Test BreakToGoto transform"""
 
-    def setUp(self):
+    def setUp(self): #pylint: disable=invalid-name
         """Set up test variables needed for GoldenTestCase"""
         self.fixtures = '/test_transforms/fixtures/break_to_goto'
         self.transformer = None

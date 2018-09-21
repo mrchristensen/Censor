@@ -49,6 +49,6 @@ int main()
   triangle t;
   t.side1 = (float) r.x;
   t.side2 = (double) r.y;
-  t.side3 = diag((rectangle) r);
+  t.side3 = diag(r);
   return 0;
 }

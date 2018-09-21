@@ -11,5 +11,4 @@ yacctab.py
 .idea
 logfile.txt
 cesk/tests/tmp/*
-openssl-master/*
-utils/stored_file_asts
+instrumenter/scripts/sandbox/*

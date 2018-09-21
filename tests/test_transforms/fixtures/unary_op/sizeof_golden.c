@@ -1,15 +1,15 @@
 int main()
 {
   int x;
-  2;
-  8;
-  8;
-  2;
+  2l;
+  8l;
+  8l;
+  2l;
   long y;
   long long z;
-  8;
+  8l;
   char* ptr;
-  4;
-  1;
+  4l;
+  1l;
   return 0;
 }  

@@ -26,8 +26,7 @@ struct object (*censor01)[5] = &obj->x;
 struct object *censor2 = &(*censor01)[3];
 int *censor03 = &(*censor02).prop;
 int censor04 = a + b;
-int censor05 = censor04 + c;
-*censor03 = censor05;
+*censor03 = censor04 + c;
 
 Special considerations:
 Pointers are always created for StructRef and ArrayRef nodes. This is because
@@ -86,12 +85,21 @@ class LiftToCompoundBlock(LiftNode):
             ref = self.lift_assignment(value)
         elif isinstance(value, AST.UnaryOp):
             ref = self.lift_unaryop(value)
-        elif isinstance(node, AST.Assignment):
+        elif isinstance(node, (AST.Assignment, AST.Decl)):
             ref = None
         elif isinstance(value, (AST.StructRef, AST.ArrayRef)):
             ref = self.lift_to_ptr(value)
-        elif isinstance(value, (AST.BinaryOp, AST.FuncCall)):
-            ref = self.lift_to_value(value)
+        elif isinstance(value, AST.FuncCall):
+            if value.name.name == "malloc":
+                pass # edge case: don't lift malloc (cast type remains)
+            else:
+                ref = self.lift_to_value(value)
+        elif isinstance(value, AST.BinaryOp):
+            if (isinstance(value.left, AST.Constant) and
+                    isinstance(value.right, AST.Constant)):
+                ref = self.propagate_constant(value)
+            else:
+                ref = self.lift_to_value(value)
         if ref is not None:
             setattr(node, field, ref)
         return node
@@ -110,6 +118,50 @@ class LiftToCompoundBlock(LiftNode):
         self.insert_into_scope(decl)
         self.envr.add(decl.name, decl.type)
         return AST.ID(decl.name)
+
+    def propagate_constant(self, binop):
+        """ If both sides are a constant combine into a sigle constant """
+        result_type = 'int'
+        if binop.left.type == 'int':
+            left_value = int(binop.left.value.translate(
+                {ord(c):None for c in 'uUlL'}), 0)
+        elif binop.left.type == 'float':
+            left_value = float(binop.left.value.translate(
+                {ord(c):None for c in 'fFlL'}))
+            result_type = 'float'
+        else:
+            return self.lift_to_value(binop)
+        if binop.right.type == 'int':
+            right_value = int(binop.right.value.translate(
+                {ord(c):None for c in 'uUlL'}), 0)
+        elif binop.right.type == 'float':
+            right_value = float(binop.right.value.translate(
+                {ord(c):None for c in 'fFlL'}))
+            result_type = 'float'
+        else:
+            return self.lift_to_value(binop)
+
+        return self.perform_operation(binop, result_type,
+                                      left_value, right_value)
+
+    def perform_operation(self, binop, result_type, left_value, right_value):
+        """ Combines two constants  """
+        if binop.op == '+':
+            value = AST.Constant(result_type, str(left_value + right_value))
+        elif binop.op == '-':
+            value = AST.Constant(result_type, str(left_value - right_value))
+        elif binop.op == '*':
+            value = AST.Constant(result_type, str(left_value * right_value))
+        elif binop.op == '%':
+            value = AST.Constant(result_type, str(left_value % right_value))
+        elif binop.op == '/':
+            if result_type == 'int':
+                value = AST.Constant(result_type, str(left_value//right_value))
+            else:
+                value = AST.Constant(result_type, str(left_value / right_value))
+        else:
+            value = self.lift_to_value(binop)
+        return value
 
     def lift_assignment(self, value):
         """Lift node to compound block"""

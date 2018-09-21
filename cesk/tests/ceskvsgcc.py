@@ -4,9 +4,11 @@ import subprocess
 from os import path, listdir
 from unittest import TestCase
 import sys
+import errno
 
 GREEN = "\033[92m"
 RED = "\033[31m"
+BLUE = "\033[96m"
 RESET = "\033[39m"
 
 class CESKvsGCC(TestCase):
@@ -22,12 +24,12 @@ class CESKvsGCC(TestCase):
             cesk_out = run_c_cesk(file_path)
             if gcc_out == cesk_out:
                 sys.stdout.write(GREEN)
-                print("PASSED: ", end='')
+                print("PASSED:   ", end='')
                 sys.stdout.write(RESET)
                 print(path.basename(file_path))
             else:
                 sys.stdout.write(RED)
-                print("FAILED: ", end='')
+                print("FAILED:   ", end='')
                 sys.stdout.write(RESET)
                 print(path.basename(file_path))
                 print("Expected (gcc): ")
@@ -35,11 +37,17 @@ class CESKvsGCC(TestCase):
                 print("Actual (cesk): ")
                 print(str(cesk_out))
                 #raise self.failureException()
-        except Exception: #pylint: disable=broad-except
-            sys.stdout.write(RED)
-            print("FAILED: ", end='')
-            sys.stdout.write(RESET)
-            print(path.basename(file_path) + ' see ^^^^^')
+        except Exception as exception: #pylint: disable=broad-except
+            if str(exception) == 'Segfault':
+                sys.stdout.write(BLUE)
+                print("SEGFAULT: ", end='')
+                sys.stdout.write(RESET)
+                print(path.basename(file_path))
+            else:
+                sys.stdout.write(RED)
+                print("FAILED:   ", end='')
+                sys.stdout.write(RESET)
+                print(path.basename(file_path) + ' see ^^^^^')
 
     def assert_all_equal(self, folder):
         """asserts that an entire folder full of c files will have the same
@@ -52,8 +60,14 @@ class CESKvsGCC(TestCase):
 def run_c_cesk(file_path):
     """runs a c source file using the cesk tool, returns stdout as a byte
     string."""
-    stdout = subprocess.check_output(['python3', '../../main.py',
-                                      '-st', 'cesk', '-c', 'cesk', file_path])
+    try:
+        stdout = subprocess.check_output(['python3', '../../main.py',
+                                          '-st', 'cesk', '-c', 'cesk',
+                                          file_path])
+    except subprocess.CalledProcessError as exception:
+        if exception.returncode == errno.EFAULT:
+            raise Exception("Segfault")
+        raise exception
     return stdout
 
 def run_c(file_path):

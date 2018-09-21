@@ -8,7 +8,8 @@ from os import path
 import utils
 
 def main():
-
+    """ takes a path to a diretory with a make file
+        outputs the list of c files used by that make file """
     parser = argparse.ArgumentParser()
     parser.add_argument("directory")
     parser.add_argument('--outfile', '-o',
@@ -24,6 +25,8 @@ def main():
     string_of_includes = ""
     for filename in array_of_files:
         string_of_includes += filename+"\n"
+        #string_of_includes += '#include <'+filename+'>\n'
+        #can change to put everything in one c file instead
 
     if args.outfile:
         outfile = open(args.outfile, "w+")

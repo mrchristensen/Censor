@@ -1,6 +1,7 @@
 """Shared Utility Functions for c analyzers"""
 
 import os
+import platform
 import subprocess
 from collections import namedtuple
 import pycparser
@@ -13,9 +14,7 @@ State = namedtuple('State', ['loc', 'store'])
 
 def find_main(ast):
     """Examines the AST for a unique main function."""
-    mains = []
-    for file_node in ast.ext:
-        mains += [child for child in file_node.ext if is_main(child)]
+    mains = [child for child in ast.ext if is_main(child)]
     if len(mains) == 1:
         return Function(mains[0])
     else:
@@ -68,7 +67,7 @@ def preserve_include_preprocess(path):
     """
     sed_path = os.path.dirname(os.path.realpath(__file__)) \
                + r'/utils/include_preserve.sed'
-    res = subprocess.run(['sed', '-i', '-rf', sed_path, path])
+    res = run_sed_file(sed_path, path)
     if res.returncode != 0:
         raise RuntimeError('Could not perform include preserve preprocessing!')
 import re
@@ -183,12 +182,16 @@ def preserve_include_postprocess(path):
                     + r'/utils/insert_includes.sed'
     deleting_sed = os.path.dirname(os.path.realpath(__file__)) \
                    + r'/utils/remove_fake_includes.sed'
-    subprocess.run(
-        ['sed', '-i', '-rf', inserting_sed, path],
-    )
-    subprocess.run(
-        ['sed', '-i', '-rf', deleting_sed, path],
-    )
+    run_sed_file(inserting_sed, path)
+    run_sed_file(deleting_sed, path)
+
+def run_sed_file(sed, path):
+    """ Runs the custom preprocessing on the files based on the sed version """
+    if platform.system() == 'Darwin':
+        return subprocess.run(['sed', '-Ef', sed, path])
+    else:
+        return subprocess.run(['sed', '-i', '-rf', sed, path])
+
 
 def preserve_include_find_end(node, start_index):
     """Find end of #pragma BEGIN include block and return index"""
@@ -200,7 +203,7 @@ def preserve_include_find_end(node, start_index):
 
     return -1
 
-def find_dependencies(path_to_makefile = "./",name_of_makefile = "Makefile"):
+def find_dependencies(path_to_makefile="./", name_of_makefile="Makefile"):
     '''Returns a list of Strings of all of the depenencies of a makefile.
     Currently extracts each "example.c" in all instances of "make -dn"
     outputting a "Considering target file 'example.c'."'''

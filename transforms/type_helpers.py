@@ -4,6 +4,7 @@ All references to the c specification refer to the version here:
     http://www.open-std.org/jtc1/sc22/WG14/www/docs/n1256.pdf
 """
 from copy import deepcopy
+import io
 from enum import Enum
 from pycparser.c_ast import * # pylint: disable=wildcard-import, unused-wildcard-import
 import cesk.limits as limits
@@ -46,12 +47,15 @@ def make_temp_value(expr, id_generator, env):
 def cast_if_needed(type_node, expr, env):
     """Decides if it is necessary to cast the given expr to the given type,
     or if the types are already unified."""
-    # TODO: currently, this function can only decide if two types are unified
-    # if they are integral or floating types. If we ever have a deep compare
-    # method than can decide equality of any arbitrary ast nodes, we should
-    # use that to decide type unification over all types
+    expr_type = get_type(expr, env)
+    expr_str = io.StringIO()
+    type_str = io.StringIO()
+    type_node.show(buf=type_str)
+    expr_type.show(buf=expr_str)
+    if type_str.getvalue() == expr_str.getvalue():
+        return expr
+
     if _is_integral(type_node) or _is_float(type_node):
-        expr_type = get_type(expr, env)
         if resolve_types(type_node, expr_type) == Side.NOCAST:
             return expr
     elif isinstance(type_node, ArrayDecl):
@@ -108,7 +112,7 @@ def resolve_types(left, right): # pylint: disable=too-many-return-statements
     elif _is_integral(left) and _is_ptr(right):
         return Side.NOCAST
     elif _is_ptr(left) and _is_ptr(right):
-        return TypeDecl(None, [], IdentifierType(['int']))
+        return Side.NOCAST
     elif _is_float(left) and _is_integral(right):
         return Side.LEFT
     elif _is_integral(left) and _is_float(right):
@@ -345,20 +349,21 @@ def _get_binop_type(expr, env):
     elif expr.op in ['%', '*', '+', '-', '/', '^', '|', '&', '<<', '>>']:
         left_type = get_type(expr.left, env)
         right_type = get_type(expr.right, env)
-        if _is_ptr(left_type):
-            result_type = left_type
-        elif _is_ptr(right_type):
-            result_type = right_type
-        elif _is_array(left_type):
-            result_type = PtrDecl([], left_type.type)
+        if _is_array(left_type):
+            left_type = PtrDecl([], left_type.type)
         elif _is_array(right_type):
-            result_type = PtrDecl([], right_type.type)
+            right_type = PtrDecl([], right_type.type)
+        resolved_type = resolve_types(left_type, right_type)
+        if resolved_type == Side.LEFT:
+            result_type = left_type
+        elif resolved_type == Side.RIGHT:
+            result_type = right_type
+        elif _is_ptr(left_type) and _is_ptr(right_type):
+            result_type = TypeDecl(None, [], IdentifierType(['int']))
+        elif _is_ptr(right_type):
+            return right_type
         else:
-            resolved_type = resolve_types(left_type, right_type)
-            if resolved_type == Side.LEFT:
-                result_type = left_type
-            else:
-                result_type = right_type
+            result_type = left_type
         return result_type
     else:
         raise NotImplementedError()
@@ -380,7 +385,8 @@ def _get_unop_type(expr, env):
     elif expr.op == '*':
         type_of_operand = get_type(expr.expr, env)
         if not isinstance(type_of_operand, (PtrDecl, ArrayDecl)):
-            raise Exception("Attempting to dereference a non-pointer.")
+            raise Exception("Attempting to dereference a non-pointer."+
+                            str(type_of_operand))
         return type_of_operand.type
     else:
         raise NotImplementedError()

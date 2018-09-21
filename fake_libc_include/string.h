@@ -3,6 +3,11 @@
 #include "_fake_defines.h"
 #include "_fake_typedefs.h"
 
+void *memchr(const void *str, int c, size_t n);
+int memcmp(const void* str1, const void *str2, size_t n);
+void *memcpy(void* dest, const void* src, size_t n);
+void *memmove(void* dest, const void* src, size_t n);
+void *memset(void *str, int c, size_t n);
 int strcasecmp(const char *s1, const char *s2);
 int strncasecmp(const char *s1, const char *s2, size_t n);
 char *index(const char *s, int c);

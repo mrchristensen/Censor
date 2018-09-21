@@ -8,11 +8,12 @@ from os import path
 import shelve
 
 from ssl.correct_call_order import verify_openssl_correctness
-import yeti
+import instrumenter
 import utils
 from omp.c_with_omp_generator import CWithOMPGenerator
 from cesk.limits import set_config
 from transforms import transform
+
 
 def main():
     """Parses arguments and calls correct tool"""
@@ -77,7 +78,7 @@ def main():
     cparser = CParser()
     database = None
     if args.database:
-        print('opened database')
+        #print('opened database')
         database = shelve.open(args.database, writeback=True)
         if 'map_of_includes' in database:
             include_map = database['map_of_includes']
@@ -90,11 +91,11 @@ def main():
     for filename in args.filename:
         if database is not None and \
            orig_name_map[filename] in database:
-            print('Old: '+orig_name_map[filename])
+            #print('Old: '+orig_name_map[filename])
             continue
             file_ast = database[orig_name_map[filename]]
         else:
-            print('New: '+orig_name_map[filename])
+            #print('New: '+orig_name_map[filename])
             local_path = ["-I"+path.dirname(orig_name_map[filename])]
             text = pycparser.preprocess_file(filename, cpp_path='gcc',
                                              cpp_args=cpp_args+local_path)
@@ -118,7 +119,8 @@ def main():
                 print('Saved: '+orig_name_map[filename])
                 continue
 
-        ast.ext.append(file_ast)
+        #ast.ext.append(file_ast)
+        ast = file_ast
 
     if database is not None:
         database.close()
@@ -130,9 +132,9 @@ def main():
     # if args.sanitize:
     #    utils.sanitize(ast)
 
-    run_tool(args.tool, ast)
+    run_tool(args.tool, ast, args)
 
-def run_tool(tool, ast):
+def run_tool(tool, ast, args):
     """ figure out what analysis is supposed to happen and call the
         appropriate one """
     import censor
@@ -140,12 +142,13 @@ def run_tool(tool, ast):
     import observer
     if tool == "censor":
         censor.main(ast)
-    elif tool == "yeti":
+    elif tool == "instrumenter":
         transform(ast)
-        yeti.main(ast)
+        instrumenter.main(ast)
     elif tool == "cesk":
         transform(ast)
         cesk.main(ast)
+        print("Done")
     elif tool == "observer":
         observe_ast(ast, observer, cesk)
     elif tool == "ssl":
@@ -154,23 +157,25 @@ def run_tool(tool, ast):
         print_ast(ast)
     elif tool == "transform":
         transform(ast)
-        utils.sanitize(ast)
-        print(CWithOMPGenerator().visit(ast).replace("#pragma BEGIN ", ""))
+        if args.sanitize:
+            utils.sanitize(ast)
+            print(CWithOMPGenerator().visit(ast).replace("#pragma BEGIN ", ""))
+        else:
+            print(CWithOMPGenerator().visit(ast))
     else:
         print("No valid tool name given; defaulting to censor.")
         censor.main(ast) #default to censor
 
 def print_ast(ast):
     """ Steps to print the ast """
-    print("BEFORE TRANSFORMS---------------------------------------")
-    ast.show()
+    print("-------------------------BEFORE TRANSFORMS------------------------")
     from copy import deepcopy
-    ast_copy = deepcopy(ast)
-    utils.sanitize(ast_copy)
-    pyc_file = open("just_pyc.c", "w")
-    pyc_file.write(CWithOMPGenerator().visit(ast_copy).replace("#pragma BEGIN ", "")) #pylint: disable:line-too-long
+    copy_ast = deepcopy(ast)
+    utils.sanitize(copy_ast)
+    copy_ast.show()
     transform(ast)
-    print("--------------------------AFTER TRANSFORMS----------------")
+    print("-------------------------AFTER TRANSFORMS-------------------------")
+    utils.sanitize(ast)
     ast.show()
 
 def observe_ast(ast, observer, cesk):

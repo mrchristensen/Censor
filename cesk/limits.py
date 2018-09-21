@@ -58,7 +58,7 @@ def get_size_identifier(identifiers):
     typ = None
     for identifier in identifiers:
         if identifier in ['long', 'float', 'double', 'char', 'short', 'void']:
-            if typ is not None:
+            if typ:
                 typ += ' '+identifier
             else:
                 typ = identifier
@@ -87,6 +87,69 @@ def get_min_max(byte_width, number_rep, signed=True):
     return min_val, max_val
 
 Range = namedtuple('Range', ['min', 'max'])
+
+def set_alias():
+    """ defines all possible types available """
+    #Possible integer types (groups are equivalent)
+    #Make sure all are available in ranges
+    #char
+
+    #signed char
+
+    #unsigned char
+
+    #short
+    #short int
+    #signed short
+    #signed short int
+    RANGES["short int"] = RANGES["short"]
+    RANGES["signed short"] = RANGES["short"]
+    RANGES["signed short int"] = RANGES["short"]
+
+    #unsigned short
+    #unsigned short int
+    RANGES["unsigned short int"] = RANGES["unsigned short"]
+
+    #int
+    #signed
+    #signed int
+    RANGES["signed"] = RANGES["int"]
+    RANGES["signed int"] = RANGES["int"]
+
+    #unsigned
+    #unsigned int
+    RANGES["unsigned"] = RANGES["unsigned int"]
+
+    #long
+    #long int
+    #signed long
+    #signed long int
+    RANGES["long int"] = RANGES["long"]
+    RANGES["signed long"] = RANGES["long"]
+    RANGES["signed long int"] = RANGES["long"]
+
+    #unsigned long
+    #unsigned long int
+    RANGES["unsigned long int"] = RANGES["unsigned long"]
+
+    #long long
+    #long long int
+    #signed long long
+    #signed long long int
+    RANGES["long long int"] = RANGES["long long"]
+    RANGES["signed long long"] = RANGES["long long"]
+    RANGES["signed long long int"] = RANGES["long long"]
+
+    #unsigned long long
+    #unsigned long long int
+    RANGES["unsigned long long int"] = RANGES["unsigned long long"]
+
+    #float
+
+    #double
+
+    #long double
+
 def set_ranges():
     """ Sets values for RANGES based on constants """
     #calculate range
@@ -101,6 +164,7 @@ def set_ranges():
     RANGES["unsigned long"] = Range(ULONG_MIN, ULONG_MAX)
     RANGES["long long"] = Range(LLONG_MIN, LLONG_MAX)
     RANGES["unsigned long long"] = Range(ULLONG_MIN, ULLONG_MAX)
+    set_alias()
 
 class Config:
     """ Groups the necessary information to simulate
@@ -173,7 +237,7 @@ class Config:
 
 #---------------------------------------------------------------------
 # Change this line to change default configuration
-CONFIG = Config(ConfigTypes.STD)
+CONFIG = Config(ConfigTypes.GCC)
 #---------------------------------------------------------------------
 def set_config(config_string):
     """ Take a string and sets global CONFIG and types appropriately """
@@ -187,63 +251,3 @@ def set_config(config_string):
         CONFIG = Config(ConfigTypes.CESK)
     else:
         raise Exception("Unknown configuration "+config_string)
-
-#Possible integer types (groups are equivalent)
-#Make sure all are available in ranges
-#char
-
-#signed char
-
-#unsigned char
-
-#short
-#short int
-#signed short
-#signed short int
-RANGES["short int"] = RANGES["short"]
-RANGES["signed short"] = RANGES["short"]
-RANGES["signed short int"] = RANGES["short"]
-
-#unsigned short
-#unsigned short int
-RANGES["unsigned short int"] = RANGES["unsigned short"]
-
-#int
-#signed
-#signed int
-RANGES["signed"] = RANGES["int"]
-RANGES["signed int"] = RANGES["int"]
-
-#unsigned
-#unsigned int
-RANGES["unsigned"] = RANGES["unsigned int"]
-
-#long
-#long int
-#signed long
-#signed long int
-RANGES["long int"] = RANGES["long"]
-RANGES["signed long"] = RANGES["long"]
-RANGES["signed long int"] = RANGES["long"]
-
-#unsigned long
-#unsigned long int
-RANGES["unsigned long int"] = RANGES["unsigned long"]
-
-#long long
-#long long int
-#signed long long
-#signed long long int
-RANGES["long long int"] = RANGES["long long"]
-RANGES["signed long long"] = RANGES["long long"]
-RANGES["signed long long int"] = RANGES["long long"]
-
-#unsigned long long
-#unsigned long long int
-RANGES["unsigned long long int"] = RANGES["unsigned long long"]
-
-#float
-
-#double
-
-#long double
