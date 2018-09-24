@@ -90,24 +90,26 @@ def main():
 
     for filename in args.filename:
         if database is not None and \
-           orig_name_map[filename] in database:
-            #print('Old: '+orig_name_map[filename])
+            orig_name_map[filename] in database:
+            if args.tool == 'parse':
+                print('Loaded: '+orig_name_map[filename])
             continue
             file_ast = database[orig_name_map[filename]]
         else:
-            #print('New: '+orig_name_map[filename])
+            if args.tool == 'parse':
+                print('New: '+orig_name_map[filename])
             local_path = ["-I"+path.dirname(orig_name_map[filename])]
             text = pycparser.preprocess_file(filename, cpp_path='gcc',
                                              cpp_args=cpp_args+local_path)
             #preprocessed_file = open(filename, "w")
             #preprocessed_file.write(text)
             #preprocessed_file.close()
-            text = utils.remove_gcc_extentions(text,filename)
+            text = utils.remove_gcc_extentions(text,filename) #only for large code base
 
-            pre_proccess_record = open('preprocessed.txt', 'w')
-            pre_proccess_record.write(orig_name_map[filename])
-            pre_proccess_record.write(text)#orig_name_map[filename])
-            pre_proccess_record.close()
+            #pre_proccess_record = open('preprocessed.txt', 'w')
+            #pre_proccess_record.write(orig_name_map[filename])
+            #pre_proccess_record.write(text)#orig_name_map[filename])
+            #pre_proccess_record.close()
 
             #file_ast = pycparser.parse_file(filename)
             file_ast = cparser.parse(text, orig_name_map[filename])
@@ -116,7 +118,8 @@ def main():
                 database['map_of_includes'] = include_map
                 database[orig_name_map[filename]] = file_ast
                 database.sync()
-                print('Saved: '+orig_name_map[filename])
+                if args.tool == 'parse':
+                    print('Saved: '+orig_name_map[filename])
                 continue
 
         #ast.ext.append(file_ast)
@@ -148,11 +151,12 @@ def run_tool(tool, ast, args):
     elif tool == "cesk":
         transform(ast)
         cesk.main(ast)
-        print("Done")
     elif tool == "observer":
         observe_ast(ast, observer, cesk)
     elif tool == "ssl":
         verify_openssl_correctness(ast)
+    elif tool == "parse":
+        print("Finished Parsing into an AST, should be stored in database specified")
     elif tool == "print":
         print_ast(ast)
     elif tool == "transform":
@@ -193,7 +197,7 @@ def build_parser():
     parser.add_argument('--tool', '-t',
                         choices=['censor', 'yeti', 'cesk',
                                  'observer', 'ssl', 'print',
-                                 'transform'],
+                                 'transform', 'parse'],
                         required=False, type=str.lower,
                         help='the (case-insensitive) name of the analysis')
     parser.add_argument('--pycparser', '-p',
