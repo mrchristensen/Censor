@@ -50,6 +50,7 @@ SUITE = unittest.TestLoader().loadTestsFromNames(
         'test_transforms.test_struct_ref_to_pointer',
         'test_transforms.test_unary_op',
         'test_transforms.test_remove_typedef',
+        'test_transforms.test_setjmp',
         'test_instrumenter.test_logger',
         'test_instrumenter.test_instrumenter',
         'test_ssl.test_correct_call_order'

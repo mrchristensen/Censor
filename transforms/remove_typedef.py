@@ -31,6 +31,8 @@ class RemoveTypedef(LiftNode):
         """ If a struct is namless when defined add an unique name to it """
         if node.decls is None:
             return node #not defining a struct
+        else:
+            self.visit(node.decls)
         if node.name is None:
             node.name = self.id_generator.get_unique_id()
             struct_name = type(node).__name__ + " " + node.name

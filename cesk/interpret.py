@@ -2,8 +2,8 @@
 import logging
 import pycparser.c_ast as AST
 from transforms.sizeof import get_size_ast
-from cesk.values import generate_constant_value, cast
-from cesk.structures import (State, Ctrl, Envr, Kont)
+from cesk.values import generate_constant_value, cast, Integer
+from cesk.structures import State, Ctrl, Envr, Kont, SegFault
 import cesk.linksearch as ls
 logging.basicConfig(filename='logfile.txt', level=logging.DEBUG,
                     format='%(levelname)s: %(message)s', filemode='w')
@@ -71,8 +71,37 @@ def handle_FuncCall(stmt, state, address=None): # pylint: disable=invalid-name
         return state.get_next()
     elif stmt.name.name == "free":
         return state.get_next()
+    elif stmt.name.name == "setjmp":
+        return setjmp(stmt, state, address)
+    elif stmt.name.name == "longjmp":
+        return longjmp(stmt, state)
     else:
         return func(stmt, state, address)
+
+def setjmp(stmt, state, address):
+    '''Resolves setjmp by storing a Kont in the setjmp'''
+    new_buf_name = AST.UnaryOp('*',stmt.args.exprs[0])
+    buf_name = stmt.args.exprs[0]
+    buf_name = new_buf_name
+    buf_addr = get_address(buf_name, state)
+    jmp_buf = Kont.allocK()
+    state.stor.write_kont(jmp_buf, Kont(state, address))
+
+    # return 0
+    if address:
+        state.stor.write(address, Integer(0, 'int'))
+
+    return assignment_helper('=', buf_addr, AST.Constant('int', str(jmp_buf)), state)
+
+def longjmp(stmt, state):
+    '''Resolves longjmp by restoring the kont in jmp_buf'''
+    buf_val = get_value(stmt.args.exprs[0], state)
+    kont = state.stor.read_kont(buf_val.data)
+
+    val = get_value(stmt.args.exprs[1], state)
+    if val.data == 0:
+        val = Integer(1, 'int')
+    return kont.invoke(state, val)
 
 def handle_EmptyStatement(stmt, state): #pylint: disable=invalid-name
      #pylint: disable=unused-argument
