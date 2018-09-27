@@ -90,7 +90,7 @@ class Sequence(LiftNode):
             if isinstance(elements[i], (ID, Constant)):
                 continue
             if isinstance(elements[i], UnaryOp):
-                if elements[i].op == '*' or elements[i].op == '&':
+                if elements[i].op == '*':
                     if isinstance(elements[i].expr, (ID, Constant)):
                         continue
             elements[i] = self.lift_from_func(elements[i])

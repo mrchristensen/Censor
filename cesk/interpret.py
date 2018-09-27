@@ -1,9 +1,15 @@
 """Functions to interpret c code directly"""
 import logging
 import pycparser.c_ast as AST
+<<<<<<< HEAD
 from cesk.values import generate_constant_value, cast
 from cesk.values.base_values import BaseInteger
 from cesk.structures import (State, Ctrl, Envr, Kont, FrameAddress)
+=======
+from transforms.sizeof import get_size_ast
+from cesk.values import generate_constant_value, cast, Integer
+from cesk.structures import State, Ctrl, Envr, Kont, SegFault
+>>>>>>> Setjmp+Longjmp
 import cesk.linksearch as ls
 import cesk.library_functions as lib_func
 from cesk.exceptions import CESKException
@@ -103,6 +109,13 @@ def func(stmt, state, func_def_frame_addr, address=None):
     '''handles most function calls delegated by handle_FuncCall'''
     if stmt.args is None:
         expr_list = []
+        return state.get_next()
+    elif stmt.name.name == "free":
+        return state.get_next()
+    elif stmt.name.name == "setjmp":
+        return setjmp(stmt, state, address)
+    elif stmt.name.name == "longjmp":
+        return longjmp(stmt, state)
     else:
         expr_list = stmt.args.exprs
 
@@ -150,6 +163,31 @@ def func_helper(params, func_def, state, ret_address):#pylint: disable=too-many-
 
     return new_state, errors
 
+
+def setjmp(stmt, state, address):
+    '''Resolves setjmp by storing a Kont in the setjmp'''
+    new_buf_name = AST.UnaryOp('*',stmt.args.exprs[0])
+    buf_name = stmt.args.exprs[0]
+    buf_name = new_buf_name
+    buf_addr = get_address(buf_name, state)
+    jmp_buf = Kont.allocK()
+    state.stor.write_kont(jmp_buf, Kont(state, address))
+
+    # return 0
+    if address:
+        state.stor.write(address, Integer(0, 'int'))
+
+    return assignment_helper('=', buf_addr, AST.Constant('int', str(jmp_buf)), state)
+
+def longjmp(stmt, state):
+    '''Resolves longjmp by restoring the kont in jmp_buf'''
+    buf_val = get_value(stmt.args.exprs[0], state)
+    kont = state.stor.read_kont(buf_val.data)
+
+    val = get_value(stmt.args.exprs[1], state)
+    if val.data == 0:
+        val = Integer(1, 'int')
+    return kont.invoke(state, val)
 
 def handle_EmptyStatement(stmt, state): #pylint: disable=invalid-name
      #pylint: disable=unused-argument
