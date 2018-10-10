@@ -24,6 +24,44 @@ def is_main(ext):
     """Determines if an AST object is a FuncDef named main."""
     return isinstance(ext, pycparser.c_ast.FuncDef) and ext.decl.name == 'main'
 
+def clean_includes(ast, file_name, include_map=None):
+    """ Strip fake includes from preprocessed ast.
+    """
+    from transforms.helpers import NodeTransformer
+    class Sanitizer(NodeTransformer):
+        """Sanitizing NodeTransformer"""
+        def __init__(self, includes):
+            self.include_map = includes
+
+        def visit_FileAST(self, node): #pylint: disable=invalid-name, no-self-use
+            """Visit the FileAST and remove typedefs included by fake libc"""
+            marks = []
+            for i, child in enumerate(node):
+                if isinstance(child, pycparser.c_ast.Pragma) \
+                    and "BEGIN" in child.string:
+
+                    end = preserve_include_find_end(node, i,
+                                                    child.string.replace("BEGIN", "END"))
+                    if end == -1:
+                        raise RuntimeError("Could not find ending Pragma!")
+                    if self.include_map:
+                        self.include_map[child.string] = file_name
+                    print("Remove "+child.string.replace("BEGIN ",""))
+                    marks.append((i+1, end+1))
+
+            diff = 0
+            last_end = -1
+            for (begin, end) in marks:
+                if last_end > begin:
+                    continue
+                begin -= diff
+                end -= diff
+                del node.ext[begin:end]
+                diff += end - begin
+                last_end = end
+
+    Sanitizer(include_map).visit(ast)
+
 def sanitize(ast, include_map=None):
     """ Strip fake includes from preprocessed ast.
     """
@@ -193,11 +231,11 @@ def run_sed_file(sed, path):
         return subprocess.run(['sed', '-i', '-rf', sed, path])
 
 
-def preserve_include_find_end(node, start_index):
+def preserve_include_find_end(node, start_index, end_string="END"):
     """Find end of #pragma BEGIN include block and return index"""
     for i, child in enumerate(node.ext[start_index:]):
         if isinstance(child, pycparser.c_ast.Pragma) \
-            and "END" in child.string:
+            and end_string in child.string:
 
             return i + start_index
 

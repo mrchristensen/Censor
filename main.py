@@ -101,20 +101,13 @@ def main():
             local_path = ["-I"+path.dirname(orig_name_map[filename])]
             text = pycparser.preprocess_file(filename, cpp_path='gcc',
                                              cpp_args=cpp_args+local_path)
-            #preprocessed_file = open(filename, "w")
-            #preprocessed_file.write(text)
-            #preprocessed_file.close()
-            text = utils.remove_gcc_extentions(text,filename) #only for large code base
 
-            #pre_proccess_record = open('preprocessed.txt', 'w')
-            #pre_proccess_record.write(orig_name_map[filename])
-            #pre_proccess_record.write(text)#orig_name_map[filename])
-            #pre_proccess_record.close()
+            text = utils.remove_gcc_extentions(text,filename) #only for large code base
 
             #file_ast = pycparser.parse_file(filename)
             file_ast = cparser.parse(text, orig_name_map[filename])
             if database is not None:
-                utils.sanitize(file_ast, include_map)
+                utils.clean_includes(file_ast, orig_name_map[filename], include_map)
                 database['map_of_includes'] = include_map
                 database[orig_name_map[filename]] = file_ast
                 database.sync()
@@ -126,6 +119,7 @@ def main():
         ast = file_ast
 
     if database is not None:
+        print(include_map)
         database.close()
 
     if args.configuration is not None:
