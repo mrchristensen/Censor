@@ -13,12 +13,11 @@ from omp.c_with_omp_generator import CWithOMPGenerator
 from cesk.limits import set_config
 from transforms import transform
 
-
-def main():
-    """Parses arguments and calls correct tool"""
-
+def read_args():
+    """ build argument parser and returns parsed args """
+ 
     parser = argparse.ArgumentParser()
-    parser.add_argument("filename", nargs='+')
+    parser.add_argument("filenames", nargs='+')
     parser.add_argument('--tool', '-t',
                         choices=['censor', 'cesk',
                                  'observer', 'ssl', 'print',
@@ -35,30 +34,39 @@ def main():
                         help='Comma separated includes for preprocessing')
     parser.add_argument('--configuration', '-c',
                         required=False, type=str, help='limits for types')
-    args = parser.parse_args()
-    dir_name = path.dirname(args.filename[0])
+    return parser.parse_args()
+   
+def main():
+    """Parses arguments and calls correct tool"""
+    args = read_args()
 
-    if args.pycparser is not None:
-        sys.path.append(args.pycparser)
-        fake_libc_path = path.join(args.pycparser, r'utils/fake_libc_include/')
+    ast = parse(args.filenames[0], args.includes, args.pycparser, args.sanitize)
+
+    if args.configuration is not None:
+        set_config(args.configuration)
+
+    return run_tool(args.tool, ast, args)
+
+def parse(filename, includes, pycparser_path, sanitize):
+    """ Calls pycparser and returns the ast """
+    dir_name = path.dirname(filename)
+
+    temp = None
+    if sanitize:
+        temp = tempfile.NamedTemporaryFile()
+        temp.write(open(filename, 'rb').read())
+        temp.flush()
+        utils.preserve_include_preprocess(temp.name)
+        filename = temp.name
+
+    if pycparser_path is not None:
+        sys.path.append(pycparser_path)
+        fake_libc_path = path.join(pycparser_path, r'utils/fake_libc_include/')
     else:
-        args.pycparser = path.dirname(path.abspath(__file__))
-        fake_libc_path = path.join(args.pycparser, r'fake_libc_include/')
+        pycparser_path = path.dirname(path.abspath(__file__))
+        fake_libc_path = path.join(pycparser_path, r'fake_libc_include/')
 
     import pycparser
-
-    temp_files = [] #file need to remain to not be garbage collected and closed
-    if args.sanitize:
-        temps = []
-        for filename in args.filename:
-            temp = tempfile.NamedTemporaryFile()
-            temp.write(open(filename, 'rb').read())
-            temp.flush()
-            utils.preserve_include_preprocess(temp.name)
-            temps.append(temp.name)
-            temp_files.append(temp)
-        args.filename = temps
-
     cpp_args = [
         '-nostdinc',
         '-E', '-x', 'c',
@@ -66,41 +74,30 @@ def main():
         ''.join(['-I', dir_name]),
         ''.join(['-I', dir_name, '/utilities']),
     ]
-    if args.includes is not None:
+    if includes is not None:
         cpp_args.extend([''.join(['-I', include]) \
-                for include in args.includes.split(',')])
-        cpp_args.extend(['-DMAP_USE_HASHTABLE -DSET_USE_RBTREE'])
+                for include in includes.split(',')])
 
-    ast = pycparser.c_ast.FileAST([])
-    for filename in args.filename:
-        ast.ext += pycparser.parse_file(
-            filename, use_cpp=True, cpp_path='gcc', cpp_args=cpp_args
-            ).ext
-
-    if args.configuration is not None:
-        set_config(args.configuration)
-    # the instrumenter needs to preserve includes until after
-    # instrumentation
-    # if args.sanitize:
-    #    utils.sanitize(ast)
-
-    run_tool(args.tool, ast, args)
+    ast = pycparser.parse_file(
+        filename, use_cpp=True, cpp_path='gcc', cpp_args=cpp_args)
+    return ast
+   
 
 def run_tool(tool, ast, args):
     """ figure out what analysis is supposed to happen and call the
         appropriate one """
-    import censor
-    import cesk
-    import observer
     if tool == "censor":
+        import censor
         censor.main(ast)
     elif tool == "instrumenter":
         transform(ast)
         instrumenter.main(ast)
     elif tool == "cesk":
+        import cesk
         transform(ast)
-        cesk.main(ast)
+        cesk.main(ast) #config not customizable
     elif tool == "observer":
+        import observer
         observe_ast(ast, observer, cesk)
     elif tool == "ssl":
         verify_openssl_correctness(ast)

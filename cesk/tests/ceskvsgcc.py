@@ -61,8 +61,7 @@ def run_c_cesk(file_path):
     """runs a c source file using the cesk tool, returns stdout as a byte
     string."""
     try:
-        stdout = subprocess.check_output(['python3', '../../main.py',
-                                          '-st', 'cesk', '-c', 'cesk',
+        stdout = subprocess.check_output(['python3', '../../cesk_main.py',
                                           file_path])
     except subprocess.CalledProcessError as exception:
         if exception.returncode == errno.EFAULT:
