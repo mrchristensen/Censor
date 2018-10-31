@@ -39,7 +39,7 @@ def prepare_start_state(main_function):
     '''Creates the first state'''
     halt_state = State(None, None, None, Kont.allocK()) # zero is halt kont
     start_ctrl = Ctrl(main_function.body)
-    start_envr = Envr()
+    start_envr = Envr(State(start_ctrl, None, None, None)) #pass in fake state for allocF
     start_stor = Stor()
     init_globals(start_stor)
     logging.debug("Globals init done")
@@ -50,7 +50,7 @@ def prepare_start_state(main_function):
 
 def init_globals(stor):
     """ Initializes the global found by linksearch """
-    fake_state = State(None, Envr(), stor, None)
+    fake_state = State(None, Envr(None), stor, None)
     for decl in ls.LinkSearch.global_decl_list:
         logging.debug("Global %s", str(decl.name))
         decl_helper(decl, fake_state)

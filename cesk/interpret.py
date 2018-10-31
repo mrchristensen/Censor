@@ -2,7 +2,7 @@
 import logging
 import pycparser.c_ast as AST
 from transforms.sizeof import get_size_ast
-from cesk.values import generate_constant_value, cast
+from cesk.values import generate_constant_value, cast, FrameAddress
 from cesk.structures import (State, Ctrl, Envr, Kont)
 import cesk.linksearch as ls
 logging.basicConfig(filename='logfile.txt', level=logging.DEBUG,
@@ -222,27 +222,23 @@ def assignment_helper(operator, address, exp, state):
 def decl_helper(decl, state):
     """Maps the identifier to a new address and passes assignment part"""
     name = decl.name
-    if state.envr.is_localy_defined(name):
-        #happens if decl appears in loop
-        logging.error("redefinition of %s", name)
+    fa = state.envr.map_new_identifier(name)
 
-    elif (isinstance(decl.type, (AST.TypeDecl,
+    if (isinstance(decl.type, (AST.TypeDecl,
                                  AST.PtrDecl))):
         if (isinstance(decl.type.type, AST.Struct)
                 and isinstance(decl.type, AST.TypeDecl)):
-            ref_address = handle_decl_struct(decl.type.type, state)
+            ref_address = handle_decl_struct(decl.type.type, state, fa)
         else:
             size_ast = get_size_ast(decl.type)
             size = generate_constant_value(size_ast.value, size_ast.type).data
-            ref_address = state.stor.get_next_address(size)
+            ref_address = state.stor.allocM(fa, [size])
 
-        state.envr.map_new_identifier(name, ref_address)
             #the address is mapped then if additional space is need for
             # a struct handle decl struct manages it
 
     elif isinstance(decl.type, AST.ArrayDecl):
-        data_address = handle_decl_array(decl.type, [], state)
-        state.envr.map_new_identifier(decl.name, data_address)
+        data_address = handle_decl_array(decl.type, [], state, fa)
         logging.debug(" Mapped %s to %s", str(name), str(data_address))
         if decl.init:
             raise Exception("array init should be transformed")
@@ -252,6 +248,7 @@ def decl_helper(decl, state):
                         " are not yet implemented")
 
     return state
+
 def malloc_helper(exp, state, address):
     """ Calls malloc and evaluates the cast """
     if isinstance(exp, AST.Cast):
@@ -263,46 +260,45 @@ def malloc_helper(exp, state, address):
     state.stor.write(address, malloc_result)
     return state.get_next()
 
-def handle_decl_array(array, list_of_sizes, state):
+def handle_decl_array(array, list_of_sizes, state, fa):
     """Calculates size and allocates Array. Returns address of first item"""
     logging.debug('  Array Decl')
     if isinstance(array.type, AST.ArrayDecl):
         raise Exception("Multidim. arrays should be transformed to single")
     elif isinstance(array.type, AST.TypeDecl):
         if isinstance(array.dim, AST.Constant):
-            size = generate_constant_value(array.dim.value, array.dim.type).data
+            length = generate_constant_value(array.dim.value, array.dim.type).data
         elif isinstance(array.dim, AST.ID):
-            size = state.stor.read(get_address(array.dim, state)).data #safe
+            length = state.stor.read(get_address(array.dim, state)).data #safe
         else:
             raise Exception("Unsupported ArrayDecl dimension "+str(array.dim))
 
-        if size < 1:
+        if length < 1:
             raise Exception("Non-positive Array Sizes are not supported")
 
-        length = size #reduce(lambda x, y: x*y, list_of_sizes)
         if length == 0:
             # TODO
             raise NotImplementedError("Arrays of size 0 not implemented")
         if isinstance(array.type.type, (AST.Struct, AST.Union)):
             # TODO handle Union
             list_of_sizes = []
-            alignment = ls.get_sizes(array, list_of_sizes, state) #pylint: disable=unused-variable
-            data_address = state.stor.allocate_nonuniform_block(list_of_sizes)
+            ls.get_sizes(array.type, list_of_sizes, state)
+            data_address = state.stor.allocM(fa, list_of_sizes, length)
         else:
             constant = get_size_ast(array.type)
             size = generate_constant_value(constant.value, constant.type).data
-            data_address = state.stor.allocate_block(length, size)
+            data_address = state.stor.allocM(fa, [size], length)
         #Allocated block: passing back the Array object that points to block
         return data_address
     else:
         raise Exception("Declarations of " + str(array.type) +
                         " are not yet implemented")
 
-def handle_decl_struct(struct, state):
+def handle_decl_struct(struct, state, fa):
     """Handles struct declaration"""
     list_of_sizes = []
-    alignment = ls.get_sizes(struct, list_of_sizes, state) #pylint: disable=unused-variable
-    data_address = state.stor.allocate_nonuniform_block(list_of_sizes)
+    ls.get_sizes(struct, list_of_sizes, state)
+    data_address = state.stor.allocM(fa, list_of_sizes)
     return data_address
 
 def handle_UnaryOp(stmt, state): # pylint: disable=invalid-name,unused-argument
@@ -338,6 +334,7 @@ def printf(stmt, state):
     print_string = print_string.replace("\\n", "\n")
     print(print_string, end="") #convert newlines
     return state.get_next()
+
 def malloc(stmt, state):
     '''performs malloc'''
     param = stmt.args.exprs[0]
@@ -348,7 +345,8 @@ def malloc(stmt, state):
     else:
         length = state.stor.read(get_address(param, state)).data
     logging.info("Malloc %d", length)
-    pointer = state.stor.get_next_address(length)
+    basePointer = state.stor.allocH(state)
+    pointer = state.stor.allocM(basePointer, [length])
     # assume malloc is always in an assignment and/or cast
     return pointer
 
@@ -378,17 +376,18 @@ def func(stmt, state, address=None):
 def func_helper(param_list, expr_list, func_def, state, address):
     '''Prepares the next_state from param_list and expr_list'''
     next_ctrl = Ctrl(0, func_def.body) # f_0
-    next_envr = Envr() # allocf
+    next_envr = Envr(state) #calls allocf
     kont = Kont(state, address)
-    kont_addr = Kont.allocK()
+    kont_addr = Kont.allocK(state, next_ctrl, next_envr)
     state.stor.write_kont(kont_addr, kont) # stor = stor[a_k'->K]
     new_state = State(next_ctrl, next_envr, state.stor, kont_addr)
-    for decl, expr in zip(param_list, expr_list):
+
+    for decl, expr in zip(param_list, expr_list): #add parameters to the environment
         new_state = decl_helper(decl, new_state)
         new_address = new_state.envr.get_address(decl.name)
-
         value = get_value(expr, state)
         new_state.stor.write(new_address, value)
+
     return new_state
 
 def handle_Return(stmt, state):# pylint: disable=invalid-name
@@ -405,7 +404,6 @@ def handle_Return(stmt, state):# pylint: disable=invalid-name
         if k is not None:
             ret_set.add(k)
     return ret_set
-    # return State(Ctrl(exp), state.envr, state.stor, returnable_kont)
 
 def get_value(stmt, state):
     """ get value for simple id's constants or references and casts of them """
@@ -422,7 +420,10 @@ def get_value(stmt, state):
         right = get_value(stmt.right, state)
         return left.perform_operation(stmt.op, right)
     elif isinstance(stmt, AST.UnaryOp) and stmt.op == '&':
-        return get_address(stmt.expr, state)
+        address = get_address(stmt.expr, state)
+        if isinstance(address, FrameAddress):
+            return state.stor.fa2ptr(address)
+        return address
     elif isinstance(stmt, AST.UnaryOp) and stmt.op == '*':
         return state.stor.read(get_address(stmt, state))
     elif isinstance(stmt, AST.FuncCall):

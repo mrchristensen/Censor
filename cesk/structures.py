@@ -4,9 +4,10 @@ import logging
 import pycparser
 import pycparser.c_ast as AST
 import cesk.linksearch as ls
-from cesk.values import ReferenceValue, generate_unitialized_value
+from cesk.values import FrameAddress, ReferenceValue, generate_unitialized_value
 from cesk.values import copy_pointer, generate_null_pointer
 from cesk.values import generate_pointer, generate_value, generate_frame_address
+import cesk.config as cnf
 
 class SegFault(Exception):
     '''Special Exception for Segmentation Faults'''
@@ -52,6 +53,15 @@ class State: #pylint:disable=too-few-public-methods
         """ Moves the ctrl and returns the new state """
         next_ctrl = self.ctrl.get_next()
         return State(next_ctrl, self.envr, self.stor, self.kont_addr)
+
+    def __eq__(self, other):
+        return (self.ctrl == other.ctrl and
+                self.envr == other.envr and
+                self.stor == other.stor and
+                self.kont_addr == other.kont_addr)
+
+    def __hash__(self):
+        return id(self)
 
 class Ctrl: #pylint:disable=too-few-public-methods
     """Holds the control pointer or location of the program"""
@@ -133,16 +143,42 @@ class Ctrl: #pylint:disable=too-few-public-methods
 
         raise Exception("Malformed ctrl: this should have been unreachable")
 
+    def __eq__(self, other):
+        if self.body:
+            return other.body and self.body == other.body and \
+                                 self.index == other.index
+        if self.node:
+            return self.node == other.node
+        return False
+
+    def __hash__(self):
+        if self.body:
+            return 31 + 61 * hash(self.body) + 62257 * hash(self.index)
+        else:
+            return hash(self.node)
+
 class Envr:
     """Holds the enviorment (a maping of identifiers to addresses)"""
     counter = 1 #counter to track which frame you are in (one per function)
     global_id = 0
     global_envr = None
 
-    def __init__(self):
+    def __init__(self, state):
         self.map_to_address = {} #A set of IdToAddr mappings
-        self.scope_id = Envr.counter
-        Envr.counter += 1
+        self.scope_id = self.allocF(state)
+
+    def allocF(self, state):
+        """ Allocation of frame identefiers """
+        value = None
+        if cnf.CONFIG['allocF'] == 'concrete':
+            value = Envr.counter
+            Envr.counter += 1
+        elif cnf.CONFIG['allocF'] == '0-cfa':
+            if state is not None:
+                value = state.ctrl
+        else:
+            raise Exception("Unknown allocF "+str(cnf.CONFIG['allocF']))
+        return value
 
     def get_address(self, ident):
         """looks up the address associated with an identifier"""
@@ -155,14 +191,16 @@ class Envr:
         raise Exception(ident + " is not defined in this scope: " +
                         str(self.scope_id))
 
-    def map_new_identifier(self, ident, ptr_address):
+    def map_new_identifier(self, ident):
         """Add a new identifier to the mapping"""
         while not isinstance(ident, str):
             ident = ident.name
         if self.is_localy_defined(ident):
-            raise Exception(ident + " is redefined")
-        frame_addr = generate_frame_address(self.scope_id, ident, ptr_address)
+            return self.map_to_address[ident]
+        #    raise Exception(ident + " is redefined")
+        frame_addr = generate_frame_address(self.scope_id, ident)
         self.map_to_address[ident] = frame_addr
+        return frame_addr
 
     @staticmethod
     def set_global(global_env):
@@ -184,10 +222,12 @@ class Stor:
     """Represents the contents of memory at a moment in time."""
 
     def __init__(self, to_copy=None):
+        self.heap_address_counter = 0
         if to_copy is None:
             self.null_addr = generate_null_pointer()
             self.address_counter = 1 # start at 1 so that 0 can be nullptr
             self.memory = {}
+            self.base_pointers = {}
             self.kont = {}
             self.succ_map = {}
             self.pred_map = {}
@@ -197,6 +237,7 @@ class Stor:
             self.null_addr = to_copy.null_addr
             self.address_counter = to_copy.address_counter
             self.memory = to_copy.memory
+            self.base_pointers = to_copy.frames
             self.kont = to_copy.kont
             self.succ_map = to_copy.succ_map
             self.pred_map = to_copy.pred_map
@@ -206,53 +247,53 @@ class Stor:
     def _make_new_address(self, size):
         """ Alloc address for a certian size and store unitialized value """
         logging.info("Alloc %d for %d bytes", self.address_counter, size)
+        #will throw error if size is None
         pointer = generate_pointer(self.address_counter, size)
         self.memory[pointer] = generate_unitialized_value(size)
         self.address_counter += size
         return pointer
 
-    def get_next_address(self, size=1):
-        """returns the next available storage address"""
-        pointer = self._make_new_address(size)
-        self.succ_map[pointer] = self.null_addr
-        self.pred_map[pointer] = self.null_addr
-        return pointer
+    def allocM(self, base, list_of_sizes, length=1):
+        """ Given a base pointer or frame address allocate memomory """
+        if base in self.base_pointers:
+            return self.base_pointers[base]
+        start_pointer = None        
+        prev = None
+        for _ in range(length):
 
-    def allocate_block(self, length, size=1):
-        """Moves the address counter to leave room for an array and returns
-        start"""
-        start_address = self.address_counter
-        start_pointer = self._make_new_address(size)
+            if prev is None:
+                prev = self.null_addr
+                start_pointer = self._make_new_address(list_of_sizes[0])
+                self.pred_map[start_pointer] = prev
+                prev = start_pointer
+            else:
+                next_ptr = self._make_new_address(list_of_sizes[0])
+                self.succ_map[prev] = next_ptr
+                self.pred_map[next_ptr] = prev
+                prev = next_ptr
 
-        self.pred_map[start_pointer] = self.null_addr
-
-        last_pointer = start_pointer
-        while self.address_counter < (start_address + length * size):
-            new_pointer = self._make_new_address(size)
-
-            self.pred_map[new_pointer] = last_pointer
-            self.succ_map[last_pointer] = new_pointer
-            last_pointer = new_pointer
-        self.succ_map[last_pointer] = self.null_addr
-
-        return start_pointer
-
-    def allocate_nonuniform_block(self, list_of_sizes):
-        """ Takes in a list of sizes as int and allocates
-             and links a block in the stor for each size """
-        start_pointer = self._make_new_address(list_of_sizes[0])
-        self.pred_map[start_pointer] = self.null_addr
-
-        prev = start_pointer
-        for block_size in list_of_sizes[1:]:
-            next_block = self._make_new_address(block_size)
-            self.pred_map[next_block] = prev
-            self.succ_map[prev] = next_block
-            prev = next_block
+            for block_size in list_of_sizes[1:]:
+                next_block = self._make_new_address(block_size)
+                self.pred_map[next_block] = prev
+                self.succ_map[prev] = next_block
+                prev = next_block
 
         self.succ_map[prev] = self.null_addr
 
+        self.base_pointers[base] = start_pointer
         return start_pointer
+
+    def allocH(self, state):
+        """ Calls the right allocator based on input and allocH config """
+        if cnf.CONFIG['allocH'] == 'abstract':
+            return state.ctrl
+        elif cnf.CONFIG['allocH'] == 'concrete':
+            self.heap_address_counter += 1
+            return self.heap_address_counter
+
+    def fa2ptr(self, frameAddress):
+        """ Fetch store address for a frame address """
+        return self.base_pointers[frameAddress]
 
     def add_offset_to_pointer(self, pointer, offset): #pylint: disable=too-many-branches
         """ updates the pointer's offset by the offset passed.
@@ -299,8 +340,12 @@ class Stor:
     def read(self, address):
         """Read the contents of the store at address. Returns None if undefined.
         """
-        address.update(self) #move the offset of the pointer to a valid location
+        if address in self.base_pointers:
+            address = self.base_pointers[address]
+        else:
+            address.update(self) #move the offset of the pointer to a valid location
         logging.info("Reading %s", str(address))
+
 
         if address not in self.memory:
             raise Exception("Address Not in memory")
@@ -311,6 +356,7 @@ class Stor:
         if address.offset == 0 and val.size == address.type_size:
             return val #no special math needed
 
+        #immoral read over/within byte boundary
         result = 0
         bytes_to_read = address.type_size
         start = address.offset
@@ -321,7 +367,7 @@ class Stor:
                 raise SegFault()
             num_possible = min(bytes_to_read, val.size - start)
             result += (val.get_value(start, num_possible) *
-                       (2**((address.type_size-bytes_to_read)*8)))
+                       (2**((address.type_size-bytes_to_read)*8))) #shift
             logging.debug("  Read %d byte(s) result so far = %d",
                           num_possible, result)
             bytes_to_read -= num_possible
@@ -334,34 +380,15 @@ class Stor:
 
         return generate_value(result, size=address.type_size)
 
-    def get_nearest_address(self, address):
-        """ returns a pointer to the nearest address
-            with an offset set to make difference """
-        #address = generate_pointer(address, self)
-        #raise Exception("Do not want to be here")
-        logging.debug(" Look for address %d", address)
-        if address in self.memory:
-            return generate_pointer(address, None)
-        if address > self.address_counter or address == 0:
-            return self.null_addr
-
-        nearest_address = self.null_addr
-        for key in self.memory:
-            if key.data > address:
-                break
-            nearest_address = key
-
-        if nearest_address != self.null_addr:
-            offset = address.data - nearest_address.data
-            return generate_pointer(nearest_address.data, offset)
-
-        return self.null_addr
-
     def write(self, address, value):
         """Write value to the store at address. If there is an existing value,
         merge value into the existing value.
         """
-        address.update(self)
+        if address in self.base_pointers:
+            address = self.base_pointers[address]
+        else:
+            address.update(self)
+
         logging.info('  Write %s  to  %s', str(value), str(address))
         if not isinstance(address, ReferenceValue):
             raise Exception("Address should not be " + str(address))
@@ -417,11 +444,37 @@ class Stor:
                                               old_value.type_of,
                                               old_value.size)
 
+    def get_nearest_address(self, address):
+        """ returns a pointer to the nearest address
+            with an offset set to make difference """
+        #address = generate_pointer(address, self)
+        #raise Exception("Do not want to be here")
+        logging.debug(" Look for address %d", address)
+        if address in self.memory:
+            return generate_pointer(address, None)
+        if address > self.address_counter or address == 0:
+            return self.null_addr
+
+        nearest_address = self.null_addr
+        for key in self.memory:
+            if key.data > address:
+                break
+            nearest_address = key
+
+        if nearest_address != self.null_addr:
+            offset = address.data - nearest_address.data
+            return generate_pointer(nearest_address.data, offset)
+
+        return self.null_addr
+
     def write_kont(self, kont_addr, kai):
         """ records the continuation for the continuation address """
-        if kont_addr not in self.kont:
-            self.kont[kont_addr] = set()
-        self.kont[kont_addr].add(kai)
+        if cnf.CONFIG['allocK'] == 'concrete':
+            self.kont[kont_addr] = {kai}
+        else: #allocK == 0-cfa or p4f
+            if kont_addr not in self.kont:
+                self.kont[kont_addr] = set()
+            self.kont[kont_addr].add(kai)
 
     def read_kont(self, kont_addr):
         """ returns the continuation(s) for the given kont_addr """
@@ -434,10 +487,15 @@ class Kont: #pylint: disable=too-few-public-methods
 
     allocK_address = 0
     @staticmethod
-    def allocK(): #pylint: disable=invalid-name
+    def allocK(state=None, nxt_ctrl=None, nxt_envr=None): #pylint: disable=invalid-name
         """ Generator for continuation addresses """
-        value = Kont.allocK_address
-        Kont.allocK_address += 1
+        if cnf.CONFIG['allocK'] == "concrete":
+            value = Kont.allocK_address
+            Kont.allocK_address += 1
+        elif cnf.CONFIG['allocK'] == "0-cfa":
+            value = state.ctrl 
+        elif cnf.CONFIG['allocK'] == "p4f":
+            value = (nxt_ctrl, nxt_envr)
         return value
 
     def __init__(self, parent_state, address=None):

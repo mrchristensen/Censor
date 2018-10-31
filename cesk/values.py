@@ -233,9 +233,6 @@ class Float(ArithmeticValue):  #pylint:disable=too-few-public-methods
 class ReferenceValue(ArithmeticValue): #pylint:disable=all
     """Abstract Class for polymorphism between Arrays, Pointers, ect."""
 
-    def dereference(self):
-        pass
-
 class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
     """Concrete implementation of a Pointer to a store address."""
 
@@ -253,12 +250,6 @@ class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
         if not isinstance(other, ReferenceValue):
             return Integer(0, 'int')
         return Integer(int(self.data == other.data), 'int')
-    
-    #def dereference(self, stor):
-    #    """Reads the address the pointer points to and returns value"""
-    #    if self.data == 0:
-    #        raise Exception("SegFault")
-    #    return stor.read(self)
 
     def update(self, stor):
         """ moves the pointer along the pred and succ map """
@@ -270,28 +261,32 @@ class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
         self.data = ptr.data
 
     def __add__(self, other):
+        ptr = copy_pointer(self)
         if isinstance(other, Integer):
-            self.offset += other.data
+            ptr.offset += other.data
         elif isinstance(other, int):
-            self.offset += other
+            ptr.offset += other
         else:
             raise Exception("Pointers can only be added to int")
-        return self#.stor.add_offset_to_pointer(self, offset)
+        return ptr
 
     def __sub__(self, other):
+        ptr = copy_pointer(ptr)
+
         if isinstance(other, Integer):
-            self.offset += -1 * other.data
-            return self#.stor.add_offset_to_pointer(self, offset)
+            ptr.offset += -1 * other.data
+            return ptr
         elif isinstance(other, int):
-            self.offset += -1 * other
-            return self#.stor.add_offset_to_pointer(self, offset)
+            ptr.offset += -1 * other
+            return ptr
         elif isinstance(other, Pointer):
             return Integer((self.get_value() - other.get_value()), 'int')
         else:
             raise Exception("Pointers can only be subtracted by int")
 
     def __str__(self):
-        return 'Pointer at '+str(self.data)+'.'+str(self.offset) +' size '+ str(self.type_size)
+        return 'Pointer at '+str(self.data)+'.'+str(self.offset) +\
+                ' size '+ str(self.type_size)
 
     def get_value(self, start=-1, num_bytes=None):
         """ value of the unsigned bits stored from start to start+num_bytes """
@@ -307,14 +302,13 @@ class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
 
         return result
 
-class FrameAddress(Pointer):
+class FrameAddress(ReferenceValue):
     """ Contains a link between frame and id """
 
-    #def __init__(self, address, type_size, offset=0):
-    def __init__(self, frame_id, ident, pointer):
+    def __init__(self, frame_id, ident):
         self.frame = frame_id
         self.ident = ident
-        super(FrameAddress, self).__init__(pointer.data, pointer.type_size) #offset should always be 0
+        #super(FrameAddress, self).__init__(0, 1)
 
     def get_frame(self):
         """ Returns frame identifier """
@@ -324,17 +318,22 @@ class FrameAddress(Pointer):
         """ Returns identifier name """
         return self.ident
 
-    def get_stor_addr(self, stor):
-        """ Reads from the stor to get value of identifier """
-        pass
+    #def get_stor_addr(self, stor):
+    #    """ Reads from the stor to get value of identifier """
+    #    return Pointer(self.data, self.type_size)
 
-#    def __hash__(self):
-#        return 1+43*hash(self.ident)+73*hash(self.frame)
+    #def set_stor_addr(self, ptr):
+    #    """ Sets pointer value of location in store """
+    #    #used in concrete
+    #    super(FrameAddress, self).__init__(ptr.data, ptr.type_size)
 
-#    def __eq__(self, other):
-#        if not isinstance(other, FrameAddress):
-#            return False
-#        return self.ident == other.ident and self.frame == other.frame
+    def __hash__(self):
+        return 1+43*hash(self.ident)+73*hash(self.frame)
+
+    def __eq__(self, other):
+        if not isinstance(other, FrameAddress):
+            return False
+        return self.ident == other.ident and self.frame == other.frame
 
 
 # needs to know what size it needs to be sometimes
@@ -426,9 +425,9 @@ def generate_null_pointer():
     """ Build a pointer that will not dereference """
     return Pointer(0, 1)
 
-def generate_frame_address(frame, ident, pointer):
+def generate_frame_address(frame, ident):
     """ Build a Frame Address """
-    return FrameAddress(frame, ident, pointer)
+    return FrameAddress(frame, ident)
 
 def cast(value, typedeclt, state=None): #pylint: disable=unused-argument
     """Casts the given value a  a value of the given type."""
