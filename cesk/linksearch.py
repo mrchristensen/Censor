@@ -75,13 +75,13 @@ class LinkSearch(AST.NodeVisitor):
         return node
 
 
-def get_sizes(ast_type, list_so_far, state):
+def get_sizes(ast_type, list_so_far):
     """ Populates list_so_far with a list of sizes for each variable in
         the struct """
     if isinstance(ast_type, AST.ArrayDecl):
-        alignment = get_array_sizes(ast_type, list_so_far, state)
+        alignment = get_array_sizes(ast_type, list_so_far)
     elif isinstance(ast_type, (AST.Decl, AST.TypeDecl, AST.Typename)):
-        alignment = get_sizes(ast_type.type, list_so_far, state)
+        alignment = get_sizes(ast_type.type, list_so_far)
     elif isinstance(ast_type, AST.FuncDecl):
         raise Exception("Function Decl in struct not allowed")
     elif isinstance(ast_type, AST.IdentifierType):
@@ -96,31 +96,32 @@ def get_sizes(ast_type, list_so_far, state):
         list_so_far.append(size)
         alignment = limits.CONFIG.get_word_size()
     elif isinstance(ast_type, AST.Struct):
-        alignment = get_struct_sizes(ast_type, list_so_far, state)
+        alignment = get_struct_sizes(ast_type, list_so_far)
     elif isinstance(ast_type, AST.Union):
-        alignment = get_union_sizes(ast_type, list_so_far, state)
+        alignment = get_union_sizes(ast_type, list_so_far)
     else:
         raise Exception('Unknown Type '+str(ast_type))
 
-    if limits.CONFIG.packing_scheme == SPS.PACT_COMPACT:
+    if limits.CONFIG.packing_scheme == limits.StructPackingScheme.PACT_COMPACT:
         alignment = 1
     return alignment
 
-def get_array_sizes(ast_type, list_so_far, state):
+def get_array_sizes(ast_type, list_so_far):
     """ handles finding sizes and alignment for array type """
     arr_list = []
-    alignment = get_sizes(ast_type.type, arr_list, state)
+    alignment = get_sizes(ast_type.type, arr_list)
     if isinstance(ast_type.dim, AST.Constant):
         size = int(ast_type.dim.value)
     elif isinstance(ast_type.dim, AST.ID):
-        size = state.stor.read(state.envr.get_address(ast_type.dim)).data #safe
+        raise Exception("Size of dynamically sized array unknown")
+        #size = state.stor.read(state.envr.get_address(ast_type.dim)).data #safe
     else:
         raise Exception('Array dim must be constant or id')
     for _ in range(size):
         list_so_far.extend(arr_list)
     return alignment
 
-def get_struct_sizes(ast_type, list_so_far, state):
+def get_struct_sizes(ast_type, list_so_far):
     """ handles finding sizes and alignment for struct type """
     decls = ast_type.decls
     if decls is None:
@@ -131,14 +132,14 @@ def get_struct_sizes(ast_type, list_so_far, state):
     if limits.CONFIG.packing_scheme == SPS.PACT_COMPACT:
         alignment = 1
         for decl in decls:
-            decl_alignment = get_sizes(decl, list_so_far, state)
+            decl_alignment = get_sizes(decl, list_so_far)
             if alignment < decl_alignment:
                 alignment = decl_alignment
     elif limits.CONFIG.packing_scheme == SPS.GCC_STD:
         num_bytes = 0
         alignment = 1
         for decl in decls:
-            decl_alignment = get_sizes(decl, list_so_far, state)
+            decl_alignment = get_sizes(decl, list_so_far)
             if num_bytes % decl_alignment != 0:
                 buffer_size = decl_alignment - (num_bytes % decl_alignment)
                 list_so_far[-1] += buffer_size
@@ -152,7 +153,7 @@ def get_struct_sizes(ast_type, list_so_far, state):
         raise Exception("Unknown Packing Scheme")
     return alignment
 
-def get_union_sizes(ast_type, list_so_far, state):
+def get_union_sizes(ast_type, list_so_far):
     """ handles finding sizes and alignment for union type """
     decls = ast_type.decls
     if decls is None:
@@ -162,7 +163,7 @@ def get_union_sizes(ast_type, list_so_far, state):
     alignment = None
     for decl in ast_type.decls:
         decl_size = []
-        decl_alignment = get_sizes(decl, decl_size, state)
+        decl_alignment = get_sizes(decl, decl_size)
         if (size is None) or (size < decl_size[0]):
             size = decl_size[0]
         if (alignment is None) or (alignment < decl_alignment):

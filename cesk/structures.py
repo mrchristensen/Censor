@@ -4,7 +4,7 @@ import logging
 import pycparser
 import pycparser.c_ast as AST
 import cesk.linksearch as ls
-from cesk.values import FrameAddress, ReferenceValue, generate_unitialized_value
+from cesk.values import ReferenceValue, generate_unitialized_value
 from cesk.values import copy_pointer, generate_null_pointer
 from cesk.values import generate_pointer, generate_value, generate_frame_address
 import cesk.config as cnf
@@ -167,7 +167,7 @@ class Envr:
         self.map_to_address = {} #A set of IdToAddr mappings
         self.scope_id = self.allocF(state)
 
-    def allocF(self, state):
+    def allocF(self, state): #pylint: disable=no-self-use,invalid-name
         """ Allocation of frame identefiers """
         value = None
         if cnf.CONFIG['allocF'] == 'concrete':
@@ -211,14 +211,16 @@ class Envr:
     def is_localy_defined(self, ident):
         """returns if a given identifier is local to this scope"""
         return ident in self.map_to_address
-    def is_globaly_defined(self, ident):
+
+    @staticmethod
+    def is_globaly_defined(ident):
         """returns if a given identifier is local to this scope"""
         return ident in Envr.global_envr.map_to_address
 
     def __contains__(self, ident):
-        return self.is_localy_defined(ident) or self.is_globaly_defined(ident)
+        return self.is_localy_defined(ident) or Envr.is_globaly_defined(ident)
 
-class Stor:
+class Stor: #pylint: disable=too-many-instance-attributes
     """Represents the contents of memory at a moment in time."""
 
     def __init__(self, to_copy=None):
@@ -253,11 +255,11 @@ class Stor:
         self.address_counter += size
         return pointer
 
-    def allocM(self, base, list_of_sizes, length=1):
+    def allocM(self, base, list_of_sizes, length=1, extra=0): #pylint: disable=invalid-name
         """ Given a base pointer or frame address allocate memomory """
         if base in self.base_pointers:
             return self.base_pointers[base]
-        start_pointer = None        
+        start_pointer = None
         prev = None
         for _ in range(length):
 
@@ -267,10 +269,10 @@ class Stor:
                 self.pred_map[start_pointer] = prev
                 prev = start_pointer
             else:
-                next_ptr = self._make_new_address(list_of_sizes[0])
-                self.succ_map[prev] = next_ptr
-                self.pred_map[next_ptr] = prev
-                prev = next_ptr
+                next_block = self._make_new_address(list_of_sizes[0])
+                self.succ_map[prev] = next_block
+                self.pred_map[next_block] = prev
+                prev = next_block
 
             for block_size in list_of_sizes[1:]:
                 next_block = self._make_new_address(block_size)
@@ -278,22 +280,30 @@ class Stor:
                 self.succ_map[prev] = next_block
                 prev = next_block
 
+        if extra != 0: #malloc region is not divisable by the block size
+            next_block = self._make_new_address(extra)
+            self.pred_map[next_block] = prev
+            self.succ_map[prev] = next_block
+            prev = next_block
+
         self.succ_map[prev] = self.null_addr
 
         self.base_pointers[base] = start_pointer
         return start_pointer
 
-    def allocH(self, state):
+    def allocH(self, state): #pylint: disable=invalid-name
         """ Calls the right allocator based on input and allocH config """
         if cnf.CONFIG['allocH'] == 'abstract':
             return state.ctrl
         elif cnf.CONFIG['allocH'] == 'concrete':
             self.heap_address_counter += 1
             return self.heap_address_counter
+        else:
+            raise Exception("Unknown allocH method")
 
-    def fa2ptr(self, frameAddress):
+    def fa2ptr(self, frame_address):
         """ Fetch store address for a frame address """
-        return self.base_pointers[frameAddress]
+        return self.base_pointers[frame_address]
 
     def add_offset_to_pointer(self, pointer, offset): #pylint: disable=too-many-branches
         """ updates the pointer's offset by the offset passed.
@@ -343,7 +353,7 @@ class Stor:
         if address in self.base_pointers:
             address = self.base_pointers[address]
         else:
-            address.update(self) #move the offset of the pointer to a valid location
+            address.update(self) #update offset of pointer
         logging.info("Reading %s", str(address))
 
 
@@ -392,10 +402,10 @@ class Stor:
         logging.info('  Write %s  to  %s', str(value), str(address))
         if not isinstance(address, ReferenceValue):
             raise Exception("Address should not be " + str(address))
-        if address.data == 0 or address.data >= self.address_counter:
-            raise SegFault() #underflow or overflow
-        if address not in self.memory:
-            raise Exception("Unkown address " + str(address))
+        if address.data == 0 or\
+           address.data >= self.address_counter or\
+           address not in self.memory:
+            raise SegFault() #underflow or overflow or invallid address
 
         old_value = self.memory[address]
         if address.offset == 0 and value.size == old_value.size:
@@ -493,7 +503,7 @@ class Kont: #pylint: disable=too-few-public-methods
             value = Kont.allocK_address
             Kont.allocK_address += 1
         elif cnf.CONFIG['allocK'] == "0-cfa":
-            value = state.ctrl 
+            value = state.ctrl
         elif cnf.CONFIG['allocK'] == "p4f":
             value = (nxt_ctrl, nxt_envr)
         return value

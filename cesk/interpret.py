@@ -222,23 +222,23 @@ def assignment_helper(operator, address, exp, state):
 def decl_helper(decl, state):
     """Maps the identifier to a new address and passes assignment part"""
     name = decl.name
-    fa = state.envr.map_new_identifier(name)
+    f_addr = state.envr.map_new_identifier(name)
 
     if (isinstance(decl.type, (AST.TypeDecl,
-                                 AST.PtrDecl))):
+                               AST.PtrDecl))):
         if (isinstance(decl.type.type, AST.Struct)
                 and isinstance(decl.type, AST.TypeDecl)):
-            ref_address = handle_decl_struct(decl.type.type, state, fa)
+            handle_decl_struct(decl.type.type, state, f_addr)
         else:
             size_ast = get_size_ast(decl.type)
             size = generate_constant_value(size_ast.value, size_ast.type).data
-            ref_address = state.stor.allocM(fa, [size])
+            state.stor.allocM(f_addr, [size])
 
             #the address is mapped then if additional space is need for
             # a struct handle decl struct manages it
 
     elif isinstance(decl.type, AST.ArrayDecl):
-        data_address = handle_decl_array(decl.type, [], state, fa)
+        data_address = handle_decl_array(decl.type, [], state, f_addr)
         logging.debug(" Mapped %s to %s", str(name), str(data_address))
         if decl.init:
             raise Exception("array init should be transformed")
@@ -253,14 +253,21 @@ def malloc_helper(exp, state, address):
     """ Calls malloc and evaluates the cast """
     if isinstance(exp, AST.Cast):
         #TODO use cast to break the malloc'ed area in to blocks
-        malloc_result = malloc(exp.expr, state)
+        size_list = []
+        if isinstance(exp.to_type, AST.Typename):
+            ls.get_sizes(exp.to_type.type.type, size_list)
+        else:
+            ls.get_sizes(exp.to_type.type, size_list)
+
+        malloc_result = malloc(exp.expr, state, size_list)
         malloc_result = cast(malloc_result, exp.to_type, state)
     else:
-        malloc_result = malloc(exp, state) # if malloc is assigned to a void*
+        raise Exception("Malloc appeared without a cast")
+        #malloc_result = malloc(exp, state, [1]) # if malloc is assigned to a void*
     state.stor.write(address, malloc_result)
     return state.get_next()
 
-def handle_decl_array(array, list_of_sizes, state, fa):
+def handle_decl_array(array, list_of_sizes, state, f_addr):
     """Calculates size and allocates Array. Returns address of first item"""
     logging.debug('  Array Decl')
     if isinstance(array.type, AST.ArrayDecl):
@@ -282,23 +289,23 @@ def handle_decl_array(array, list_of_sizes, state, fa):
         if isinstance(array.type.type, (AST.Struct, AST.Union)):
             # TODO handle Union
             list_of_sizes = []
-            ls.get_sizes(array.type, list_of_sizes, state)
-            data_address = state.stor.allocM(fa, list_of_sizes, length)
+            ls.get_sizes(array.type, list_of_sizes)
+            data_address = state.stor.allocM(f_addr, list_of_sizes, length)
         else:
             constant = get_size_ast(array.type)
             size = generate_constant_value(constant.value, constant.type).data
-            data_address = state.stor.allocM(fa, [size], length)
+            data_address = state.stor.allocM(f_addr, [size], length)
         #Allocated block: passing back the Array object that points to block
         return data_address
     else:
         raise Exception("Declarations of " + str(array.type) +
                         " are not yet implemented")
 
-def handle_decl_struct(struct, state, fa):
+def handle_decl_struct(struct, state, f_addr):
     """Handles struct declaration"""
     list_of_sizes = []
-    ls.get_sizes(struct, list_of_sizes, state)
-    data_address = state.stor.allocM(fa, list_of_sizes)
+    ls.get_sizes(struct, list_of_sizes)
+    data_address = state.stor.allocM(f_addr, list_of_sizes)
     return data_address
 
 def handle_UnaryOp(stmt, state): # pylint: disable=invalid-name,unused-argument
@@ -335,18 +342,26 @@ def printf(stmt, state):
     print(print_string, end="") #convert newlines
     return state.get_next()
 
-def malloc(stmt, state):
+def malloc(stmt, state, break_up_list):
     '''performs malloc'''
     param = stmt.args.exprs[0]
     if isinstance(stmt.args.exprs[0], AST.Cast):
         param = stmt.args.exprs[0].expr
     if isinstance(param, AST.Constant):
-        length = int(param.value, 0)
+        num_bytes = int(param.value, 0)
     else:
-        length = state.stor.read(get_address(param, state)).data
-    logging.info("Malloc %d", length)
-    basePointer = state.stor.allocH(state)
-    pointer = state.stor.allocM(basePointer, [length])
+        num_bytes = state.stor.read(get_address(param, state)).data
+    logging.info("Malloc %d", num_bytes)
+    base_pointer = state.stor.allocH(state)
+
+    block_size = sum(break_up_list)
+    num_blocks = num_bytes // block_size
+    leftover = num_bytes % block_size
+    if num_blocks == 0:
+        pointer = state.stor.alloc(base_pointer, [num_bytes])
+    else:
+        pointer = state.stor.allocM(base_pointer, break_up_list,
+                                    num_blocks, leftover)
     # assume malloc is always in an assignment and/or cast
     return pointer
 
@@ -382,7 +397,7 @@ def func_helper(param_list, expr_list, func_def, state, address):
     state.stor.write_kont(kont_addr, kont) # stor = stor[a_k'->K]
     new_state = State(next_ctrl, next_envr, state.stor, kont_addr)
 
-    for decl, expr in zip(param_list, expr_list): #add parameters to the environment
+    for decl, expr in zip(param_list, expr_list): #add parameters to environment
         new_state = decl_helper(decl, new_state)
         new_address = new_state.envr.get_address(decl.name)
         value = get_value(expr, state)
@@ -405,7 +420,7 @@ def handle_Return(stmt, state):# pylint: disable=invalid-name
             ret_set.add(k)
     return ret_set
 
-def get_value(stmt, state):
+def get_value(stmt, state): #pylint: disable=too-many-return-statements
     """ get value for simple id's constants or references and casts of them """
     if isinstance(stmt, AST.Constant):
         value = generate_constant_value(stmt.value, stmt.type)

@@ -39,7 +39,7 @@ def prepare_start_state(main_function):
     '''Creates the first state'''
     halt_state = State(None, None, None, Kont.allocK()) # zero is halt kont
     start_ctrl = Ctrl(main_function.body)
-    start_envr = Envr(State(start_ctrl, None, None, None)) #pass in fake state for allocF
+    start_envr = Envr(State(start_ctrl, None, None, None)) #state for allocF
     start_stor = Stor()
     init_globals(start_stor)
     logging.debug("Globals init done")

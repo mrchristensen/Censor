@@ -15,7 +15,7 @@ from transforms import transform
 
 def read_args():
     """ build argument parser and returns parsed args """
- 
+
     parser = argparse.ArgumentParser()
     parser.add_argument("filenames", nargs='+')
     parser.add_argument('--tool', '-t',
@@ -35,7 +35,7 @@ def read_args():
     parser.add_argument('--configuration', '-c',
                         required=False, type=str, help='limits for types')
     return parser.parse_args()
-   
+
 def main():
     """Parses arguments and calls correct tool"""
     args = read_args()
@@ -81,7 +81,7 @@ def parse(filename, includes, pycparser_path, sanitize):
     ast = pycparser.parse_file(
         filename, use_cpp=True, cpp_path='gcc', cpp_args=cpp_args)
     return ast
-   
+
 
 def run_tool(tool, ast, args):
     """ figure out what analysis is supposed to happen and call the

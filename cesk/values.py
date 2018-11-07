@@ -271,7 +271,7 @@ class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
         return ptr
 
     def __sub__(self, other):
-        ptr = copy_pointer(ptr)
+        ptr = copy_pointer(self)
 
         if isinstance(other, Integer):
             ptr.offset += -1 * other.data
@@ -410,14 +410,14 @@ def generate_pointer(address, size):
     """Given a address (int) package it into a pointer"""
     return Pointer(address, size, 0)
 
-def copy_pointer(pointer, ptr_type=None, state=None):
+def copy_pointer(pointer, ptr_type=None):
     """ Given a point a type and the state
         generate the cast if needed pointer (shallow copy of pointer) """
     if ptr_type is None:
         size = pointer.type_size
     else: #cast to ptr of different type
         sizes = []
-        ls.get_sizes(ptr_type, sizes, state) #returns alignment
+        ls.get_sizes(ptr_type, sizes) #returns alignment
         size = sum(sizes)
     return Pointer(pointer.data, size, pointer.offset)
 
@@ -437,13 +437,13 @@ def cast(value, typedeclt, state=None): #pylint: disable=unused-argument
         result = cast(value, typedeclt.type, state)
     elif isinstance(typedeclt, pycparser.c_ast.PtrDecl):
         if isinstance(value, ReferenceValue): 
-            result = copy_pointer(value, typedeclt.type, state)
+            result = copy_pointer(value, typedeclt.type)
         else:
             #normal number being turned into a pointer not valid to dereference
             #TODO manage tracking of this
             logging.debug(" Cast %s to %s", str(value), str(typedeclt))
             address = state.stor.get_nearest_address(value.data)
-            result = copy_pointer(address, typedeclt.type, state)
+            result = copy_pointer(address, typedeclt.type)
     elif isinstance(typedeclt, pycparser.c_ast.TypeDecl):
         types = typedeclt.type.names
         result = generate_value(value.get_value(), " ".join(types))

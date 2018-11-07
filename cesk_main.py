@@ -6,7 +6,6 @@ from main import parse
 from transforms import transform
 from cesk.limits import set_config
 import cesk.config as cnf
-from main import parse
 import cesk
 # store updates concrete/abstact
 # allocation finite/infinite
@@ -29,7 +28,7 @@ def main():
     if args.configuration is not None:
         configs = args.configuartion.split(',')
         for config in configs:
-            conf = configs.split('=')
+            conf = config.split('=')
             #todo add error check for invalid input
             cnf.CONFIG[conf[0]] = conf[1] #set or add new config
 
