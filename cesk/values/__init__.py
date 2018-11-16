@@ -9,15 +9,36 @@ import cesk.linksearch as ls
 BINOPS = {
     "+" : "__add__",
     "-" : "__sub__",
-    "*" : "__mul__",
-    "/" : "__truediv__",
-    "%" : "__mod__",
+    "*" : "__mul__", #non reference values
+    "/" : "__truediv__", #non reference values
+    "%" : "__mod__", #integer values only
     "<" : "__lt__",
     "<=": "__le__",
     "==": "__eq__",
     "!=": "__ne__",
     ">" : "__gt__",
     ">=": "__ge__",
+    "<<": "__lshift__", #integer only
+    ">>": "__rshift__", #integer only
+    "&" : "__and__", #integer only
+    "^" : "__xor__", #integer ontl
+    "|" : "__or__",  #integer only
+    "&&": "transformed",
+    "||": "transformed"
+    #all assentments should be transformed
+    #turinary operator is transformed as well
+}
+
+UNOPS = {
+    "++" : "transformed",
+    "--" : "transformed",
+    "sizeof" : "transformed",
+    "&" : "interpreted",
+    "*" : "interpreted",
+    "+" : "__pos__",
+    "-" : "__neg__",
+    "~" : "__inv__",
+    "!" : "__not__"
 }
 
 class ArithmeticValue:
@@ -31,6 +52,9 @@ class ArithmeticValue:
         if operator in BINOPS:
             method = self.__getattribute__(BINOPS[operator])
             return method(value)
+        elif operator in UNOPS:
+            method = self.__getattribute__(UNOPS[operator])
+            return method() #second value is not needed
         else:
             raise NotImplementedError()
 
@@ -41,41 +65,61 @@ class ArithmeticValue:
 
     def __add__(self, other):
         pass
-
     def __sub__(self, other):
         pass
-
     def __mul__(self, other):
         pass
-
     def __truediv__(self, other):
         pass
-
+    def __mod__(self, other):
+        pass
     def __lt__(self, other):
-        return Integer(int(self.data < other.data), 'int')
-
+        return ConcreteInteger(int(self.data < other.data), 'int')
+        #pass
     def __le__(self, other):
-        return Integer(int(self.data <= other.data), 'int')
-
+        return ConcreteInteger(int(self.data <= other.data), 'int')
+        #pass
     def __eq__(self, other):
-        return Integer(int(self.data == other.data), 'int')
-
+        #pass
+        return ConcreteInteger(int(self.data == other.data), 'int')
     def __ne__(self, other):
-        return Integer(int(self.data != other.data), 'int')
-
+        #pass
+        return ConcreteInteger(int(self.data != other.data), 'int')
     def __gt__(self, other):
-        return Integer(int(self.data > other.data), 'int')
-
+        #pass
+        return ConcreteInteger(int(self.data > other.data), 'int')
     def __ge__(self, other):
-        return Integer(int(self.data >= other.data), 'int')
+        #pass
+        return ConcreteInteger(int(self.data >= other.data), 'int')
+    def __lshift__(self, other):
+        pass
+    def __rshift__(self, other):
+        pass
+    def __and__(self, other):
+        pass
+    def __xor__(self, other):
+        pass
+    def __or__(self, other):
+        pass
+    def __pos__(self):
+        pass
+    def __neg__(self):
+        pass
+    def __inv__(self):
+        pass
+    def __not__(self):
+        pass
+    def transformed(self, other=None):
+        """ method to throw error message """ 
+        raise NotImplementedError("Operator should be removed by transforms\n");
+    def interpreted(self, other=None):
+        """ method to throw error message """ 
+        raise NotImplementedError("Operator should be handled by the interpreter\n");
 
     def __str__(self):
         if self.data:
             return "(" + self.type_of + ") " + str(self.data)
         return super(ArithmeticValue,self).__str__()
-
-    def set_data(self, new_data):
-        self.data = new_data
 
 class UnitializedValue(ArithmeticValue):
     """ Type to represent a unitialized value of a certian size """
@@ -98,8 +142,28 @@ class UnitializedValue(ArithmeticValue):
     def get_value(self, offset, num_bytes):
         """ Returns 0, should only be valid if called from write """
         return 0
- 
-class Integer(ArithmeticValue): #pylint:disable=too-few-public-methods
+#Todo add class Byte value that is the result of a call to get value 
+
+class Integer(ArithmeticValue):
+    """ Abstract Class to represent Integral Types """
+    #Every Operator needs to be implemented so no Exceptions Needed
+    def __init__(self, data, type_of, size=1):
+        pass
+
+class Float(ArithmeticValue):
+    """ Abstract Class for floating types """
+    def __lshift__(self, other):
+        raise NotImplementedError("Floats do not support a left shift")
+    def __rshift__(self, other):
+        raise NotImplementedError("Floats do not support a right shift")
+    def __and__(self, other):
+        raise NotImplementedError("Floats do not support a binary and")
+    def __xor__(self, other):
+        raise NotImplementedError("Floats do not support a binary xor")
+    def __or__(self, other):
+        raise NotImplementedError("Floats do not support a binary or")
+
+class ConcreteInteger(Integer): #pylint:disable=too-few-public-methods
     """Concrete implementation of an Integral Type"""
 
     def __init__(self, data, type_of, size=1):
@@ -117,35 +181,26 @@ class Integer(ArithmeticValue): #pylint:disable=too-few-public-methods
 
     def __add__(self, other):
         value = self.bound(self.data + other.data)
-        return Integer(value, self.type_of, self.size)
+        return ConcreteInteger(value, self.type_of, self.size)
 
     def __sub__(self, other):
         value = self.bound(self.data - other.data)
-        return Integer(value, self.type_of, self.size)
+        return ConcreteInteger(value, self.type_of, self.size)
 
     def __mul__(self, other):
         value = self.bound(self.data * other.data)
-        return Integer(value, self.type_of, self.size)
+        return ConcreteInteger(value, self.type_of, self.size)
 
     def __truediv__(self, other):
         value = self.bound(self.data // other.data)
-        return Integer(value, self.type_of, self.size)
+        return ConcreteInteger(value, self.type_of, self.size)
 
     def __mod__(self, other):
         value = self.bound(self.data % other.data)
-        return Integer(value, self.type_of, self.size)
-
-    def set_data(self, new_data):
-        self.data = self.bound(new_data)
+        return ConcreteInteger(value, self.type_of, self.size)
 
     def bound(self, value):
         """ Simulates two's complement overflow of integral types """
-        #if value > self.max_value:
-        #    value = value - (self.max_value - self.min_value)
-        #elif value < self.min_value:
-        #    value = value + (self.max_value - self.min_value)
-        #return value
-
         n = value - self.min_value
         m = self.max_value - self.min_value + 1
         k = n % m
@@ -168,7 +223,7 @@ class Integer(ArithmeticValue): #pylint:disable=too-few-public-methods
 
         return result
 
-class Char(Integer):
+class Char(ConcreteInteger):
     """Concrete implementation of an char Type"""
     def __init__(self, data, type_of='char'):
         if isinstance(data, str) and ('\'' in data):
@@ -201,7 +256,7 @@ class Char(Integer):
     def get_char(self): 
         return chr(self.data)
 
-class Float(ArithmeticValue):  #pylint:disable=too-few-public-methods
+class ConcreteFloat(Float):  #pylint:disable=too-few-public-methods
     """Concrete implementation of a float.
     NOTE: this class will represent 'float,' and 'double,' and 'long double'
     from C99 as a 64 bit floating point number. This gives some potentially
@@ -214,20 +269,20 @@ class Float(ArithmeticValue):  #pylint:disable=too-few-public-methods
         self.size = limits.CONFIG.get_size(type_of.split())
 
     def __add__(self, other):
-        return Float(self.data + other.data, self.type_of)
+        return ConcreteFloat(self.data + other.data, self.type_of)
 
     def __sub__(self, other):
-        return Float(self.data - other.data, self.type_of)
+        return ConcreteFloat(self.data - other.data, self.type_of)
 
     def __mul__(self, other):
-        return Float(self.data * other.data, self.type_of)
+        return ConcreteFloat(self.data * other.data, self.type_of)
 
     def __truediv__(self, other):
-        return Float(self.data / other.data, self.type_of)
+        return ConcreteFloat(self.data / other.data, self.type_of)
 
     def get_value(self, start=-1, num_bytes=None):
         """value of the unsigned bits stored"""
-        #TODO
+        #TODO get binary value
         return self.data
 
 class ReferenceValue(ArithmeticValue): #pylint:disable=all
@@ -248,8 +303,8 @@ class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
 
     def __eq__(self, other):
         if not isinstance(other, ReferenceValue):
-            return Integer(0, 'int')
-        return Integer(int(self.data == other.data), 'int')
+            return ConcreteInteger(0, 'int')
+        return ConcreteInteger(int(self.data == other.data), 'int')
 
     def update(self, stor):
         """ moves the pointer along the pred and succ map """
@@ -262,7 +317,7 @@ class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
 
     def __add__(self, other):
         ptr = copy_pointer(self)
-        if isinstance(other, Integer):
+        if isinstance(other, ConcreteInteger):
             ptr.offset += other.data
         elif isinstance(other, int):
             ptr.offset += other
@@ -273,14 +328,14 @@ class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
     def __sub__(self, other):
         ptr = copy_pointer(self)
 
-        if isinstance(other, Integer):
+        if isinstance(other, ConcreteInteger):
             ptr.offset += -1 * other.data
             return ptr
         elif isinstance(other, int):
             ptr.offset += -1 * other
             return ptr
         elif isinstance(other, Pointer):
-            return Integer((self.get_value() - other.get_value()), 'int')
+            return ConcreteInteger((self.get_value() - other.get_value()), 'int')
         else:
             raise Exception("Pointers can only be subtracted by int")
 
@@ -302,7 +357,7 @@ class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
 
         return result
 
-class FrameAddress(ReferenceValue):
+class FrameAddress:
     """ Contains a link between frame and id """
 
     def __init__(self, frame_id, ident):
@@ -317,15 +372,6 @@ class FrameAddress(ReferenceValue):
     def get_id(self):
         """ Returns identifier name """
         return self.ident
-
-    #def get_stor_addr(self, stor):
-    #    """ Reads from the stor to get value of identifier """
-    #    return Pointer(self.data, self.type_size)
-
-    #def set_stor_addr(self, ptr):
-    #    """ Sets pointer value of location in store """
-    #    #used in concrete
-    #    super(FrameAddress, self).__init__(ptr.data, ptr.type_size)
 
     def __hash__(self):
         return 1+43*hash(self.ident)+73*hash(self.frame)
@@ -344,11 +390,11 @@ def generate_constant_value(value, type_of='int'):
         #return PtrDecl([], TypeDecl(None, [], IdentifierType(['char'])))
     elif type_of == 'float':
         if value[-1] in "fF":
-            return Float(value,'float')
+            return ConcreteFloat(value,'float')
         elif value[-1] in "lL":
-            return Float(value,'long double')
+            return ConcreteFloat(value,'long double')
         else:
-            return Float(value, 'double') 
+            return ConcreteFloat(value, 'double') 
     elif type_of == 'int':
         u = ''
         if value[-1] in "uU":
@@ -357,17 +403,17 @@ def generate_constant_value(value, type_of='int'):
         if value[-1] not in "lL":
             val = int(value, 0)
             if val <= limits.RANGES['unsigned '+type_of].max:
-                return Integer(val, u+type_of)
+                return ConcreteInteger(val, u+type_of)
         else:
             value = value[:-1]
         type_of = 'long '+type_of
         val = int(value, 0)
 
         if val <= limits.RANGES['unsigned '+type_of].max:
-            return Integer(val, u+type_of)
+            return ConcreteInteger(val, u+type_of)
         type_of = 'long '+type_of
         if val <= limits.RANGES['unsigned '+type_of].max:
-            return Integer(val, u+type_of)
+            return ConcreteInteger(val, u+type_of)
 
     elif type_of == 'char':
         return Char(value, type_of)
@@ -381,17 +427,17 @@ def generate_value(value, type_of='bit_value', size=None):
     if "char" in type_of:
         return Char(value, type_of)
     if type_of in limits.RANGES:
-        return Integer(value, type_of)
+        return ConcreteInteger(value, type_of)
     if "float" in type_of or "double" in type_of:
-        return Float(value, type_of)
+        return ConcreteFloat(value, type_of)
     if type_of == 'bit_value':
-        return Integer(value, type_of, size)
+        return ConcreteInteger(value, type_of, size)
 
     if type_of == 'pointer':
         raise Exception('Pointer not expected here/not valid to change dynamically')
 
     if type_of == 'uninitialized':
-        return Integer(value, 'bit_value', size)
+        return ConcreteInteger(value, 'bit_value', size)
 
     raise Exception("Unexpected value type %s",type_of)
 
@@ -402,7 +448,7 @@ def generate_unitialized_value(size):
 def generate_default_value(size):
     """Generates a default value of the given size (used for uninitialized
     variables)."""
-    value = Integer(0, 'bit_value', size)
+    value = ConcreteInteger(0, 'bit_value', size)
     return value
 
 
