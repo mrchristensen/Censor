@@ -329,14 +329,19 @@ def printf(stmt, state):
             value = generate_constant_value(expr.value, expr.type)
         else:
             value = state.stor.read(get_address(expr, state))
-        value_array.append(value.data)
+        value_array.append(str(value))
     if isinstance(stmt.args.exprs[0], AST.Constant):
-        print_string = stmt.args.exprs[0].value % tuple(value_array)
+        print_string = stmt.args.exprs[0].value
     elif isinstance(stmt.args.exprs[0], AST.Cast):
-        print_string = stmt.args.exprs[0].expr.value % tuple(value_array)
+        print_string = stmt.args.exprs[0].expr.value
     else:
         raise Exception("printf does not know how to handle "
                         +str(stmt.args.exprs[0]))
+    import re
+    print_string = re.sub(r'((?:%%)*)(%[-+ #0]*[0-9]*(\.([0-9]*|\*))?[hlL]?[cdieEfgGosuxXpn])',#pylint: disable=line-too-long
+                          r"\1%s", print_string)
+    print_string = re.sub(r'%%', '%', print_string)
+    print_string = print_string % tuple(value_array)
     print_string = print_string[1:][:-1] #drop quotes
     print_string = print_string.replace("\\n", "\n")
     print(print_string, end="") #convert newlines

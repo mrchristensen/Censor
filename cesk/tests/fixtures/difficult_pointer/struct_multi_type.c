@@ -17,6 +17,6 @@ int main()
   char* c = (char*)tester;
   c += 3;
   for (int i = 0; i < 3; i++,c++){
-      printf("%c",*(c));
+      printf("%c",(char)*(c));
   }
 }

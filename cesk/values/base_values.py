@@ -103,8 +103,8 @@ class ArithmeticValue:
         raise NotImplementedError("Operator should be handled by the interpreter\n");
 
     def __str__(self):
-        if self.data:
-            return "(" + self.type_of + ") " + str(self.data)
+        if self.data is not None:
+            return str(self.data)
         return super(ArithmeticValue,self).__str__()
 
 class UnitializedValue(ArithmeticValue):

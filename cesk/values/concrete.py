@@ -50,6 +50,9 @@ class Float(BaseFloat):  #pylint:disable=too-few-public-methods
         #TODO get binary value
         return self.data
 
+    def __str__(self):
+        return "%f" % self.data
+
 class Integer(BaseInteger): #pylint:disable=too-few-public-methods
     """ implementation of an Integral Type"""
 
@@ -159,6 +162,9 @@ class Char(Integer):
         return Char(value, self.type_of)
 
     def get_char(self): 
+        return chr(self.data)
+
+    def __str__(self):
         return chr(self.data)
 
 class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods

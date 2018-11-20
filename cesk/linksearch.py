@@ -114,7 +114,6 @@ def get_array_sizes(ast_type, list_so_far):
         size = int(ast_type.dim.value)
     elif isinstance(ast_type.dim, AST.ID):
         raise Exception("Size of dynamically sized array unknown")
-        #size = state.stor.read(state.envr.get_address(ast_type.dim)).data #safe
     else:
         raise Exception('Array dim must be constant or id')
     for _ in range(size):

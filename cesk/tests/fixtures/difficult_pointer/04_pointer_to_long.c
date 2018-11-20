@@ -10,7 +10,7 @@ long ptr_value = (long) ptr;
 
 int * ptr2 = (int*) ptr_value;
 
-printf("%x\n",*ptr2);
+printf("%d\n",*ptr2);
 
 return 0;
 

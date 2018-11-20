@@ -6,7 +6,7 @@ int main(){
     char* ptr = (char*) &l;
 
     for(int i = 0; i < 8; i++,ptr++)
-        printf("%c ",*(ptr));
+        printf("%c ",(char)*(ptr));
 
     return 0;
 }
