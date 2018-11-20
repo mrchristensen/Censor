@@ -42,13 +42,15 @@ def handle_If(stmt, state): # pylint: disable=invalid-name
     '''Handles Ifs'''
     logging.debug("If")
     value = get_value(stmt.cond, state)
-    if value.get_truth_value():
+    next_states = set()
+    if True in value.get_truth_value():
         new_ctrl = Ctrl(stmt.iftrue)
-        return State(new_ctrl, state.envr, state.stor, state.kont_addr)
-    elif stmt.iffalse:
-        raise Exception("False Branch should be transformed")
-    else:
-        return state.get_next()
+        next_states.add(State(new_ctrl, state.envr, state.stor, state.kont_addr))
+    if False in value.get_truth_value():
+        next_states.add(state.get_next())
+    if next_states:
+        return next_states
+    raise Exception("Value " + str(value) + " has invalid truth values: " + str(value.get_truth_value()))
 
 def handle_ID(stmt, state): # pylint: disable=invalid-name
     '''Handles IDs'''
@@ -230,9 +232,9 @@ def decl_helper(decl, state):
                 and isinstance(decl.type, AST.TypeDecl)):
             handle_decl_struct(decl.type.type, state, f_addr)
         else:
-            size_ast = get_size_ast(decl.type)
-            size = generate_constant_value(size_ast.value, size_ast.type).data
-            state.stor.allocM(f_addr, [size])
+            size = []
+            ls.get_sizes(decl.type, size)
+            state.stor.allocM(f_addr, size)
 
             #the address is mapped then if additional space is need for
             # a struct handle decl struct manages it

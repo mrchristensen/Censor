@@ -26,10 +26,11 @@ def main():
     args = parser.parse_args()
 
     if args.configuration is not None:
-        configs = args.configuartion.split(',')
+        configs = args.configuration.split(',')
         for config in configs:
             conf = config.split('=')
             #todo add error check for invalid input
+            print(conf[0]+" set to "+conf[1])
             cnf.CONFIG[conf[0]] = conf[1] #set or add new config
 
     set_config(cnf.CONFIG['limits'])

@@ -8,9 +8,10 @@ from cesk.values.base_values import ReferenceValue, UnitializedValue
 import cesk.limits as limits
 if cesk.config.CONFIG['values'] == 'concrete':
     from cesk.values.concrete import Integer, Float, Char, Pointer
+elif cesk.config.CONFIG['values'] == 'abstract':
+    from cesk.values.abstract import Integer, Float, Char, Pointer
 else:
-    from cesk.values.abstract import Integer, Float, Char, Pointer # errors now, todo add file
-
+    raise Exception("Unknown value type = " + cesk.config.CONFIG['values'])
 class FrameAddress:
     """ Contains a link between frame and id """
 
@@ -44,7 +45,7 @@ def generate_constant_value(value, type_of='int'):
         #return PtrDecl([], TypeDecl(None, [], IdentifierType(['char'])))
     elif type_of == 'float':
         if value[-1] in "fF":
-            return Float(value, 'float')
+            return Float(value[:-1], 'float')
         elif value[-1] in "lL":
             return Float(value, 'long double')
         else:
