@@ -9,7 +9,9 @@ import cesk.limits as limits
 if cesk.config.CONFIG['values'] == 'concrete':
     from cesk.values.concrete import Integer, Float, Char, Pointer
 elif cesk.config.CONFIG['values'] == 'abstract':
-    from cesk.values.abstract import Integer, Float, Char, Pointer
+    # from cesk.values.abstract import Integer, Float, Char, Pointer
+    from cesk.values.abstract import IntAsFloat as Float
+    from cesk.values.abstract import Integer, Char, Pointer
 else:
     raise Exception("Unknown value type = " + cesk.config.CONFIG['values'])
 class FrameAddress:

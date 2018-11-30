@@ -165,7 +165,10 @@ class Char(Integer):
         return chr(self.data)
 
     def __str__(self):
-        return chr(self.data)
+        try:
+            return chr(self.data)
+        except ValueError: # does not map to ascii (e.g. negative chars)
+            return str(self.data)
 
 class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
     """ implementation of a Pointer to a store address."""
