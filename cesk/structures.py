@@ -57,11 +57,14 @@ class State: #pylint:disable=too-few-public-methods
     def __eq__(self, other):
         return (self.ctrl == other.ctrl and
                 self.envr == other.envr and
-                self.stor == other.stor and
                 self.kont_addr == other.kont_addr)
 
     def __hash__(self):
-        return id(self)
+        h = hash(self.ctrl)
+        h = h * hash(self.envr) + 37
+        h = h * hash(self.kont_addr) + 17
+        return h
+
 
 class Ctrl: #pylint:disable=too-few-public-methods
     """Holds the control pointer or location of the program"""
@@ -153,7 +156,7 @@ class Ctrl: #pylint:disable=too-few-public-methods
 
     def __hash__(self):
         if self.body:
-            return 31 + 61 * hash(self.body) + 62257 * hash(self.index)
+            return ((31 * hash(self.body)) + 62257) * hash(self.index) + 97
         else:
             return hash(self.node)
 
@@ -219,6 +222,13 @@ class Envr:
 
     def __contains__(self, ident):
         return self.is_localy_defined(ident) or Envr.is_globaly_defined(ident)
+
+    def __eq__(self, other):
+        return self.scope_id == other.scope_id
+
+    def __hash__(self):
+        return hash(self.scope_id)
+
 
 class Stor: #pylint: disable=too-many-instance-attributes
     """Represents the contents of memory at a moment in time."""
@@ -495,7 +505,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
 class Kont: #pylint: disable=too-few-public-methods
     """Kontinuations"""
 
-    allocK_address = 0
+    allocK_address = 2 
     @staticmethod
     def allocK(state=None, nxt_ctrl=None, nxt_envr=None): #pylint: disable=invalid-name
         """ Generator for continuation addresses """
@@ -503,7 +513,7 @@ class Kont: #pylint: disable=too-few-public-methods
             value = Kont.allocK_address
             Kont.allocK_address += 1
         elif cnf.CONFIG['allocK'] == "0-cfa":
-            value = state.ctrl
+                value = state.ctrl
         elif cnf.CONFIG['allocK'] == "p4f":
             value = (nxt_ctrl, nxt_envr)
         return value
@@ -523,3 +533,17 @@ class Kont: #pylint: disable=too-few-public-methods
         new_state = State(self.ctrl, self.envr,
                           state.stor, self.kont_addr)
         return new_state.get_next()
+
+    def __eq__(self, other):
+        return self.ctrl == other.ctrl and \
+               self.envr == other.envr and \
+               self.kont_addr == other.kont_addr and \
+               self.address == other.address
+
+    def __hash__(self):
+        h = 7
+        h = h * hash(self.ctrl) + 37
+        h = h * hash(self.envr) + 53
+        h = h * hash(self.kont_addr) + 97
+        h = h * hash(self.address) + 3
+        return h

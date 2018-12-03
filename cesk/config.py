@@ -2,11 +2,11 @@
 
 CONFIG = {
     'values'       : 'abstract', #{concrete, abstract}
-    'store_update' : 'weak',   # {strong, weak}
+    'store_update' : 'strong',   # {strong, weak}
     'limits'       : 'CESK',     # {cesk, gcc, std}
-    'allocK'       : 'concrete',    # {concrete, 0-cfa, p4f}
-    'allocF'       : 'concrete',    # {concrete, 0-cfa}
-    'allocH'       : 'concrete'  # {concrete, abstract}
+    'allocK'       : '0-cfa',    # {concrete, 0-cfa, p4f}
+    'allocF'       : '0-cfa',    # {concrete, 0-cfa}
+    'allocH'       : 'abstract'  # {concrete, abstract}
     }
 
 

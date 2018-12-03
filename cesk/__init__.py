@@ -19,17 +19,29 @@ def main(ast):
     main_function = find_main(ast)[0]
 
     start_state = prepare_start_state(main_function)
-
-    queue = deque([start_state])
-    while queue: #is not empty
-        next_state = queue.popleft()
-        try:
-            successors = execute(next_state)
-        except SegFault: #pylint: disable=broad-except
-            print('segmentation fault (core dumped)')
-            sys.exit(errno.EFAULT)
-        queue.extend(successors)
+    
+    seen_set = set([start_state])
+    failed_states = set()
+    frontier = set([start_state])
+    while frontier: #is not empty
+        seen_set.update(frontier)
+        new_frontier = set()
+        for next_state in frontier:
+            try:
+                successors = execute(next_state)
+                for successor in successors:
+                    logging.debug(successor)
+                    if successor not in seen_set:
+                        new_frontier.add(successor)
+            except SegFault: #pylint: disable=broad-except
+                failed_states.add(next_state)
+        frontier = new_frontier
+        logging.debug("Seen: "+str(len(seen_set)))
+        logging.debug("New:  "+str(len(new_frontier)))
     #raise Exception("Execution finished without Halt")
+    if failed_states:
+        print('segmentation fault (core dumped)')
+        sys.exit(errno.EFAULT)
 
 def implemented_nodes():
     """ returns a list of implemented node type names """
@@ -37,13 +49,13 @@ def implemented_nodes():
 
 def prepare_start_state(main_function):
     '''Creates the first state'''
-    halt_state = State(None, None, None, Kont.allocK()) # zero is halt kont
+    halt_state = State(None, None, None, 0) # zero is halt kont
     start_ctrl = Ctrl(main_function.body)
     start_envr = Envr(State(start_ctrl, None, None, None)) #state for allocF
     start_stor = Stor()
     init_globals(start_stor)
     logging.debug("Globals init done")
-    kont_addr = Kont.allocK()
+    kont_addr = Kont.allocK(halt_state, start_ctrl, start_envr)
     kai = Kont(halt_state)
     start_stor.write_kont(kont_addr, kai)
     return State(start_ctrl, start_envr, start_stor, kont_addr)
