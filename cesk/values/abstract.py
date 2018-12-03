@@ -34,22 +34,22 @@ class Float(BaseFloat):  #pylint:disable=too-few-public-methods
         return Float(0, self.type_of)
 
     def __lt__(self, other):
-        return Integer(set([AbstractLiterals.ZERO, AbstractLiterals.PLUS]), 'int')
+        return Integer(set([0, 1]), 'int')
 
     def __le__(self, other):
-        return Integer(set([AbstractLiterals.ZERO, AbstractLiterals.PLUS]), 'int')
+        return Integer(set([0, 1]), 'int')
 
     def __eq__(self, other):
-        return Integer(set([AbstractLiterals.ZERO, AbstractLiterals.PLUS]), 'int')
+        return Integer(set([0, 1]), 'int')
 
     def __ne__(self, other):
-        return Integer(set([AbstractLiterals.ZERO, AbstractLiterals.PLUS]), 'int')
+        return Integer(set([0, 1]), 'int')
 
     def __gt__(self, other):
-        return Integer(set([AbstractLiterals.ZERO, AbstractLiterals.PLUS]), 'int')
+        return Integer(set([0, 1]), 'int')
 
     def __ge__(self, other):
-        return Integer(set([AbstractLiterals.ZERO, AbstractLiterals.PLUS]), 'int')
+        return Integer(set([0, 1]), 'int')
 
     def get_value(self, start=-1, num_bytes=None):
         """value of the unsigned bits stored"""
@@ -70,7 +70,10 @@ class Integer(BaseInteger): #pylint:disable=too-few-public-methods
         for element in data:
             if isinstance(element, AbstractLiterals):
                 self.data.add(element)
-            elif element == 0:
+                continue
+            if isinstance(element, str):
+                element = float(element)
+            if element == 0:
                 self.data.add(AbstractLiterals.ZERO)
             elif element < 0:
                 self.data.add(AbstractLiterals.MINUS)
@@ -90,7 +93,6 @@ class Integer(BaseInteger): #pylint:disable=too-few-public-methods
         else:
             self.type_of = type_of
             self.size = limits.CONFIG.get_size(type_of.split())
-            self.min_value, self.max_value = limits.RANGES[type_of]
 
     def __add__(self, other):
         value = set()
@@ -211,20 +213,7 @@ class Integer(BaseInteger): #pylint:disable=too-few-public-methods
 
     def get_value(self, start=-1, num_bytes=None):
         """value of the unsigned bits stored"""
-        result = self.data
-        if self.data < 0:
-            result += self.max_value - self.min_value + 1
-            
-        if ((start == -1) or
-                (start == 0 and num_bytes == self.size)):
-            #Get all of the bytes
-            return result
-
-        result //= 2**(start*8)
-        result %= pow(2, num_bytes*8)
-
-        return result
-
+        return self.data
 
     def get_truth_value(self):
         values = set()
@@ -238,6 +227,9 @@ class Integer(BaseInteger): #pylint:disable=too-few-public-methods
                 values.add(True)
         return values
 
+class IntAsFloat(Integer):
+    '''Is (-,0,+,T) abstraction and uses Integer to do it'''
+    pass
 
 class Char(Integer):
     """ implementation of an char Type"""
@@ -248,29 +240,6 @@ class Char(Integer):
         else:
             v = data
         super().__init__(v, type_of)
-
-    def __add__(self, other):
-        value = super().__add__(other).data
-        return Char(value, self.type_of)
-
-    def __sub__(self, other):
-        value = super().__sub__(other).data
-        return Char(value, self.type_of)
-
-    def __mul__(self, other):
-        value = super().__mul__(other).data
-        return Char(value, self.type_of)
-
-    def __truediv__(self, other):
-        value = super().__truediv__(other).data
-        return Char(value, self.type_of)
-
-    def __mod__(self, other):
-        value = super().__mod__(other).data
-        return Char(value, self.type_of)
-
-    def get_char(self): 
-        return chr(self.data)
 
 class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
     """ implementation of a Pointer to a store address."""
