@@ -186,7 +186,7 @@ class Envr:
             ident = ident.name
         if ident in self.map_to_address:
             return self.map_to_address[ident]
-        elif ident in Envr.global_envr:
+        elif ident in Envr.global_envr.map_to_address:
             return Envr.global_envr.map_to_address[ident]
         raise Exception(ident + " is not defined in this scope: " +
                         str(self.scope_id))

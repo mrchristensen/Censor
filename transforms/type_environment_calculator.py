@@ -67,7 +67,7 @@ class Enviornment:
         for ident in self.map_to_type:
             out += "\n\t" + ident
         current = self.parent
-        while current != None:
+        while current is not None:
             out += "\nParent:\n"
             for ident in current.map_to_type:
                 out += "\n\t" + ident
@@ -154,7 +154,7 @@ class TypeEnvironmentCalculator(NodeTransformer):
         self.envr = Enviornment(self.envr)
 
         func_decl = node.decl.type
-        if func_decl.args != None:
+        if func_decl.args is not None:
             func_decl.args = self.visit(func_decl.args)
         node.body = self.generic_visit(node.body)
 

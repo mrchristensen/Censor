@@ -45,6 +45,19 @@ def simplified(node):
     """Return true if node is ID or Constant"""
     return isinstance(node, (ID, Constant))
 
+def reverse_relational_op(operator):
+    """Returns equivalent op when the operands are flipped"""
+    if operator == '<':
+        return '>'
+    elif operator == '>':
+        return '<'
+    elif operator == '<=':
+        return '>='
+    elif operator == '>=':
+        return '<='
+    else:
+        raise Exception("Invalid test in OmpFor: %s" % operator)
+
 class SimplifyOmpFor(NodeTransformer):
     """Transform to simplify the header of omp for loops."""
     def __init__(self, id_generator, environments):
@@ -87,17 +100,18 @@ class SimplifyOmpFor(NodeTransformer):
     def pull_condition(self, loop, iter_var):
         """pull out condition to evaluate it to a constant in advance."""
         bound_decl = None
+        if isinstance(loop.cond.right, ID) and \
+            loop.cond.right.name == iter_var:
+            temp = loop.cond.right
+            loop.cond.right = loop.cond.left
+            loop.cond.left = temp
+            loop.cond.op = reverse_relational_op(loop.cond.op)
         if simplified(loop.cond.left) and simplified(loop.cond.right):
             return bound_decl
-        if isinstance(loop.cond.left, ID) and loop.cond.left.name == iter_var:
+        elif isinstance(loop.cond.left, ID) and loop.cond.left.name == iter_var:
             bound_decl = make_temp_value(loop.cond.right,
                                          self.id_generator, self.env)
             loop.cond.right = ID(bound_decl.name)
-        elif isinstance(loop.cond.right, ID) and \
-            loop.cond.right.name == iter_var:
-            bound_decl = make_temp_value(loop.cond.left,
-                                         self.id_generator, self.env)
-            loop.cond.left = ID(bound_decl.name)
         else:
             raise Exception("Invalid OMP for loop condition.")
         return bound_decl

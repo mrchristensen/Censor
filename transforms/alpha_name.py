@@ -8,6 +8,7 @@ FUNCTION_IDS = set() #All IDs declared in that function so far
 TO_RENAME_STACK_MAP = {} # map from an old_id to a stack of new_ids.
 RE_DECLS_IN_SCOPE = [set()] # Stack of sets of all ids of new decls in scopes.
 
+# pylint: disable=no-self-use
 class AlphaName(NodeTransformer):
     """Renames all variables so that functions can contain removable scopes"""
 

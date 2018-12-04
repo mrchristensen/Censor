@@ -12,6 +12,7 @@ from .lift_node import LiftNode
 from .type_helpers import get_type, _is_integral, _is_ptr, _is_array
 from .sizeof import get_size_ast
 
+# pylint: disable=no-self-use
 class ChangeToVoidPointer(LiftNode):
     """ Transforms all pointer arithmetic to void* arithmetic """
 

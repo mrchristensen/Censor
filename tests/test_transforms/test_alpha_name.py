@@ -3,6 +3,7 @@
 from transforms.alpha_name import AlphaName
 from tests.helpers import GoldenTestCase
 
+# pylint: disable=no-self-use
 class TestAlphaName(GoldenTestCase):
     """Test AlphaName transform"""
 

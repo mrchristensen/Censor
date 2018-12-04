@@ -263,7 +263,8 @@ def malloc_helper(exp, state, address):
         malloc_result = cast(malloc_result, exp.to_type, state)
     else:
         raise Exception("Malloc appeared without a cast")
-        #malloc_result = malloc(exp, state, [1]) # if malloc is assigned to a void*
+        # if malloc is assigned to a void*
+        #malloc_result = malloc(exp, state, [1])
     state.stor.write(address, malloc_result)
     return state.get_next()
 
@@ -274,7 +275,8 @@ def handle_decl_array(array, list_of_sizes, state, f_addr):
         raise Exception("Multidim. arrays should be transformed to single")
     elif isinstance(array.type, AST.TypeDecl):
         if isinstance(array.dim, AST.Constant):
-            length = generate_constant_value(array.dim.value, array.dim.type).data
+            length = generate_constant_value(
+                array.dim.value, array.dim.type).data
         elif isinstance(array.dim, AST.ID):
             length = state.stor.read(get_address(array.dim, state)).data #safe
         else:

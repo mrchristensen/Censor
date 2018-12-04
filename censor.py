@@ -1,5 +1,7 @@
 """A static analyzer; see the README for details."""
 
+# pylint: disable=comparison-with-itself
+
 from collections import deque, namedtuple
 import pycparser
 from utils import find_main, Thread, State

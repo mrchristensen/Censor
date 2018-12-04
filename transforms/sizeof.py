@@ -1,4 +1,7 @@
 """ Computes the size and alignment based on values in limits.py """
+
+# pylint: disable=useless-import-alias
+
 import re
 import pycparser.c_ast as AST
 import cesk.limits as limits

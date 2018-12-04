@@ -58,7 +58,7 @@ def is_a_prefix(prefix, ids):
             return True
     return False
 
-class IDGenerator(object): #pylint:disable=too-few-public-methods
+class IDGenerator(): #pylint:disable=too-few-public-methods
     """Generates unique IDs to use as labels and variable names."""
     def __init__(self, ast):
         self.id_count = 0
