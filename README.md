@@ -12,7 +12,7 @@ As a temporary fix, we cloned the pycparser master branch from github (https://g
 
 ## cesk
 
-- (Ex: python3 main.py -st cesk my_code.c) or (Ex: python3 cesk_main.py my_code.c)
+- (Ex: ./main.py -st cesk my_code.c) or (Ex: ./cesk_main.py my_code.c)
 
 - Parses the c file, transforms the ast, then runs the concrete cesk interpreter found in cesk/\_\_init\_\_.py
 
@@ -20,7 +20,7 @@ As a temporary fix, we cloned the pycparser master branch from github (https://g
 
 ## print
 
-- (Ex: python3 main.py -st print my_code.c)
+- (Ex: ./main.py -st print my_code.c)
 
 - Parses the c file, prints the resulting ast, transforms the ast, then prints the resulting ast
 
@@ -38,7 +38,7 @@ As a temporary fix, we cloned the pycparser master branch from github (https://g
 
 - To run all regression tests run `all_tests.py` in the tests directory to run regression suite
 
-- The cesk interpreter are the exception. Their tests can be found in cesk/tests. Run `all_tests.py` to test
+- The cesk interpreter is the exception. Its tests can be found in cesk/tests. Run `all_tests.py` to test
 
 - You can easily test just one c interpreted file by running `run_one_file.py <cfile>`
 
