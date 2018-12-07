@@ -28,7 +28,7 @@ As a temporary fix, we cloned the pycparser master branch from github (https://g
 
 ## transform
 
-- (Ex: python3 main.py -st transform my_code.c)
+- (Ex: ./main.py -st transform my_code.c)
 
 - Parses the c file, transforms the ast, converts it back to c code, then prints the result
 
