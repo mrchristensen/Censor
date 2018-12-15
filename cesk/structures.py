@@ -3,6 +3,7 @@
 import logging
 import pycparser
 import pycparser.c_ast as AST
+import omp.omp_ast as OMP
 import cesk.linksearch as ls
 from cesk.values import ReferenceValue, generate_unitialized_value
 from cesk.values import copy_pointer, generate_null_pointer
@@ -12,19 +13,21 @@ import cesk.config as cnf
 class SegFault(Exception):
     '''Special Exception for Segmentation Faults'''
     pass
-
-class State: #pylint:disable=too-few-public-methods
+# pylint:disable=too-few-public-methods,too-many-arguments,too-many-instance-attributes
+class State:
     """Holds a program state"""
-    ctrl = None #control
-    envr = None  #environment
-    stor = None #store
-    kont_addr = None #k(c)ontinuation Address
+    runtime = None
+    tid_count = 0
 
-    def __init__(self, ctrl, envr, stor, kont_addr):
+    def __init__(self, ctrl, envr, stor, kont_addr, tid, master,
+                 barrier):
         self.set_ctrl(ctrl)
         self.set_envr(envr)
         self.set_stor(stor)
         self.set_kont_addr(kont_addr)
+        self.tid = tid
+        self.master = master
+        self.barrier = barrier
 
     def set_ctrl(self, ctrl):
         """attaches a control object to the state"""
@@ -42,27 +45,53 @@ class State: #pylint:disable=too-few-public-methods
         """attaches a kont_addr object to the state"""
         self.kont_addr = kont_addr
 
-    def get_kont(self):
+    def get_kont_states(self, value=None):
         '''returns kont'''
         if self.kont_addr == 0:
             return None #halt kont
         else:
-            return self.stor.read_kont(self.kont_addr)
+            states = []
+            for k in self.stor.read_kont(self.kont_addr):
+                state = k.invoke(self, value)
+                if state is None:
+                    continue
+                if not isinstance(state, set):
+                    state = {state}
+                states.extend(state)
+            return set(states)
 
     def get_next(self):
         """ Moves the ctrl and returns the new state """
         next_ctrl = self.ctrl.get_next()
-        return State(next_ctrl, self.envr, self.stor, self.kont_addr)
+        if next_ctrl.is_kont_ctrl():
+            logging.debug("Invoking continuation to get next states")
+            return self.get_kont_states()
+        return {State(next_ctrl, self.envr, self.stor, self.kont_addr,
+                      self.tid, self.master, self.barrier)}
+
+    def has_barrier(self):
+        """Return whether this state is waiting at a barrier"""
+        return self.barrier is not None
+
+    def is_blocked(self):
+        """Return whether thread is blocking"""
+        logging.debug("Task %d, barrier is %d", self.tid,
+                      State.runtime.get_barrier(self.barrier))
+        return not State.runtime.barrier_clear(self.barrier)
 
     def __eq__(self, other):
         return (self.ctrl == other.ctrl and
                 self.envr == other.envr and
                 self.stor == other.stor and
-                self.kont_addr == other.kont_addr)
+                self.kont_addr == other.kont_addr and
+                self.tid == other.tid and
+                self.master == other.master,
+                self.barrier == other.barrier)
 
     def __hash__(self):
         return id(self)
 
+INVOKE_KONT_CTRL = "INVOKE_KONT_CTRL"
 class Ctrl: #pylint:disable=too-few-public-methods
     """Holds the control pointer or location of the program"""
 
@@ -101,11 +130,17 @@ class Ctrl: #pylint:disable=too-few-public-methods
             return self.node
         return self.body.block_items[self.index]
 
+    def is_kont_ctrl(self):
+        """Return whether ctrl is special ctrl meaning invoke kont"""
+        return self.stmt() == INVOKE_KONT_CTRL
+
     def get_next(self):
         """takes state and returns a state with ctrl for the next statement
         to execute"""
 
         if self.body: #if a standard compound-block:index ctrl
+            logging.debug("index:%s, len:%s", self.index,
+                          len(self.body.block_items))
             if self.index + 1 < len(self.body.block_items):
                 #if there are more items in the compound block go to next
                 return Ctrl(self.index + 1, self.body)
@@ -119,25 +154,33 @@ class Ctrl: #pylint:disable=too-few-public-methods
 
                 elif isinstance(parent, AST.Compound):
                     #find current compound block position in the parent block
+                    logging.debug("Compound's parent is compound, recursing")
                     parent_index = ls.LinkSearch.index_lut[self.body]
                     new_ctrl = Ctrl(parent_index, parent)
 
                 else:
+                    logging.debug("Compound's parent is node, recursing %s",
+                                  parent)
                     #if the parent is not a compound (probably an if statement)
                     new_ctrl = Ctrl(parent) #make a special ctrl and try again
 
                 return new_ctrl.get_next()
 
         if self.node:
+            if isinstance(self.node, (OMP.OmpParallel, OMP.OmpFor,
+                                      OMP.OmpCritical)):
+                return Ctrl(INVOKE_KONT_CTRL)
             #if it is a special ctrl as created by binop or assign
             #try to convert to normal ctrl and try again
             parent = ls.LinkSearch.parent_lut[self.node]
             if isinstance(parent, AST.Compound):
                 #we found the compound we can create normal ctrl
+                logging.debug("Node's parent is compound, recursing")
                 parent_index = ls.LinkSearch.index_lut[self.node]
                 new_ctrl = Ctrl(parent_index, parent)
             else:
                 #we couldn't make a normal try again on parent
+                logging.debug("Node's parent is node, recursing %s", parent)
                 new_ctrl = Ctrl(parent)
             return new_ctrl.get_next()
 
@@ -210,11 +253,15 @@ class Envr:
 
     def is_localy_defined(self, ident):
         """returns if a given identifier is local to this scope"""
+        while not isinstance(ident, str):
+            ident = ident.name
         return ident in self.map_to_address
 
     @staticmethod
     def is_globaly_defined(ident):
         """returns if a given identifier is local to this scope"""
+        while not isinstance(ident, str):
+            ident = ident.name
         return ident in Envr.global_envr.map_to_address
 
     def __contains__(self, ident):
@@ -520,6 +567,6 @@ class Kont: #pylint: disable=too-few-public-methods
             return None
         if self.address:
             state.stor.write(self.address, value)
-        new_state = State(self.ctrl, self.envr,
-                          state.stor, self.kont_addr)
+        new_state = State(self.ctrl, self.envr, state.stor, self.kont_addr,
+                          state.tid, state.master, state.barrier)
         return new_state.get_next()

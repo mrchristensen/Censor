@@ -2,12 +2,14 @@
 
 import logging
 import sys
+import os
 from collections import deque
 import errno
 from utils import find_main
 from cesk.structures import State, Ctrl, Envr, Stor, Kont
 from cesk.interpret import (decl_helper, execute, get_value,
                             implemented_nodes as impl_nodes)
+from cesk.omp_runtime import OmpRuntime
 import cesk.linksearch as ls
 from .structures import SegFault
 
@@ -19,10 +21,26 @@ def main(ast):
     main_function = find_main(ast)[0]
 
     start_state = prepare_start_state(main_function)
+    State.runtime = OmpRuntime(os.environ)
 
     queue = deque([start_state])
-    while queue: #is not empty
+    blocked = deque()
+    while queue or blocked: #is not empty
+        if not queue:
+            for state in blocked:
+                if not state.is_blocked():
+                    state.barrier = None
+                    queue.extend(state.get_next())
+            if not queue:
+                raise Exception("Deadlock")
+            continue
         next_state = queue.popleft()
+        if next_state.has_barrier():
+            blocked.append(next_state)
+            logging.debug("Postponing blocked task %d %s %d",
+                          next_state.tid, next_state.ctrl.stmt(),
+                          next_state.runtime.barriers[next_state.barrier])
+            continue
         try:
             successors = execute(next_state)
         except SegFault: #pylint: disable=broad-except
@@ -37,20 +55,21 @@ def implemented_nodes():
 
 def prepare_start_state(main_function):
     '''Creates the first state'''
-    halt_state = State(None, None, None, Kont.allocK()) # zero is halt kont
+    # zero is halt kont
+    halt_state = State(None, None, None, Kont.allocK(), 0, 0, None)
     start_ctrl = Ctrl(main_function.body)
-    start_envr = Envr(State(start_ctrl, None, None, None)) #state for allocF
+    start_envr = Envr(State(start_ctrl, None, None, None, 0, 0, None))
     start_stor = Stor()
     init_globals(start_stor)
     logging.debug("Globals init done")
     kont_addr = Kont.allocK()
     kai = Kont(halt_state)
     start_stor.write_kont(kont_addr, kai)
-    return State(start_ctrl, start_envr, start_stor, kont_addr)
+    return State(start_ctrl, start_envr, start_stor, kont_addr, 0, 0, None)
 
 def init_globals(stor):
     """ Initializes the global found by linksearch """
-    fake_state = State(None, Envr(None), stor, None)
+    fake_state = State(None, Envr(None), stor, None, 0, 0, None)
     for decl in ls.LinkSearch.global_decl_list:
         logging.debug("Global %s", str(decl.name))
         decl_helper(decl, fake_state)

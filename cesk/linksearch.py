@@ -4,6 +4,11 @@ import logging
 import pycparser.c_ast as AST
 from cesk.limits import StructPackingScheme as SPS
 import cesk.limits as limits
+import omp.omp_ast
+
+def is_node(node):
+    """Return true if object is an instance of Node"""
+    return isinstance(node, (AST.Node, omp.omp_ast.Node))
 
 class LinkSearch(AST.NodeVisitor):
     """Holds various look-up-tables for functions, labels, etc."""
@@ -16,9 +21,12 @@ class LinkSearch(AST.NodeVisitor):
     scope_decl_lut = {}
     global_decl_list = []
 
-    def generic_visit(self, node):
-        # pylint: disable=too-many-branches
+    def generic_visit(self, node): # pylint: disable=too-many-branches,inconsistent-return-statements
         #create look-up-table (lut) for labels
+        if isinstance(node, AST.For):
+            LinkSearch.parent_lut[node.stmt] = node
+            self.visit(node.stmt)
+            return
         if isinstance(node, AST.Label):
             if node.name in LinkSearch.label_lut:
                 raise Exception("Duplicate label name")
@@ -35,8 +43,8 @@ class LinkSearch(AST.NodeVisitor):
             logging.debug('Store struct %s with decls %s', name, node.decls)
 
         #link children to parents via lut
-        for i, child in enumerate(node):
-            if isinstance(child, AST.Node):
+        for i, (_, child) in enumerate(node.children()):
+            if is_node(child):
                 if child in LinkSearch.parent_lut:
                     logging.debug("Child: %s", str(child))
                     logging.debug("Old Parent: %s",

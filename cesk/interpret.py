@@ -5,6 +5,10 @@ from transforms.sizeof import get_size_ast
 from cesk.values import generate_constant_value, cast, FrameAddress
 from cesk.structures import (State, Ctrl, Envr, Kont)
 import cesk.linksearch as ls
+
+# pylint: disable=invalid-name
+# pylint: disable=unused-argument
+
 logging.basicConfig(filename='logfile.txt', level=logging.DEBUG,
                     format='%(levelname)s: %(message)s', filemode='w')
 
@@ -33,29 +37,47 @@ def handle(stmt, state):
     handle_node = globals()[method_name]
     return handle_node(stmt, state)
 
-def handle_Label(stmt, state): # pylint: disable=invalid-name
-    '''Handles Labels'''
-    new_ctrl = Ctrl(stmt.stmt)
-    return State(new_ctrl, state.envr, state.stor, state.kont_addr)
+def handle_OmpParallel(stmt, state):
+    '''Handles OmpParallel'''
+    logging.debug("OmpParallel task %d with master %d", state.tid, state.master)
+    return set(state.runtime.get_thread_team(state))
 
-def handle_If(stmt, state): # pylint: disable=invalid-name
+def handle_OmpFor(stmt, state):
+    '''Handles OmpFor'''
+    logging.debug("OmpFor task %d with master %d", state.tid, state.master)
+    return set(state.runtime.get_loop_tasks(state))
+
+def handle_OmpCritical(stmt, state):
+    '''Handles OmpCritical'''
+    logging.debug("OmpCritical task %d with master %d", state.tid, state.master)
+    return state.runtime.get_critical_section(state)
+
+def handle_Label(stmt, state):
+    '''Handles Labels'''
+    logging.debug('Label %s', stmt)
+    new_ctrl = Ctrl(stmt.stmt)
+    return State(new_ctrl, state.envr, state.stor, state.kont_addr,
+                 state.tid, state.master, state.barrier)
+
+def handle_If(stmt, state):
     '''Handles Ifs'''
     logging.debug("If")
     value = get_value(stmt.cond, state)
     if value.get_truth_value():
         new_ctrl = Ctrl(stmt.iftrue)
-        return State(new_ctrl, state.envr, state.stor, state.kont_addr)
+        return State(new_ctrl, state.envr, state.stor, state.kont_addr,
+                     state.tid, state.master, state.barrier)
     elif stmt.iffalse:
         raise Exception("False Branch should be transformed")
     else:
         return state.get_next()
 
-def handle_ID(stmt, state): # pylint: disable=invalid-name
+def handle_ID(stmt, state):
     '''Handles IDs'''
     logging.debug("ID %s", stmt.name)
     return state.get_next()
 
-def handle_Goto(stmt, state): # pylint: disable=invalid-name
+def handle_Goto(stmt, state):
     '''Handles Gotos'''
     logging.debug('Goto %s', stmt.name)
     body = ls.LinkSearch.label_lut[stmt.name]
@@ -63,9 +85,10 @@ def handle_Goto(stmt, state): # pylint: disable=invalid-name
         index = ls.LinkSearch.index_lut[body]
         body = ls.LinkSearch.parent_lut[body]
     new_ctrl = Ctrl(index, body)
-    return State(new_ctrl, state.envr, state.stor, state.kont_addr)
+    return State(new_ctrl, state.envr, state.stor, state.kont_addr,
+                 state.tid, state.master, state.barrier)
 
-def handle_FuncCall(stmt, state, address=None): # pylint: disable=invalid-name
+def handle_FuncCall(stmt, state, address=None):
     '''Handles FuncCalls'''
     logging.debug("FuncCall")
     if stmt.name.name == "printf":
@@ -106,7 +129,8 @@ def handle_Compound(stmt, state): #pylint: disable=invalid-name
         new_ctrl = Ctrl(0, stmt)
         new_envr = state.envr
         ls.LinkSearch.envr_lut[stmt] = new_envr #save to table for goto lookup
-        return State(new_ctrl, new_envr, state.stor, state.kont_addr)
+        return State(new_ctrl, new_envr, state.stor, state.kont_addr,
+                     state.tid, state.master, state.barrier)
 
 def handle_Cast(stmt, state): #pylint: disable=invalid-name,unused-argument
     '''Handles Cast'''
@@ -146,7 +170,10 @@ def implemented_nodes():
         'If',
         'Label',
         'Return',
-        'UnaryOp'
+        'UnaryOp',
+        'OmpParallel',
+        'OmpFor',
+        'OmpCritical'
     }
 
 def should_not_find():
@@ -175,7 +202,6 @@ def todo_implement_nodes():
         'Enum',
         'Enumerator',
         'EnumeratorList',
-        'For',
         'NamedInitializer',
         'ParamList',
         'Struct',
@@ -199,6 +225,7 @@ def should_be_transformed_nodes():
         'Switch',
         'TernaryOp',
         'Typedef',
+        'For',
         'While'
     }
 
@@ -310,7 +337,7 @@ def handle_decl_struct(struct, state, f_addr):
     data_address = state.stor.allocM(f_addr, list_of_sizes)
     return data_address
 
-def handle_UnaryOp(stmt, state): # pylint: disable=invalid-name,unused-argument
+def handle_UnaryOp(stmt, state):
     """decodes and evaluates unary_ops"""
     #opr = stmt.op
     #expr = stmt.expr
@@ -332,6 +359,7 @@ def printf(stmt, state):
         else:
             value = state.stor.read(get_address(expr, state))
         value_array.append(value.data)
+    logging.debug("printf values: %s", value_array)
     if isinstance(stmt.args.exprs[0], AST.Constant):
         print_string = stmt.args.exprs[0].value % tuple(value_array)
     elif isinstance(stmt.args.exprs[0], AST.Cast):
@@ -397,7 +425,8 @@ def func_helper(param_list, expr_list, func_def, state, address):
     kont = Kont(state, address)
     kont_addr = Kont.allocK(state, next_ctrl, next_envr)
     state.stor.write_kont(kont_addr, kont) # stor = stor[a_k'->K]
-    new_state = State(next_ctrl, next_envr, state.stor, kont_addr)
+    new_state = State(next_ctrl, next_envr, state.stor, kont_addr,
+                      state.tid, state.master, state.barrier)
 
     for decl, expr in zip(param_list, expr_list): #add parameters to environment
         new_state = decl_helper(decl, new_state)
@@ -409,18 +438,13 @@ def func_helper(param_list, expr_list, func_def, state, address):
 
 def handle_Return(stmt, state):# pylint: disable=invalid-name
     """satisfies kont"""
+    logging.debug('Return %s', stmt)
     exp = stmt.expr
     value = None
     if exp: #exp is always an ID because of transforms
         address = state.envr.get_address(exp.name)
         value = state.stor.read(address) #safe
-    #TODO invoke a list rather then a single call
-    ret_set = set()
-    for kont in state.get_kont():
-        k = kont.invoke(state, value)
-        if k is not None:
-            ret_set.add(k)
-    return ret_set
+    return state.get_kont_states(value)
 
 def get_value(stmt, state): #pylint: disable=too-many-return-statements
     """ get value for simple id's constants or references and casts of them """
