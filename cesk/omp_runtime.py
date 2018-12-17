@@ -6,6 +6,8 @@
 # pylint: disable=no-self-use
 # pylint: disable=too-many-arguments
 # pylint: disable=too-many-locals
+# pylint: disable=invalid-name
+# pylint: disable=unused-argument
 
 import logging
 from copy import deepcopy
@@ -13,9 +15,6 @@ from omp.omp_ast import *
 from pycparser.c_ast import ID, Constant, Compound
 import cesk.interpret as interpreter
 from cesk.structures import State, Kont, Ctrl
-
-logging.basicConfig(filename='logfile.txt', level=logging.DEBUG,
-                    format='%(levelname)s: %(message)s', filemode='w')
 
 CRITICAL_SECTION = "CRITICAL_SECTION"
 
@@ -66,6 +65,14 @@ class OmpCriticalKont(Kont):
 
 class OmpRuntime():
     """OpenMP Runtime"""
+
+    tid_counter = 0
+
+    @staticmethod
+    def allocT(state):
+        """Return task id"""
+        OmpRuntime.tid_counter += 1
+        return OmpRuntime.tid_counter
 
     def __init__(self, env):
         self.num_threads = [int(getenv(env, 'OMP_NUM_THREADS', 2))]
@@ -176,8 +183,8 @@ class OmpRuntime():
                                            omp_parallel)
         threads = [master]
         kont_type = TaskKont
-        for i in range(self.get_num_child_threads()):
-            tid = state.tid + i + 1
+        for _ in range(self.get_num_child_threads()):
+            tid = OmpRuntime.allocT(state)
             threads.append(self.get_structured_block(
                 state, block, kont_type, tid, omp_parallel))
         return threads
@@ -192,8 +199,8 @@ class OmpRuntime():
                                            state.tid, omp_for, None, False)
         states = [*thread.get_next()]
         kont_type = TaskKont
-        for i, iter_var in enumerate(self.get_loop_iterations(state)):
-            tid = state.tid + i + 1
+        for iter_var in self.get_loop_iterations(state):
+            tid = OmpRuntime.allocT(state)
             states.append(
                 self.get_structured_block(state, block, kont_type,
                                           tid, omp_for, [iter_var]))
