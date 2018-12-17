@@ -7,11 +7,12 @@ from collections import deque
 import errno
 from utils import find_main
 from cesk.structures import State, Ctrl, Envr, Stor, Kont, SegFault
-from cesk.interpret import (decl_helper, execute, get_value,
+from cesk.interpret import (decl_helper, get_value,
                             implemented_nodes as impl_nodes)
 from cesk.omp_runtime import OmpRuntime
 import cesk.config as cnf
 import cesk.linksearch as ls
+from cesk.scheduler import Scheduler
 
 # Set up logging here
 logging.basicConfig(filename='logfile.txt',
@@ -23,34 +24,18 @@ def main(ast):
     """Injects execution into main funciton and maintains work queue"""
     #Search ast. link children to parents, map names FuncDef and Label nodes
     ls.LinkSearch().visit(ast)
-    logging.debug("Scope Decl LUT: %s", str(ls.LinkSearch.scope_decl_lut))
     main_function = find_main(ast)[0]
 
     start_state = prepare_start_state(main_function)
     start_state.set_runtime(OmpRuntime(os.environ))
 
-    queue = deque([start_state])
-    blocked = deque()
-    while queue or blocked: #is not empty
-        if not queue:
-            for state in blocked:
-                if not state.is_blocked():
-                    state.barrier = None
-                    queue.extend(state.get_next())
-            if not queue:
-                raise Exception("Deadlock")
-            continue
-        next_state = queue.popleft()
-        if next_state.has_barrier():
-            blocked.append(next_state)
-            continue
+    scheduler = Scheduler(start_state)
+    while not scheduler.finished():
         try:
-            successors = execute(next_state)
-        except SegFault: #pylint: disable=broad-except
-            print('segmentation fault (core dumped)')
+            scheduler.step()
+        except SegFault:
+            print("segmentation fault detected")
             sys.exit(errno.EFAULT)
-        queue.extend(successors)
-    #raise Exception("Execution finished without Halt")
 
 def implemented_nodes():
     """ returns a list of implemented node type names """

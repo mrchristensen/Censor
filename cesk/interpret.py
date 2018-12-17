@@ -2,12 +2,15 @@
 import logging
 import pycparser.c_ast as AST
 from transforms.sizeof import get_size_ast
+from omp.c_with_omp_generator import CWithOMPGenerator
 from cesk.values import generate_constant_value, cast, FrameAddress
 from cesk.structures import (State, Ctrl, Envr, Kont)
 import cesk.linksearch as ls
 
 # pylint: disable=invalid-name
 # pylint: disable=unused-argument
+
+AST_TO_C = CWithOMPGenerator()
 
 def execute(state):
     """Takes a state evaluates the stmt from ctrl and returns a set of
@@ -36,37 +39,38 @@ def handle(stmt, state):
 
 def handle_OmpParallel(stmt, state):
     '''Handles OmpParallel'''
-    logging.debug("OmpParallel task %d with master %d", state.tid, state.master)
+    logging.debug("Creating thread team")
     return set(state.get_runtime().get_thread_team(state))
 
 def handle_OmpFor(stmt, state):
     '''Handles OmpFor'''
-    logging.debug("OmpFor task %d with master %d", state.tid, state.master)
+    logging.debug("Creating tasks for loops")
     return set(state.get_runtime().get_loop_tasks(state))
 
 def handle_OmpCritical(stmt, state):
     '''Handles OmpCritical'''
-    logging.debug("OmpCritical task %d with master %d", state.tid, state.master)
+    logging.debug("Attempting to enter critical section")
     return state.get_runtime().get_critical_section(state)
 
 def handle_Label(stmt, state):
     '''Handles Labels'''
-    logging.debug('Label %s', stmt)
+    logging.debug('Reached label %s', stmt.name)
     new_ctrl = Ctrl(stmt.stmt)
     return State(new_ctrl, state.envr, state.stor, state.kont_addr,
                  state.tid, state.master, state.barrier)
 
 def handle_If(stmt, state):
     '''Handles Ifs'''
-    logging.debug("If")
     value = get_value(stmt.cond, state)
     if value.get_truth_value():
+        logging.debug("If, taking true branch")
         new_ctrl = Ctrl(stmt.iftrue)
         return State(new_ctrl, state.envr, state.stor, state.kont_addr,
                      state.tid, state.master, state.barrier)
     elif stmt.iffalse:
         raise Exception("False Branch should be transformed")
     else:
+        logging.debug("If, taking false branch")
         return state.get_next()
 
 def handle_ID(stmt, state):
@@ -87,7 +91,6 @@ def handle_Goto(stmt, state):
 
 def handle_FuncCall(stmt, state, address=None):
     '''Handles FuncCalls'''
-    logging.debug("FuncCall")
     if stmt.name.name == "printf":
         return printf(stmt, state)
     elif stmt.name.name == "malloc":
@@ -104,22 +107,22 @@ def handle_EmptyStatement(stmt, state): #pylint: disable=invalid-name
 
 def handle_Decl(stmt, state):#pylint: disable=invalid-name
     '''Handles Decls'''
-    logging.debug("Decl %s    %s", str(stmt.name), str(stmt.type))
+    logging.debug("%s", AST_TO_C.visit(stmt))
     decl_helper(stmt, state)
     if stmt.init:
         address = state.envr.get_address(stmt.name)
+        logging.debug("Initializing %s (at %s)", stmt.name, address)
         return assignment_helper("=", address, stmt.init, state)
     else:
         return state.get_next()
 
 def handle_Constant(stmt, state): #pylint: disable=invalid-name
     '''Handles Constants'''
-    logging.debug("Constant %s", stmt.type)
     return state.get_next()
 
 def handle_Compound(stmt, state): #pylint: disable=invalid-name
     '''Handles Compounds'''
-    logging.debug("Compound")
+    logging.debug("Entering compound block")
     if stmt.block_items is None:
         return state.get_next()
     else:
@@ -131,23 +134,22 @@ def handle_Compound(stmt, state): #pylint: disable=invalid-name
 
 def handle_Cast(stmt, state): #pylint: disable=invalid-name,unused-argument
     '''Handles Cast'''
-    logging.debug('Cast')
     #is not evaluated becase the operator is not stored
     # anywhere so should not affect the program
     return state.get_next()
 
 def handle_BinaryOp(stmt, state): #pylint: disable=invalid-name,unused-argument
     '''Handles BinaryOps'''
-    logging.debug("BinaryOp")
     #is not evaluated becase the operator is not stored
     # anywhere so should not affect the program
     return state.get_next()
 
 def handle_Assignment(stmt, state): #pylint: disable=invalid-name
     '''Handles Assignments'''
-    logging.debug("Assignment")
     rexp = stmt.rvalue
     laddress = get_address(stmt.lvalue, state)
+    logging.debug("Assigning %s (%s) to %s", AST_TO_C.visit(stmt.lvalue),
+                  laddress, AST_TO_C.visit(rexp))
     return assignment_helper(stmt.op, laddress, rexp, state)
 
 def implemented_nodes():
@@ -239,6 +241,7 @@ def assignment_helper(operator, address, exp, state):
         else:
             value = get_value(exp, state)
             state.stor.write(address, value)
+            logging.debug("Wrote %s to %s", value, address)
             return state.get_next()
     else:
         raise Exception(operator + " is not yet implemented")
@@ -257,13 +260,14 @@ def decl_helper(decl, state):
             size_ast = get_size_ast(decl.type)
             size = generate_constant_value(size_ast.value, size_ast.type).data
             state.stor.allocM(f_addr, [size])
+            logging.debug("%s bytes allocated for %s at %s", size, name, f_addr)
 
             #the address is mapped then if additional space is need for
             # a struct handle decl struct manages it
 
     elif isinstance(decl.type, AST.ArrayDecl):
         data_address = handle_decl_array(decl.type, [], state, f_addr)
-        logging.debug(" Mapped %s to %s", str(name), str(data_address))
+        logging.debug("Mapped %s to %s", name, data_address)
         if decl.init:
             raise Exception("array init should be transformed")
 
@@ -397,7 +401,7 @@ def func(stmt, state, address=None):
     if stmt.name.name not in ls.LinkSearch.function_lut:
         raise Exception("Undefined reference to " + stmt.name.name)
     else:
-        logging.debug(" Calling Function: %s", stmt.name.name)
+        logging.debug("Calling function %s", stmt.name.name)
         func_def = ls.LinkSearch.function_lut[stmt.name.name]
         if func_def.decl.type.args is None:
             param_list = []
@@ -435,7 +439,7 @@ def func_helper(param_list, expr_list, func_def, state, address):
 
 def handle_Return(stmt, state):# pylint: disable=invalid-name
     """satisfies kont"""
-    logging.debug('Return %s', stmt)
+    logging.debug('Returning %s', AST_TO_C.visit(stmt))
     exp = stmt.expr
     value = None
     if exp: #exp is always an ID because of transforms

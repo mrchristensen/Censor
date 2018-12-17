@@ -70,7 +70,7 @@ class ArithmeticValue:
         return Integer(int(self.data >= other.data), 'int')
 
     def __str__(self):
-        if self.data is not None:
+        if self.data and self.data is not None:
             return "(" + self.type_of + ") " + str(self.data)
         return super(ArithmeticValue,self).__str__()
 
@@ -134,6 +134,9 @@ class Integer(ArithmeticValue): #pylint:disable=too-few-public-methods
     def __mod__(self, other):
         value = self.bound(self.data % other.data)
         return Integer(value, self.type_of, self.size)
+
+    def __str__(self):
+        return "(%s), %d" % (self.type_of, self.data)
 
     def set_data(self, new_data):
         self.data = self.bound(new_data)
@@ -335,6 +338,8 @@ class FrameAddress(ReferenceValue):
             return False
         return self.ident == other.ident and self.frame == other.frame
 
+    def __str__(self):
+        return "FrameAddress: (%d, %s)" % (self.frame, self.ident)
 
 # needs to know what size it needs to be sometimes
 def generate_constant_value(value, type_of='int'):

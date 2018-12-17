@@ -4,11 +4,14 @@ import logging
 import pycparser
 import pycparser.c_ast as AST
 import omp.omp_ast as OMP
+from omp.c_with_omp_generator import CWithOMPGenerator
 import cesk.linksearch as ls
 from cesk.values import ReferenceValue, generate_unitialized_value
 from cesk.values import copy_pointer, generate_null_pointer
 from cesk.values import generate_pointer, generate_value, generate_frame_address
 import cesk.config as cnf
+
+AST_TO_C = CWithOMPGenerator()
 
 class SegFault(Exception):
     '''Special Exception for Segmentation Faults'''
@@ -44,29 +47,26 @@ class State:
             return None #halt kont
         else:
             states = []
+            logging.debug("Invoking continuations")
             for k in self.stor.read_kont(self.kont_addr):
                 state = k.invoke(self, value)
                 if state is None:
                     continue
                 if not isinstance(state, set):
-                    state = {state}
-                states.extend(state)
+                    states.append(state)
+                else:
+                    states.extend(state)
             return set(states)
 
     def get_next(self):
         """ Moves the ctrl and returns the new state """
         next_ctrl = self.ctrl.get_next()
         if next_ctrl.is_kont_ctrl():
-            logging.debug("Invoking continuation to get next states")
             return self.get_kont_states()
         return {State(next_ctrl, self.envr, self.stor, self.kont_addr,
                       self.tid, self.master, self.barrier)}
 
-    def has_barrier(self):
-        """Return whether this state is waiting at a barrier"""
-        return self.barrier is not None
-
-    def is_blocked(self):
+    def blocking(self):
         """Return whether thread is blocking"""
         return not self.get_runtime().barrier_clear(self.barrier)
 
@@ -81,6 +81,15 @@ class State:
 
     def __hash__(self):
         return id(self)
+
+    def __str__(self):
+        stmt = self.ctrl.stmt()
+        stmt_str = AST_TO_C.visit(stmt)
+        if len(stmt_str.split('\n')) > 1:
+            stmt_str = stmt.__class__.__name__
+        return "(tid=%d ctrl=%s master=%d blocking=%d)" %\
+                (self.tid, stmt_str, self.master,
+                 self.get_runtime().get_barrier(self.barrier))
 
 INVOKE_KONT_CTRL = "INVOKE_KONT_CTRL"
 class Ctrl: #pylint:disable=too-few-public-methods
@@ -130,8 +139,6 @@ class Ctrl: #pylint:disable=too-few-public-methods
         to execute"""
 
         if self.body: #if a standard compound-block:index ctrl
-            logging.debug("index:%s, len:%s", self.index,
-                          len(self.body.block_items))
             if self.index + 1 < len(self.body.block_items):
                 #if there are more items in the compound block go to next
                 return Ctrl(self.index + 1, self.body)
@@ -145,13 +152,10 @@ class Ctrl: #pylint:disable=too-few-public-methods
 
                 elif isinstance(parent, AST.Compound):
                     #find current compound block position in the parent block
-                    logging.debug("Compound's parent is compound, recursing")
                     parent_index = ls.LinkSearch.index_lut[self.body]
                     new_ctrl = Ctrl(parent_index, parent)
 
                 else:
-                    logging.debug("Compound's parent is node, recursing %s",
-                                  parent)
                     #if the parent is not a compound (probably an if statement)
                     new_ctrl = Ctrl(parent) #make a special ctrl and try again
 
@@ -166,12 +170,10 @@ class Ctrl: #pylint:disable=too-few-public-methods
             parent = ls.LinkSearch.parent_lut[self.node]
             if isinstance(parent, AST.Compound):
                 #we found the compound we can create normal ctrl
-                logging.debug("Node's parent is compound, recursing")
                 parent_index = ls.LinkSearch.index_lut[self.node]
                 new_ctrl = Ctrl(parent_index, parent)
             else:
                 #we couldn't make a normal try again on parent
-                logging.debug("Node's parent is node, recursing %s", parent)
                 new_ctrl = Ctrl(parent)
             return new_ctrl.get_next()
 
@@ -288,7 +290,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
 
     def _make_new_address(self, size):
         """ Alloc address for a certian size and store unitialized value """
-        logging.info("Alloc %d for %d bytes", self.address_counter, size)
+        logging.debug("Alloc %d for %d bytes", self.address_counter, size)
         #will throw error if size is None
         pointer = generate_pointer(self.address_counter, size)
         self.memory[pointer] = generate_unitialized_value(size)
@@ -351,7 +353,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
         to the next block if the offset extends beyond the bounds
         of the current block.
         """
-        logging.debug("Offsetting %s by %d", str(pointer), offset)
+        logging.debug("Offsetting %s by %d", pointer, offset)
         new_pointer = copy_pointer(pointer)
         if new_pointer not in self.memory:
             if new_pointer.data == 0: #null is always null
@@ -384,7 +386,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
                     if new_pointer.data == 0:
                         return new_pointer
                     new_pointer.offset = self.memory[new_pointer].size
-        logging.debug("Pointer offset to %s", str(new_pointer))
+        logging.debug("Pointer offset to %s", new_pointer)
         return new_pointer
 
     def read(self, address):
@@ -394,7 +396,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
             address = self.base_pointers[address]
         else:
             address.update(self) #update offset of pointer
-        logging.info("Reading %s", str(address))
+        logging.debug("Reading %s", address)
 
 
         if address not in self.memory:
@@ -439,7 +441,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
         else:
             address.update(self)
 
-        logging.info('  Write %s  to  %s', str(value), str(address))
+        logging.debug('Write %s to %s', value, address)
         if not isinstance(address, ReferenceValue):
             raise Exception("Address should not be " + str(address))
         if address.data == 0 or\
@@ -499,7 +501,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
             with an offset set to make difference """
         #address = generate_pointer(address, self)
         #raise Exception("Do not want to be here")
-        logging.debug(" Look for address %d", address)
+        logging.debug("Look for address %d", address)
         if address in self.memory:
             return generate_pointer(address, None)
         if address > self.address_counter or address == 0:
