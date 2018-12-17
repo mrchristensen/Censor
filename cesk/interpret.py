@@ -9,9 +9,6 @@ import cesk.linksearch as ls
 # pylint: disable=invalid-name
 # pylint: disable=unused-argument
 
-logging.basicConfig(filename='logfile.txt', level=logging.DEBUG,
-                    format='%(levelname)s: %(message)s', filemode='w')
-
 def execute(state):
     """Takes a state evaluates the stmt from ctrl and returns a set of
     states"""
@@ -40,17 +37,17 @@ def handle(stmt, state):
 def handle_OmpParallel(stmt, state):
     '''Handles OmpParallel'''
     logging.debug("OmpParallel task %d with master %d", state.tid, state.master)
-    return set(state.runtime.get_thread_team(state))
+    return set(state.get_runtime().get_thread_team(state))
 
 def handle_OmpFor(stmt, state):
     '''Handles OmpFor'''
     logging.debug("OmpFor task %d with master %d", state.tid, state.master)
-    return set(state.runtime.get_loop_tasks(state))
+    return set(state.get_runtime().get_loop_tasks(state))
 
 def handle_OmpCritical(stmt, state):
     '''Handles OmpCritical'''
     logging.debug("OmpCritical task %d with master %d", state.tid, state.master)
-    return state.runtime.get_critical_section(state)
+    return state.get_runtime().get_critical_section(state)
 
 def handle_Label(stmt, state):
     '''Handles Labels'''

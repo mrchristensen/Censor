@@ -9,7 +9,6 @@
 # pylint: disable=invalid-name
 # pylint: disable=unused-argument
 
-import logging
 from copy import deepcopy
 from omp.omp_ast import *
 from pycparser.c_ast import ID, Constant, Compound
@@ -30,12 +29,8 @@ class EncounteringThreadKont(Kont):
     def invoke(self, state, value=None):
         """Update barrier and return new state"""
         # address is interpreted as the barrier
-        state.runtime.remove_from_barrier(self.address)
-        logging.debug("Barrier for %s is now %d", self.address,
-                      state.runtime.barriers[self.address])
+        state.get_runtime().remove_from_barrier(self.address)
         # point state to correct barrier
-        logging.debug("Blocked at %s, %s, %s",
-                      self.ctrl.body, self.ctrl.index, self.ctrl.stmt())
         return State(self.ctrl, self.envr, state.stor,
                      self.kont_addr, state.tid, state.master,
                      self.address)
@@ -46,9 +41,7 @@ class TaskKont(Kont):
     def invoke(self, state, value=None):
         """Update barrier and die"""
         # address is interpreted as the barrier
-        state.runtime.remove_from_barrier(self.address)
-        logging.debug("Barrier for %s is now %d, dying", self.address,
-                      state.runtime.barriers[self.address])
+        state.get_runtime().remove_from_barrier(self.address)
         # return None to die
 
 class OmpCriticalKont(Kont):
@@ -57,7 +50,7 @@ class OmpCriticalKont(Kont):
     def invoke(self, state, value=None):
         """Update barrier and return new state"""
         # address is interpreted as the barrier
-        state.runtime.release_critical_section()
+        state.get_runtime().release_critical_section()
         new_state = State(self.ctrl, self.envr, state.stor,
                           self.kont_addr, state.tid, state.master,
                           None)

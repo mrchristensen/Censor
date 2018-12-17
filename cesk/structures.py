@@ -17,33 +17,26 @@ class SegFault(Exception):
 class State:
     """Holds a program state"""
     runtime = None
-    tid_count = 0
+
+    @classmethod
+    def set_runtime(cls, runtime):
+        """Set static runtime object"""
+        cls.runtime = runtime
+
+    @classmethod
+    def get_runtime(cls):
+        """Return static runtime object"""
+        return cls.runtime
 
     def __init__(self, ctrl, envr, stor, kont_addr, tid, master,
                  barrier):
-        self.set_ctrl(ctrl)
-        self.set_envr(envr)
-        self.set_stor(stor)
-        self.set_kont_addr(kont_addr)
+        self.ctrl = ctrl
+        self.envr = envr
+        self.stor = stor
+        self.kont_addr = kont_addr
         self.tid = tid
         self.master = master
         self.barrier = barrier
-
-    def set_ctrl(self, ctrl):
-        """attaches a control object to the state"""
-        self.ctrl = ctrl
-
-    def set_envr(self, envr):
-        """attaches an environment object to the state"""
-        self.envr = envr
-
-    def set_stor(self, stor):
-        """attaches a stor object to the state"""
-        self.stor = stor
-
-    def set_kont_addr(self, kont_addr):
-        """attaches a kont_addr object to the state"""
-        self.kont_addr = kont_addr
 
     def get_kont_states(self, value=None):
         '''returns kont'''
@@ -75,9 +68,7 @@ class State:
 
     def is_blocked(self):
         """Return whether thread is blocking"""
-        logging.debug("Task %d, barrier is %d", self.tid,
-                      State.runtime.get_barrier(self.barrier))
-        return not State.runtime.barrier_clear(self.barrier)
+        return not self.get_runtime().barrier_clear(self.barrier)
 
     def __eq__(self, other):
         return (self.ctrl == other.ctrl and

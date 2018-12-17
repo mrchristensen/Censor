@@ -6,12 +6,18 @@ import os
 from collections import deque
 import errno
 from utils import find_main
-from cesk.structures import State, Ctrl, Envr, Stor, Kont
+from cesk.structures import State, Ctrl, Envr, Stor, Kont, SegFault
 from cesk.interpret import (decl_helper, execute, get_value,
                             implemented_nodes as impl_nodes)
 from cesk.omp_runtime import OmpRuntime
+import cesk.config as cnf
 import cesk.linksearch as ls
-from .structures import SegFault
+
+# Set up logging here
+logging.basicConfig(filename='logfile.txt',
+                    level=logging.DEBUG,
+                    format='%(levelname)s %(funcName)s: %(message)s',
+                    filemode='w')
 
 def main(ast):
     """Injects execution into main funciton and maintains work queue"""
@@ -21,7 +27,7 @@ def main(ast):
     main_function = find_main(ast)[0]
 
     start_state = prepare_start_state(main_function)
-    State.runtime = OmpRuntime(os.environ)
+    start_state.set_runtime(OmpRuntime(os.environ))
 
     queue = deque([start_state])
     blocked = deque()
@@ -37,9 +43,6 @@ def main(ast):
         next_state = queue.popleft()
         if next_state.has_barrier():
             blocked.append(next_state)
-            logging.debug("Postponing blocked task %d %s %d",
-                          next_state.tid, next_state.ctrl.stmt(),
-                          next_state.runtime.barriers[next_state.barrier])
             continue
         try:
             successors = execute(next_state)
