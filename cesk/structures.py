@@ -230,7 +230,9 @@ class Envr:
         while not isinstance(ident, str):
             ident = ident.name
         if self.is_localy_defined(ident):
-            return self.map_to_address[ident]
+            addr = self.get_address(ident)
+            if addr.frame == self.scope_id:
+                return addr
         #    raise Exception(ident + " is redefined")
         frame_addr = generate_frame_address(self.scope_id, ident)
         self.map_to_address[ident] = frame_addr

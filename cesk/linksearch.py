@@ -1,6 +1,5 @@
 """Functions to interpret c code directly"""
 # pylint: disable=useless-import-alias
-import logging
 import pycparser.c_ast as AST
 from cesk.limits import StructPackingScheme as SPS
 import cesk.limits as limits
@@ -19,6 +18,7 @@ class LinkSearch(AST.NodeVisitor):
     function_lut = {}
     struct_lut = {}
     scope_decl_lut = {}
+    decl_lut = {}
     global_decl_list = []
 
     def generic_visit(self, node): # pylint: disable=too-many-branches,inconsistent-return-statements
@@ -40,15 +40,15 @@ class LinkSearch(AST.NodeVisitor):
         if isinstance(node, AST.Struct) and node.decls:
             name = node.name
             LinkSearch.struct_lut[name] = node
-            logging.debug('Store struct %s with decls %s', name, node.decls)
+            #logging.debug('Store struct %s with decls %s', name, node.decls)
 
         #link children to parents via lut
         for i, (_, child) in enumerate(node.children()):
             if is_node(child):
                 if child in LinkSearch.parent_lut:
-                    logging.debug("Child: %s", str(child))
-                    logging.debug("Old Parent: %s",
-                                  str(LinkSearch.parent_lut[child]))
+                    #logging.debug("Child: %s", str(child))
+                    #logging.debug("Old Parent: %s",
+                    #             str(LinkSearch.parent_lut[child]))
                     raise Exception("Node duplicated in tree: ")
                 LinkSearch.parent_lut[child] = node
                 LinkSearch.index_lut[child] = i
@@ -57,6 +57,11 @@ class LinkSearch(AST.NodeVisitor):
         if node not in LinkSearch.parent_lut:
             LinkSearch.parent_lut[node] = None
             LinkSearch.index_lut[node] = 0
+
+        # Link identifier to decl TODO find a better way to do this
+        # used to make private OpenMP variables
+        if isinstance(node, AST.Decl):
+            LinkSearch.decl_lut[node.name] = node
 
         #Make a list of Decls in compounds for continuation edge case 12
         if isinstance(node, AST.Decl) and node in LinkSearch.parent_lut:

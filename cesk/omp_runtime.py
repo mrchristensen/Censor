@@ -14,6 +14,7 @@ from omp.omp_ast import *
 from pycparser.c_ast import ID, Constant, Compound
 import cesk.interpret as interpreter
 from cesk.structures import State, Kont, Ctrl
+import cesk.linksearch as ls
 
 CRITICAL_SECTION = "CRITICAL_SECTION"
 
@@ -156,16 +157,19 @@ class OmpRuntime():
             state.stor.write_kont(kont_addr, kont)
         else:
             kont_addr = state.kont_addr
-        if isinstance(private, list) and inherit_envr:
-            for var, val in private:
-                addr = envr.map_new_identifier(var)
-                state.stor.write(addr, val)
         if tid != state.tid:
             master = state.tid
         else:
             master = state.master
-        return State(ctrl, envr, state.stor, kont_addr, tid,
-                     master, None) # don't block yet
+        new_state = State(ctrl, envr, state.stor, kont_addr, tid,
+                          master, None) # don't block yet
+        if isinstance(private, list) and inherit_envr:
+            for var, val in private:
+                decl = ls.LinkSearch.decl_lut[var]
+                new_state = interpreter.decl_helper(decl, new_state)
+                new_address = new_state.envr.get_address(decl.name)
+                new_state.stor.write(new_address, val)
+        return new_state
 
     def get_thread_team(self, state):
         """Return states for descendant threads of parallel region"""
