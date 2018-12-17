@@ -116,6 +116,11 @@ class OmpRuntime():
         nth_thread = state.tid - state.master
         # just create all tasks with master thread for now
         # eventually the schedule type will need to be considered
+        # in order to make barrier counter accurate without assuming
+        # anything about the schedule, every thread needs to create at
+        # least one task. Otherwise, if the first thread to encounter
+        # the loop doesn't create any tasks, it's barrier counter will
+        # be 0 and it will move past the barrier illegaly
         if nth_thread != 0:
             return iterations
         # relies on simplify_omp_for, lift_to_compound and unary_op transforms
