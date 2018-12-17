@@ -15,7 +15,7 @@ import cesk.linksearch as ls
 
 # Set up logging here
 logging.basicConfig(filename='logfile.txt',
-                    level=logging.DEBUG,
+                    level=cnf.get_log_level(),
                     format='%(levelname)s %(funcName)s: %(message)s',
                     filemode='w')
 
