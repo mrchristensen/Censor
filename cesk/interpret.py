@@ -37,6 +37,11 @@ def handle(stmt, state):
     handle_node = globals()[method_name]
     return handle_node(stmt, state)
 
+def handle_InvokeKont(stmt, state):
+    '''Handle InvokeKont'''
+    logging.debug("InvokeKont %s", state)
+    return state.get_kont_states()
+
 def handle_OmpParallel(stmt, state):
     '''Handles OmpParallel'''
     logging.debug("Creating thread team")
@@ -172,7 +177,8 @@ def implemented_nodes():
         'UnaryOp',
         'OmpParallel',
         'OmpFor',
-        'OmpCritical'
+        'OmpCritical',
+        'InvokeKont'
     }
 
 def should_not_find():

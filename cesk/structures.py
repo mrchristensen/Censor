@@ -3,7 +3,6 @@
 import logging
 import pycparser
 import pycparser.c_ast as AST
-import omp.omp_ast as OMP
 from omp.c_with_omp_generator import CWithOMPGenerator
 import cesk.linksearch as ls
 from cesk.values import ReferenceValue, generate_unitialized_value
@@ -61,10 +60,8 @@ class State:
     def get_next(self):
         """ Moves the ctrl and returns the new state """
         next_ctrl = self.ctrl.get_next()
-        if next_ctrl.is_kont_ctrl():
-            return self.get_kont_states()
-        return {State(next_ctrl, self.envr, self.stor, self.kont_addr,
-                      self.tid, self.master, self.barrier)}
+        return State(next_ctrl, self.envr, self.stor, self.kont_addr,
+                     self.tid, self.master, self.barrier)
 
     def blocking(self):
         """Return whether thread is blocking"""
@@ -87,7 +84,6 @@ class State:
                 (self.tid, self.ctrl, self.master,
                  self.get_runtime().get_barrier(self.barrier))
 
-INVOKE_KONT_CTRL = "INVOKE_KONT_CTRL"
 class Ctrl: #pylint:disable=too-few-public-methods
     """Holds the control pointer or location of the program"""
 
@@ -126,10 +122,6 @@ class Ctrl: #pylint:disable=too-few-public-methods
             return self.node
         return self.body.block_items[self.index]
 
-    def is_kont_ctrl(self):
-        """Return whether ctrl is special ctrl meaning invoke kont"""
-        return self.stmt() == INVOKE_KONT_CTRL
-
     def get_next(self):
         """takes state and returns a state with ctrl for the next statement
         to execute"""
@@ -158,9 +150,6 @@ class Ctrl: #pylint:disable=too-few-public-methods
                 return new_ctrl.get_next()
 
         if self.node:
-            if isinstance(self.node, (OMP.OmpParallel, OMP.OmpFor,
-                                      OMP.OmpCritical)):
-                return Ctrl(INVOKE_KONT_CTRL)
             #if it is a special ctrl as created by binop or assign
             #try to convert to normal ctrl and try again
             parent = ls.LinkSearch.parent_lut[self.node]

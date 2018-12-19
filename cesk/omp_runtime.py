@@ -25,7 +25,7 @@ def getenv(env, var, default):
         return default
     return env.get(var)
 
-class ReleaseKont(Kont):
+class BarrierKont(Kont):
     """Decrease barrier count and either die or return state"""
 
     def __init__(self, parent_state, address, die):
@@ -45,37 +45,20 @@ class ReleaseKont(Kont):
                            self.kont_addr, state.tid, state.master,
                            self.address)
         if not next_state.blocking():
-            next_state = next_state.get_next()
+            next_state.barrier = None
+        next_state = next_state.get_next()
         logging.debug("Decremented barrier to %d, returning %s",
                       state.get_runtime().get_barrier(self.address),
                       next_state)
         return next_state
 
 def encountering_thread_kont(state, address):
-    """Return a ReleaseKont for encountering threads"""
-    return ReleaseKont(state, address, False)
+    """Return a BarrierKont for encountering threads"""
+    return BarrierKont(state, address, False)
 
 def worker_thread_kont(state, address):
-    """Return a ReleaseKont for a worker"""
-    return ReleaseKont(state, address, True)
-
-class AcquireKont(Kont):
-    """Increase barrier count and execute current ctrl"""
-
-    def invoke(self, state, value=None):
-        """Update barrier and return new state"""
-        # assumes ctrl is a critical section
-        block = self.ctrl.stmt().block
-        parent = State(self.ctrl, self.envr, state.stor,
-                       self.kont_addr, state.tid, state.master,
-                       state.barrier)
-        next_state = state.get_runtime().get_structured_block(
-            parent, block, encountering_thread_kont, state.tid,
-            self.address)
-        logging.debug("Incremented barrier to %d, returning %s",
-                      state.get_runtime().get_barrier(self.address),
-                      next_state)
-        return next_state
+    """Return a BarrierKont for a worker"""
+    return BarrierKont(state, address, True)
 
 class OmpRuntime():
     """OpenMP Runtime"""
@@ -205,7 +188,8 @@ class OmpRuntime():
         omp_for = state.ctrl.stmt()
         block = omp_for.loops.stmt
         # todo don't place barrier if nowait clause is present
-        thread = State(state.ctrl, state.envr, state.stor, state.kont_addr,
+        ctrl = state.ctrl.get_next()
+        thread = State(ctrl, state.envr, state.stor, state.kont_addr,
                        state.tid, state.master, omp_for)
         states = [thread]
         for iter_var in self.get_loop_iterations(state):
@@ -223,19 +207,13 @@ class OmpRuntime():
 
     def get_critical_section(self, state):
         """Return state for executing critical section body"""
-        critical = state.ctrl.stmt()
-        block = critical.block
         if self.barrier_clear(CRITICAL_SECTION):
+            block = state.ctrl.stmt().block
             return self.get_structured_block(
                 state, block, encountering_thread_kont,
                 state.tid, CRITICAL_SECTION)
-        ctrl = Ctrl(critical)
-        kont = AcquireKont(state, CRITICAL_SECTION)
-        kont_addr = Kont.allocK(state, ctrl, state.envr)
-        state.stor.write_kont(kont_addr, kont)
-        next_state = State(ctrl, state.envr, state.stor, kont_addr, state.tid,
-                           state.master, CRITICAL_SECTION)
-        return next_state
+        state.barrier = CRITICAL_SECTION
+        return state
 
     def barrier_clear(self, barrier):
         """Return whether barrier is clear"""

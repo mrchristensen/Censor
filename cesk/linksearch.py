@@ -43,7 +43,7 @@ class LinkSearch(AST.NodeVisitor):
             #logging.debug('Store struct %s with decls %s', name, node.decls)
 
         #link children to parents via lut
-        for i, (_, child) in enumerate(node.children()):
+        for i, child in enumerate(node):
             if is_node(child):
                 if child in LinkSearch.parent_lut:
                     #logging.debug("Child: %s", str(child))

@@ -2,7 +2,7 @@
 from pycparser.c_generator import CGenerator
 # This class is following a pattern that is required by the pycparser.CGenerator
 # that pylint doesn't like. So:
-#pylint: disable=invalid-name,missing-docstring,too-many-public-methods,no-self-use
+#pylint: disable=invalid-name,missing-docstring,too-many-public-methods,no-self-use,unused-argument
 class CWithOMPGenerator(CGenerator):
     """ Uses CGenerator to emit C code from an AST.
         Customized to support OMP Nodes.
@@ -81,3 +81,7 @@ class CWithOMPGenerator(CGenerator):
     def visit_OmpThreadprivate(self, n):
         """Return pragman string"""
         return '#pragma ' + n.pragma + '\n' + self.generic_visit(n)
+
+    def visit_InvokeKont(self, n):
+        """Return empty string"""
+        return ''

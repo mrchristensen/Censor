@@ -32,18 +32,9 @@ class Scheduler:
 
     def try_unblocking_tasks(self):
         """Try moving blocked tasks to queue"""
-        states = []
-        changed = False
-        while self.blocked:
-            state = self.blocked.popleft()
-            if not state.blocking():
-                states.extend(state.get_next())
-                changed = True
-                break
-            else:
-                states.append(state)
+        states = self.blocked.copy()
+        self.blocked.clear()
         self.add_states(states)
-        return changed
 
     def add_states(self, states):
         """Add states to queue and blocked"""
@@ -60,8 +51,8 @@ class Scheduler:
         if self.queue:
             state = self.queue.popleft()
         else:
-            changed = self.try_unblocking_tasks()
-            if not changed:
+            self.try_unblocking_tasks()
+            if not self.queue:
                 logging.debug("DEADLOCK")
                 for blocking in self.blocked:
                     logging.debug("%s", blocking)
