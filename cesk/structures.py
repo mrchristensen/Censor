@@ -83,12 +83,8 @@ class State:
         return id(self)
 
     def __str__(self):
-        stmt = self.ctrl.stmt()
-        stmt_str = AST_TO_C.visit(stmt)
-        if len(stmt_str.split('\n')) > 1:
-            stmt_str = stmt.__class__.__name__
         return "(tid=%d ctrl=%s master=%d blocking=%d)" %\
-                (self.tid, stmt_str, self.master,
+                (self.tid, self.ctrl, self.master,
                  self.get_runtime().get_barrier(self.barrier))
 
 INVOKE_KONT_CTRL = "INVOKE_KONT_CTRL"
@@ -192,6 +188,15 @@ class Ctrl: #pylint:disable=too-few-public-methods
             return 31 + 61 * hash(self.body) + 62257 * hash(self.index)
         else:
             return hash(self.node)
+
+    def __str__(self):
+        stmt = self.node if self.node else self.body.block_items[self.index]
+        stmt_str = AST_TO_C.visit(stmt)
+        if len(stmt_str.split('\n')) > 1:
+            stmt_str = stmt.__class__.__name__
+        if self.body:
+            return "Compound item %d(%s)" % (self.index, stmt_str)
+        return "Node(%s)" % stmt_str
 
 class Envr:
     """Holds the enviorment (a maping of identifiers to addresses)"""

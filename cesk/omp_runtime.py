@@ -12,7 +12,7 @@
 import logging
 from copy import deepcopy
 from omp.omp_ast import *
-from pycparser.c_ast import ID, Constant, Compound
+from pycparser.c_ast import ID, Constant
 import cesk.interpret as interpreter
 from cesk.structures import State, Kont, Ctrl
 import cesk.linksearch as ls
@@ -25,42 +25,63 @@ def getenv(env, var, default):
         return default
     return env.get(var)
 
-class ContinueKont(Kont):
-    """Continue after barrier"""
+class ReleaseKont(Kont):
+    """Decrease barrier count and either die or return state"""
+
+    def __init__(self, parent_state, address, die, stall):
+        super().__init__(parent_state, address)
+        self.die = die
+        self.stall = stall
 
     def invoke(self, state, value=None):
         """Update barrier and return new state"""
         # address is interpreted as the barrier
         state.get_runtime().remove_from_barrier(self.address)
+        if self.die:
+            logging.debug("Dying after setting barrier to %d",
+                          state.get_runtime().get_barrier(self.address))
+            return None
         # point state to correct barrier
         next_state = State(self.ctrl, self.envr, state.stor,
                            self.kont_addr, state.tid, state.master,
                            self.address)
-        logging.debug("ContinueKont returning %s", next_state)
+        if not self.stall:
+            next_state = next_state.get_next()
+        logging.debug("Decremented barrier to %d, returning %s",
+                      state.get_runtime().get_barrier(self.address),
+                      next_state)
         return next_state
 
-class DieKont(Kont):
-    """Die at barrier"""
+def encountering_thread_kont(state, address):
+    """Return a ReleaseKont for encountering threads"""
+    return ReleaseKont(state, address, False, True)
 
-    def invoke(self, state, value=None):
-        """Update barrier and die"""
-        # address is interpreted as the barrier
-        state.get_runtime().remove_from_barrier(self.address)
-        logging.debug("DieKont setting barrier to %d",
-                      state.get_runtime().get_barrier(self.address))
-        # return None to die
+def worker_thread_kont(state, address):
+    """Return a ReleaseKont for a worker"""
+    return ReleaseKont(state, address, True, True)
 
-class CriticalKont(Kont):
-    """Continuation for thread after executing critical section"""
+def critical_section_kont(state, address):
+    """Return a ReleaseKont for exiting a critical section"""
+    return ReleaseKont(state, address, False, False)
+
+class AcquireKont(Kont):
+    """Increase barrier count and execute current ctrl"""
 
     def invoke(self, state, value=None):
         """Update barrier and return new state"""
-        # address is interpreted as the barrier
-        state.get_runtime().release_critical_section()
-        new_state = State(self.ctrl, self.envr, state.stor,
-                          self.kont_addr, state.tid, state.master,
-                          None)
-        return new_state.get_next()
+        # assumes ctrl is a critical section
+        block = self.ctrl.stmt().block
+        kont_type = critical_section_kont
+        parent = State(self.ctrl, self.envr, state.stor,
+                       self.kont_addr, state.tid, state.master,
+                       state.barrier)
+        next_state = state.get_runtime().get_structured_block(
+            parent, block, kont_type, state.tid,
+            self.address)
+        logging.debug("Incremented barrier to %d, returning %s",
+                      state.get_runtime().get_barrier(self.address),
+                      next_state)
+        return next_state
 
 class OmpRuntime():
     """OpenMP Runtime"""
@@ -149,31 +170,22 @@ class OmpRuntime():
         return iterations
 
     def get_structured_block(self, state, block, kont_type, tid, barrier,
-                             private=None, inherit_envr=True):
+                             private=None):
         """Return task for structured block"""
         self.add_to_barrier(barrier)
-        if isinstance(block, Compound):
-            ctrl = Ctrl(0, block)
-        else:
-            ctrl = Ctrl(block)
-        if inherit_envr:
+        ctrl = Ctrl(0, block)
+        if isinstance(private, list):
             envr = deepcopy(state.envr)
             envr.scope_id = envr.allocF(state)
         else:
             envr = state.envr
-        if kont_type is not None:
-            kont = kont_type(state, barrier)
-            kont_addr = Kont.allocK(state, ctrl, envr)
-            state.stor.write_kont(kont_addr, kont)
-        else:
-            kont_addr = state.kont_addr
-        if tid != state.tid:
-            master = state.tid
-        else:
-            master = state.master
+        kont = kont_type(state, barrier)
+        kont_addr = Kont.allocK(state, ctrl, envr)
+        state.stor.write_kont(kont_addr, kont)
+        master = state.master if tid == state.tid else state.master
         new_state = State(ctrl, envr, state.stor, kont_addr, tid,
                           master, None) # don't block yet
-        if isinstance(private, list) and inherit_envr:
+        if isinstance(private, list):
             for var, val in private:
                 decl = ls.LinkSearch.decl_lut[var]
                 new_state = interpreter.decl_helper(decl, new_state)
@@ -185,31 +197,27 @@ class OmpRuntime():
         """Return states for descendant threads of parallel region"""
         omp_parallel = state.ctrl.stmt()
         block = omp_parallel.block
-        kont_type = ContinueKont
-        master = self.get_structured_block(state, block, kont_type, state.tid,
-                                           omp_parallel)
+        master = self.get_structured_block(
+            state, block, encountering_thread_kont, state.tid, omp_parallel)
         threads = [master]
-        kont_type = DieKont
         for _ in range(self.get_num_child_threads()):
             tid = OmpRuntime.allocT(state)
             threads.append(self.get_structured_block(
-                state, block, kont_type, tid, omp_parallel))
+                state, block, worker_thread_kont, tid, omp_parallel))
         return threads
 
     def get_loop_tasks(self, state):
         """Return tasks to execute loop body"""
         omp_for = state.ctrl.stmt()
         block = omp_for.loops.stmt
-        kont_type = ContinueKont
         # todo don't place barrier if nowait clause is present
-        thread = self.get_structured_block(state, omp_for, kont_type,
-                                           state.tid, omp_for, None, False)
-        states = [*thread.get_next()]
-        kont_type = DieKont
+        thread = State(state.ctrl, state.envr, state.stor, state.kont_addr,
+                       state.tid, state.master, omp_for)
+        states = [thread]
         for iter_var in self.get_loop_iterations(state):
             tid = OmpRuntime.allocT(state)
             states.append(
-                self.get_structured_block(state, block, kont_type,
+                self.get_structured_block(state, block, worker_thread_kont,
                                           tid, omp_for, [iter_var]))
         return states
 
@@ -221,25 +229,30 @@ class OmpRuntime():
 
     def get_critical_section(self, state):
         """Return state for executing critical section body"""
-        if self.critical_section_locked():
-            return State(state.ctrl, state.envr, state.stor, state.kont_addr,
-                         state.tid, state.master, CRITICAL_SECTION)
-        else:
-            self.lock_critical_section()
-            block = state.ctrl.stmt()
-            return self.get_structured_block(state, block, CriticalKont,
-                                             state.tid, None, None, False)
+        critical = state.ctrl.stmt()
+        block = critical.block
+        if self.barrier_clear(CRITICAL_SECTION):
+            return self.get_structured_block(
+                state, block, critical_section_kont,
+                state.tid, CRITICAL_SECTION)
+        ctrl = Ctrl(critical)
+        kont = AcquireKont(state, CRITICAL_SECTION)
+        kont_addr = Kont.allocK(state, ctrl, state.envr)
+        state.stor.write_kont(kont_addr, kont)
+        next_state = State(ctrl, state.envr, state.stor, kont_addr, state.tid,
+                           state.master, CRITICAL_SECTION)
+        return next_state
 
     def barrier_clear(self, barrier):
         """Return whether barrier is clear"""
-        return barrier is None or barrier not in self.barriers\
-                or self.barriers[barrier] == 0
+        val = self.get_barrier(barrier)
+        return val in (-1, 0)
 
     def add_to_barrier(self, barrier):
         """Add another task to barrier"""
         if barrier is None:
             return
-        if barrier not in self.barriers:
+        if self.get_barrier(barrier) == -1:
             self.barriers[barrier] = 0
         self.barriers[barrier] += 1
 
@@ -248,15 +261,3 @@ class OmpRuntime():
         if self.barrier_clear(barrier):
             return
         self.barriers[barrier] -= 1
-
-    def critical_section_locked(self):
-        """Return whether another thread is occupying a critical section"""
-        return self.barrier_clear(CRITICAL_SECTION)
-
-    def lock_critical_section(self):
-        """Lock critical section"""
-        self.add_to_barrier(CRITICAL_SECTION)
-
-    def release_critical_section(self):
-        """Release critical section"""
-        self.remove_from_barrier(CRITICAL_SECTION)
