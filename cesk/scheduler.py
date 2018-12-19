@@ -43,6 +43,7 @@ class Scheduler:
             if state.blocking():
                 self.blocked.append(state)
             else:
+                state.barrier = None # prevent random blocking
                 self.queue.append(state)
 
     def step(self):

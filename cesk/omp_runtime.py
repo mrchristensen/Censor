@@ -43,10 +43,7 @@ class BarrierKont(Kont):
         # point state to correct barrier
         next_state = State(self.ctrl, self.envr, state.stor,
                            self.kont_addr, state.tid, state.master,
-                           self.address)
-        if not next_state.blocking():
-            next_state.barrier = None
-        next_state = next_state.get_next()
+                           self.address).get_next()
         logging.debug("Decremented barrier to %d, returning %s",
                       state.get_runtime().get_barrier(self.address),
                       next_state)
