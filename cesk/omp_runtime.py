@@ -28,10 +28,9 @@ def getenv(env, var, default):
 class ReleaseKont(Kont):
     """Decrease barrier count and either die or return state"""
 
-    def __init__(self, parent_state, address, die, stall):
+    def __init__(self, parent_state, address, die):
         super().__init__(parent_state, address)
         self.die = die
-        self.stall = stall
 
     def invoke(self, state, value=None):
         """Update barrier and return new state"""
@@ -45,7 +44,7 @@ class ReleaseKont(Kont):
         next_state = State(self.ctrl, self.envr, state.stor,
                            self.kont_addr, state.tid, state.master,
                            self.address)
-        if not self.stall:
+        if not next_state.blocking():
             next_state = next_state.get_next()
         logging.debug("Decremented barrier to %d, returning %s",
                       state.get_runtime().get_barrier(self.address),
@@ -54,15 +53,11 @@ class ReleaseKont(Kont):
 
 def encountering_thread_kont(state, address):
     """Return a ReleaseKont for encountering threads"""
-    return ReleaseKont(state, address, False, True)
+    return ReleaseKont(state, address, False)
 
 def worker_thread_kont(state, address):
     """Return a ReleaseKont for a worker"""
-    return ReleaseKont(state, address, True, True)
-
-def critical_section_kont(state, address):
-    """Return a ReleaseKont for exiting a critical section"""
-    return ReleaseKont(state, address, False, False)
+    return ReleaseKont(state, address, True)
 
 class AcquireKont(Kont):
     """Increase barrier count and execute current ctrl"""
@@ -71,12 +66,11 @@ class AcquireKont(Kont):
         """Update barrier and return new state"""
         # assumes ctrl is a critical section
         block = self.ctrl.stmt().block
-        kont_type = critical_section_kont
         parent = State(self.ctrl, self.envr, state.stor,
                        self.kont_addr, state.tid, state.master,
                        state.barrier)
         next_state = state.get_runtime().get_structured_block(
-            parent, block, kont_type, state.tid,
+            parent, block, encountering_thread_kont, state.tid,
             self.address)
         logging.debug("Incremented barrier to %d, returning %s",
                       state.get_runtime().get_barrier(self.address),
@@ -233,7 +227,7 @@ class OmpRuntime():
         block = critical.block
         if self.barrier_clear(CRITICAL_SECTION):
             return self.get_structured_block(
-                state, block, critical_section_kont,
+                state, block, encountering_thread_kont,
                 state.tid, CRITICAL_SECTION)
         ctrl = Ctrl(critical)
         kont = AcquireKont(state, CRITICAL_SECTION)
