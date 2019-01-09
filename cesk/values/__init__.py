@@ -4,7 +4,7 @@ import pycparser
 import logging
 from cesk.linksearch import get_sizes
 import cesk.config
-from cesk.values.base_values import ReferenceValue, UnitializedValue
+from cesk.values import base_values as BV #import BV.ReferenceValue, BV.UnitializedValue, BV.ByteValue
 import cesk.limits as limits
 if cesk.config.CONFIG['values'] == 'concrete':
     from cesk.values.concrete import Integer, Float, Char, Pointer
@@ -78,30 +78,34 @@ def generate_constant_value(value, type_of='int'):
     raise Exception("Unkown Constant Type %s", type_of)
 
 
-def generate_value(value, type_of='bit_value', size=None):
+def generate_value(value, type_of):
     """ given value in bits and type_of as string, size for special cases 
         special cases include pointer, bit_value, uninitialized """
+    if not isinstance(value, BV.ByteValue):
+        raise Exception("BV.ByteValue must be passed into generate_value")
+
     if "char" in type_of:
-        return Char(value, type_of)
+        return Char.from_byte_value(value, type_of)
     if type_of in limits.RANGES:
-        return Integer(value, type_of)
+        return Integer.from_byte_value(value, type_of)
     if "float" in type_of or "double" in type_of:
-        return Float(value, type_of)
-    if type_of == 'bit_value':
-        return Integer(value, type_of, size)
+        return Float.from_byte_value(value, type_of)
 
     if type_of == 'pointer':
         raise Exception(
             'Pointer not expected here/not valid to change dynamically')
 
-    if type_of == 'uninitialized':
-        return Integer(value, 'bit_value', size)
+    if type_of == 'uninitialized' or type_of == 'bit_value':
+        #debate whether this should return an Integer or BV.ByteValue
+        #if BV.ByteValue a few more functions need to be added
+        #or if unitialized was an option for individual types rather than a group
+        return Integer.from_byte_value(value, 'bit_value')
 
     raise Exception("Unexpected value type %s", type_of)
 
 def generate_unitialized_value(size):
     """ Generates special value that is unitialized but has a size """
-    return UnitializedValue(size)
+    return BV.UnitializedValue(size)
 
 
 def generate_default_value(size):
@@ -134,17 +138,49 @@ def generate_frame_address(frame, ident):
     """ Build a Frame Address """
     return FrameAddress(frame, ident)
 
+#
+#def ItoTcast(value, typedeclt):
+#    """ handle integer to integer casts """
+#
+#def ItoFcast(value, typedeclt):
+#    """ handle integer to float casts """
+#
+#def ItoPcast(value, typedeclt):
+#    """ handle integer to pointer cast """
+#
+#def FtoIcast(value, typedeclt):
+#    """ handle float to integer cast """
+#
+#def FtoFcast(value, typedeclt):
+#    """ handle float to float cast """
+#
+#def PtoPcast(value, typedeclt):
+#    """ handle pointer to pointer casts """
+#
+#def PtoIcast(value, typedeclt):
+#    """ handle pointer to integer casts """
 
 def cast(value, typedeclt, state=None):  # pylint: disable=unused-argument
     """Casts the given value a  a value of the given type."""
     result = None
+    #Int -> Int
+    #Int -> Pointer
+    #Int -> Float
+
+    #Float -> Int
+    #Float -> Float
+
+    #Pointer -> Int
+    #Pointer -> Pointer
+
+    #BV.ByteValue -> ALL
 
     if isinstance(typedeclt, pycparser.c_ast.Typename):
         result = cast(value, typedeclt.type, state)
     elif isinstance(typedeclt, pycparser.c_ast.PtrDecl):
-        if isinstance(value, ReferenceValue):
-            result = copy_pointer(value, typedeclt.type)
-        else:
+        if isinstance(value, BV.ReferenceValue):
+            result = copy_pointer(value, typedeclt.type) #P -> P
+        elif isinstance(value, BV.BaseInteger): #I -> P
             # normal number being turned into a pointer not valid to dereference
             # TODO manage tracking of this
             logging.debug(" Cast %s to %s", str(value), str(typedeclt))
@@ -152,7 +188,9 @@ def cast(value, typedeclt, state=None):  # pylint: disable=unused-argument
             result = copy_pointer(address, typedeclt.type)
     elif isinstance(typedeclt, pycparser.c_ast.TypeDecl):
         types = typedeclt.type.names
-        result = generate_value(value.get_value(), " ".join(types))
+        byte_value = value.get_byte_value()
+        logging.debug("Byte_Value before cast %s", str(byte_value))
+        result = generate_value(byte_value, " ".join(types))
     else:
         logging.error('\tUnsupported cast: ' + str(typedeclt.type))
         raise Exception("Unsupported cast")

@@ -1,6 +1,6 @@
 '''Abstract data values'''
 
-from .base_values import BaseFloat, BaseInteger, ReferenceValue
+from .base_values import BaseFloat, BaseInteger, ReferenceValue, ByteValue
 import cesk.limits as limits
 from copy import deepcopy
 from enum import Enum
@@ -51,10 +51,10 @@ class Float(BaseFloat):  #pylint:disable=too-few-public-methods
     def __ge__(self, other):
         return Integer(set([0, 1]), 'int')
 
-    def get_value(self, start=-1, num_bytes=None):
+    def get_byte_value(self, start=-1, num_bytes=None):
         """value of the unsigned bits stored"""
         #TODO get binary value
-        return self.data
+        return ByteValue(self.size)
     
     def get_truth_value(self):
         return set([True, False])
@@ -81,8 +81,11 @@ class Integer(BaseInteger): #pylint:disable=too-few-public-methods
                 self.data.add(AbstractLiterals.PLUS)
             else:
                 raise Exception("Unkown value" +  str(element))
-        if AbstractLiterals.TOP in self.data or (AbstractLiterals.MINUS in self.data and AbstractLiterals.PLUS in self.data and AbstractLiterals.ZERO in AbstractLiterals):
-            self.data = set([AbstractLiterals.TOP])
+        if AbstractLiterals.TOP in self.data or \
+           (AbstractLiterals.MINUS in self.data and \
+            AbstractLiterals.PLUS in self.data and \
+            AbstractLiterals.ZERO in AbstractLiterals):
+                self.data = set([AbstractLiterals.TOP])
 
         if type_of is 'bit_value':
             self.type_of = type_of
@@ -172,6 +175,8 @@ class Integer(BaseInteger): #pylint:disable=too-few-public-methods
 
     def __eq__(self, other):
         value = set()
+        if not isinstance(other, Integer):
+            return Integer({0}, 'int')
         if AbstractLiterals.TOP in self.data or AbstractLiterals.TOP in other.data:
             return Integer(set([0,1]), 'int')
         if AbstractLiterals.PLUS in self.data:
@@ -211,9 +216,37 @@ class Integer(BaseInteger): #pylint:disable=too-few-public-methods
     def __ge__(self, other):
         return (self < other).__not__()
 
-    def get_value(self, start=-1, num_bytes=None):
+    def get_byte_value(self, start=-1, num_bytes=None):
         """value of the unsigned bits stored"""
-        return self.data
+        byte_value = ByteValue(self.size)
+        if AbstractLiterals.TOP in self.data:
+            return byte_value
+
+        if AbstractLiterals.MINUS in self.data:
+            if len(self.data) == 1:
+                byte_value.bits[0] = ByteValue.one
+            return byte_value
+
+        if AbstractLiterals.ZERO in self.data and len(self.data) == 1:
+            byte_value = ByteValue(self.size, ByteValue.zero)
+        else:
+            byte_value.bits[0] = ByteValue.zero
+
+        return byte_value
+    
+    @classmethod
+    def from_byte_value(cls, byte_value, type_of):
+        """ convert to abstract from byte value """
+        types = set
+        if byte_value.bits[0] != ByteValue.zero:
+            types.add(AbstractLiterals.MINUS)
+        if all( i != ByteValue.one for i in byte_value.bits ):
+            types.add(AbstractLiterals.ZERO)
+        if byte_value.bits[0] != ByteValue.one and \
+                all( i != ByteValue.zero for i in byte_value.bits):
+            types.add(AbstractLiterals.PLUS)
+
+        return cls(types, type_of, byte_value.size)
 
     def get_truth_value(self):
         values = set()
@@ -242,7 +275,8 @@ class Char(Integer):
         super().__init__(v, type_of)
 
 class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
-    """ implementation of a Pointer to a store address."""
+    """ implementation of a Pointer to a store address.
+        if it changes by a non const amount then it is top """
 
     def __init__(self, address, type_size, offset=0):
         self.data = int(address)
@@ -286,7 +320,7 @@ class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
     def __add__(self, other):
         ptr = deepcopy(self)
         if isinstance(other, Integer):
-            ptr.offset += other.data
+            ptr = TOP
         elif isinstance(other, int):
             ptr.offset += other
         else:
@@ -303,7 +337,7 @@ class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
             ptr.offset += -1 * other
             return ptr
         elif isinstance(other, Pointer):
-            return Integer((self.get_value() - other.get_value()), 'int')
+            return Integer((self.get_byte_value() - other.get_value()), 'int')
         else:
             raise Exception("Pointers can only be subtracted by int")
 
@@ -311,7 +345,7 @@ class Pointer(ReferenceValue):  #pylint:disable=too-few-public-methods
         return 'Pointer at '+str(self.data)+'.'+str(self.offset) +\
                 ' size '+ str(self.type_size)
 
-    def get_value(self, start=-1, num_bytes=None):
+    def get_byte_value(self, start=-1, num_bytes=None):
         """ value of the unsigned bits stored from start to start+num_bytes """
         result = self.data + self.offset
         if self.data < 0:

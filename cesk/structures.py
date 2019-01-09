@@ -4,9 +4,10 @@ import logging
 import pycparser
 import pycparser.c_ast as AST
 import cesk.linksearch as ls
-from cesk.values import ReferenceValue, generate_unitialized_value
+from cesk.values import generate_unitialized_value
 from cesk.values import copy_pointer, generate_null_pointer
 from cesk.values import generate_pointer, generate_value, generate_frame_address
+from cesk.values.base_values import ByteValue
 import cesk.config as cnf
 
 class SegFault(Exception):
@@ -15,16 +16,20 @@ class SegFault(Exception):
 
 class State: #pylint:disable=too-few-public-methods
     """Holds a program state"""
-    ctrl = None #control
-    envr = None  #environment
-    stor = None #store
-    kont_addr = None #k(c)ontinuation Address
+    #ctrl = None #control
+    #envr = None  #environment
+    #stor = None #store
+    #kont_addr = None #k(c)ontinuation Address
+    #time_stamp = None
+
+    _time = 0
 
     def __init__(self, ctrl, envr, stor, kont_addr):
         self.set_ctrl(ctrl)
         self.set_envr(envr)
         self.set_stor(stor)
         self.set_kont_addr(kont_addr)
+        self.tick()
 
     def set_ctrl(self, ctrl):
         """attaches a control object to the state"""
@@ -53,6 +58,14 @@ class State: #pylint:disable=too-few-public-methods
         """ Moves the ctrl and returns the new state """
         next_ctrl = self.ctrl.get_next()
         return State(next_ctrl, self.envr, self.stor, self.kont_addr)
+
+    def tick(self):
+        """ Sets the time stamp for the state """
+        if cnf.CONFIG['tick'] == 'concrete':
+            State._time += 1
+            self.time_stamp = State._time
+        elif cnf.CONFIG['tick'] == 'abstract':
+            self.time_stamp = self.stor.get_time()
 
     def __eq__(self, other):
         return (self.ctrl == other.ctrl and
@@ -245,6 +258,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
             self.pred_map = {}
             self.succ_map[self.null_addr] = self.null_addr
             self.pred_map[self.null_addr] = self.null_addr
+            self.time = 0 #tracks how many times the stor has changed
         elif isinstance(to_copy, Stor): #shallow copy of stor
             self.null_addr = to_copy.null_addr
             self.address_counter = to_copy.address_counter
@@ -253,6 +267,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
             self.kont = to_copy.kont
             self.succ_map = to_copy.succ_map
             self.pred_map = to_copy.pred_map
+            self.time = to_copy.time
         else:
             raise Exception("Stor Copy Constructor Expects a Stor Object")
 
@@ -269,6 +284,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
         """ Given a base pointer or frame address allocate memomory """
         if base in self.base_pointers:
             return self.base_pointers[base]
+        self.time += 1 #update time
         start_pointer = None
         prev = None
         for _ in range(length):
@@ -360,12 +376,11 @@ class Stor: #pylint: disable=too-many-instance-attributes
     def read(self, address):
         """Read the contents of the store at address. Returns None if undefined.
         """
+        logging.info("Reading %s", str(address))
         if address in self.base_pointers:
             address = self.base_pointers[address]
         else:
             address.update(self) #update offset of pointer
-        logging.info("Reading %s", str(address))
-
 
         if address not in self.memory:
             raise Exception("Address Not in memory")
@@ -377,19 +392,16 @@ class Stor: #pylint: disable=too-many-instance-attributes
             return val #no special math needed
 
         #immoral read over/within byte boundary
-        result = 0
+        result = ByteValue()
         bytes_to_read = address.type_size
         start = address.offset
 
-        ptr = copy_pointer(address)
-        while bytes_to_read != 0:
+        ptr = address
+        while bytes_to_read > 0:
             if ptr.offset >= val.size or ptr.offset < 0:
-                raise SegFault()
+                raise SegFault() #signifies top and bottom
             num_possible = min(bytes_to_read, val.size - start)
-            result += (val.get_value(start, num_possible) *
-                       (2**((address.type_size-bytes_to_read)*8))) #shift
-            logging.debug("  Read %d byte(s) result so far = %d",
-                          num_possible, result)
+            result.append(val.get_byte_value(start, num_possible))
             bytes_to_read -= num_possible
             if bytes_to_read > 0:
                 ptr = self.add_offset_to_pointer(ptr, num_possible)
@@ -398,30 +410,59 @@ class Stor: #pylint: disable=too-many-instance-attributes
                     raise SegFault()
                 val = self.memory[ptr]
 
-        return generate_value(result, size=address.type_size)
+        return result
 
     def write(self, address, value):
-        """Write value to the store at address. If there is an existing value,
-        merge value into the existing value.
-        """
+        """ Calls strong or weak write as determined by configuration """
         if address in self.base_pointers:
             address = self.base_pointers[address]
         else:
             address.update(self)
-
         logging.info('  Write %s  to  %s', str(value), str(address))
-        if not isinstance(address, ReferenceValue):
+        if not isinstance(address, type(self.null_addr)):
             raise Exception("Address should not be " + str(address))
         if address.data == 0 or\
            address.data >= self.address_counter or\
            address not in self.memory:
+            #update to record seg fault rather than error out
+            #TODO produce back tracking capabilities
             raise SegFault() #underflow or overflow or invallid address
 
-        old_value = self.memory[address]
-        if address.offset == 0 and value.size == old_value.size:
-            self.memory[address] = value
+        if cnf.CONFIG['store_update'] == 'strong':
+            self.strong_write(address, value)
+        elif cnf.CONFIG['store_update'] == 'weak':
+            self.weak_write(address, value)
+        else:
+            raise Exception("Unkown store update configuration")
+
+    def weak_write(self, address, value):
+        """ Adds value to a set of values stored at address """
+ 
+        old_values = self.memory[address]
+        if address.offset == 0 and value.size == old_values.get().size:
+            if value not in old_values:
+                self.time += 1
+                old_values.add(value)
             return
 
+        #begin a partial or overlapping write
+        raise Exception("Partial weak write not implemented")
+
+    def strong_write(self, address, value):
+        """Write value to the store at address. If there is an existing value,
+            replace the value
+        """
+
+        old_value = self.memory[address]
+        logging.debug("Old Value: %s, Offset: %d, Size: %d",str(old_value),address.offset, value.size)
+        if address.offset == 0 and value.size == old_value.size:
+            logging.debug("It is a match")
+            self.memory[address] = value
+            if value != old_value:
+                self.time += 1
+            return
+
+        #begin a partial or overlapping write
         bytes_to_write = value.size
         bytes_written = 0
 
@@ -429,30 +470,35 @@ class Stor: #pylint: disable=too-many-instance-attributes
             if address.offset >= old_value.size or address.offset < 0:
                 raise SegFault()
 
+            #get unchanged part of value at the given address location
             if address.offset != 0:
-                new_data = old_value.get_value(0, address.offset)
+                new_data = old_value.get_byte_value(0, address.offset)
             else:
-                new_data = 0
+                new_data = ByteValue() #empty byte value
 
+            #bytes in store represents the number of bytes in the store that
+            #are available to be overwritten
             bytes_in_store = old_value.size - address.offset
-            able_to_write = min(bytes_to_write,
-                                bytes_in_store)
-            new_data += (value.get_value(bytes_written, able_to_write) *
-                         (2**((address.offset+bytes_written)*8)))
+            able_to_write = min(bytes_to_write, bytes_in_store)
+
+            #get value from data being written
+            new_data.append(value.get_byte_value(bytes_written, able_to_write))
+            
             bytes_to_write -= able_to_write
+            bytes_written  += able_to_write
+
+            #update bytes in store to represent unoverwriten bytes left
             bytes_in_store -= able_to_write
-            bytes_written += able_to_write
 
             if bytes_in_store > 0:
                 #get rest of object then write
                 offset = old_value.size - bytes_in_store
-                new_data += (old_value.get_value(offset, bytes_in_store) *
-                             (2**(offset*8)))
+                new_data.append(old_value.get_byte_value(offset, bytes_in_store))
                 self._write_on_offset(address, new_data, old_value)
             elif bytes_to_write > 0:
                 #more data left in value, write to store then continue
                 self._write_on_offset(address, new_data, old_value)
-                address = self.succ_map[address]
+                address = self.succ_map[address] #update address and old_value
                 old_value = self.read(address)
             else:
                 self._write_on_offset(address, new_data, old_value)
@@ -460,9 +506,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
 
     def _write_on_offset(self, address, new_data, old_value):
         """ Manages how to write when mixing bytes """
-        self.memory[address] = generate_value(new_data,
-                                              old_value.type_of,
-                                              old_value.size)
+        self.memory[address] = generate_value(new_data, old_value.type_of)
 
     def get_nearest_address(self, address):
         """ returns a pointer to the nearest address
@@ -501,6 +545,10 @@ class Stor: #pylint: disable=too-many-instance-attributes
         if kont_addr not in self.kont:
             raise Exception("Address not in memory: " + str(kont_addr))
         return self.kont[kont_addr]
+
+    def get_time(self):
+        """ Updates when new address is allocated or store value is changed """
+        return self.time
 
 class Kont: #pylint: disable=too-few-public-methods
     """Kontinuations"""

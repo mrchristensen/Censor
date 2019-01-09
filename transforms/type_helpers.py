@@ -363,7 +363,7 @@ def _get_binop_type(expr, env):
         elif resolved_type == Side.RIGHT:
             result_type = right_type
         elif _is_ptr(left_type) and _is_ptr(right_type):
-            result_type = TypeDecl(None, [], IdentifierType(['int']))
+            result_type = TypeDecl(None, [], IdentifierType(['long']))
         elif _is_ptr(right_type):
             return right_type
         else:

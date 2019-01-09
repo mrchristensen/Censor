@@ -107,12 +107,21 @@ class ArithmeticValue:
             return str(self.data)
         return super(ArithmeticValue,self).__str__()
 
+    #subclasses should implement hash and eq and str
+    #should have a size data member
+    def get_byte_value(self, offset, num_bytes):
+        """ mimics bit values in memory but allows for top or unknown bits """
+        pass
+    #each class should have a from_byte_value class method 
+    #def from_byte_value():
+    #    return ByteValue(size)
+
 class UnitializedValue(ArithmeticValue):
     """ Type to represent a unitialized value of a certian size """
     bad_use_str = 'Use of a unitialized value'
  
     def __init__(self, size):
-        self.size = size
+        self.size = size #in bytes
         self.data = None
         self.type_of = 'uninitialized'
 
@@ -125,10 +134,12 @@ class UnitializedValue(ArithmeticValue):
         have if it were inside of an if statement in C"""
         raise Exception(UnitializedValue.bad_use_str)
 
-    def get_value(self, offset, num_bytes):
-        """ Returns 0, should only be valid if called from write """
-        return 0
-#Todo add class Byte value that is the result of a call to get value 
+    def get_byte_value(self, offset, num_bytes):
+        """ Returns x random bytes, should only be valid if called from write """
+        return ByteValue(self.size)
+
+    def __str__(self):
+        return "Unitialized Value size %d" % self.size
 
 class BaseInteger(ArithmeticValue):
     """ Abstract Class to represent Integral Types """
@@ -151,4 +162,59 @@ class BaseFloat(ArithmeticValue):
 
 class ReferenceValue(ArithmeticValue): #pylint:disable=all
     """Abstract Class for polymorphism between Arrays, Pointers, ect."""
+    #must have 
 
+class ByteValue:
+    """ Class to represent values of bits from a partial read """
+    one = 1
+    zero = 0
+    top = 2
+    def __init__(self, size=0, default_value=2):
+        #size in bytes
+        self.bits = [default_value]*(size*8)
+        self.size = size
+
+    def append(self, other):
+        """ increase self by others size and add its bits to self """
+        self.size += other.size
+        self.bits.extend(other.bits)
+
+    def get_byte_value(self):
+        """ dummy to make casting easier """
+        return self
+
+    def get_bytes(self):
+        """ Results in a bytes-like object of len self.size and top is randomized """
+        bytes_lst = []
+        for byte in range(self.size):
+            byte_val = 0
+            for bit in reversed(range(8)):
+                if self.bits[byte*8+bit] == ByteValue.one or \
+                   (self.bits[byte*8+bit] == ByteValue.top and
+                        random.randint(0,1) == 1):
+                    byte_val += 2**bit
+            bytes_lst.append[byte_val]
+        return bytes(bytes_lst)
+
+    def fromInt(self, int_value):
+        """ writes to location equivelent to the unsigned integer value """
+        assert(int_value >= 0)
+        index = len(self.bits) - 1
+        while index != - 1:
+            self.bits[index] = int_value & 1
+            int_value //= 2
+            index -= 1
+
+    @classmethod
+    def fromByte(cls, byte_value):
+        """ Takes a int 0-255 and converts to a size 1 byte value """
+        assert(byte_value >= 0 and byte_value < 256)
+        result = cls(1)
+        for index in range(8):
+            result.bits[7-index] = byte_value & 1
+            byte_value //= 2
+
+        return result
+
+    def __str__(self):
+        return str(self.bits)
