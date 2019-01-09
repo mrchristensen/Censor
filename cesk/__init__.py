@@ -20,19 +20,22 @@ def main(ast):
 
     start_state = prepare_start_state(main_function)
     
-    seen_set = set([start_state])
+    seen_set = {start_state:start_state.time_stamp}
     failed_states = set()
     frontier = set([start_state])
     while frontier: #is not empty
-        seen_set.update(frontier)
+        #seen_set.update(frontier)
         new_frontier = set()
         for next_state in frontier:
             try:
                 successors = execute(next_state)
                 for successor in successors:
                     logging.debug(successor)
-                    if successor not in seen_set:
+                    if (successor not in seen_set or
+                            successor.time_stamp > seen_set[successor]):
+                        seen_set[successor] = successor.time_stamp
                         new_frontier.add(successor)
+
             except SegFault: #pylint: disable=broad-except
                 failed_states.add(next_state)
         frontier = new_frontier

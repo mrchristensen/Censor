@@ -1,5 +1,5 @@
 '''Concerte Implementation of all the Types'''
-from .base_values import ReferenceValue
+from .base_values import ReferenceValue, ByteValue
 import cesk.limits as limits
 from copy import deepcopy
 from .factory import Factory
@@ -65,7 +65,7 @@ class ConcretePointer(ReferenceValue):  #pylint:disable=too-few-public-methods
             ptr.offset += -1 * other
             return ptr
         elif isinstance(other, Factory.getPointerClass()):
-            return Factory.Integer((self.get_value() - other.get_value()), 'int')
+            return Factory.Integer((self.data+self.offset) - (other.data+other.offset), 'long')
         else:
             raise Exception("Pointers can only be subtracted by int")
 
@@ -73,16 +73,24 @@ class ConcretePointer(ReferenceValue):  #pylint:disable=too-few-public-methods
         return 'Pointer at '+str(self.data)+'.'+str(self.offset) +\
                 ' size '+ str(self.type_size)
 
-    def get_value(self, start=-1, num_bytes=None):
+    def get_byte_value(self, start=-1, num_bytes=None):
         """ value of the unsigned bits stored from start to start+num_bytes """
         result = self.data + self.offset
         if self.data < 0:
             result += pow(2, self.size)
-        if ((start == -1) or
-                (start == 0 and num_bytes == self.size)):
-            return result
+        if start == -1:
+            start = 0
+            num_bytes = self.size
 
         result //= 2**(start*8)
         result %= pow(2, num_bytes*8)
 
-        return result
+        byte_value = ByteValue(num_bytes)
+        byte_value.fromInt(result)
+
+        return byte_value
+
+    @classmethod
+    def from_byte_value(cls, byte_value, type_size):
+        """ Not a valid conversion """
+        raise Exception("Making a pointer from bytevalue is not valid")

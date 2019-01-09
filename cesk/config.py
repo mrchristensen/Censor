@@ -6,7 +6,8 @@ CONFIG = {
     'limits'       : 'CESK',     # {cesk, gcc, std}
     'allocK'       : 'concrete',    # {concrete, 0-cfa, p4f}
     'allocF'       : 'concrete',    # {concrete, 0-cfa}
-    'allocH'       : 'concrete'  # {concrete, abstract}
+    'allocH'       : 'concrete', # {concrete, abstract}
+    'tick'         : 'concrete'  # {concrete, abstract}
     }
 
 
@@ -14,5 +15,5 @@ CONFIG = {
 
 store_update
     strong: all updates to the store are replaced with the new value
-    weak:   uses abstraction of value types to update
+    weak:   stores values that the store could possibly be
 """

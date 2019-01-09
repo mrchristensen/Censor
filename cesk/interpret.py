@@ -90,6 +90,7 @@ def handle_Decl(stmt, state):#pylint: disable=invalid-name
     decl_helper(stmt, state)
     if stmt.init:
         address = state.envr.get_address(stmt.name)
+        logging.debug("init %s",stmt.init)
         return assignment_helper("=", address, stmt.init, state)
     else:
         return state.get_next()
@@ -365,7 +366,7 @@ def malloc(stmt, state, break_up_list):
     num_blocks = num_bytes // block_size
     leftover = num_bytes % block_size
     if num_blocks == 0:
-        pointer = state.stor.alloc(base_pointer, [num_bytes])
+        pointer = state.stor.allocM(base_pointer, [num_bytes])
     else:
         pointer = state.stor.allocM(base_pointer, break_up_list,
                                     num_blocks, leftover)
@@ -436,7 +437,10 @@ def get_value(stmt, state): #pylint: disable=too-many-return-statements
         return state.stor.read(get_address(stmt, state))
     elif isinstance(stmt, AST.Cast):
         val = get_value(stmt.expr, state)
-        return cast(val, stmt.to_type, state)
+        logging.debug("value before cast %s", str(val))
+        val = cast(val, stmt.to_type, state)
+        logging.debug("value after cast %s", str(val))
+        return val
     elif isinstance(stmt, AST.BinaryOp):
         left = get_value(stmt.left, state)
         right = get_value(stmt.right, state)

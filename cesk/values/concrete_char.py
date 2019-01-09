@@ -1,8 +1,10 @@
 from .factory import Factory
+from .base_values import ByteValue
+import random
 
 class ConcreteChar(Factory.getIntegerClass()):
     """ implementation of an char Type"""
-    def __init__(self, data, type_of='char'):
+    def __init__(self, data, type_of='char', size=None):
         if isinstance(data, str) and ('\'' in data):
             char = data.replace("\'", "")
             v = ord(char)
@@ -38,3 +40,17 @@ class ConcreteChar(Factory.getIntegerClass()):
             return chr(self.data)
         except ValueError: # does not map to ascii (e.g. negative chars)
             return str(self.data)
+
+    @classmethod
+    def from_byte_value(cls, byte_value, type_of):
+        """ Method for Integer Generation from a byte value """
+        data = 0
+        place = 1
+        for bit in byte_value.bits[::-1]:
+            if bit == ByteValue.one:
+                data += place
+            elif bit == ByteValue.top:
+                data += place*random.randint(0, 1)#unknown value pick a ranodm value
+            place *= 2
+
+        return cls(data, type_of)

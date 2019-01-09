@@ -1,6 +1,7 @@
-from .base_values import BaseFloat
+from .base_values import BaseFloat, ByteValue
 from .factory import Factory
 import cesk.limits as limits
+import struct
 
 class ConcreteFloat(BaseFloat):  #pylint:disable=too-few-public-methods
     """ implementation of a float.
@@ -52,3 +53,33 @@ class ConcreteFloat(BaseFloat):  #pylint:disable=too-few-public-methods
 
     def __str__(self):
         return "%f" % self.data
+
+    def get_byte_value(self, start=-1, num_bytes=None):
+        """value of the unsigned bits stored"""
+        #TODO get binary value
+        if start == -1:
+            num_bytes = self.size
+            start = 0
+        if self.size == 4:
+            byte_array = struct.pack('!f', self.data)
+        elif self.size == 8:
+            byte_array = struct.pack('!d', self.data)
+        else:
+            return ByteValue(num_bytes) #returns top number of bytes
+
+        byte_value = ByteValue()
+        for i in range(num_bytes):
+            byte_value.append(ByteValue.fromByte(byte_array[start+i]))
+
+        return byte_value
+    
+    @classmethod
+    def from_byte_value(cls, byte_value, type_of):
+        """ Method for Integer Generation from a byte value """
+        float_value = cls(0.0, type_of)
+        if float_value.size == 4 and byte_value.size == 4:
+            float_value.data = struct.unpack('!f', byte_value.get_bytes())
+        elif float_value.size == 8 and byte_value.size == 8:
+            float_value.data = struct.unpack('!d', byte_value.get_bytes())
+
+        return float_value

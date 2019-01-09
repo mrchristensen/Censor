@@ -28,16 +28,26 @@ class Factory():
         return Pointer
 
     @staticmethod
+    def getCharClass():
+        '''returns class for Char'''
+        from .concrete_char import ConcreteChar as Char
+        return Char
+
+    @staticmethod
+    def getFloatClass():
+        '''retuns class for Float'''
+        from .concrete_float import ConcreteFloat as Float
+        return Float
+        
+    @staticmethod
     def Char(data, type_of):
         '''Char constructor'''
-        from .concrete_char import ConcreteChar as Char
-        return Char(data, type_of)
+        return Factory.getCharClass()(data, type_of)
 
     @staticmethod
     def Float(data, type_of):
         '''Float constructor'''
-        from .concrete_float import ConcreteFloat as Float
-        return Float(data, type_of)
+        return Factory.getFloatClass()(data, type_of)
 
     @staticmethod
     def Integer(data, type_of, size=1):
