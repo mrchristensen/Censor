@@ -6,14 +6,8 @@ from cesk.linksearch import get_sizes
 import cesk.config
 from cesk.values.base_values import ReferenceValue, UnitializedValue
 import cesk.limits as limits
-if cesk.config.CONFIG['values'] == 'concrete':
-    from cesk.values.concrete import Integer, Float, Char, Pointer
-elif cesk.config.CONFIG['values'] == 'abstract':
-    # from cesk.values.abstract import Integer, Float, Char, Pointer
-    from cesk.values.abstract import IntAsFloat as Float
-    from cesk.values.abstract import Integer, Char, Pointer
-else:
-    raise Exception("Unknown value type = " + cesk.config.CONFIG['values'])
+from .factory import Factory
+
 class FrameAddress:
     """ Contains a link between frame and id """
 
@@ -47,11 +41,11 @@ def generate_constant_value(value, type_of='int'):
         #return PtrDecl([], TypeDecl(None, [], IdentifierType(['char'])))
     elif type_of == 'float':
         if value[-1] in "fF":
-            return Float(value[:-1], 'float')
+            return Factory.Float(value[:-1], 'float')
         elif value[-1] in "lL":
-            return Float(value, 'long double')
+            return Factory.Float(value, 'long double')
         else:
-            return Float(value, 'double')
+            return Factory.Float(value, 'double')
     elif type_of == 'int':
         u = ''
         if value[-1] in "uU":
@@ -60,20 +54,20 @@ def generate_constant_value(value, type_of='int'):
         if value[-1] not in "lL":
             val = int(value, 0)
             if val <= limits.RANGES['unsigned '+type_of].max:
-                return Integer(val, u+type_of)
+                return Factory.Integer(val, u+type_of)
         else:
             value = value[:-1]
         type_of = 'long '+type_of
         val = int(value, 0)
 
         if val <= limits.RANGES['unsigned '+type_of].max:
-            return Integer(val, u+type_of)
+            return Factory.Integer(val, u+type_of)
         type_of = 'long '+type_of
         if val <= limits.RANGES['unsigned '+type_of].max:
-            return Integer(val, u+type_of)
+            return Factory.Integer(val, u+type_of)
 
     elif type_of == 'char':
-        return Char(value, type_of)
+        return Factory.Char(value, type_of)
 
     raise Exception("Unkown Constant Type %s", type_of)
 
@@ -82,20 +76,20 @@ def generate_value(value, type_of='bit_value', size=None):
     """ given value in bits and type_of as string, size for special cases 
         special cases include pointer, bit_value, uninitialized """
     if "char" in type_of:
-        return Char(value, type_of)
+        return Factory.Char(value, type_of)
     if type_of in limits.RANGES:
-        return Integer(value, type_of)
+        return Factory.Integer(value, type_of)
     if "float" in type_of or "double" in type_of:
-        return Float(value, type_of)
+        return Factory.Float(value, type_of)
     if type_of == 'bit_value':
-        return Integer(value, type_of, size)
+        return Factory.Integer(value, type_of, size)
 
     if type_of == 'pointer':
         raise Exception(
             'Pointer not expected here/not valid to change dynamically')
 
     if type_of == 'uninitialized':
-        return Integer(value, 'bit_value', size)
+        return Factory.Integer(value, 'bit_value', size)
 
     raise Exception("Unexpected value type %s", type_of)
 
@@ -107,13 +101,13 @@ def generate_unitialized_value(size):
 def generate_default_value(size):
     """Generates a default value of the given size (used for uninitialized
     variables)."""
-    value = Integer(0, 'bit_value', size)
+    value = Factory.Integer(0, 'bit_value', size)
     return value
 
 
 def generate_pointer(address, size):
     """Given a address (int) package it into a pointer"""
-    return Pointer(address, size, 0)
+    return Factory.Pointer(address, size, 0)
 
 def copy_pointer(pointer, ptr_type=None):
     """ Given a point a type and the state
@@ -124,11 +118,11 @@ def copy_pointer(pointer, ptr_type=None):
         sizes = []
         get_sizes(ptr_type, sizes)  # returns alignment
         size = sum(sizes)
-    return Pointer(pointer.data, size, pointer.offset)
+    return Factory.Pointer(pointer.data, size, pointer.offset)
 
 def generate_null_pointer():
     """ Build a pointer that will not dereference """
-    return Pointer(0, 1)
+    return Factory.Pointer(0, 1)
 
 def generate_frame_address(frame, ident):
     """ Build a Frame Address """

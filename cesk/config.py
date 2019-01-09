@@ -1,12 +1,12 @@
 """ File to store global options for CESK """
 
 CONFIG = {
-    'values'       : 'abstract', #{concrete, abstract}
+    'values'       : 'concrete', #{concrete, abstract}
     'store_update' : 'strong',   # {strong, weak}
     'limits'       : 'CESK',     # {cesk, gcc, std}
-    'allocK'       : '0-cfa',    # {concrete, 0-cfa, p4f}
-    'allocF'       : '0-cfa',    # {concrete, 0-cfa}
-    'allocH'       : 'abstract'  # {concrete, abstract}
+    'allocK'       : 'concrete',    # {concrete, 0-cfa, p4f}
+    'allocF'       : 'concrete',    # {concrete, 0-cfa}
+    'allocH'       : 'concrete'  # {concrete, abstract}
     }
 
 
