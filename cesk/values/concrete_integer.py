@@ -88,11 +88,12 @@ class ConcreteInteger(BV.BaseInteger): #pylint:disable=too-few-public-methods
         """ Method for Integer Generation from a byte value """
         data = 0
         place = 1
-        for bit in byte_value.bits[::-1]:
-            if bit == BV.ByteValue.one:
-                data += place
-            elif bit == BV.ByteValue.top:
-                data += place*random.randint(0, 1)#unknown value pick a ranodm value
-            place *= 2
+        for byte in [byte_value.bits[i:i+8] for i in range(0,len(byte_value.bits),8)]:
+            for bit in byte[::-1]:
+                if bit == BV.ByteValue.one:
+                    data += place
+                elif bit == BV.ByteValue.top:
+                    data += place*random.randint(0, 1)#unknown value pick a ranodm value
+                place *= 2
 
         return cls(data, type_of, byte_value.size)

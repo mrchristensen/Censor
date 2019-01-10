@@ -77,9 +77,11 @@ class ConcreteFloat(BaseFloat):  #pylint:disable=too-few-public-methods
     def from_byte_value(cls, byte_value, type_of):
         """ Method for Integer Generation from a byte value """
         float_value = cls(0.0, type_of)
-        if float_value.size == 4 and byte_value.size == 4:
+        
+        if byte_value.size == 4:
             float_value.data = struct.unpack('!f', byte_value.get_bytes())
-        elif float_value.size == 8 and byte_value.size == 8:
+        elif byte_value.size == 8:
             float_value.data = struct.unpack('!d', byte_value.get_bytes())
 
+        print(len(byte_value.bits))
         return float_value

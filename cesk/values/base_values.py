@@ -184,7 +184,8 @@ class ByteValue:
         return self
 
     def get_bytes(self):
-        """ Results in a bytes-like object of len self.size and top is randomized """
+        """ Results in a bytes-like object of len self.size and top is randomized
+            for the pack module used for floats """
         bytes_lst = []
         for byte in range(self.size):
             byte_val = 0
@@ -193,17 +194,20 @@ class ByteValue:
                    (self.bits[byte*8+bit] == ByteValue.top and
                         random.randint(0,1) == 1):
                     byte_val += 2**bit
-            bytes_lst.append[byte_val]
+            bytes_lst.append(byte_val)
         return bytes(bytes_lst)
 
     def fromInt(self, int_value):
         """ writes to location equivelent to the unsigned integer value """
         assert(int_value >= 0)
-        index = len(self.bits) - 1
-        while index != - 1:
-            self.bits[index] = int_value & 1
-            int_value //= 2
-            index -= 1
+        index = 0
+        while index < self.size*8:
+            byte = int_value&255
+            int_value //= 256
+            for i in range(8):
+                self.bits[index+(7-i)] = byte & 1
+                byte //= 2
+            index += 8
 
     @classmethod
     def fromByte(cls, byte_value):

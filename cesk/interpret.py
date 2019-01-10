@@ -331,7 +331,7 @@ def printf(stmt, state):
         if isinstance(expr, AST.Constant):
             value = generate_constant_value(expr.value, expr.type)
         else:
-            value = state.stor.read(get_address(expr, state))
+            value = get_value(expr, state) #state.stor.read(get_address(expr, state))
         value_array.append(str(value))
     if isinstance(stmt.args.exprs[0], AST.Constant):
         print_string = stmt.args.exprs[0].value
