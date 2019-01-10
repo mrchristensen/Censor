@@ -18,27 +18,39 @@ class Factory():
     @staticmethod
     def getIntegerClass():
         '''returns class for Integer'''
-        from .concrete_integer import ConcreteInteger as Integer
+        if cesk.config.CONFIG['values'] == 'concrete':
+            from .concrete_integer import ConcreteInteger as Integer
+        elif cesk.config.CONFIG['values'] == 'abstract':
+            from .tri_integer import TriInteger as Integer
         return Integer
 
     @staticmethod
     def getPointerClass():
         '''returns class for Pointer'''
-        from .concrete_pointer import ConcretePointer as Pointer
+        if cesk.config.CONFIG['values'] == 'concrete':
+            from .concrete_pointer import ConcretePointer as Pointer
+        elif cesk.config.CONFIG['values'] == 'abstract':
+            from .abstract_pointer import AbstractPointer as Pointer
         return Pointer
 
     @staticmethod
     def getCharClass():
         '''returns class for Char'''
-        from .concrete_char import ConcreteChar as Char
+        if cesk.config.CONFIG['values'] == 'concrete':
+            from .concrete_char import ConcreteChar as Char
+        elif cesk.config.CONFIG['values'] == 'abstract':
+            from .abstract_char import AbstractChar as Char
         return Char
 
     @staticmethod
     def getFloatClass():
         '''retuns class for Float'''
-        from .concrete_float import ConcreteFloat as Float
+        if cesk.config.CONFIG['values'] == 'concrete':
+            from .concrete_float import ConcreteFloat as Float
+        elif cesk.config.CONFIG['values'] == 'abstract':
+            from .tfloat import TFloat as Float
         return Float
-        
+
     @staticmethod
     def Char(data, type_of):
         '''Char constructor'''
