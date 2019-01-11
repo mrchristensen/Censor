@@ -189,11 +189,11 @@ class ByteValue:
         bytes_lst = []
         for byte in range(self.size):
             byte_val = 0
-            for bit in reversed(range(8)):
+            for bit in range(8):
                 if self.bits[byte*8+bit] == ByteValue.one or \
                    (self.bits[byte*8+bit] == ByteValue.top and
                         random.randint(0,1) == 1):
-                    byte_val += 2**bit
+                    byte_val += 2**(7-bit)
             bytes_lst.append(byte_val)
         return bytes(bytes_lst)
 

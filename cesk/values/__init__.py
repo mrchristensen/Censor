@@ -168,7 +168,6 @@ def cast(value, typedeclt, state=None):  # pylint: disable=unused-argument
     #Pointer -> Pointer
 
     #BV.ByteValue -> ALL
-
     if isinstance(typedeclt, pycparser.c_ast.Typename):
         result = cast(value, typedeclt.type, state)
     elif isinstance(typedeclt, pycparser.c_ast.PtrDecl):
@@ -182,9 +181,11 @@ def cast(value, typedeclt, state=None):  # pylint: disable=unused-argument
             result = copy_pointer(address, typedeclt.type)
     elif isinstance(typedeclt, pycparser.c_ast.TypeDecl):
         types = typedeclt.type.names
+        logging.debug("Casting %s to type %s",str(value)," ".join(types))
         byte_value = value.get_byte_value()
         logging.debug("Byte_Value before cast %s", str(byte_value))
         result = generate_value(byte_value, " ".join(types))
+        logging.debug("Cast result is %s",str(result.data))
     else:
         logging.error('\tUnsupported cast: ' + str(typedeclt.type))
         raise Exception("Unsupported cast")

@@ -11,7 +11,7 @@ for( int i = 0; i < 25; i++)
 
 
 for( int i = 0; i < 25; i+=4)
-    printf("%d ",arr[i]);
+    printf("%d ",(int)arr[i]);
 
 return 0;
 

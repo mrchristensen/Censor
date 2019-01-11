@@ -437,9 +437,7 @@ def get_value(stmt, state): #pylint: disable=too-many-return-statements
         return state.stor.read(get_address(stmt, state))
     elif isinstance(stmt, AST.Cast):
         val = get_value(stmt.expr, state)
-        logging.debug("value before cast %s", str(val))
         val = cast(val, stmt.to_type, state)
-        logging.debug("value after cast %s", str(val))
         return val
     elif isinstance(stmt, AST.BinaryOp):
         left = get_value(stmt.left, state)

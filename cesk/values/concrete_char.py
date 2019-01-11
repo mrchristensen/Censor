@@ -45,12 +45,12 @@ class ConcreteChar(Factory.getIntegerClass()):
     def from_byte_value(cls, byte_value, type_of):
         """ Method for Integer Generation from a byte value """
         data = 0
-        place = 1
-        for bit in byte_value.bits[::-1]:
+        place = 128
+        for bit in byte_value.bits:
             if bit == ByteValue.one:
                 data += place
             elif bit == ByteValue.top:
                 data += place*random.randint(0, 1)#unknown value pick a ranodm value
-            place *= 2
+            place //= 2
 
         return cls(data, type_of)
