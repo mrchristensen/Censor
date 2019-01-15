@@ -217,6 +217,7 @@ def assignment_helper(operator, address, exp, state):
             return malloc_helper(exp, state, address)
         else:
             value = get_value(exp, state)
+            logging.debug("Decl assigned %s", str(value))
             state.stor.write(address, value)
             return state.get_next()
     else:
@@ -442,6 +443,7 @@ def get_value(stmt, state): #pylint: disable=too-many-return-statements
     elif isinstance(stmt, AST.BinaryOp):
         left = get_value(stmt.left, state)
         right = get_value(stmt.right, state)
+        logging.debug("Binop: %s %s %s",str(left),stmt.op,str(right))
         return left.perform_operation(stmt.op, right)
     elif isinstance(stmt, AST.UnaryOp) and stmt.op == '&':
         address = get_address(stmt.expr, state)
