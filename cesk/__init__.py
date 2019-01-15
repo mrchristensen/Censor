@@ -9,7 +9,8 @@ from cesk.structures import State, Ctrl, Envr, Stor, Kont
 from cesk.interpret import (decl_helper, execute, get_value,
                             implemented_nodes as impl_nodes)
 import cesk.linksearch as ls
-from .structures import SegFault
+from cesk.exceptions import CESKException, MemoryAccessViolation, \
+                            UnknownConfiguration
 
 def main(ast):
     """Injects execution into main funciton and maintains work queue"""
@@ -36,15 +37,17 @@ def main(ast):
                         seen_set[successor] = successor.time_stamp
                         new_frontier.add(successor)
 
-            except SegFault: #pylint: disable=broad-except
-                failed_states.add(next_state)
+            except CESKException as e: #pylint: disable=broad-except
+                failed_states.add((next_state, e))
         frontier = new_frontier
         logging.debug("Seen: "+str(len(seen_set)))
         logging.debug("New:  "+str(len(new_frontier)))
     #raise Exception("Execution finished without Halt")
     if failed_states:
-        print('segmentation fault (core dumped)')
-        sys.exit(errno.EFAULT)
+        for failed_state, e in failed_states:
+            print(e)
+            if isinstance(e, MemoryAccessViolation):
+                sys.exit(errno.EFAULT)
 
 def implemented_nodes():
     """ returns a list of implemented node type names """

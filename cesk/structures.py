@@ -9,10 +9,8 @@ from cesk.values import copy_pointer, generate_null_pointer
 from cesk.values import generate_pointer, generate_value, generate_frame_address
 from cesk.values.base_values import ByteValue
 import cesk.config as cnf
-
-class SegFault(Exception):
-    '''Special Exception for Segmentation Faults'''
-    pass
+from cesk.exceptions import MemoryAccessViolation, UnknownConfiguration, \
+                           CESKException
 
 class State: #pylint:disable=too-few-public-methods
     """Holds a program state"""
@@ -104,12 +102,12 @@ class Ctrl: #pylint:disable=too-few-public-methods
             elif isinstance(second, pycparser.c_ast.Compound):
                 self.construct_body(first, second)
             else:
-                raise Exception("Ctrl init body not Compound or Function: " +
+                raise CESKException("Ctrl init body not Compound or Function: " +
                                 str(second))
         elif first:
             self.construct_node(first)
         else:
-            raise Exception("Malformed Ctrl init")
+            raise CESKException("Malformed Ctrl init")
 
     def stmt(self):
         """Retrieves the statement at the location."""
@@ -131,7 +129,7 @@ class Ctrl: #pylint:disable=too-few-public-methods
                 parent = ls.LinkSearch.parent_lut[self.body]
                 if parent is None:
                     #we are falling off and there is no parent block
-                    raise Exception("Expected Return Statement")
+                    raise CESKException("Expected Return Statement")
 
                 elif isinstance(parent, AST.Compound):
                     #find current compound block position in the parent block
@@ -157,7 +155,7 @@ class Ctrl: #pylint:disable=too-few-public-methods
                 new_ctrl = Ctrl(parent)
             return new_ctrl.get_next()
 
-        raise Exception("Malformed ctrl: this should have been unreachable")
+        raise CESKException("Malformed ctrl: this should have been unreachable")
 
     def __eq__(self, other):
         if self.body:
@@ -193,7 +191,7 @@ class Envr:
             if state is not None:
                 value = state.ctrl
         else:
-            raise Exception("Unknown allocF "+str(cnf.CONFIG['allocF']))
+            raise UnknownConfiguration('allocF')
         return value
 
     def get_address(self, ident):
@@ -204,7 +202,7 @@ class Envr:
             return self.map_to_address[ident]
         elif ident in Envr.global_envr:
             return Envr.global_envr.map_to_address[ident]
-        raise Exception(ident + " is not defined in this scope: " +
+        raise CESKException(ident + " is not defined in this scope: " +
                         str(self.scope_id))
 
     def map_new_identifier(self, ident):
@@ -213,7 +211,6 @@ class Envr:
             ident = ident.name
         if self.is_localy_defined(ident):
             return self.map_to_address[ident]
-        #    raise Exception(ident + " is redefined")
         frame_addr = generate_frame_address(self.scope_id, ident)
         self.map_to_address[ident] = frame_addr
         return frame_addr
@@ -242,6 +239,13 @@ class Envr:
     def __hash__(self):
         return hash(self.scope_id)
 
+#helper class for the store
+class SizedSet(set):
+    ''' Set but with the extra feature of knowing the byte size 
+        of objects stored within '''
+    def __init__(self, size):
+        super().__init__()
+        self.size = size
 
 class Stor: #pylint: disable=too-many-instance-attributes
     """Represents the contents of memory at a moment in time."""
@@ -269,14 +273,17 @@ class Stor: #pylint: disable=too-many-instance-attributes
             self.pred_map = to_copy.pred_map
             self.time = to_copy.time
         else:
-            raise Exception("Stor Copy Constructor Expects a Stor Object")
+            raise CESKException("Stor Copy Constructor Expects a Stor Object")
 
     def _make_new_address(self, size):
         """ Alloc address for a certian size and store unitialized value """
         logging.info("Alloc %d for %d bytes", self.address_counter, size)
         #will throw error if size is None
         pointer = generate_pointer(self.address_counter, size)
-        self.memory[pointer] = generate_unitialized_value(size)
+        if cnf.CONFIG['store_update'] == 'strong':
+            self.memory[pointer] = generate_unitialized_value(size)
+        elif cnf.CONFIG['store_update'] == 'weak':#Starts with an empty set
+            self.memory[pointer] = SizedSet(size)
         self.address_counter += size
         return pointer
 
@@ -325,7 +332,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
             self.heap_address_counter += 1
             return self.heap_address_counter
         else:
-            raise Exception("Unknown allocH method")
+            raise UnknownConfiguration("allocH")
 
     def fa2ptr(self, frame_address):
         """ Fetch store address for a frame address """
@@ -343,7 +350,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
             if new_pointer.data == 0: #null is always null
                 new_pointer.offset += offset
                 return new_pointer
-            raise Exception("Invalid Pointer " + str(new_pointer))
+            raise CESKException("Invalid Pointer " + str(new_pointer))
         skip_size = self.memory[new_pointer].size
         if offset > 0:
             while offset != 0:
@@ -370,7 +377,6 @@ class Stor: #pylint: disable=too-many-instance-attributes
                     if new_pointer.data == 0:
                         return new_pointer
                     new_pointer.offset = self.memory[new_pointer].size
-        logging.debug("Pointer offset to %s", str(new_pointer))
         return new_pointer
 
     def read(self, address):
@@ -382,10 +388,10 @@ class Stor: #pylint: disable=too-many-instance-attributes
         else:
             address.update(self) #update offset of pointer
 
-        if address.data >= self.address_counter or address.data == 0:
-            raise SegFault() #underflow or overflow
-        if address not in self.memory:
-            raise Exception("Address Not in memory")
+        if address.data >= self.address_counter or \
+                address.data == 0 or \
+                address not in self.memory:
+            raise MemoryAccessViolation("Out of bounds read") #underflow or overflow
 
         val = self.memory[address]
         if address.offset == 0 and val.size == address.type_size:
@@ -399,7 +405,8 @@ class Stor: #pylint: disable=too-many-instance-attributes
         ptr = address
         while bytes_to_read > 0:
             if ptr.offset >= val.size or ptr.offset < 0:
-                raise SegFault() #signifies top and bottom
+                #signifies top and bottom
+                raise MemoryAccessViolation("Out of bounds read")
             num_possible = min(bytes_to_read, val.size - start)
             result.append(val.get_byte_value(start, num_possible))
             bytes_to_read -= num_possible
@@ -407,7 +414,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
                 ptr = self.add_offset_to_pointer(ptr, num_possible)
                 start = ptr.offset
                 if ptr.data == 0:
-                    raise SegFault()
+                    raise MemoryAccessViolation("Out of bounds read")
                 val = self.memory[ptr]
 
         return result
@@ -419,34 +426,31 @@ class Stor: #pylint: disable=too-many-instance-attributes
         else:
             address.update(self)
         logging.info('  Write %s  to  %s', str(value), str(address))
-        if not isinstance(address, type(self.null_addr)):
-            raise Exception("Address should not be " + str(address))
         if address.data == 0 or\
            address.data >= self.address_counter or\
            address not in self.memory:
             #update to record seg fault rather than error out
             #TODO produce back tracking capabilities
-            raise SegFault() #underflow or overflow or invallid address
+            raise MemoryAccessViolation("Out of Bounds Write") #underflow or overflow or invallid address
 
         if cnf.CONFIG['store_update'] == 'strong':
             self.strong_write(address, value)
         elif cnf.CONFIG['store_update'] == 'weak':
             self.weak_write(address, value)
         else:
-            raise Exception("Unkown store update configuration")
+            raise UnknownConfiguration('store_update')
 
     def weak_write(self, address, value):
         """ Adds value to a set of values stored at address """
- 
         old_values = self.memory[address]
-        if address.offset == 0 and value.size == old_values.get().size:
+        if address.offset == 0 and value.size == old_values.size:
             if value not in old_values:
                 self.time += 1
                 old_values.add(value)
             return
 
         #begin a partial or overlapping write
-        raise Exception("Partial weak write not implemented")
+        raise NotImplemented("Partial weak write not implemented")
 
     def strong_write(self, address, value):
         """Write value to the store at address. If there is an existing value,
@@ -454,9 +458,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
         """
 
         old_value = self.memory[address]
-        logging.debug("Old Value: %s, Offset: %d, Size: %d",str(old_value),address.offset, value.size)
         if address.offset == 0 and value.size == old_value.size:
-            logging.debug("It is a match")
             self.memory[address] = value
             if value != old_value:
                 self.time += 1
@@ -468,7 +470,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
 
         while bytes_to_write != 0:
             if address.offset >= old_value.size or address.offset < 0:
-                raise SegFault()
+                raise MemoryAccessViolation("write out of bounds")
 
             #get unchanged part of value at the given address location
             if address.offset != 0:
@@ -543,7 +545,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
     def read_kont(self, kont_addr):
         """ returns the continuation(s) for the given kont_addr """
         if kont_addr not in self.kont:
-            raise Exception("Address not in memory: " + str(kont_addr))
+            raise CESKException("Address not in memory: " + str(kont_addr))
         return self.kont[kont_addr]
 
     def get_time(self):
