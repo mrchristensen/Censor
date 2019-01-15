@@ -337,7 +337,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
         to the next block if the offset extends beyond the bounds
         of the current block.
         """
-        logging.debug("Offsetting %s by %d", str(pointer), offset)
+        logging.debug("Offsetting %s by %s", str(pointer), str(offset))
         new_pointer = copy_pointer(pointer)
         if new_pointer not in self.memory:
             if new_pointer.data == 0: #null is always null
@@ -418,6 +418,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
             address = self.base_pointers[address]
         else:
             address.update(self)
+
         logging.info('  Write %s  to  %s', str(value), str(address))
         if not isinstance(address, type(self.null_addr)):
             raise Exception("Address should not be " + str(address))
@@ -454,9 +455,9 @@ class Stor: #pylint: disable=too-many-instance-attributes
         """
 
         old_value = self.memory[address]
-        logging.debug("Old Value: %s, Offset: %d, Size: %d",str(old_value),address.offset, value.size)
+        logging.debug("Old Value: %s, Offset: %s, Size: %s",
+                       str(old_value), str(address.offset), str(value.size))
         if address.offset == 0 and value.size == old_value.size:
-            logging.debug("It is a match")
             self.memory[address] = value
             if value != old_value:
                 self.time += 1
@@ -467,7 +468,9 @@ class Stor: #pylint: disable=too-many-instance-attributes
         bytes_written = 0
 
         while bytes_to_write != 0:
-            if address.offset >= old_value.size or address.offset < 0:
+            if not isinstance(address.offset, int) or \
+                    address.offset >= old_value.size or \
+                    address.offset < 0:
                 raise SegFault()
 
             #get unchanged part of value at the given address location

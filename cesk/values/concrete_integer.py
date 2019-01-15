@@ -12,7 +12,7 @@ class ConcreteInteger(BV.BaseInteger): #pylint:disable=too-few-public-methods
             self.size = size
             self.min_value = 0
             self.max_value = 2**size - 1 
-            self.data = int(data)
+            self.data = self.bound(data)
         else:
             self.type_of = type_of
             self.size = limits.CONFIG.get_size(type_of.split())

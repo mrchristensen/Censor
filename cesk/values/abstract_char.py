@@ -9,3 +9,9 @@ class AbstractChar(Factory.getIntegerClass()):
         else:
             v = data
         super().__init__(v, type_of)
+        
+    def __str__(self):
+        try:
+            return chr(self.data)
+        except ValueError: # does not map to ascii (e.g. negative chars)
+            return str(self.data)

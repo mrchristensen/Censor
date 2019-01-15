@@ -1,15 +1,5 @@
 '''Is a factory for each value type'''
 import cesk.config
-if cesk.config.CONFIG['values'] == 'concrete':
-    pass
-#     from cesk.values.concrete import Integer, Char, Pointer
-#     from cesk.values.concrete_float import ConcreteFloat as Float
-elif cesk.config.CONFIG['values'] == 'abstract':
-    pass
-#     from cesk.values.abstract import IntAsFloat as Float
-#     from cesk.values.abstract import Integer, Char, Pointer
-else:
-    raise Exception("Unknown value type = " + cesk.config.CONFIG['values'])
 
 
 class Factory():
@@ -21,7 +11,7 @@ class Factory():
         if cesk.config.CONFIG['values'] == 'concrete':
             from .concrete_integer import ConcreteInteger as Integer
         elif cesk.config.CONFIG['values'] == 'abstract':
-            from .tri_integer import TriInteger as Integer
+            from .k_integer import KInteger as Integer
         return Integer
 
     @staticmethod
