@@ -132,28 +132,6 @@ def generate_frame_address(frame, ident):
     """ Build a Frame Address """
     return FrameAddress(frame, ident)
 
-#
-#def ItoTcast(value, typedeclt):
-#    """ handle integer to integer casts """
-#
-#def ItoFcast(value, typedeclt):
-#    """ handle integer to float casts """
-#
-#def ItoPcast(value, typedeclt):
-#    """ handle integer to pointer cast """
-#
-#def FtoIcast(value, typedeclt):
-#    """ handle float to integer cast """
-#
-#def FtoFcast(value, typedeclt):
-#    """ handle float to float cast """
-#
-#def PtoPcast(value, typedeclt):
-#    """ handle pointer to pointer casts """
-#
-#def PtoIcast(value, typedeclt):
-#    """ handle pointer to integer casts """
-
 def cast(value, typedeclt, state=None):  # pylint: disable=unused-argument
     """Casts the given value a  a value of the given type."""
     result = None

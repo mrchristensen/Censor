@@ -16,6 +16,7 @@ PragmaToOmpFor < SimplifyOmpFor
 RemoveMultideminsionalArray < LiftToCompoundBlock
 RemoveMultideminsionalArray < ChangeToVoidPointer
 RemoveCompoundAssignment < InsertExplicitTypeCasts
+SingleReturn < InsertExplicitTypeCasts
 SwitchToIf < LiftToCompoundBlock
 SwitchToIf < BreakToGoto
 SizeofType < LiftUnaryOp

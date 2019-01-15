@@ -7,6 +7,7 @@ from transforms import transform
 from cesk.limits import set_config
 import cesk.config as cnf
 import cesk
+from cesk.exceptions import CESKException, MemoryAccessViolation, UnknownConfiguration
 # store updates concrete/abstact
 # allocation finite/infinite
 
@@ -37,7 +38,13 @@ def main():
 
     ast = parse(args.filename, args.includes, args.pycparser, True)
     transform(ast)
-    cesk.main(ast)
+    try:
+        cesk.main(ast)
+    #except MemoryAccessViolation as e:
+    #except UnknownConfiguration as e:
+    except CESKException as e:
+        raise e
+
 
 if __name__ == "__main__":
     main()
