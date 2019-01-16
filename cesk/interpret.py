@@ -90,7 +90,7 @@ def handle_Decl(stmt, state):#pylint: disable=invalid-name
     decl_helper(stmt, state)
     if stmt.init:
         address = state.envr.get_address(stmt.name)
-        logging.debug("init %s",stmt.init)
+        logging.debug("init %s", stmt.name)
         return assignment_helper("=", address, stmt.init, state)
     else:
         return state.get_next()
@@ -443,7 +443,7 @@ def get_value(stmt, state): #pylint: disable=too-many-return-statements
     elif isinstance(stmt, AST.BinaryOp):
         left = get_value(stmt.left, state)
         right = get_value(stmt.right, state)
-        logging.debug("Binop: %s %s %s",str(left),stmt.op,str(right))
+        logging.debug("\tBinop: %s %s %s",str(left),stmt.op,str(right))
         return left.perform_operation(stmt.op, right)
     elif isinstance(stmt, AST.UnaryOp) and stmt.op == '&':
         address = get_address(stmt.expr, state)
