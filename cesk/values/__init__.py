@@ -39,7 +39,7 @@ def generate_constant_value(value, type_of='int'):
     if type_of == 'string':
         raise NotImplementedError("Need to implement string constant")
         #return PtrDecl([], TypeDecl(None, [], IdentifierType(['char'])))
-    elif type_of == 'float':
+    elif type_of == 'float' or type_of == 'double':
         if value[-1] in "fF":
             return Factory.Float(value[:-1], 'float')
         elif value[-1] in "lL":
