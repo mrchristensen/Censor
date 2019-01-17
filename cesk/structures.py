@@ -344,7 +344,6 @@ class Stor: #pylint: disable=too-many-instance-attributes
         to the next block if the offset extends beyond the bounds
         of the current block.
         """
-        logging.debug("Offsetting %s by %s", str(pointer), str(offset))
         new_pointer = copy_pointer(pointer)
         if new_pointer not in self.memory:
             if new_pointer.data == 0: #null is always null
@@ -377,17 +376,18 @@ class Stor: #pylint: disable=too-many-instance-attributes
                     if new_pointer.data == 0:
                         return new_pointer
                     new_pointer.offset = self.memory[new_pointer].size
+        logging.debug("Update %s to %s", str(pointer), str(new_pointer))
         return new_pointer
 
     def read(self, address):
         """Read the contents of the store at address. Returns None if undefined.
         """
-        logging.info("Reading %s", str(address))
         if address in self.base_pointers:
             address = self.base_pointers[address]
         else:
             address.update(self) #update offset of pointer
 
+        logging.info("Reading %s", str(address))
         if address.data >= self.address_counter or \
                 address.data == 0 or \
                 address not in self.memory:
@@ -395,6 +395,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
 
         val = self.memory[address]
         if address.offset == 0 and val.size == address.type_size:
+            logging.debug("\tRead %s", val)
             return val #no special math needed
 
         #immoral read over/within byte boundary
@@ -511,6 +512,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
 
     def _write_on_offset(self, address, new_data, old_value):
         """ Manages how to write when mixing bytes """
+        logging.debug("\tOffset Write %s to %s --- %s", new_data, address, str(new_data.size)) 
         self.memory[address] = generate_value(new_data, old_value.type_of)
 
     def get_nearest_address(self, address):
