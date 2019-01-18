@@ -2,9 +2,9 @@
 import logging
 import pycparser.c_ast as AST
 from transforms.sizeof import get_size_ast
-from cesk.values import generate_constant_value, cast, FrameAddress
+from cesk.values import generate_constant_value, cast
 from cesk.values.base_values import BaseInteger
-from cesk.structures import (State, Ctrl, Envr, Kont)
+from cesk.structures import (State, Ctrl, Envr, Kont, FrameAddress)
 import cesk.linksearch as ls
 from cesk.exceptions import CESKException
 logging.basicConfig(filename='logfile.txt', level=logging.DEBUG,
@@ -277,7 +277,14 @@ def malloc_helper(exp, state, address):
 
 def get_int_data(integer):
     if isinstance(integer, set):
-        return 9#smallest
+        smallest = None
+        for item in integer:
+            if isinstance(item.data, int):
+                if smallest is None or smallest > item.data:
+                    smallest = item.data
+        if smallest is None:
+            smallest = 1
+        return smallest
     if isinstance(integer, BaseInteger):
         return integer.data
     raise CESKException("Integer was expected")
@@ -370,7 +377,7 @@ def malloc(stmt, state, break_up_list):
     if isinstance(param, AST.Constant):
         num_bytes = int(param.value, 0)
     else:
-        num_bytes = state.stor.read(get_address(param, state)).data
+        num_bytes = get_int_data(get_value(param, state))
     logging.info("Malloc %d", num_bytes)
     base_pointer = state.stor.allocH(state)
 

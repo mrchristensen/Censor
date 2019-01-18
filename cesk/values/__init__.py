@@ -8,31 +8,6 @@ from cesk.values import base_values as BV #import BV.ReferenceValue, BV.Unitiali
 import cesk.limits as limits
 from .factory import Factory
 
-class FrameAddress:
-    """ Contains a link between frame and id """
-
-    def __init__(self, frame_id, ident):
-        self.frame = frame_id
-        self.ident = ident
-        #super(FrameAddress, self).__init__(0, 1)
-
-    def get_frame(self):
-        """ Returns frame identifier """
-        return self.frame
-
-    def get_id(self):
-        """ Returns identifier name """
-        return self.ident
-
-    def __hash__(self):
-        return 1+43*hash(self.ident)+73*hash(self.frame)
-
-    def __eq__(self, other):
-        if not isinstance(other, FrameAddress):
-            return False
-        return self.ident == other.ident and self.frame == other.frame
-
-
 # needs to know what size it needs to be sometimes
 def generate_constant_value(value, type_of='int'):
     """ Given a string, parse it as a constant value. """
@@ -127,10 +102,6 @@ def copy_pointer(pointer, ptr_type=None):
 def generate_null_pointer():
     """ Build a pointer that will not dereference """
     return Factory.Pointer(0, 1)
-
-def generate_frame_address(frame, ident):
-    """ Build a Frame Address """
-    return FrameAddress(frame, ident)
 
 def cast(value, typedeclt, state=None):  # pylint: disable=unused-argument
     """Casts the given value a  a value of the given type."""

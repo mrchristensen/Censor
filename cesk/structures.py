@@ -6,7 +6,7 @@ import pycparser.c_ast as AST
 import cesk.linksearch as ls
 from cesk.values import generate_unitialized_value
 from cesk.values import copy_pointer, generate_null_pointer
-from cesk.values import generate_pointer, generate_value, generate_frame_address
+from cesk.values import generate_pointer, generate_value
 from cesk.values.base_values import ByteValue, SizedSet
 import cesk.config as cnf
 from cesk.exceptions import MemoryAccessViolation, UnknownConfiguration, \
@@ -64,6 +64,10 @@ class State: #pylint:disable=too-few-public-methods
             self.time_stamp = State._time
         elif cnf.CONFIG['tick'] == 'abstract':
             self.time_stamp = self.stor.get_time()
+        elif cnf.CONFIG['tick'] == 'trivial':
+            self.time_stamp = State._time
+        else:
+            raise UnknownConfiguration('tick')
 
     def __eq__(self, other):
         return (self.ctrl == other.ctrl and
@@ -171,6 +175,30 @@ class Ctrl: #pylint:disable=too-few-public-methods
         else:
             return hash(self.node)
 
+class FrameAddress:
+    """ Contains a link between frame and id """
+
+    def __init__(self, frame_id, ident):
+        self.frame = frame_id
+        self.ident = ident
+        #super(FrameAddress, self).__init__(0, 1)
+
+    def get_frame(self):
+        """ Returns frame identifier """
+        return self.frame
+
+    def get_id(self):
+        """ Returns identifier name """
+        return self.ident
+
+    def __hash__(self):
+        return 1+43*hash(self.ident)+73*hash(self.frame)
+
+    def __eq__(self, other):
+        if not isinstance(other, FrameAddress):
+            return False
+        return self.ident == other.ident and self.frame == other.frame
+
 class Envr:
     """Holds the enviorment (a maping of identifiers to addresses)"""
     counter = 1 #counter to track which frame you are in (one per function)
@@ -190,6 +218,8 @@ class Envr:
         elif cnf.CONFIG['allocF'] == '0-cfa':
             if state is not None:
                 value = state.ctrl
+        elif cnf.CONFIG['allocF'] == 'trivial':
+            value = Envr.counter
         else:
             raise UnknownConfiguration('allocF')
         return value
@@ -211,7 +241,7 @@ class Envr:
             ident = ident.name
         if self.is_localy_defined(ident):
             return self.map_to_address[ident]
-        frame_addr = generate_frame_address(self.scope_id, ident)
+        frame_addr = FrameAddress(self.scope_id, ident)
         self.map_to_address[ident] = frame_addr
         return frame_addr
 
@@ -241,9 +271,9 @@ class Envr:
 
 class Stor: #pylint: disable=too-many-instance-attributes
     """Represents the contents of memory at a moment in time."""
+    heap_address_counter = 0
 
     def __init__(self, to_copy=None):
-        self.heap_address_counter = 0
         if to_copy is None:
             self.null_addr = generate_null_pointer()
             self.address_counter = 1 # start at 1 so that 0 can be nullptr
@@ -321,8 +351,10 @@ class Stor: #pylint: disable=too-many-instance-attributes
         if cnf.CONFIG['allocH'] == 'abstract':
             return state.ctrl
         elif cnf.CONFIG['allocH'] == 'concrete':
-            self.heap_address_counter += 1
-            return self.heap_address_counter
+            Stor.heap_address_counter += 1
+            return Stor.heap_address_counter
+        elif cnf.CONFIG['allocH'] == 'trivial':
+            return Stor.heap_address_counter
         else:
             raise UnknownConfiguration("allocH")
 
@@ -557,7 +589,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
         """ records the continuation for the continuation address """
         if cnf.CONFIG['allocK'] == 'concrete':
             self.kont[kont_addr] = {kai}
-        else: #allocK == 0-cfa or p4f
+        else: #allocK == 0-cfa or p4f or trivial
             if kont_addr not in self.kont:
                 self.kont[kont_addr] = set()
             self.kont[kont_addr].add(kai)
@@ -586,6 +618,8 @@ class Kont: #pylint: disable=too-few-public-methods
                 value = state.ctrl
         elif cnf.CONFIG['allocK'] == "p4f":
             value = (nxt_ctrl, nxt_envr)
+        elif cnf.CONFIG['allocK'] == "trivial":
+            value = Kont.allocK_address
         return value
 
     def __init__(self, parent_state, address=None):
