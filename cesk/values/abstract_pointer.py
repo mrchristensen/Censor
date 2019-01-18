@@ -19,7 +19,7 @@ class AbstractPointer(ReferenceValue):  #pylint:disable=too-few-public-methods
     def __hash__(self):
         return self.data
 
-    def __eq__(self, other):
+    def equals(self, other):
         if not isinstance(other, ReferenceValue):
             return Factory.Integer(0, 'int')
         return Factory.Integer(int(self.data == other.data), 'int')

@@ -45,7 +45,7 @@ class ConcreteInteger(BV.BaseInteger): #pylint:disable=too-few-public-methods
     def __le__(self, other):
         return Factory.Integer(int(self.data <= other.data), 'int')
         
-    def __eq__(self, other):
+    def equals(self, other):
         return Factory.Integer(int(self.data == other.data), 'int')
 
     def __ne__(self, other):
@@ -97,3 +97,6 @@ class ConcreteInteger(BV.BaseInteger): #pylint:disable=too-few-public-methods
                 place *= 2
 
         return cls(data, type_of, byte_value.size)
+
+    def __str__(self):
+        return str(self.data)

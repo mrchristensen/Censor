@@ -29,7 +29,7 @@ class TFloat(BaseFloat):  #pylint:disable=too-few-public-methods
     def __le__(self, other):
         return Factory.Integer(set([0, 1]), 'int')
 
-    def __eq__(self, other):
+    def equals(self, other):
         return Factory.Integer(set([0, 1]), 'int')
 
     def __ne__(self, other):

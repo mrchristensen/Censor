@@ -146,7 +146,11 @@ def cast(value, typedeclt, state=None):  # pylint: disable=unused-argument
     #Pointer -> Pointer
 
     #BV.ByteValue -> ALL
-    if isinstance(typedeclt, pycparser.c_ast.Typename):
+    if isinstance(value, BV.SizedSet):
+        result = BV.SizedSet(value.size)
+        for item in value:
+            result.add(cast(item, typedeclt, state))
+    elif isinstance(typedeclt, pycparser.c_ast.Typename):
         result = cast(value, typedeclt.type, state)
     elif isinstance(typedeclt, pycparser.c_ast.PtrDecl):
         if isinstance(value, BV.ReferenceValue):
@@ -168,5 +172,4 @@ def cast(value, typedeclt, state=None):  # pylint: disable=unused-argument
         logging.error('\tUnsupported cast: ' + str(typedeclt.type))
         raise Exception("Unsupported cast")
     
-    assert result.data != None
     return result

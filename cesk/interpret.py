@@ -3,8 +3,10 @@ import logging
 import pycparser.c_ast as AST
 from transforms.sizeof import get_size_ast
 from cesk.values import generate_constant_value, cast, FrameAddress
+from cesk.values.base_values import BaseInteger
 from cesk.structures import (State, Ctrl, Envr, Kont)
 import cesk.linksearch as ls
+from cesk.exceptions import CESKException
 logging.basicConfig(filename='logfile.txt', level=logging.DEBUG,
                     format='%(levelname)s: %(message)s', filemode='w')
 
@@ -43,14 +45,16 @@ def handle_If(stmt, state): # pylint: disable=invalid-name
     logging.debug("If")
     value = get_value(stmt.cond, state)
     next_states = set()
-    if True in value.get_truth_value():
+    truth = value.get_truth_value()
+    if True in truth:
         new_ctrl = Ctrl(stmt.iftrue)
         next_states.add(State(new_ctrl, state.envr, state.stor, state.kont_addr))
-    if False in value.get_truth_value():
+    if False in truth:
         next_states.add(state.get_next())
     if next_states:
         return next_states
-    raise Exception("Value " + str(value) + " has invalid truth values: " + str(value.get_truth_value()))
+    raise CESKException("Value " + str(value) +
+                    " has invalid truth values: " + str(truth))
 
 def handle_ID(stmt, state): # pylint: disable=invalid-name
     '''Handles IDs'''
@@ -271,16 +275,23 @@ def malloc_helper(exp, state, address):
     state.stor.write(address, malloc_result)
     return state.get_next()
 
+def get_int_data(integer):
+    if isinstance(integer, set):
+        return 9#smallest
+    if isinstance(integer, BaseInteger):
+        return integer.data
+    raise CESKException("Integer was expected")
+
 def handle_decl_array(array, list_of_sizes, state, f_addr):
     """Calculates size and allocates Array. Returns address of first item"""
     logging.debug('  Array Decl')
     if isinstance(array.type, AST.ArrayDecl):
         raise Exception("Multidim. arrays should be transformed to single")
     elif isinstance(array.type, AST.TypeDecl):
-        if isinstance(array.dim, AST.Constant):
-            length = generate_constant_value(array.dim.value, array.dim.type).data
-        elif isinstance(array.dim, AST.ID):
-            length = state.stor.read(get_address(array.dim, state)).data #safe
+        if isinstance(array.dim, (AST.Constant, AST.ID)):
+            value = get_value(array.dim, state)
+            logging.debug("Array Size is %s",str(value))
+            length = get_int_data(value)
         else:
             raise Exception("Unsupported ArrayDecl dimension "+str(array.dim))
 
@@ -471,7 +482,7 @@ def get_address(reference, state):
         return address
 
     elif isinstance(reference, AST.ArrayRef):
-        raise Exception("ArrayRef should be transformed")
+        raise CESKException("ArrayRef should be transformed")
 
     elif isinstance(reference, AST.UnaryOp):
         unary_op = reference

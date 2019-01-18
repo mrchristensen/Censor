@@ -118,7 +118,7 @@ class TriInteger(BaseInteger): #pylint:disable=too-few-public-methods
     def __le__(self, other):
         return (other < self).__not__()
 
-    def __eq__(self, other):
+    def equals(self, other):
         value = set()
         if not isinstance(other, Factory.getIntegerClass()):
             return Factory.Integer({0}, 'int')

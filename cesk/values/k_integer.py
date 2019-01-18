@@ -54,11 +54,11 @@ class KInteger(ConcreteInteger):
         else:
             return super().__le__(other)
         
-    def __eq__(self, other):
+    def equals(self, other):
         if self.data == AL.TOP or other.data == AL.TOP:
             return Factory.Integer(AL.TOP, self.type_of, self.size)
         else:
-            return super().__eq__(other)
+            return super().equals(other)
 
     def __ne__(self, other):
         if self.data == AL.TOP or other.data == AL.TOP:

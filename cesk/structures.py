@@ -7,7 +7,7 @@ import cesk.linksearch as ls
 from cesk.values import generate_unitialized_value
 from cesk.values import copy_pointer, generate_null_pointer
 from cesk.values import generate_pointer, generate_value, generate_frame_address
-from cesk.values.base_values import ByteValue
+from cesk.values.base_values import ByteValue, SizedSet
 import cesk.config as cnf
 from cesk.exceptions import MemoryAccessViolation, UnknownConfiguration, \
                            CESKException
@@ -239,14 +239,6 @@ class Envr:
     def __hash__(self):
         return hash(self.scope_id)
 
-#helper class for the store
-class SizedSet(set):
-    ''' Set but with the extra feature of knowing the byte size 
-        of objects stored within '''
-    def __init__(self, size):
-        super().__init__()
-        self.size = size
-
 class Stor: #pylint: disable=too-many-instance-attributes
     """Represents the contents of memory at a moment in time."""
 
@@ -382,6 +374,17 @@ class Stor: #pylint: disable=too-many-instance-attributes
     def read(self, address):
         """Read the contents of the store at address. Returns None if undefined.
         """
+        if isinstance(address, SizedSet):
+            #read to all location in the set
+            if not address: #if set is empty
+                raise MemoryAccessViolation("Read from unassigned address")
+            result = None
+            for addr in address:
+                temp = self.read(addr)
+                if result is None:
+                    result = SizedSet(temp.size)
+                result.update(temp)
+            return result
         if address in self.base_pointers:
             address = self.base_pointers[address]
         else:
@@ -422,12 +425,19 @@ class Stor: #pylint: disable=too-many-instance-attributes
 
     def write(self, address, value):
         """ Calls strong or weak write as determined by configuration """
+        logging.info('  Write %s  to  %s', str(value), str(address))
+        if isinstance(address, set):
+            #write to all location in the set
+            if not address: #if set is empty
+                raise MemoryAccessViolation("Write to unassigned address")
+            for addr in address:
+                self.write(addr, value)
+            return
         if address in self.base_pointers:
             address = self.base_pointers[address]
         else:
             address.update(self)
 
-        logging.info('  Write %s  to  %s', str(value), str(address))
         if address.data == 0 or\
            address.data >= self.address_counter or\
            address not in self.memory:
@@ -446,9 +456,15 @@ class Stor: #pylint: disable=too-many-instance-attributes
         """ Adds value to a set of values stored at address """
         old_values = self.memory[address]
         if address.offset == 0 and value.size == old_values.size:
-            if value not in old_values:
-                self.time += 1
-                old_values.add(value)
+            if isinstance(value, SizedSet):
+                for val in value:
+                    if val not in old_values:
+                        self.time += 1
+                        old_values.add(val)
+            else:
+                if value not in old_values:
+                    self.time += 1
+                    old_values.add(value)
             return
 
         #begin a partial or overlapping write
@@ -512,7 +528,6 @@ class Stor: #pylint: disable=too-many-instance-attributes
 
     def _write_on_offset(self, address, new_data, old_value):
         """ Manages how to write when mixing bytes """
-        logging.debug("\tOffset Write %s to %s --- %s", new_data, address, str(new_data.size)) 
         self.memory[address] = generate_value(new_data, old_value.type_of)
 
     def get_nearest_address(self, address):
