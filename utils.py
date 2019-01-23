@@ -55,11 +55,14 @@ def sanitize(ast):
 def preserve_include_preprocess(path):
     """ Run sed on source file to preserve includes through gcc preprocessing
     """
-    sed_path = os.path.dirname(os.path.realpath(__file__)) \
-               + r'/utils/include_preserve.sed'
-    res = run_sed_file(sed_path, path)
-    if res.returncode != 0:
-        raise RuntimeError('Could not perform include preserve preprocessing!')
+    with open(path, 'r') as myfile:
+        data = myfile.read()
+    import re
+    newdata = re.sub(
+        r'(#include\s*<[:a-zA-Z:]+\.[:a-zA-Z:]>)',
+        r'#pragma BEGIN \1\n\1\n#pragma END/',
+        data)
+    open(path, "w").write(newdata)
 
 def preserve_include_postprocess(path):
     """ Run sed on transformed source file to remove fake_libc_includes and

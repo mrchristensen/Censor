@@ -452,7 +452,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
             if bytes_to_read > 0:
                 ptr = self.add_offset_to_pointer(ptr, num_possible)
                 start = ptr.offset
-                if ptr.data == 0:
+                if ptr.data == 0 or ptr not in self.memory:
                     raise MemoryAccessViolation("Out of bounds read2")
                 val = self.memory[ptr]
 
