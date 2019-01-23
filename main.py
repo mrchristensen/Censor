@@ -53,7 +53,7 @@ def parse(filename, includes, pycparser_path, sanitize):
 
     temp = None
     if sanitize:
-        temp = tempfile.NamedTemporaryFile()
+        temp = open('tempfile~','wb')
         temp.write(open(filename, 'rb').read())
         temp.flush()
         utils.preserve_include_preprocess(temp.name)
@@ -78,8 +78,13 @@ def parse(filename, includes, pycparser_path, sanitize):
         cpp_args.extend([''.join(['-I', include]) \
                 for include in includes.split(',')])
 
+    import platform
+    if platform.system() == "Windows":
+        cpp_compiler = 'g++'
+    else:
+        cpp_compiler = 'gcc'
     ast = pycparser.parse_file(
-        filename, use_cpp=True, cpp_path='gcc', cpp_args=cpp_args)
+        filename, use_cpp=True, cpp_path=cpp_compiler, cpp_args=cpp_args)
     return ast
 
 
