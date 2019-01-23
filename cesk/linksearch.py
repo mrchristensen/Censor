@@ -169,3 +169,28 @@ def get_union_sizes(ast_type, list_so_far):
             alignment = decl_alignment
     list_so_far.append(size)
     return alignment
+
+def check_for_implicit_decl(ident):
+    """See continuation edge case 12. Determine if a implicit decl is needed"""
+    compound = None
+    parent = LinkSearch.parent_lut[ident]
+    while True:
+        if isinstance(parent, AST.Compound):
+            compound = parent
+            break
+        if parent not in LinkSearch.parent_lut:
+            break
+        parent = LinkSearch.parent_lut[parent]
+
+    if compound is not None:
+        if compound in LinkSearch.envr_lut:
+            comp_envr = LinkSearch.envr_lut[compound]
+            if comp_envr.is_localy_defined(ident.name):
+                return None
+        if compound in LinkSearch.scope_decl_lut:
+            for decl in LinkSearch.scope_decl_lut[compound]:
+                if decl.name == ident.name:
+                    return decl
+    return None
+
+

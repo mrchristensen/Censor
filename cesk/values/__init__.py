@@ -12,6 +12,7 @@ from .factory import Factory
 def generate_constant_value(value, type_of='int'):
     """ Given a string, parse it as a constant value. """
     if type_of == 'string':
+        return value
         raise NotImplementedError("Need to implement string constant")
         #return PtrDecl([], TypeDecl(None, [], IdentifierType(['char'])))
     elif type_of == 'float':
@@ -105,7 +106,7 @@ def generate_null_pointer():
 
 def cast(value, typedeclt, state=None):  # pylint: disable=unused-argument
     """Casts the given value a  a value of the given type."""
-    result = None
+    result = value 
     #Int -> Int
     #Int -> Pointer
     #Int -> Float

@@ -199,6 +199,9 @@ class FrameAddress:
             return False
         return self.ident == other.ident and self.frame == other.frame
 
+    def __str__(self):
+        return "("+str(self.frame)+", "+str(self.ident)+")"
+
 class Envr:
     """Holds the enviorment (a maping of identifiers to addresses)"""
     counter = 1 #counter to track which frame you are in (one per function)
@@ -442,7 +445,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
         while bytes_to_read > 0:
             if ptr.offset >= val.size or ptr.offset < 0:
                 #signifies top and bottom
-                raise MemoryAccessViolation("Out of bounds read")
+                raise MemoryAccessViolation("Out of bounds read1")
             num_possible = min(bytes_to_read, val.size - start)
             result.append(val.get_byte_value(start, num_possible))
             bytes_to_read -= num_possible
@@ -450,7 +453,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
                 ptr = self.add_offset_to_pointer(ptr, num_possible)
                 start = ptr.offset
                 if ptr.data == 0:
-                    raise MemoryAccessViolation("Out of bounds read")
+                    raise MemoryAccessViolation("Out of bounds read2")
                 val = self.memory[ptr]
 
         return result

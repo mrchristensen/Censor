@@ -6,6 +6,7 @@ from cesk.values import generate_constant_value, cast
 from cesk.values.base_values import BaseInteger
 from cesk.structures import (State, Ctrl, Envr, Kont, FrameAddress)
 import cesk.linksearch as ls
+import cesk.library_functions as lib_func
 from cesk.exceptions import CESKException
 logging.basicConfig(filename='logfile.txt', level=logging.DEBUG,
                     format='%(levelname)s: %(message)s', filemode='w')
@@ -73,15 +74,55 @@ def handle_Goto(stmt, state): # pylint: disable=invalid-name
 
 def handle_FuncCall(stmt, state, address=None): # pylint: disable=invalid-name
     '''Handles FuncCalls'''
-    logging.debug("FuncCall")
-    if stmt.name.name == "printf":
-        return printf(stmt, state)
+    logging.debug("FuncCall to %s", stmt.name.name)
+    if stmt.name.name in dir(lib_func):
+        args = [get_value(val, state) for val in stmt.args.exprs]
+        return getattr(lib_func, stmt.name.name)(state, args)
     elif stmt.name.name == "malloc":
-        return state.get_next()
-    elif stmt.name.name == "free":
         return state.get_next()
     else:
         return func(stmt, state, address)
+
+def func(stmt, state, address=None):
+    '''handles most function calls delegated by handle_FuncCall'''
+    if stmt.name.name not in ls.LinkSearch.function_lut:
+        raise Exception("Undefined reference to " + stmt.name.name)
+    else:
+        logging.debug(" Calling Function: %s", stmt.name.name)
+        func_def = ls.LinkSearch.function_lut[stmt.name.name]
+        if func_def.decl.type.args is None:
+            param_list = []
+        else:
+            param_list = func_def.decl.type.args.params
+        if stmt.args is None:
+            expr_list = []
+        else:
+            expr_list = stmt.args.exprs
+        if len(expr_list) != len(param_list):
+            raise Exception("Function " + stmt.name.name +
+                            " expected " +
+                            str(len(param_list)) +
+                            " parameters but received " +
+                            str(len(expr_list)))
+    return func_helper(param_list, expr_list, func_def, state, address)
+
+def func_helper(param_list, expr_list, func_def, state, address):
+    '''Prepares the next_state from param_list and expr_list'''
+    next_ctrl = Ctrl(0, func_def.body) # f_0
+    next_envr = Envr(state) #calls allocf
+    kont = Kont(state, address)
+    kont_addr = Kont.allocK(state, next_ctrl, next_envr)
+    state.stor.write_kont(kont_addr, kont) # stor = stor[a_k'->K]
+    new_state = State(next_ctrl, next_envr, state.stor, kont_addr)
+
+    for decl, expr in zip(param_list, expr_list): #add parameters to environment
+        new_state = decl_helper(decl, new_state)
+        new_address = new_state.envr.get_address(decl.name)
+        value = get_value(expr, state)
+        new_state.stor.write(new_address, value)
+
+    return new_state
+
 
 def handle_EmptyStatement(stmt, state): #pylint: disable=invalid-name
      #pylint: disable=unused-argument
@@ -214,16 +255,16 @@ def assignment_helper(operator, address, exp, state):
     given address"""
     #pylint: disable=too-many-function-args
     if operator == '=':
-        if isinstance(exp, AST.FuncCall) and not is_malloc(exp):
+        value = None
+        if is_malloc(exp):
+            value = malloc(exp, state)
+        elif isinstance(exp, AST.FuncCall):
             return handle_FuncCall(exp, state, address)
-        elif (is_malloc(exp) or (isinstance(exp, AST.Cast) and
-                                 is_malloc(exp.expr))):
-            return malloc_helper(exp, state, address)
         else:
             value = get_value(exp, state)
-            logging.debug("Decl assigned %s", str(value))
-            state.stor.write(address, value)
-            return state.get_next()
+        logging.debug("%s assigned %s", str(address), str(value))
+        state.stor.write(address, value)
+        return state.get_next()
     else:
         raise Exception(operator + " is not yet implemented")
 
@@ -256,38 +297,6 @@ def decl_helper(decl, state):
                         " are not yet implemented")
 
     return state
-
-def malloc_helper(exp, state, address):
-    """ Calls malloc and evaluates the cast """
-    if isinstance(exp, AST.Cast):
-        #TODO use cast to break the malloc'ed area in to blocks
-        size_list = []
-        if isinstance(exp.to_type, AST.Typename):
-            ls.get_sizes(exp.to_type.type.type, size_list)
-        else:
-            ls.get_sizes(exp.to_type.type, size_list)
-
-        malloc_result = malloc(exp.expr, state, size_list)
-        malloc_result = cast(malloc_result, exp.to_type, state)
-    else:
-        raise Exception("Malloc appeared without a cast")
-        #malloc_result = malloc(exp, state, [1]) # if malloc is assigned to a void*
-    state.stor.write(address, malloc_result)
-    return state.get_next()
-
-def get_int_data(integer):
-    if isinstance(integer, set):
-        smallest = None
-        for item in integer:
-            if isinstance(item.data, int):
-                if smallest is None or smallest > item.data:
-                    smallest = item.data
-        if smallest is None:
-            smallest = 1
-        return smallest
-    if isinstance(integer, BaseInteger):
-        return integer.data
-    raise CESKException("Integer was expected")
 
 def handle_decl_array(array, list_of_sizes, state, f_addr):
     """Calculates size and allocates Array. Returns address of first item"""
@@ -332,105 +341,21 @@ def handle_decl_struct(struct, state, f_addr):
 
 def handle_UnaryOp(stmt, state): # pylint: disable=invalid-name,unused-argument
     """decodes and evaluates unary_ops"""
-    #opr = stmt.op
-    #expr = stmt.expr
-    #logging.debug("UnaryOp %s", opr)
-    # note: may reference for reads/writes
-    # if opr == "&":
-    #     value = get_address(expr, state)
-    # elif opr == "*":
-    #     value = get_value(expr, state)
     return state.get_next()
 
-def printf(stmt, state):
-    '''performs printf'''
-    value_array = []
-    for i in range(1, len(stmt.args.exprs)):
-        expr = stmt.args.exprs[i]
-        if isinstance(expr, AST.Constant):
-            value = generate_constant_value(expr.value, expr.type)
-        else:
-            value = get_value(expr, state) #state.stor.read(get_address(expr, state))
-        value_array.append(str(value))
-    if isinstance(stmt.args.exprs[0], AST.Constant):
-        print_string = stmt.args.exprs[0].value
-    elif isinstance(stmt.args.exprs[0], AST.Cast):
-        print_string = stmt.args.exprs[0].expr.value
-    else:
-        raise Exception("printf does not know how to handle "
-                        +str(stmt.args.exprs[0]))
-    import re
-    print_string = re.sub(r'((?:%%)*)(%[-+ #0]*[0-9]*(\.([0-9]*|\*))?[hlL]?[cdieEfgGosuxXpn])',#pylint: disable=line-too-long
-                          r"\1%s", print_string)
-    print_string = re.sub(r'%%', '%', print_string)
-    print_string = print_string % tuple(value_array)
-    print_string = print_string[1:][:-1] #drop quotes
-    print_string = print_string.replace("\\n", "\n")
-    print(print_string, end="") #convert newlines
-    return state.get_next()
-
-def malloc(stmt, state, break_up_list):
-    '''performs malloc'''
-    param = stmt.args.exprs[0]
-    if isinstance(stmt.args.exprs[0], AST.Cast):
-        param = stmt.args.exprs[0].expr
-    if isinstance(param, AST.Constant):
-        num_bytes = int(param.value, 0)
-    else:
-        num_bytes = get_int_data(get_value(param, state))
-    logging.info("Malloc %d", num_bytes)
-    base_pointer = state.stor.allocH(state)
-
-    block_size = sum(break_up_list)
-    num_blocks = num_bytes // block_size
-    leftover = num_bytes % block_size
-    if num_blocks == 0:
-        pointer = state.stor.allocM(base_pointer, [num_bytes])
-    else:
-        pointer = state.stor.allocM(base_pointer, break_up_list,
-                                    num_blocks, leftover)
-    # assume malloc is always in an assignment and/or cast
-    return pointer
-
-def func(stmt, state, address=None):
-    '''handles most function calls delegated by handle_FuncCall'''
-    if stmt.name.name not in ls.LinkSearch.function_lut:
-        raise Exception("Undefined reference to " + stmt.name.name)
-    else:
-        logging.debug(" Calling Function: %s", stmt.name.name)
-        func_def = ls.LinkSearch.function_lut[stmt.name.name]
-        if func_def.decl.type.args is None:
-            param_list = []
-        else:
-            param_list = func_def.decl.type.args.params
-        if stmt.args is None:
-            expr_list = []
-        else:
-            expr_list = stmt.args.exprs
-        if len(expr_list) != len(param_list):
-            raise Exception("Function " + stmt.name.name +
-                            " expected " +
-                            str(len(param_list)) +
-                            " parameters but received " +
-                            str(len(expr_list)))
-    return func_helper(param_list, expr_list, func_def, state, address)
-
-def func_helper(param_list, expr_list, func_def, state, address):
-    '''Prepares the next_state from param_list and expr_list'''
-    next_ctrl = Ctrl(0, func_def.body) # f_0
-    next_envr = Envr(state) #calls allocf
-    kont = Kont(state, address)
-    kont_addr = Kont.allocK(state, next_ctrl, next_envr)
-    state.stor.write_kont(kont_addr, kont) # stor = stor[a_k'->K]
-    new_state = State(next_ctrl, next_envr, state.stor, kont_addr)
-
-    for decl, expr in zip(param_list, expr_list): #add parameters to environment
-        new_state = decl_helper(decl, new_state)
-        new_address = new_state.envr.get_address(decl.name)
-        value = get_value(expr, state)
-        new_state.stor.write(new_address, value)
-
-    return new_state
+def get_int_data(integer):
+    if isinstance(integer, set):
+        smallest = None
+        for item in integer:
+            if isinstance(item.data, int):
+                if smallest is None or smallest > item.data:
+                    smallest = item.data
+        if smallest is None:
+            smallest = 1
+        return smallest
+    if isinstance(integer, BaseInteger):
+        return integer.data
+    raise CESKException("Integer was expected")
 
 def handle_Return(stmt, state):# pylint: disable=invalid-name
     """satisfies kont"""
@@ -481,7 +406,7 @@ def get_address(reference, state):
     if isinstance(reference, AST.ID):
         ident = reference
         if not state.envr.is_localy_defined(ident):
-            checked_decl = check_for_implicit_decl(ident)
+            checked_decl = ls.check_for_implicit_decl(ident)
             if checked_decl is not None:
                 logging.debug("Found implicit decl: %s", checked_decl.name)
                 decl_helper(checked_decl, state)
@@ -519,32 +444,52 @@ def get_address(reference, state):
         # TODO
         raise NotImplementedError("Access to struct as a whole undefined still")
     else:
-        raise Exception("Unsupported lvalue " + str(reference))
+       raise CESKException("Unsupported lvalue " + str(reference))
+ 
+def malloc(exp, state):
+    """ Calls malloc and evaluates the cast """
+    if isinstance(exp, AST.Cast):
+        malloc_call = exp
+        while isinstance(malloc_call, AST.Cast): #handle nested cast
+            malloc_type = malloc_call.to_type
+            malloc_call = malloc_call.expr
 
-def check_for_implicit_decl(ident):
-    """See continuation edge case 12. Determine if a implicit decl is needed"""
-    compound = None
-    parent = ls.LinkSearch.parent_lut[ident]
-    while True:
-        if isinstance(parent, AST.Compound):
-            compound = parent
-            break
-        if parent not in ls.LinkSearch.parent_lut:
-            break
-        parent = ls.LinkSearch.parent_lut[parent]
+        if isinstance(malloc_type, AST.Typename):
+            malloc_type = malloc_type.type.type
+        else:
+            malloc_type = malloc_type.type
+        size_list = []
+        ls.get_sizes(malloc_type, size_list)
+        malloc_result = malloc_helper(malloc_call, state, size_list)
+        malloc_result = cast(malloc_result, exp.to_type, state)
+    else:
+        raise CESKException("Malloc appeared without a cast")
+        #malloc_result = malloc(exp, state, [1]) # if malloc is assigned to a void*
+    return malloc_result
 
-    if compound is not None:
-        if compound in ls.LinkSearch.envr_lut:
-            comp_envr = ls.LinkSearch.envr_lut[compound]
-            if comp_envr.is_localy_defined(ident.name):
-                return None
-        if compound in ls.LinkSearch.scope_decl_lut:
-            for decl in ls.LinkSearch.scope_decl_lut[compound]:
-                if decl.name == ident.name:
-                    return decl
-    return None
+def malloc_helper(stmt, state, break_up_list):
+    '''performs malloc returns CESKPointer to allocated memory'''
+    param = stmt.args.exprs[0]
+    if isinstance(param, AST.Constant):
+        num_bytes = int(param.value, 0)
+    else:
+        num_bytes = get_int_data(get_value(param, state))
+    logging.info("Malloc %d - %s", num_bytes, str(break_up_list))
+    base_pointer = state.stor.allocH(state)
+
+    block_size = sum(break_up_list)
+    num_blocks = num_bytes // block_size
+    leftover = num_bytes % block_size
+    if num_blocks == 0:
+        pointer = state.stor.allocM(base_pointer, [num_bytes])
+    else:
+        pointer = state.stor.allocM(base_pointer, break_up_list,
+                                    num_blocks, leftover)
+    return pointer
 
 def is_malloc(stmt):
     """ check to see if a function is a call to malloc """
+    while isinstance(stmt, AST.Cast):
+        stmt = stmt.expr
     return (isinstance(stmt, AST.FuncCall) and
             stmt.name.name == 'malloc')

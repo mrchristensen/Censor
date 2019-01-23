@@ -19,7 +19,8 @@ class ConcretePointer(ReferenceValue):  #pylint:disable=too-few-public-methods
     def equals(self, other):
         if not isinstance(other, ReferenceValue):
             return Factory.Integer(0, 'int')
-        return Factory.Integer(int(self.data == other.data), 'int')
+        return Factory.Integer(int(self.data == other.data and
+                                   self.offset == other.offset), 'int')
         
     def __lt__(self, other):
         return Factory.Integer(int(self.data < other.data), 'int')
@@ -74,11 +75,9 @@ class ConcretePointer(ReferenceValue):  #pylint:disable=too-few-public-methods
                 ' size '+ str(self.type_size)
     
     def __eq__(self, other):
-        if type(self) == type(other) and \
-           self.data == other.data and \
-           self.offset == other.offset:
-            return True
-        return False
+        if isinstance(other, int):
+            return self.data == other
+        return self.data == other.data
 
     def get_byte_value(self, start=-1, num_bytes=None):
         """ value of the unsigned bits stored from start to start+num_bytes """
