@@ -1,6 +1,6 @@
 """Makes all typecasts explicit"""
 from pycparser.c_ast import Cast, TypeDecl, PtrDecl, ArrayDecl, FuncDecl, UnaryOp
-from pycparser.c_ast import InitList, Constant, Struct, ID, EllipsisParam
+from pycparser.c_ast import InitList, Constant, Struct, Union, ID, EllipsisParam
 from .helpers import IncorrectTransformOrder
 from .node_transformer import NodeTransformer
 from .type_helpers import Side, get_type, resolve_types, cast_if_needed
@@ -92,6 +92,9 @@ class InsertExplicitTypeCasts(NodeTransformer):
             isinstance(type_node.type, Struct):
             return rvalue
             #raise IncorrectTransformOrder(ril_error_message, rvalue)
+        elif isinstance(type_node, TypeDecl) and \
+            isinstance(type_node.type, Union):
+            return rvalue
         elif isinstance(type_node, (TypeDecl, PtrDecl)):
             rvalue = cast_if_needed(type_node, rvalue, self.env)
         elif isinstance(type_node, ArrayDecl):

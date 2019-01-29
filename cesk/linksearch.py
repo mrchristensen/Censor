@@ -12,6 +12,7 @@ class LinkSearch(AST.NodeVisitor):
     envr_lut = {}
     function_lut = {}
     struct_lut = {}
+    union_lut = {}
     scope_decl_lut = {}
     global_decl_list = []
 
@@ -32,6 +33,12 @@ class LinkSearch(AST.NodeVisitor):
             name = node.name
             LinkSearch.struct_lut[name] = node
             logging.debug('Store struct '+str(name)
+                          +' with decls '+str(node.decls))
+
+        if isinstance(node, AST.Union) and node.decls:
+            name = node.name
+            LinkSearch.union_lut[name] = node
+            logging.debug('Store union '+str(name)
                           +' with decls '+str(node.decls))
 
         #link children to parents via lut
@@ -69,7 +76,7 @@ class LinkSearch(AST.NodeVisitor):
                     LinkSearch.scope_decl_lut[compound] = [node]
             else: #is global, or part of struct
                 parent = LinkSearch.parent_lut[node]
-                if (not isinstance(node.type, (AST.FuncDecl, AST.Struct))
+                if (not isinstance(node.type, (AST.FuncDecl, AST.Struct, AST.Union))
                         and isinstance(parent, AST.FileAST)):
                     LinkSearch.global_decl_list.append(node)
         return node
@@ -156,16 +163,19 @@ def get_union_sizes(ast_type, list_so_far):
     """ handles finding sizes and alignment for union type """
     decls = ast_type.decls
     if decls is None:
-        #TODO
-        raise Exception("Union not handled yet")
+        if ast_type.name in LinkSearch.union_lut:
+            decls = LinkSearch.union_lut[ast_type.name].decls
+        else:
+            raise Exception("Union" + ast_type.name + ' not found')
     size = None
     alignment = None
-    for decl in ast_type.decls:
+    for decl in decls:
         decl_size = []
         decl_alignment = get_sizes(decl, decl_size)
         if (size is None) or (size < decl_size[0]):
             size = decl_size[0]
         if (alignment is None) or (alignment < decl_alignment):
             alignment = decl_alignment
+        logging.debug(size)
     list_so_far.append(size)
     return alignment
