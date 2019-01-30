@@ -172,10 +172,17 @@ def get_union_sizes(ast_type, list_so_far):
     for decl in decls:
         decl_size = []
         decl_alignment = get_sizes(decl, decl_size)
-        if (size is None) or (size < decl_size[0]):
-            size = decl_size[0]
+        size_of_decl = 0
+        for d in decl_size:
+            size_of_decl += d
+        if (size is None) or (size < size_of_decl):
+            size = size_of_decl
         if (alignment is None) or (alignment < decl_alignment):
             alignment = decl_alignment
-        logging.debug(size)
+    if limits.CONFIG.packing_scheme == SPS.GCC_STD:
+        if size % alignment != 0:
+            buffer_size = alignment - (num_bytes % alignment)
+            size += buffer_size
+    logging.debug(size)
     list_so_far.append(size)
     return alignment
