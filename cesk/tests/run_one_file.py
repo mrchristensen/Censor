@@ -22,12 +22,12 @@ class OneFileTest(CESKvsGCC):
             print('Writing to ast to ' + args.print + '...')
             if args.print != "":
                 with open(args.print, "w") as outfile:
-                    subprocess.run(['python3', '../../main.py',
+                    subprocess.run(['python3', '../../cesk_main.py',
                                     '-st', 'transform',
                                     '-c', 'cesk', *args.file_name],
                                    stdout=outfile)
             else:
-                subprocess.run(['python3', '../../main.py',
+                subprocess.run(['python3', '../../cesk_main.py',
                                 '-t', 'print',
                                 '-c', 'cesk', *args.file_name])
         if args.gcc_only:
@@ -35,8 +35,7 @@ class OneFileTest(CESKvsGCC):
             print(run_c(*args.file_name))
         elif args.cesk_only:
             print('Only running cesk_c')
-            print(subprocess.run(['python3', '../../main.py', '-st', 'cesk',
-                                  '-c', 'cesk', *args.file_name]))
+            print(subprocess.run(['python3', '../../cesk_main.py', *args.file_name]))
             if args.debug:
                 print("* * * * * * * Debug Statements * * * * * * *")
                 subprocess.run(['cat', 'logfile.txt'])

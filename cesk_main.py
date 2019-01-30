@@ -1,6 +1,11 @@
 #!/usr/bin/python3
 """Main function for cesk analyzer"""
 
+import tempfile
+import json
+import time
+import os
+import sys
 import argparse
 from main import parse
 from transforms import transform
@@ -8,12 +13,30 @@ from cesk.limits import set_config
 import cesk.config as cnf
 import cesk
 from cesk.exceptions import CESKException, MemoryAccessViolation, UnknownConfiguration
-# store updates concrete/abstact
-# allocation finite/infinite
+
+def run_main(ast, results):
+    """ function for redirecting the output of main to a file and 
+        returning the result as a string  """
+    output = tempfile.NamedTemporaryFile()
+    prev = sys.stdout
+    prevfd = os.dup(sys.stdout.fileno())
+    os.dup2(output.fileno(), sys.stdout.fileno())
+    sys.stdout = open(output.name, "w")#I might need to close this
+
+    memory_safe, states_generated, states_matched, states_evaluated \
+        = cesk.main(ast)
+
+    os.dup2(prevfd, prev.fileno())
+    sys.stdout = prev
+
+    results['output'] = open(output.name).read()
+    results['memory_safe'] = memory_safe
+    results['states_generated'] = states_generated
+    results['states_matched'] = states_matched
+    results['states_evaluated'] = states_evaluated
 
 def main():
     """Parses arguments and calls correct tool"""
-
     parser = argparse.ArgumentParser()
     parser.add_argument("filename")
     parser.add_argument('--pycparser', '-p',
@@ -26,6 +49,7 @@ def main():
                             'values. ex: -c limits=cesk,store_update=strong')
     args = parser.parse_args()
 
+    #setup passed in configuration
     if args.configuration is not None:
         configs = args.configuration.split(',')
         for config in configs:
@@ -33,18 +57,26 @@ def main():
             #todo add error check for invalid input
             print(conf[0]+" set to "+conf[1])
             cnf.CONFIG[conf[0]] = conf[1] #set or add new config
-
     set_config(cnf.CONFIG['limits'])
 
-    ast = parse(args.filename, args.includes, args.pycparser, True)
-    transform(ast)
+    result = {}
+    #TODO add timing option for benchmarks
     try:
-        cesk.main(ast)
-    #except MemoryAccessViolation as e:
-    #except UnknownConfiguration as e:
+        start = time.process_time()
+        ast = parse(args.filename, args.includes, args.pycparser, True)
+        end = time.process_time()
+        result["parse_time"] = end - start
+        start = time.process_time()
+        transform(ast)
+        end = time.process_time()
+        result["transform_time"] = end - start
+        start = time.process_time()
+        run_main(ast, result) 
+        end = time.process_time()
+        result["interpretation_time"] = end - start
     except CESKException as e:
         raise e
-
+    print(json.dumps(result))
 
 if __name__ == "__main__":
     main()

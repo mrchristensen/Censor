@@ -14,9 +14,15 @@ from cesk.exceptions import CESKException, MemoryAccessViolation, \
 
 def main(ast):
     """Injects execution into main funciton and maintains work queue"""
+
+    #values to be returned
+    memory_fault = False
+    states_generated = 1
+    states_matched = 0
+    states_evaluated = 0
+
     #Search ast. link children to parents, map names FuncDef and Label nodes
     ls.LinkSearch().visit(ast)
-    logging.debug("Scope Decl LUT: %s", str(ls.LinkSearch.scope_decl_lut))
     main_function = find_main(ast)[0]
 
     start_state = prepare_start_state(main_function)
@@ -30,24 +36,26 @@ def main(ast):
         for next_state in frontier:
             try:
                 successors = execute(next_state)
+                states_evaluated += 1
                 for successor in successors:
-                    logging.debug(successor)
+                    states_generated += 1
                     if (successor not in seen_set or
                             successor.time_stamp > seen_set[successor]):
                         seen_set[successor] = successor.time_stamp
                         new_frontier.add(successor)
+                    else:
+                        states_matched += 1
 
-            except CESKException as e: #pylint: disable=broad-except
+            except MemoryAccessViolation as e: #pylint: disable=broad-except
+                memory_fault = True
                 failed_states.add((next_state, e))
         frontier = new_frontier
-        logging.debug("Seen: "+str(len(seen_set)))
-        logging.debug("New:  "+str(len(new_frontier)))
-    #raise Exception("Execution finished without Halt")
-    if failed_states:
+
+    if memory_fault:
         for failed_state, e in failed_states:
             print(e)
-            if isinstance(e, MemoryAccessViolation):
-                sys.exit(errno.EFAULT)
+
+    return not memory_fault, states_generated, states_matched, states_evaluated
 
 def implemented_nodes():
     """ returns a list of implemented node type names """

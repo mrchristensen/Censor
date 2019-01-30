@@ -309,6 +309,8 @@ class Stor: #pylint: disable=too-many-instance-attributes
             self.memory[pointer] = generate_unitialized_value(size)
         elif cnf.CONFIG['store_update'] == 'weak':#Starts with an empty set
             self.memory[pointer] = SizedSet(size)
+        else:
+            raise UnknownConfiguration('store_update')
         self.address_counter += size
         return pointer
 
@@ -445,7 +447,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
         while bytes_to_read > 0:
             if ptr.offset >= val.size or ptr.offset < 0:
                 #signifies top and bottom
-                raise MemoryAccessViolation("Out of bounds read1")
+                raise MemoryAccessViolation("Out of bounds read")
             num_possible = min(bytes_to_read, val.size - start)
             result.append(val.get_byte_value(start, num_possible))
             bytes_to_read -= num_possible
@@ -453,7 +455,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
                 ptr = self.add_offset_to_pointer(ptr, num_possible)
                 start = ptr.offset
                 if ptr.data == 0 or ptr not in self.memory:
-                    raise MemoryAccessViolation("Out of bounds read2")
+                    raise MemoryAccessViolation("Out of bounds read")
                 val = self.memory[ptr]
 
         return result
@@ -569,12 +571,14 @@ class Stor: #pylint: disable=too-many-instance-attributes
         """ returns a pointer to the nearest address
             with an offset set to make difference """
         #address = generate_pointer(address, self)
-        #raise Exception("Do not want to be here")
-        logging.debug(" Look for address %d", address)
+        if address == 0:
+            return self.null_addr
+        logging.error("Converting from an unknown integer to a pointer")
+        #raise MemoryAccessViolation("Convert from unknown int to pointer")
+        if address > self.address_counter:
+            return self.null_addr
         if address in self.memory:
             return generate_pointer(address, None)
-        if address > self.address_counter or address == 0:
-            return self.null_addr
 
         nearest_address = self.null_addr
         for key in self.memory:
