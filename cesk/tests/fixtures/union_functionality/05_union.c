@@ -2,14 +2,17 @@
 //casting int to float
  
 union Data {
-   int f;
+   //int i;
+   float f;
 };
  
 int main( ) {
    union Data data;
-   float myInt = 1337.66f;        
-   printf("%d", data.f);
-   data.f = myInt;
-   printf("%d", data.f);
+   //data.i = 4;
+   //printf("%d", data.i);
+
+   float myFloat = 1337.66f;        
+   data.f = myFloat;
+   printf("%f", data.f);
    return 0;
 }

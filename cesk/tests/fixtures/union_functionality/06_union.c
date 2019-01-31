@@ -8,10 +8,13 @@ union Data {
 };
  
 int main( ) {
-
    union Data data;        
 
-   for (int j = 0; j < 1; j++) {
+   data.i = 5;
+   printf("%d", data.i);
+   data.f = 2.3f;
+   printf("%f", data.f);
+   for (int j = 0; j < 20; j++) {
       data.str[j] = 'm';
       printf("%c", data.str[j]);
    }

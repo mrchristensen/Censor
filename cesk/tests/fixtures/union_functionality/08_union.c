@@ -15,7 +15,7 @@ int main( ) {
    }*/
 
    int i = 0;
-   while (i < 19)
+   while (i < 20)
    {
       data.myInts[i] = 20;
       printf("%d", data.myInts[i]);
