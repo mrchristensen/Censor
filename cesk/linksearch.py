@@ -4,7 +4,7 @@ import pycparser.c_ast as AST
 from cesk.limits import StructPackingScheme as SPS
 import cesk.limits as limits
 
-class LinkSearch(AST.NodeVisitor):
+class LinkSearch(AST.NodeVisitor): #
     """Holds various look-up-tables for functions, labels, etc."""
     parent_lut = {}
     index_lut = {}
