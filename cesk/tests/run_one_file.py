@@ -35,7 +35,8 @@ class OneFileTest(CESKvsGCC):
             print(run_c(*args.file_name))
         elif args.cesk_only:
             print('Only running cesk_c')
-            print(subprocess.run(['python3', '../../cesk_main.py', *args.file_name]))
+            print(subprocess.run(['python3', '../../cesk_main.py',
+                                  *args.file_name]))
             if args.debug:
                 print("* * * * * * * Debug Statements * * * * * * *")
                 subprocess.run(['cat', 'logfile.txt'])

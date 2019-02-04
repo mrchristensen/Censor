@@ -5,7 +5,6 @@ import json
 from os import path, listdir
 from unittest import TestCase
 import sys
-import errno
 
 GREEN = "\033[92m"
 RED = "\033[31m"
@@ -13,12 +12,14 @@ BLUE = "\033[96m"
 RESET = "\033[39m"
 
 def print_pass(file_name):
+    """ Standard print function for a test that passes """
     sys.stdout.write(GREEN)
     print("PASSED:   ", end='')
     sys.stdout.write(RESET)
     print(file_name)
 
 def print_fail(file_name, message):
+    """ Standard print function for a test that fails """
     sys.stdout.write(RED)
     print("FAILED:   ", end='')
     sys.stdout.write(RESET)
@@ -45,10 +46,12 @@ class CESKvsGCC(TestCase):
                           "\nActual (cesk): \n" + str(cesk_out)
 
                 print_fail(path.basename(file_path), message)
-        except:
+        except Exception: #pylint: disable=broad-except
             print_fail(path.basename(file_path) + ' see ^^^^^', '')
 
     def assert_memory_access(self, file_path, is_safe):
+        """ Pass in a file and whether or not it is memory safe
+            Runs the interpreter and checks to see if it detects the error """
         cesk_out = run_c_cesk(file_path)
         results = json.loads(cesk_out)
 

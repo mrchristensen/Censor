@@ -49,13 +49,14 @@ def handle_If(stmt, state): # pylint: disable=invalid-name
     truth = value.get_truth_value()
     if True in truth:
         new_ctrl = Ctrl(stmt.iftrue)
-        next_states.add(State(new_ctrl, state.envr, state.stor, state.kont_addr))
+        next_states.add(State(new_ctrl, state.envr,
+                              state.stor, state.kont_addr))
     if False in truth:
         next_states.add(state.get_next())
     if next_states:
         return next_states
     raise CESKException("Value " + str(value) +
-                    " has invalid truth values: " + str(truth))
+                        " has invalid truth values: " + str(truth))
 
 def handle_ID(stmt, state): # pylint: disable=invalid-name
     '''Handles IDs'''
@@ -306,7 +307,7 @@ def handle_decl_array(array, list_of_sizes, state, f_addr):
     elif isinstance(array.type, AST.TypeDecl):
         if isinstance(array.dim, (AST.Constant, AST.ID)):
             value = get_value(array.dim, state)
-            logging.debug("Array Size is %s",str(value))
+            logging.debug("Array Size is %s", str(value))
             length = get_int_data(value)
         else:
             raise Exception("Unsupported ArrayDecl dimension "+str(array.dim))
@@ -344,6 +345,8 @@ def handle_UnaryOp(stmt, state): # pylint: disable=invalid-name,unused-argument
     return state.get_next()
 
 def get_int_data(integer):
+    """ When a store is weak determines what integer value to use for size,
+        It chooses the smalles value """
     if isinstance(integer, set):
         smallest = None
         for item in integer:
@@ -386,7 +389,7 @@ def get_value(stmt, state): #pylint: disable=too-many-return-statements
     elif isinstance(stmt, AST.BinaryOp):
         left = get_value(stmt.left, state)
         right = get_value(stmt.right, state)
-        logging.debug("\tBinop: %s %s %s",str(left),stmt.op,str(right))
+        logging.debug("\tBinop: %s %s %s", str(left), stmt.op, str(right))
         return left.perform_operation(stmt.op, right)
     elif isinstance(stmt, AST.UnaryOp) and stmt.op == '&':
         address = get_address(stmt.expr, state)
@@ -444,8 +447,8 @@ def get_address(reference, state):
         # TODO
         raise NotImplementedError("Access to struct as a whole undefined still")
     else:
-       raise CESKException("Unsupported lvalue " + str(reference))
- 
+        raise CESKException("Unsupported lvalue " + str(reference))
+
 def malloc(exp, state):
     """ Calls malloc and evaluates the cast """
     if isinstance(exp, AST.Cast):
@@ -464,7 +467,7 @@ def malloc(exp, state):
         malloc_result = cast(malloc_result, exp.to_type, state)
     else:
         raise CESKException("Malloc appeared without a cast")
-        #malloc_result = malloc(exp, state, [1]) # if malloc is assigned to a void*
+        #malloc_result = malloc(exp, state, [1])
     return malloc_result
 
 def malloc_helper(stmt, state, break_up_list):

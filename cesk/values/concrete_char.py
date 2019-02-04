@@ -1,16 +1,17 @@
+""" The char class"""
+import random
 from .factory import Factory
 from .base_values import ByteValue
-import random
 
 class ConcreteChar(Factory.getIntegerClass()):
     """ implementation of an char Type"""
     def __init__(self, data, type_of='char', size=None):
         if isinstance(data, str) and ('\'' in data):
             char = data.replace("\'", "")
-            v = ord(char)
+            val = ord(char)
         else:
-            v = data
-        super().__init__(v, type_of)
+            val = data
+        super().__init__(val, type_of)
 
     def __add__(self, other):
         value = super().__add__(other).data
@@ -32,7 +33,8 @@ class ConcreteChar(Factory.getIntegerClass()):
         value = super().__mod__(other).data
         return Factory.Char(value, self.type_of)
 
-    def get_char(self): 
+    def get_char(self):
+        """ Changes int value to char"""
         return chr(self.data)
 
     def __str__(self):
@@ -50,7 +52,7 @@ class ConcreteChar(Factory.getIntegerClass()):
             if bit == ByteValue.one:
                 data += place
             elif bit == ByteValue.top:
-                data += place*random.randint(0, 1)#unknown value pick a ranodm value
+                data += place*random.randint(0, 1)#unknown pick a ranodm value
             place //= 2
 
         return cls(data, type_of)

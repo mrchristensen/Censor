@@ -192,5 +192,3 @@ def check_for_implicit_decl(ident):
                 if decl.name == ident.name:
                     return decl
     return None
-
-

@@ -1,9 +1,7 @@
-import pycparser.c_ast as AST
+""" Set of cstd library functions with a CESK specific implementation:
+need the state and an array containing the values of the arguements passed """
 import re
-import logging
 
-#set of cstd library functions with a CESK specific implementation
-#needs the state and an array containing the value of the arguements passed
 
 def printf(state, args):
     '''performs printf'''
@@ -21,6 +19,6 @@ def printf(state, args):
     print(print_string, end="") #convert newlines
     return state.get_next()
 
-def free(state, args):
+def free(state, args):#pylint: disable=unused-argument
     """ Completes a free operation """
     return state.get_next()

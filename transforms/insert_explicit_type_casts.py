@@ -1,5 +1,6 @@
 """Makes all typecasts explicit"""
-from pycparser.c_ast import Cast, TypeDecl, PtrDecl, ArrayDecl, FuncDecl, UnaryOp
+from pycparser.c_ast import Cast, TypeDecl, PtrDecl, ArrayDecl, \
+                            FuncDecl, UnaryOp
 from pycparser.c_ast import InitList, Constant, Struct, ID, EllipsisParam
 from .helpers import IncorrectTransformOrder
 from .node_transformer import NodeTransformer
@@ -112,5 +113,5 @@ class InsertExplicitTypeCasts(NodeTransformer):
             raise NotImplementedError()
 
         if isinstance(rvalue, UnaryOp) and rvalue.op == '*':
-            rvalue = Cast(get_type(rvalue, self.env), rvalue) 
+            rvalue = Cast(get_type(rvalue, self.env), rvalue)
         return rvalue

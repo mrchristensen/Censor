@@ -75,10 +75,10 @@ class State: #pylint:disable=too-few-public-methods
                 self.kont_addr == other.kont_addr)
 
     def __hash__(self):
-        h = hash(self.ctrl)
-        h = h * hash(self.envr) + 37
-        h = h * hash(self.kont_addr) + 17
-        return h
+        result = hash(self.ctrl)
+        result = result * hash(self.envr) + 37
+        result = result * hash(self.kont_addr) + 17
+        return result
 
 
 class Ctrl: #pylint:disable=too-few-public-methods
@@ -106,8 +106,8 @@ class Ctrl: #pylint:disable=too-few-public-methods
             elif isinstance(second, pycparser.c_ast.Compound):
                 self.construct_body(first, second)
             else:
-                raise CESKException("Ctrl init body not Compound or Function: " +
-                                str(second))
+                raise CESKException("Ctrl init body not Compound or Function: "+
+                                    str(second))
         elif first:
             self.construct_node(first)
         else:
@@ -236,7 +236,7 @@ class Envr:
         elif ident in Envr.global_envr:
             return Envr.global_envr.map_to_address[ident]
         raise CESKException(ident + " is not defined in this scope: " +
-                        str(self.scope_id))
+                            str(self.scope_id))
 
     def map_new_identifier(self, ident):
         """Add a new identifier to the mapping"""
@@ -431,7 +431,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
         if address.data >= self.address_counter or \
                 address.data == 0 or \
                 address not in self.memory:
-            raise MemoryAccessViolation("Out of bounds read") #underflow or overflow
+            raise MemoryAccessViolation("Out of bounds read")
 
         val = self.memory[address]
         if address.offset == 0 and val.size == address.type_size:
@@ -480,7 +480,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
            address not in self.memory:
             #update to record seg fault rather than error out
             #TODO produce back tracking capabilities
-            raise MemoryAccessViolation("Out of Bounds Write") #underflow or overflow or invallid address
+            raise MemoryAccessViolation("Out of Bounds Write")
 
         if cnf.CONFIG['store_update'] == 'strong':
             self.strong_write(address, value)
@@ -505,7 +505,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
             return
 
         #begin a partial or overlapping write
-        raise NotImplemented("Partial weak write not implemented")
+        raise NotImplementedError("Partial weak write not implemented")
 
     def strong_write(self, address, value):
         """Write value to the store at address. If there is an existing value,
@@ -542,9 +542,9 @@ class Stor: #pylint: disable=too-many-instance-attributes
 
             #get value from data being written
             new_data.append(value.get_byte_value(bytes_written, able_to_write))
-            
+
             bytes_to_write -= able_to_write
-            bytes_written  += able_to_write
+            bytes_written += able_to_write
 
             #update bytes in store to represent unoverwriten bytes left
             bytes_in_store -= able_to_write
@@ -552,7 +552,8 @@ class Stor: #pylint: disable=too-many-instance-attributes
             if bytes_in_store > 0:
                 #get rest of object then write
                 offset = old_value.size - bytes_in_store
-                new_data.append(old_value.get_byte_value(offset, bytes_in_store))
+                new_data.append(
+                    old_value.get_byte_value(offset, bytes_in_store))
                 self._write_on_offset(address, new_data, old_value)
             elif bytes_to_write > 0:
                 #more data left in value, write to store then continue
@@ -614,7 +615,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
 class Kont: #pylint: disable=too-few-public-methods
     """Kontinuations"""
 
-    allocK_address = 2 
+    allocK_address = 2
     @staticmethod
     def allocK(state=None, nxt_ctrl=None, nxt_envr=None): #pylint: disable=invalid-name
         """ Generator for continuation addresses """
@@ -622,7 +623,7 @@ class Kont: #pylint: disable=too-few-public-methods
             value = Kont.allocK_address
             Kont.allocK_address += 1
         elif cnf.CONFIG['allocK'] == "0-cfa":
-                value = state.ctrl
+            value = state.ctrl
         elif cnf.CONFIG['allocK'] == "p4f":
             value = (nxt_ctrl, nxt_envr)
         elif cnf.CONFIG['allocK'] == "trivial":
@@ -652,9 +653,9 @@ class Kont: #pylint: disable=too-few-public-methods
                self.address == other.address
 
     def __hash__(self):
-        h = 7
-        h = h * hash(self.ctrl) + 37
-        h = h * hash(self.envr) + 53
-        h = h * hash(self.kont_addr) + 97
-        h = h * hash(self.address) + 3
-        return h
+        result = 7
+        result = result * hash(self.ctrl) + 37
+        result = result * hash(self.envr) + 53
+        result = result * hash(self.kont_addr) + 97
+        result = result * hash(self.address) + 3
+        return result

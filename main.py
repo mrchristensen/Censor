@@ -3,7 +3,7 @@
 
 import argparse
 import sys
-import tempfile
+#import tempfile #removed for windows compatability, should find way to use
 from os import path
 
 from ssl.correct_call_order import verify_openssl_correctness
@@ -53,7 +53,7 @@ def parse(filename, includes, pycparser_path, sanitize):
 
     temp = None
     if sanitize:
-        temp = open('tempfile~','wb')
+        temp = open('tempfile~', 'wb')
         temp.write(open(filename, 'rb').read())
         temp.flush()
         utils.preserve_include_preprocess(temp.name)

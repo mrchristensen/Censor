@@ -12,7 +12,7 @@ import cesk.linksearch as ls
 from cesk.exceptions import CESKException, MemoryAccessViolation, \
                             UnknownConfiguration
 
-def main(ast):
+def main(ast): #pylint: disable=too-many-locals
     """Injects execution into main funciton and maintains work queue"""
 
     #values to be returned
@@ -26,7 +26,7 @@ def main(ast):
     main_function = find_main(ast)[0]
 
     start_state = prepare_start_state(main_function)
-    
+
     seen_set = {start_state:start_state.time_stamp}
     failed_states = set()
     frontier = set([start_state])
@@ -46,14 +46,15 @@ def main(ast):
                     else:
                         states_matched += 1
 
-            except MemoryAccessViolation as e: #pylint: disable=broad-except
+            except MemoryAccessViolation as error: #pylint: disable=broad-except
                 memory_fault = True
-                failed_states.add((next_state, e))
+                failed_states.add((next_state, error))
         frontier = new_frontier
 
     if memory_fault:
-        for failed_state, e in failed_states:
-            print(e)
+        #failed_state and error
+        for _, error in failed_states:
+            print(error)
 
     return not memory_fault, states_generated, states_matched, states_evaluated
 

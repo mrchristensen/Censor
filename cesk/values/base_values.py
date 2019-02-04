@@ -1,4 +1,4 @@
-from cesk.exceptions import CESKException
+from cesk.exceptions import CESKException, TransformError
 
 BINOPS = {
     "+" : "__add__",
@@ -57,13 +57,13 @@ class ArithmeticValue:
             method = self.__getattribute__(UNOPS[operator])
             return method() #second value is not needed
         else:
-            raise NotImplementedError()
+            raise TransformError("Unexpected Operation\n")
     def transformed(self, other=None):
         """ method to throw error message """ 
-        raise NotImplementedError("Operator should be removed by transforms\n");
+        raise TransformError("Operator should be removed by transforms\n");
     def interpreted(self, other=None):
         """ method to throw error message """ 
-        raise NotImplementedError("Operator should be handled by the interpreter\n");
+        raise TransformError("Operator should be handled by the interpreter\n");
     #Binary and Unary Operators that muxt be overridden
     def __add__(self, other):
         pass
@@ -127,7 +127,7 @@ class ArithmeticValue:
         can be true, false or both"""
         return set([bool(self.data)])
 
-    def get_byte_value(self, offset=-1, num_bytes=None):
+    def get_byte_value(self, start=-1, num_bytes=None):
         """ mimics bit values in memory but allows for top or unknown bits """
         pass
 
@@ -139,21 +139,19 @@ class ArithmeticValue:
 class BaseInteger(ArithmeticValue):
     """ Abstract Class to represent Integral Types """
     #Every Operator needs to be implemented so no Exceptions Needed
-    def __init__(self, data, type_of, size=1):
-        pass
 
 class BaseFloat(ArithmeticValue):
     """ Abstract Class for floating types """
     def __lshift__(self, other):
-        raise NotImplementedError("Floats do not support a left shift")
+        raise TransformError("Floats do not support a left shift")
     def __rshift__(self, other):
-        raise NotImplementedError("Floats do not support a right shift")
+        raise TransformError("Floats do not support a right shift")
     def __and__(self, other):
-        raise NotImplementedError("Floats do not support a binary and")
+        raise TransformError("Floats do not support a binary and")
     def __xor__(self, other):
-        raise NotImplementedError("Floats do not support a binary xor")
+        raise TransformError("Floats do not support a binary xor")
     def __or__(self, other):
-        raise NotImplementedError("Floats do not support a binary or")
+        raise TransformError("Floats do not support a binary or")
 
 class ReferenceValue(ArithmeticValue): #pylint:disable=all
     """Abstract Class for polymorphism between Pointers, ect."""

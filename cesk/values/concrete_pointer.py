@@ -1,7 +1,7 @@
 '''Concerte Implementation of all the Types'''
-from .base_values import ReferenceValue, ByteValue
-import cesk.limits as limits
 from copy import deepcopy
+import cesk.limits as limits
+from .base_values import ReferenceValue, ByteValue
 from .factory import Factory
 
 class ConcretePointer(ReferenceValue):  #pylint:disable=too-few-public-methods
@@ -21,10 +21,10 @@ class ConcretePointer(ReferenceValue):  #pylint:disable=too-few-public-methods
             return Factory.Integer(0, 'int')
         return Factory.Integer(int(self.data == other.data and
                                    self.offset == other.offset), 'int')
-        
+
     def __lt__(self, other):
         return Factory.Integer(int(self.data < other.data), 'int')
-        
+
     def __le__(self, other):
         return Factory.Integer(int(self.data <= other.data), 'int')
 
@@ -66,14 +66,15 @@ class ConcretePointer(ReferenceValue):  #pylint:disable=too-few-public-methods
             ptr.offset += -1 * other
             return ptr
         elif isinstance(other, Factory.getPointerClass()):
-            return Factory.Integer((self.data+self.offset) - (other.data+other.offset), 'long')
+            return Factory.Integer((self.data+self.offset) -
+                                   (other.data+other.offset), 'long')
         else:
             raise Exception("Pointers can only be subtracted by int")
 
     def __str__(self):
         return 'Pointer at '+str(self.data)+'.'+str(self.offset) +\
                 ' size '+ str(self.type_size)
-    
+
     def __eq__(self, other):
         if isinstance(other, int):
             return self.data == other
@@ -97,6 +98,6 @@ class ConcretePointer(ReferenceValue):  #pylint:disable=too-few-public-methods
         return byte_value
 
     @classmethod
-    def from_byte_value(cls, byte_value, type_size):
+    def from_byte_value(cls, byte_value, type_of):
         """ Not a valid conversion """
         raise Exception("Making a pointer from bytevalue is not valid")

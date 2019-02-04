@@ -12,10 +12,10 @@ from transforms import transform
 from cesk.limits import set_config
 import cesk.config as cnf
 import cesk
-from cesk.exceptions import CESKException, MemoryAccessViolation, UnknownConfiguration
+from cesk.exceptions import CESKException
 
 def run_main(ast, results):
-    """ function for redirecting the output of main to a file and 
+    """ function for redirecting the output of main to a file and
         returning the result as a string  """
     output = tempfile.NamedTemporaryFile()
     prev = sys.stdout
@@ -71,11 +71,11 @@ def main():
         end = time.process_time()
         result["transform_time"] = end - start
         start = time.process_time()
-        run_main(ast, result) 
+        run_main(ast, result)
         end = time.process_time()
         result["interpretation_time"] = end - start
-    except CESKException as e:
-        raise e
+    except CESKException as exception:
+        raise exception #todo stack trace to result
     print(json.dumps(result))
 
 if __name__ == "__main__":
