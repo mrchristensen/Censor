@@ -1,15 +1,14 @@
 #include <stdio.h>
- 
+//
+
 union Data {
-
-   char* str;
+   char str[10];
 };
- 
-int main( ) {
 
+int main( ) {
    union Data data1;
-   char C = 'C';
-   data1.str = &C;
-   printf("%c", *data1.str);
-   return 0;
+   for (int i = 0; i < 10; ++i) {
+      data1.str[i] = 'a';
+      printf("%c", data1.str[i]);
+   }
 }

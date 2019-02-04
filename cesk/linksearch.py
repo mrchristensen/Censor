@@ -169,7 +169,7 @@ def get_union_sizes(ast_type, list_so_far):
             raise Exception("Union" + ast_type.name + ' not found')
     size = None
     alignment = None
-    largest_decl_size = None
+    #largest_decl_size = None
     for decl in decls:
         decl_size = []
         decl_alignment = get_sizes(decl, decl_size)
@@ -177,12 +177,12 @@ def get_union_sizes(ast_type, list_so_far):
         for d in decl_size:
             size_of_decl += d
         if (size is None) or (size < size_of_decl):
-            largest_decl_size = decl_size
+            #largest_decl_size = decl_size
             size = size_of_decl
         if (alignment is None) or (alignment < decl_alignment):
             alignment = decl_alignment
-    list_so_far.extend(largest_decl_size)
-    #list_so_far.append(size)
+    #list_so_far.extend(largest_decl_size)
+    list_so_far.append(size)
     if limits.CONFIG.packing_scheme == SPS.GCC_STD:
         if size % alignment != 0:
             buffer_size = alignment - (size % alignment)
