@@ -124,6 +124,9 @@ def generate_null_pointer():
     """ Build a pointer that will not dereference """
     return Factory.Pointer(0, 1)
 
+#value is the value to be cast ( I think )
+#typedeclt is the type to cast to ( I think )
+#state (cesk state)
 def cast(value, typedeclt, state=None):  # pylint: disable=unused-argument
     """Casts the given value a  a value of the given type."""
     result = value
@@ -144,15 +147,20 @@ def cast(value, typedeclt, state=None):  # pylint: disable=unused-argument
             result.add(cast(item, typedeclt, state))
     elif isinstance(typedeclt, pycparser.c_ast.Typename):
         result = cast(value, typedeclt.type, state)
+    #typedeclt could be a PtrDecl in the c_ast
     elif isinstance(typedeclt, pycparser.c_ast.PtrDecl):
+        #value could be a baseValue(see base_values.py) of ReferenceValue
         if isinstance(value, BV.ReferenceValue):
-            result = copy_pointer(value, typedeclt.type) #P -> P
+            result = copy_pointer(value, typedeclt.type) #P -> 
+        #value could be a BaseInteger, if it is, it shouldn't be?
+        #by the end, this should be unnecessary?
         elif isinstance(value, BV.BaseInteger): #I -> P
             # normal number being turned into a pointer not valid to dereference
             # TODO manage tracking of this
             logging.debug(" Cast %s to %s", str(value), str(typedeclt))
             address = state.stor.get_nearest_address(value.data)
             result = copy_pointer(address, typedeclt.type)
+    #typedeclt is any TypeDecl in c_ast
     elif isinstance(typedeclt, pycparser.c_ast.TypeDecl):
         types = typedeclt.type.names
         logging.debug("Casting %s to type %s", str(value), " ".join(types))

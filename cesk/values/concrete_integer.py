@@ -67,7 +67,7 @@ class ConcreteInteger(BV.BaseInteger): #pylint:disable=too-few-public-methods
         return sign
 
     def get_byte_value(self, start=-1, num_bytes=None):
-        """value of the unsigned bits stored"""
+        """Value of the unsigned bits stored"""
         result = self.data
         byte_value = None
         if self.data < 0:
