@@ -103,3 +103,11 @@ class KInteger(ConcreteInteger):
         if BV.ByteValue.top in byte_value.bits:
             return Factory.Integer(AL.TOP, type_of)
         return super().from_byte_value(byte_value, type_of)
+
+    def cast_to_integer(self, to_type):
+        """ cast to integer """
+        return Factory.Integer(self.data, to_type)
+
+    def cast_to_float(self, to_type):
+        """ cast to float """
+        return Factory.Float(float(self.data), to_type)
