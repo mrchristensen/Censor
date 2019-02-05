@@ -29,7 +29,7 @@ class AlphaName(NodeTransformer):
         RE_DECLS_IN_SCOPE[-1].clear()
         return node
 
-    def visit_Struct(self, node): # pylint: disable=invalid-name
+    def visit_Struct(self, node): # pylint: disable=invalid-name,no-self-use
         '''Don't transform Structs, their decls are unique already'''
         return node
 
@@ -80,7 +80,7 @@ class AlphaName(NodeTransformer):
         FUNCTION_IDS.clear()
         return node
 
-    def rename_decl(self, decl):
+    def rename_decl(self, decl): #pylint: disable=no-self-use
         '''finds a name not declared yet, places in map
             add to funtion IDs'''
         old_name = decl.name

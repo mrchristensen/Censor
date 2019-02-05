@@ -6,8 +6,8 @@ import pycparser.c_ast as AST
 import cesk.linksearch as ls
 from cesk.values import generate_unitialized_value
 from cesk.values import copy_pointer, generate_null_pointer
-from cesk.values import generate_pointer, generate_value, generate_frame_address
-from cesk.values.base_values import ByteValue
+from cesk.values import generate_pointer, generate_value
+from cesk.values.base_values import ByteValue, SizedSet
 import cesk.config as cnf
 from cesk.exceptions import MemoryAccessViolation, UnknownConfiguration, \
                            CESKException
@@ -64,6 +64,10 @@ class State: #pylint:disable=too-few-public-methods
             self.time_stamp = State._time
         elif cnf.CONFIG['tick'] == 'abstract':
             self.time_stamp = self.stor.get_time()
+        elif cnf.CONFIG['tick'] == 'trivial':
+            self.time_stamp = State._time
+        else:
+            raise UnknownConfiguration('tick')
 
     def __eq__(self, other):
         return (self.ctrl == other.ctrl and
@@ -71,10 +75,10 @@ class State: #pylint:disable=too-few-public-methods
                 self.kont_addr == other.kont_addr)
 
     def __hash__(self):
-        h = hash(self.ctrl)
-        h = h * hash(self.envr) + 37
-        h = h * hash(self.kont_addr) + 17
-        return h
+        result = hash(self.ctrl)
+        result = result * hash(self.envr) + 37
+        result = result * hash(self.kont_addr) + 17
+        return result
 
 
 class Ctrl: #pylint:disable=too-few-public-methods
@@ -102,8 +106,8 @@ class Ctrl: #pylint:disable=too-few-public-methods
             elif isinstance(second, pycparser.c_ast.Compound):
                 self.construct_body(first, second)
             else:
-                raise CESKException("Ctrl init body not Compound or Function: " +
-                                str(second))
+                raise CESKException("Ctrl init body not Compound or Function: "+
+                                    str(second))
         elif first:
             self.construct_node(first)
         else:
@@ -171,6 +175,33 @@ class Ctrl: #pylint:disable=too-few-public-methods
         else:
             return hash(self.node)
 
+class FrameAddress:
+    """ Contains a link between frame and id """
+
+    def __init__(self, frame_id, ident):
+        self.frame = frame_id
+        self.ident = ident
+        #super(FrameAddress, self).__init__(0, 1)
+
+    def get_frame(self):
+        """ Returns frame identifier """
+        return self.frame
+
+    def get_id(self):
+        """ Returns identifier name """
+        return self.ident
+
+    def __hash__(self):
+        return 1+43*hash(self.ident)+73*hash(self.frame)
+
+    def __eq__(self, other):
+        if not isinstance(other, FrameAddress):
+            return False
+        return self.ident == other.ident and self.frame == other.frame
+
+    def __str__(self):
+        return "("+str(self.frame)+", "+str(self.ident)+")"
+
 class Envr:
     """Holds the enviorment (a maping of identifiers to addresses)"""
     counter = 1 #counter to track which frame you are in (one per function)
@@ -190,6 +221,8 @@ class Envr:
         elif cnf.CONFIG['allocF'] == '0-cfa':
             if state is not None:
                 value = state.ctrl
+        elif cnf.CONFIG['allocF'] == 'trivial':
+            value = Envr.counter
         else:
             raise UnknownConfiguration('allocF')
         return value
@@ -203,7 +236,7 @@ class Envr:
         elif ident in Envr.global_envr:
             return Envr.global_envr.map_to_address[ident]
         raise CESKException(ident + " is not defined in this scope: " +
-                        str(self.scope_id))
+                            str(self.scope_id))
 
     def map_new_identifier(self, ident):
         """Add a new identifier to the mapping"""
@@ -211,7 +244,7 @@ class Envr:
             ident = ident.name
         if self.is_localy_defined(ident):
             return self.map_to_address[ident]
-        frame_addr = generate_frame_address(self.scope_id, ident)
+        frame_addr = FrameAddress(self.scope_id, ident)
         self.map_to_address[ident] = frame_addr
         return frame_addr
 
@@ -239,19 +272,11 @@ class Envr:
     def __hash__(self):
         return hash(self.scope_id)
 
-#helper class for the store
-class SizedSet(set):
-    ''' Set but with the extra feature of knowing the byte size 
-        of objects stored within '''
-    def __init__(self, size):
-        super().__init__()
-        self.size = size
-
 class Stor: #pylint: disable=too-many-instance-attributes
     """Represents the contents of memory at a moment in time."""
+    heap_address_counter = 0
 
     def __init__(self, to_copy=None):
-        self.heap_address_counter = 0
         if to_copy is None:
             self.null_addr = generate_null_pointer()
             self.address_counter = 1 # start at 1 so that 0 can be nullptr
@@ -284,6 +309,8 @@ class Stor: #pylint: disable=too-many-instance-attributes
             self.memory[pointer] = generate_unitialized_value(size)
         elif cnf.CONFIG['store_update'] == 'weak':#Starts with an empty set
             self.memory[pointer] = SizedSet(size)
+        else:
+            raise UnknownConfiguration('store_update')
         self.address_counter += size
         return pointer
 
@@ -329,8 +356,10 @@ class Stor: #pylint: disable=too-many-instance-attributes
         if cnf.CONFIG['allocH'] == 'abstract':
             return state.ctrl
         elif cnf.CONFIG['allocH'] == 'concrete':
-            self.heap_address_counter += 1
-            return self.heap_address_counter
+            Stor.heap_address_counter += 1
+            return Stor.heap_address_counter
+        elif cnf.CONFIG['allocH'] == 'trivial':
+            return Stor.heap_address_counter
         else:
             raise UnknownConfiguration("allocH")
 
@@ -382,6 +411,17 @@ class Stor: #pylint: disable=too-many-instance-attributes
     def read(self, address):
         """Read the contents of the store at address. Returns None if undefined.
         """
+        if isinstance(address, SizedSet):
+            #read to all location in the set
+            if not address: #if set is empty
+                raise MemoryAccessViolation("Read from unassigned address")
+            result = None
+            for addr in address:
+                temp = self.read(addr)
+                if result is None:
+                    result = SizedSet(temp.size)
+                result.update(temp)
+            return result
         if address in self.base_pointers:
             address = self.base_pointers[address]
         else:
@@ -391,7 +431,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
         if address.data >= self.address_counter or \
                 address.data == 0 or \
                 address not in self.memory:
-            raise MemoryAccessViolation("Out of bounds read") #underflow or overflow
+            raise MemoryAccessViolation("Out of bounds read")
 
         val = self.memory[address]
         if address.offset == 0 and val.size == address.type_size:
@@ -414,7 +454,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
             if bytes_to_read > 0:
                 ptr = self.add_offset_to_pointer(ptr, num_possible)
                 start = ptr.offset
-                if ptr.data == 0:
+                if ptr.data == 0 or ptr not in self.memory:
                     raise MemoryAccessViolation("Out of bounds read")
                 val = self.memory[ptr]
 
@@ -422,18 +462,25 @@ class Stor: #pylint: disable=too-many-instance-attributes
 
     def write(self, address, value):
         """ Calls strong or weak write as determined by configuration """
+        logging.info('  Write %s  to  %s', str(value), str(address))
+        if isinstance(address, set):
+            #write to all location in the set
+            if not address: #if set is empty
+                raise MemoryAccessViolation("Write to unassigned address")
+            for addr in address:
+                self.write(addr, value)
+            return
         if address in self.base_pointers:
             address = self.base_pointers[address]
         else:
             address.update(self)
 
-        logging.info('  Write %s  to  %s', str(value), str(address))
         if address.data == 0 or\
            address.data >= self.address_counter or\
            address not in self.memory:
             #update to record seg fault rather than error out
             #TODO produce back tracking capabilities
-            raise MemoryAccessViolation("Out of Bounds Write") #underflow or overflow or invallid address
+            raise MemoryAccessViolation("Out of Bounds Write")
 
         if cnf.CONFIG['store_update'] == 'strong':
             self.strong_write(address, value)
@@ -446,13 +493,19 @@ class Stor: #pylint: disable=too-many-instance-attributes
         """ Adds value to a set of values stored at address """
         old_values = self.memory[address]
         if address.offset == 0 and value.size == old_values.size:
-            if value not in old_values:
-                self.time += 1
-                old_values.add(value)
+            if isinstance(value, SizedSet):
+                for val in value:
+                    if val not in old_values:
+                        self.time += 1
+                        old_values.add(val)
+            else:
+                if value not in old_values:
+                    self.time += 1
+                    old_values.add(value)
             return
 
         #begin a partial or overlapping write
-        raise NotImplemented("Partial weak write not implemented")
+        raise NotImplementedError("Partial weak write not implemented")
 
     def strong_write(self, address, value):
         """Write value to the store at address. If there is an existing value,
@@ -489,9 +542,9 @@ class Stor: #pylint: disable=too-many-instance-attributes
 
             #get value from data being written
             new_data.append(value.get_byte_value(bytes_written, able_to_write))
-            
+
             bytes_to_write -= able_to_write
-            bytes_written  += able_to_write
+            bytes_written += able_to_write
 
             #update bytes in store to represent unoverwriten bytes left
             bytes_in_store -= able_to_write
@@ -499,7 +552,8 @@ class Stor: #pylint: disable=too-many-instance-attributes
             if bytes_in_store > 0:
                 #get rest of object then write
                 offset = old_value.size - bytes_in_store
-                new_data.append(old_value.get_byte_value(offset, bytes_in_store))
+                new_data.append(
+                    old_value.get_byte_value(offset, bytes_in_store))
                 self._write_on_offset(address, new_data, old_value)
             elif bytes_to_write > 0:
                 #more data left in value, write to store then continue
@@ -512,19 +566,20 @@ class Stor: #pylint: disable=too-many-instance-attributes
 
     def _write_on_offset(self, address, new_data, old_value):
         """ Manages how to write when mixing bytes """
-        logging.debug("\tOffset Write %s to %s --- %s", new_data, address, str(new_data.size)) 
         self.memory[address] = generate_value(new_data, old_value.type_of)
 
     def get_nearest_address(self, address):
         """ returns a pointer to the nearest address
             with an offset set to make difference """
         #address = generate_pointer(address, self)
-        #raise Exception("Do not want to be here")
-        logging.debug(" Look for address %d", address)
+        if address == 0:
+            return self.null_addr
+        logging.error("Converting from an unknown integer to a pointer")
+        #raise MemoryAccessViolation("Convert from unknown int to pointer")
+        if address > self.address_counter:
+            return self.null_addr
         if address in self.memory:
             return generate_pointer(address, None)
-        if address > self.address_counter or address == 0:
-            return self.null_addr
 
         nearest_address = self.null_addr
         for key in self.memory:
@@ -542,7 +597,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
         """ records the continuation for the continuation address """
         if cnf.CONFIG['allocK'] == 'concrete':
             self.kont[kont_addr] = {kai}
-        else: #allocK == 0-cfa or p4f
+        else: #allocK == 0-cfa or p4f or trivial
             if kont_addr not in self.kont:
                 self.kont[kont_addr] = set()
             self.kont[kont_addr].add(kai)
@@ -560,7 +615,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
 class Kont: #pylint: disable=too-few-public-methods
     """Kontinuations"""
 
-    allocK_address = 2 
+    allocK_address = 2
     @staticmethod
     def allocK(state=None, nxt_ctrl=None, nxt_envr=None): #pylint: disable=invalid-name
         """ Generator for continuation addresses """
@@ -568,9 +623,11 @@ class Kont: #pylint: disable=too-few-public-methods
             value = Kont.allocK_address
             Kont.allocK_address += 1
         elif cnf.CONFIG['allocK'] == "0-cfa":
-                value = state.ctrl
+            value = state.ctrl
         elif cnf.CONFIG['allocK'] == "p4f":
             value = (nxt_ctrl, nxt_envr)
+        elif cnf.CONFIG['allocK'] == "trivial":
+            value = Kont.allocK_address
         return value
 
     def __init__(self, parent_state, address=None):
@@ -596,9 +653,9 @@ class Kont: #pylint: disable=too-few-public-methods
                self.address == other.address
 
     def __hash__(self):
-        h = 7
-        h = h * hash(self.ctrl) + 37
-        h = h * hash(self.envr) + 53
-        h = h * hash(self.kont_addr) + 97
-        h = h * hash(self.address) + 3
-        return h
+        result = 7
+        result = result * hash(self.ctrl) + 37
+        result = result * hash(self.envr) + 53
+        result = result * hash(self.kont_addr) + 97
+        result = result * hash(self.address) + 3
+        return result

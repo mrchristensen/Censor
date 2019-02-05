@@ -6,7 +6,7 @@ class Factory():
     '''Factory holding the constructor for each value'''
 
     @staticmethod
-    def getIntegerClass():
+    def getIntegerClass(): #pylint: disable=invalid-name
         '''returns class for Integer'''
         if cesk.config.CONFIG['values'] == 'concrete':
             from .concrete_integer import ConcreteInteger as Integer
@@ -15,7 +15,7 @@ class Factory():
         return Integer
 
     @staticmethod
-    def getPointerClass():
+    def getPointerClass(): #pylint: disable=invalid-name
         '''returns class for Pointer'''
         if cesk.config.CONFIG['values'] == 'concrete':
             from .concrete_pointer import ConcretePointer as Pointer
@@ -24,7 +24,7 @@ class Factory():
         return Pointer
 
     @staticmethod
-    def getCharClass():
+    def getCharClass(): #pylint: disable=invalid-name
         '''returns class for Char'''
         if cesk.config.CONFIG['values'] == 'concrete':
             from .concrete_char import ConcreteChar as Char
@@ -33,7 +33,7 @@ class Factory():
         return Char
 
     @staticmethod
-    def getFloatClass():
+    def getFloatClass(): #pylint: disable=invalid-name
         '''retuns class for Float'''
         if cesk.config.CONFIG['values'] == 'concrete':
             from .concrete_float import ConcreteFloat as Float
@@ -42,21 +42,21 @@ class Factory():
         return Float
 
     @staticmethod
-    def Char(data, type_of):
+    def Char(data, type_of): #pylint: disable=invalid-name
         '''Char constructor'''
         return Factory.getCharClass()(data, type_of)
 
     @staticmethod
-    def Float(data, type_of):
+    def Float(data, type_of): #pylint: disable=invalid-name
         '''Float constructor'''
         return Factory.getFloatClass()(data, type_of)
 
     @staticmethod
-    def Integer(data, type_of, size=1):
+    def Integer(data, type_of, size=1): #pylint: disable=invalid-name
         '''Integer constructor'''
         return Factory.getIntegerClass()(data, type_of, size)
 
     @staticmethod
-    def Pointer(address, type_size, offset=0):
+    def Pointer(address, type_size, offset=0): #pylint: disable=invalid-name
         '''Pointer constructor'''
         return Factory.getPointerClass()(address, type_size, offset)

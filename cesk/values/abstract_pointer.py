@@ -1,3 +1,5 @@
+""" Abstact Pointer class that uses the
+    Abstracted integer object as its offset """
 from copy import deepcopy
 import cesk.limits as limits
 from .base_values import ReferenceValue, ByteValue
@@ -19,14 +21,14 @@ class AbstractPointer(ReferenceValue):  #pylint:disable=too-few-public-methods
     def __hash__(self):
         return self.data
 
-    def __eq__(self, other):
+    def equals(self, other):
         if not isinstance(other, ReferenceValue):
             return Factory.Integer(0, 'int')
         return Factory.Integer(int(self.data == other.data), 'int')
-        
+
     def __lt__(self, other):
         return Factory.Integer(int(self.data < other.data), 'int')
-        
+
     def __le__(self, other):
         return Factory.Integer(int(self.data <= other.data), 'int')
 
@@ -64,7 +66,6 @@ class AbstractPointer(ReferenceValue):  #pylint:disable=too-few-public-methods
 
     def __sub__(self, other):
         ptr = deepcopy(self)
-
         if isinstance(other, Factory.getIntegerClass()):
             ptr.offset += -1 * other.data
             return ptr

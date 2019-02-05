@@ -1,3 +1,5 @@
+from cesk.exceptions import CESKException, TransformError
+
 BINOPS = {
     "+" : "__add__",
     "-" : "__sub__",
@@ -6,7 +8,7 @@ BINOPS = {
     "%" : "__mod__", #integer values only
     "<" : "__lt__",
     "<=": "__le__",
-    "==": "__eq__",
+    "==": "equals",
     "!=": "__ne__",
     ">" : "__gt__",
     ">=": "__ge__",
@@ -35,12 +37,19 @@ UNOPS = {
 
 class ArithmeticValue:
     """Abstract class for polymorphism between abstract and concrete values"""
+    #data member that should be present in all subclasses
     #data = None #store the value a data type that matches
     #type_of = None #stores the type string
     #size = None #stores the size int
 
+    #should not override
     def perform_operation(self, operator, value):
         """Performs operation and returns value."""
+        if isinstance(value, SizedSet):
+            result = SizedSet(self.size)
+            for val in value:
+                result.add(self.perform_operation(operator, val))
+            return result
         if operator in BINOPS:
             method = self.__getattribute__(BINOPS[operator])
             return method(value)
@@ -48,13 +57,14 @@ class ArithmeticValue:
             method = self.__getattribute__(UNOPS[operator])
             return method() #second value is not needed
         else:
-            raise NotImplementedError()
-
-    def get_truth_value(self):
-        """Returns a bool denoting what truth value the ArithmeticValue would
-        have if it were inside of an if statement in C"""
-        return set([bool(self.data)])
-
+            raise TransformError("Unexpected Operation\n")
+    def transformed(self, other=None):
+        """ method to throw error message """ 
+        raise TransformError("Operator should be removed by transforms\n");
+    def interpreted(self, other=None):
+        """ method to throw error message """ 
+        raise TransformError("Operator should be handled by the interpreter\n");
+    #Binary and Unary Operators that muxt be overridden
     def __add__(self, other):
         pass
     def __sub__(self, other):
@@ -69,7 +79,8 @@ class ArithmeticValue:
         pass
     def __le__(self, other):
         pass
-    def __eq__(self, other):
+    def equals(self, other):
+        """ Class to return an BaseInteger representing equals """
         pass
     def __ne__(self, other):
         pass
@@ -95,75 +106,57 @@ class ArithmeticValue:
         pass
     def __not__(self):
         pass
-    def transformed(self, other=None):
-        """ method to throw error message """ 
-        raise NotImplementedError("Operator should be removed by transforms\n");
-    def interpreted(self, other=None):
-        """ method to throw error message """ 
-        raise NotImplementedError("Operator should be handled by the interpreter\n");
 
+    #subclasses should implement the functions below if the default is not good enough
     def __str__(self):
         if self.data is not None:
             return str(self.data)
         return super(ArithmeticValue,self).__str__()
 
-    #subclasses should implement hash and eq and str
-    #should have a size data member
-    def get_byte_value(self, offset=-1, num_bytes=None):
-        """ mimics bit values in memory but allows for top or unknown bits """
-        pass
-    #each class should have a from_byte_value class method 
-    #def from_byte_value():
-    #    return ByteValue(size)
+    def __eq__(self, other):
+        if type(self) == type(other) and self.data == other.data:
+            return True
+        return False
 
-class UnitializedValue(ArithmeticValue):
-    """ Type to represent a unitialized value of a certian size """
-    bad_use_str = 'Use of a unitialized value'
- 
-    def __init__(self, size):
-        self.size = size #in bytes
-        self.data = None
-        self.type_of = 'uninitialized'
-
-    def perform_operation(self, operator, value):
-        """Performs operation and returns value."""
-        raise Exception(UnitializedValue.bad_use_str)        
+    def __hash__(self):
+        return hash(self.data)
 
     def get_truth_value(self):
         """Returns a bool denoting what truth value the ArithmeticValue would
-        have if it were inside of an if statement in C"""
-        raise Exception(UnitializedValue.bad_use_str)
+        have if it were inside of an if statement in C
+        can be true, false or both"""
+        return set([bool(self.data)])
 
-    def get_byte_value(self, offset=-1, num_bytes=None):
-        """ Returns x random bytes, should only be valid if called from write """
-        return ByteValue(self.size)
+    def get_byte_value(self, start=-1, num_bytes=None):
+        """ mimics bit values in memory but allows for top or unknown bits """
+        pass
 
-    def __str__(self):
-        return "Unitialized Value size %d" % self.size
+    @classmethod
+    def from_byte_value(cls, byte_value, type_of):
+        """ Takes a ByteValue and a type string and generates an instance of the class """
+        pass
 
 class BaseInteger(ArithmeticValue):
     """ Abstract Class to represent Integral Types """
     #Every Operator needs to be implemented so no Exceptions Needed
-    def __init__(self, data, type_of, size=1):
-        pass
 
 class BaseFloat(ArithmeticValue):
     """ Abstract Class for floating types """
     def __lshift__(self, other):
-        raise NotImplementedError("Floats do not support a left shift")
+        raise TransformError("Floats do not support a left shift")
     def __rshift__(self, other):
-        raise NotImplementedError("Floats do not support a right shift")
+        raise TransformError("Floats do not support a right shift")
     def __and__(self, other):
-        raise NotImplementedError("Floats do not support a binary and")
+        raise TransformError("Floats do not support a binary and")
     def __xor__(self, other):
-        raise NotImplementedError("Floats do not support a binary xor")
+        raise TransformError("Floats do not support a binary xor")
     def __or__(self, other):
-        raise NotImplementedError("Floats do not support a binary or")
+        raise TransformError("Floats do not support a binary or")
 
 class ReferenceValue(ArithmeticValue): #pylint:disable=all
-    """Abstract Class for polymorphism between Arrays, Pointers, ect."""
-    #must have 
+    """Abstract Class for polymorphism between Pointers, ect."""
 
+#Special Case values to handle needed gaps
 class ByteValue:
     """ Class to represent values of bits from a partial read """
     one = 1
@@ -221,4 +214,67 @@ class ByteValue:
         return result
 
     def __str__(self):
-        return str(self.bits)
+       return str(self.bits)
+ 
+class UnitializedValue(ArithmeticValue):
+    """ Type to represent a unitialized value of a certian size """
+    bad_use_str = 'Use of a unitialized value'
+ 
+    def __init__(self, size, type_of='uninitialized'):
+        self.size = size #in bytes
+        self.data = None
+        self.type_of = type_of
+
+    def perform_operation(self, operator, value):
+        """Performs operation and returns value."""
+        raise CESKException(UnitializedValue.bad_use_str)        
+
+    def get_truth_value(self):
+        """Returns a bool denoting what truth value the ArithmeticValue would
+        have if it were inside of an if statement in C"""
+        raise CESKException(UnitializedValue.bad_use_str)
+
+    def get_byte_value(self, offset=-1, num_bytes=None):
+        """ Returns x random bytes, should only be valid if called from write """
+        return ByteValue(self.size)
+
+    def __str__(self):
+        return "Unitialized Value size %d" % self.size
+
+#helper class for the store
+class SizedSet(set):
+    ''' Set but with the extra feature of knowing the byte size
+        of objects stored within, also mirrors some functionality
+        of an arithmetic value, but returns sets instead  '''
+    def __init__(self, size):
+        super().__init__()
+        self.size = size
+
+    def get_truth_value(self):
+        """ mimic calling truth value on all items in set """
+        truth_value = set()
+        for value in self:
+            truth_value.update(value.get_truth_value())
+        if not truth_value:#Empty Set could report error as well
+            truth_value.update([True, False])
+        return truth_value
+
+    def perform_operation(self, operator, value):
+        """ Selects and performs operation on all values in set and in value"""
+        result = SizedSet(self.size)
+        for left in self:
+            if isinstance(value, SizedSet):
+                for right in value:
+                    result.add(left.perform_operation(operator, right))
+            else:
+                result.add(left.perform_operation(operator, value))
+        return result
+
+    def __str__(self):
+        result = []
+        for item in self:
+            result.append(str(item))
+        return '{' + ','.join(result) + '}'
+
+    #def get_byte_value
+    #def from_byte_value not possible

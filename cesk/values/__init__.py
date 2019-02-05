@@ -1,82 +1,78 @@
 """Classes to represent values, and a function for generating
 a value based on an assignment node"""
-import pycparser
 import logging
+import pycparser
 from cesk.linksearch import get_sizes
 import cesk.config
-from cesk.values import base_values as BV #import BV.ReferenceValue, BV.UnitializedValue, BV.ByteValue
+from cesk.values import base_values as BV
 import cesk.limits as limits
+from cesk.exceptions import CESKException
 from .factory import Factory
 
-class FrameAddress:
-    """ Contains a link between frame and id """
 
-    def __init__(self, frame_id, ident):
-        self.frame = frame_id
-        self.ident = ident
-        #super(FrameAddress, self).__init__(0, 1)
+def string_constant(value):
+    """ handle makeing a const string constant """
+    #TODO this needs a better implementation so as to be able to copy or
+    #   read at an index
+    return value
+    #raise NotImplementedError("Need to implement string constant")
+    #return PtrDecl([], TypeDecl(None, [], IdentifierType(['char'])))
 
-    def get_frame(self):
-        """ Returns frame identifier """
-        return self.frame
+def float_constant(value):
+    """ handle makeing a const float constant """
+    if value[-1] in "fF":
+        return Factory.Float(value[:-1], 'float')
+    elif value[-1] in "lL":
+        return Factory.Float(value, 'long double')
+    else:
+        return Factory.Float(value, 'double')
 
-    def get_id(self):
-        """ Returns identifier name """
-        return self.ident
+def int_constant(value):
+    """ handle makeing a const int constant """
+    unsigned = ''
+    type_of = 'int'
+    if value[-1] in "uU":
+        unsigned = 'unsigned '
+        value = value[:-1]
+    if value[-1] not in "lL":
+        val = int(value, 0)
+        if val <= limits.RANGES['unsigned '+type_of].max:
+            return Factory.Integer(val, unsigned+type_of)
+    else:
+        value = value[:-1]
+    type_of = 'long '+type_of
+    val = int(value, 0)
 
-    def __hash__(self):
-        return 1+43*hash(self.ident)+73*hash(self.frame)
+    if val <= limits.RANGES['unsigned '+type_of].max:
+        return Factory.Integer(val, unsigned+type_of)
+    type_of = 'long '+type_of
+    if val <= limits.RANGES['unsigned '+type_of].max:
+        return Factory.Integer(val, unsigned+type_of)
 
-    def __eq__(self, other):
-        if not isinstance(other, FrameAddress):
-            return False
-        return self.ident == other.ident and self.frame == other.frame
-
+def char_constant(value):
+    """ handle makeing a const char constant """
+    return Factory.Char(value, 'char')
 
 # needs to know what size it needs to be sometimes
 def generate_constant_value(value, type_of='int'):
     """ Given a string, parse it as a constant value. """
     if type_of == 'string':
-        raise NotImplementedError("Need to implement string constant")
-        #return PtrDecl([], TypeDecl(None, [], IdentifierType(['char'])))
-    elif type_of == 'float' or type_of == 'double':
-        if value[-1] in "fF":
-            return Factory.Float(value[:-1], 'float')
-        elif value[-1] in "lL":
-            return Factory.Float(value, 'long double')
-        else:
-            return Factory.Float(value, 'double')
+        return string_constant(value)
+    elif type_of == 'float':
+        return float_constant(value)
     elif type_of == 'int':
-        u = ''
-        if value[-1] in "uU":
-            u = 'unsigned '
-            value = value[:-1]
-        if value[-1] not in "lL":
-            val = int(value, 0)
-            if val <= limits.RANGES['unsigned '+type_of].max:
-                return Factory.Integer(val, u+type_of)
-        else:
-            value = value[:-1]
-        type_of = 'long '+type_of
-        val = int(value, 0)
-
-        if val <= limits.RANGES['unsigned '+type_of].max:
-            return Factory.Integer(val, u+type_of)
-        type_of = 'long '+type_of
-        if val <= limits.RANGES['unsigned '+type_of].max:
-            return Factory.Integer(val, u+type_of)
-
+        return int_constant(value)
     elif type_of == 'char':
-        return Factory.Char(value, type_of)
+        return char_constant(value)
 
-    raise Exception("Unkown Constant Type %s", type_of)
+    raise CESKException("Unkown Constant Type %s"%type_of)
 
 
 def generate_value(value, type_of):
-    """ given value in bits and type_of as string, size for special cases 
+    """ given value in bits and type_of as string, size for special cases
         special cases include pointer, bit_value, uninitialized """
     if not isinstance(value, BV.ByteValue):
-        raise Exception("BV.ByteValue must be passed into generate_value")
+        raise CESKException("BV.ByteValue must be passed into generate_value")
 
     if "char" in type_of:
         return Factory.getCharClass().from_byte_value(value, type_of)
@@ -86,16 +82,16 @@ def generate_value(value, type_of):
         return Factory.getFloatClass().from_byte_value(value, type_of)
 
     if type_of == 'pointer':
-        raise Exception(
+        raise CESKException(
             'Pointer not expected here/not valid to change dynamically')
 
     if type_of == 'uninitialized' or type_of == 'bit_value':
         #debate whether this should return an Integer or BV.ByteValue
-        #if BV.ByteValue a few more functions need to be added
-        #or if unitialized was an option for individual types rather than a group
+        #if BV.ByteValue a few more functions need to be added or
+        #if unitialized was an option for individual types rather than a group
         return Factory.getIntegerClass().from_byte_value(value, 'bit_value')
 
-    raise Exception("Unexpected value type %s", type_of)
+    raise CESKException("Unexpected value type %s"%type_of)
 
 def generate_unitialized_value(size):
     """ Generates special value that is unitialized but has a size """
@@ -128,18 +124,12 @@ def generate_null_pointer():
     """ Build a pointer that will not dereference """
     return Factory.Pointer(0, 1)
 
-def generate_frame_address(frame, ident):
-    """ Build a Frame Address """
-    return FrameAddress(frame, ident)
-
 #value is the value to be cast ( I think )
 #typedeclt is the type to cast to ( I think )
 #state (cesk state)
 def cast(value, typedeclt, state=None):  # pylint: disable=unused-argument
     """Casts the given value a  a value of the given type."""
-    result = None
-    #Josh WORK HERE
-
+    result = value
     #Int -> Int
     #Int -> Pointer
     #Int -> Float
@@ -151,9 +141,11 @@ def cast(value, typedeclt, state=None):  # pylint: disable=unused-argument
     #Pointer -> Pointer
 
     #BV.ByteValue -> ALL
-    #typedeclt could be a Typename in the c_ast
-    if isinstance(typedeclt, pycparser.c_ast.Typename):
-        #recursive call to cast if it is
+    if isinstance(value, BV.SizedSet):
+        result = BV.SizedSet(value.size)
+        for item in value:
+            result.add(cast(item, typedeclt, state))
+    elif isinstance(typedeclt, pycparser.c_ast.Typename):
         result = cast(value, typedeclt.type, state)
     #typedeclt could be a PtrDecl in the c_ast
     elif isinstance(typedeclt, pycparser.c_ast.PtrDecl):
@@ -171,14 +163,13 @@ def cast(value, typedeclt, state=None):  # pylint: disable=unused-argument
     #typedeclt is any TypeDecl in c_ast
     elif isinstance(typedeclt, pycparser.c_ast.TypeDecl):
         types = typedeclt.type.names
-        logging.debug("Casting %s to type %s",str(value)," ".join(types))
+        logging.debug("Casting %s to type %s", str(value), " ".join(types))
         byte_value = value.get_byte_value()
         logging.debug("Byte_Value before cast %s", str(byte_value))
         result = generate_value(byte_value, " ".join(types))
-        logging.debug("Cast result is %s",str(result.data))
+        logging.debug("Cast result is %s", str(result.data))
     else:
-        logging.error('\tUnsupported cast: ' + str(typedeclt.type))
-        raise Exception("Unsupported cast")
-    
-    assert result.data != None
+        logging.error('\tUnsupported cast: %s', str(typedeclt.type))
+        raise CESKException("Unsupported cast")
+
     return result
