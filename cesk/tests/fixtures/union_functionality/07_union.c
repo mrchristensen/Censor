@@ -1,18 +1,21 @@
 #include <stdio.h>
-#include <string.h>
- 
-union Data {
-   int i;
-   float f;
-   char* str;
+//Struct in a union
+
+struct nestedStruct {
+   int x;
+   double y;
 };
- 
-int main( ) {
 
-   union Data data;        
-   
-   data.str = "Test";   
-   printf("%s", data.str);
+union Test { 
+   struct nestedStruct n;
+}; 
+  
+int main() 
+{ 
+   union Test p1;
+   p1.n.x = 5;
+   p1.n.y = 2.12;
 
-   return 0;
+   printf("%d %f", p1.n.x, p1.n.y); 
+   return 0; 
 }

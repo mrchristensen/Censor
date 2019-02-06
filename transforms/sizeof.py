@@ -188,6 +188,10 @@ def get_struct_offset(struct_type, field, env):
 
     if field_type is None:
         raise Exception("Field not found")
+    
+    if isinstance(struct_type, AST.Union):
+        size = AST.Constant('int', str(0)+'l')
+        return size, field_type
 
     size = AST.Constant('int', str(offset)+'l')
     return size, field_type

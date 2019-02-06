@@ -1,23 +1,25 @@
 #include <stdio.h>
-#include <string.h>
- 
+
 union Data {
-   int i;
-   float f;
-   char str[20];
+   int myInts[20];
 };
- 
+
 int main( ) {
+
    union Data data;        
+   
+   /*for(int i; i < 20; i++){
+      data.myInts[i] = i;
+      printf("%d", data.myInts[i]);
+   }*/
 
-   data.i = 5;
-   printf("%d", data.i);
-   data.f = 2.3f;
-   printf("%f", data.f);
-   for (int j = 0; j < 20; j++) {
-      data.str[j] = 'm';
-      printf("%c", data.str[j]);
+   int i = 0;
+   while (i < 20)
+   {
+      data.myInts[i] = 20;
+      printf("%d", data.myInts[i]);
+      i++;
    }
-
+   
    return 0;
 }

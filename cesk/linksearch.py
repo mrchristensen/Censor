@@ -174,8 +174,8 @@ def get_union_sizes(ast_type, list_so_far):
         decl_size = []
         decl_alignment = get_sizes(decl, decl_size)
         size_of_decl = 0
-        for d in decl_size:
-            size_of_decl += d
+        for element_size in decl_size:
+            size_of_decl += element_size
         if (size is None) or (size < size_of_decl):
             #largest_decl_size = decl_size
             size = size_of_decl

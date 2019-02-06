@@ -1,21 +1,22 @@
 #include <stdio.h>
+//Pointer
 
-struct Nested {
-        int x;
-        char *c;
-};
-
-union Test { 
-    struct Nested n;
+union test { 
+    int x; 
+    int y; 
 }; 
-  
+
 int main() 
 { 
-    union Test p1; 
-    p1.n.x = 5;
-    char a = 'a';
-    p1.n.c = &a;
-
-    printf("%d %c", p1.n.x, *(p1.n.c)); 
+    union test p1; 
+    p1.x = 65; 
+    p1.y = 34;
+  
+    // p2 is a pointer to union p1 
+    union test* p2 = &p1; 
+  
+    // Accessing union members using pointer 
+    printf("%d", p2->x);
+    printf("%d %d", p2->x, p2->y); 
     return 0; 
-} 
+}

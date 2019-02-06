@@ -1,5 +1,5 @@
 #include <stdio.h>
-//
+//Single array
 
 union Data {
    char str[10];

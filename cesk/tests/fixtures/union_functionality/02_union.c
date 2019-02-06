@@ -1,5 +1,5 @@
 #include <stdio.h>
-//
+//Pointer
 
 union DataU {
    int *iptr;

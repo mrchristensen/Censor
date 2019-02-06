@@ -1,26 +1,21 @@
 #include <stdio.h>
-#include <string.h>
- 
-union Data {
-   int myInts[20];
+//Union in a struct
+
+union nestedUnion { 
+   int x;
+   float y;
 };
- 
-int main( ) {
 
-   union Data data;        
-   
-   /*for(int i; i < 20; i++){
-      data.myInts[i] = i;
-      printf("%d", data.myInts[i]);
-   }*/
+struct myStruct {
+   union nestedUnion n;
+};
 
-   int i = 0;
-   while (i < 20)
-   {
-      data.myInts[i] = 20;
-      printf("%d", data.myInts[i]);
-      i++;
-   }
-   
-   return 0;
+int main() 
+{ 
+   struct myStruct p1;
+   p1.n.x = 5;
+   p1.n.y = 2.12;
+
+   printf("%d %f", p1.n.x, p1.n.y); 
+   return 0; 
 }
