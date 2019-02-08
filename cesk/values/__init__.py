@@ -151,7 +151,7 @@ def cast(value, typedeclt, state=None):  # pylint: disable=unused-argument
     elif isinstance(typedeclt, pycparser.c_ast.PtrDecl):
         #value could be a baseValue(see base_values.py) of ReferenceValue
         if isinstance(value, BV.ReferenceValue):
-            result = copy_pointer(value, typedeclt.type) #P -> 
+            result = copy_pointer(value, typedeclt.type) #P ->
         #value could be a BaseInteger, if it is, it shouldn't be?
         #by the end, this should be unnecessary?
         elif isinstance(value, BV.BaseInteger): #I -> P

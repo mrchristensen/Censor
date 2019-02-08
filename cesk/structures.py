@@ -176,7 +176,7 @@ class Ctrl: #pylint:disable=too-few-public-methods
             return hash(self.node)
 
 class FrameAddress:
-    """ Contains a link between frame and id """
+    """ Contains a link between frame identifier and variable identifier """
 
     def __init__(self, frame_id, ident):
         self.frame = frame_id
@@ -203,26 +203,26 @@ class FrameAddress:
         return "("+str(self.frame)+", "+str(self.ident)+")"
 
 class Envr:
-    """Holds the enviorment (a maping of identifiers to addresses)"""
-    counter = 1 #counter to track which frame you are in (one per function)
-    global_id = 0
+    """Holds the enviorment/frame (a maping of identifiers to addresses)"""
+    next_frame_id = 1 #Tracks next concrete frame id
+    global_envr_id = 0
     global_envr = None
 
     def __init__(self, state):
-        self.map_to_address = {} #A set of IdToAddr mappings
-        self.scope_id = self.allocF(state)
+        self.local_variables = {} #A set of IdToAddr mappings
+        self.frame_id = self.allocF(state)
 
     def allocF(self, state): #pylint: disable=no-self-use,invalid-name
         """ Allocation of frame identefiers """
         value = None
         if cnf.CONFIG['allocF'] == 'concrete':
-            value = Envr.counter
-            Envr.counter += 1
+            value = Envr.next_frame_id
+            Envr.next_frame_id += 1
         elif cnf.CONFIG['allocF'] == '0-cfa':
             if state is not None:
                 value = state.ctrl
         elif cnf.CONFIG['allocF'] == 'trivial':
-            value = Envr.counter
+            value = Envr.next_frame_id
         else:
             raise UnknownConfiguration('allocF')
         return value
@@ -231,46 +231,46 @@ class Envr:
         """looks up the address associated with an identifier"""
         while not isinstance(ident, str):
             ident = ident.name
-        if ident in self.map_to_address:
-            return self.map_to_address[ident]
+        if ident in self.local_variables:
+            return self.local_variables[ident]
         elif ident in Envr.global_envr:
-            return Envr.global_envr.map_to_address[ident]
+            return Envr.global_envr.local_variables[ident]
         raise CESKException(ident + " is not defined in this scope: " +
-                            str(self.scope_id))
+                            str(self.frame_id))
 
     def map_new_identifier(self, ident):
         """Add a new identifier to the mapping"""
         while not isinstance(ident, str):
             ident = ident.name
         if self.is_localy_defined(ident):
-            return self.map_to_address[ident]
-        frame_addr = FrameAddress(self.scope_id, ident)
-        self.map_to_address[ident] = frame_addr
+            return self.local_variables[ident]
+        frame_addr = FrameAddress(self.frame_id, ident)
+        self.local_variables[ident] = frame_addr
         return frame_addr
 
     @staticmethod
     def set_global(global_env):
         """ sets a global environment """
-        global_env.scope_id = 0
+        global_env.frame_id = Envr.global_envr_id
         Envr.global_envr = global_env
 
     def is_localy_defined(self, ident):
         """returns if a given identifier is local to this scope"""
-        return ident in self.map_to_address
+        return ident in self.local_variables
 
     @staticmethod
     def is_globaly_defined(ident):
         """returns if a given identifier is local to this scope"""
-        return ident in Envr.global_envr.map_to_address
+        return ident in Envr.global_envr.local_variables
 
     def __contains__(self, ident):
         return self.is_localy_defined(ident) or Envr.is_globaly_defined(ident)
 
     def __eq__(self, other):
-        return self.scope_id == other.scope_id
+        return self.frame_id == other.frame_id
 
     def __hash__(self):
-        return hash(self.scope_id)
+        return hash(self.frame_id)
 
 class Stor: #pylint: disable=too-many-instance-attributes
     """Represents the contents of memory at a moment in time."""

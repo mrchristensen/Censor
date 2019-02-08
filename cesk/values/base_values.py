@@ -136,6 +136,18 @@ class ArithmeticValue:
         """ Takes a ByteValue and a type string and generates an instance of the class """
         pass
 
+    def cast_to_integer(self, to_type):
+        """ returns value as integer """
+        pass
+
+    def cast_to_float(self, to_type):
+        """ returns value as float """
+        pass
+
+    def cast_to_pointer(self, to_type):
+        """ returns value as pointer """
+        pass
+
 class BaseInteger(ArithmeticValue):
     """ Abstract Class to represent Integral Types """
     #Every Operator needs to be implemented so no Exceptions Needed
@@ -152,9 +164,13 @@ class BaseFloat(ArithmeticValue):
         raise TransformError("Floats do not support a binary xor")
     def __or__(self, other):
         raise TransformError("Floats do not support a binary or")
+    def cast_to_pointer(self, to_type):
+        raise TransformError("Floats can not be cast to pointers")
 
 class ReferenceValue(ArithmeticValue): #pylint:disable=all
     """Abstract Class for polymorphism between Pointers, ect."""
+    def cast_to_float(self, to_type):
+        raise TransformError("Pointers can not be cast to floats")
 
 #Special Case values to handle needed gaps
 class ByteValue:
