@@ -240,10 +240,6 @@ class Envr:
 
     def map_new_identifier(self, ident):
         """Add a new identifier to the mapping"""
-        while not isinstance(ident, str):
-            ident = ident.name
-        if self.is_localy_defined(ident):
-            return self.map_to_address[ident]
         frame_addr = FrameAddress(self.scope_id, ident)
         self.map_to_address[ident] = frame_addr
         return frame_addr
@@ -279,7 +275,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
     def __init__(self, to_copy=None):
         if to_copy is None:
             self.null_addr = generate_null_pointer()
-            self.address_counter = 1 # start at 1 so that 0 can be nullptr
+            self.next_block_id = 1 # start at 1 so that 0 can be nullptr
             self.memory = {}
             self.base_pointers = {}
             self.kont = {}
@@ -290,7 +286,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
             self.time = 0 #tracks how many times the stor has changed
         elif isinstance(to_copy, Stor): #shallow copy of stor
             self.null_addr = to_copy.null_addr
-            self.address_counter = to_copy.address_counter
+            self.next_block_id = to_copy.next_block_id
             self.memory = to_copy.memory
             self.base_pointers = to_copy.frames
             self.kont = to_copy.kont
@@ -302,16 +298,16 @@ class Stor: #pylint: disable=too-many-instance-attributes
 
     def _make_new_address(self, size):
         """ Alloc address for a certian size and store unitialized value """
-        logging.info("Alloc %d for %d bytes", self.address_counter, size)
+        logging.info("Alloc %d bytes at %d", size, self.next_block_id)
         #will throw error if size is None
-        pointer = generate_pointer(self.address_counter, size)
+        pointer = generate_pointer(self.next_block_id, size)
         if cnf.CONFIG['store_update'] == 'strong':
             self.memory[pointer] = generate_unitialized_value(size)
         elif cnf.CONFIG['store_update'] == 'weak':#Starts with an empty set
             self.memory[pointer] = SizedSet(size)
         else:
             raise UnknownConfiguration('store_update')
-        self.address_counter += size
+        self.next_block_id += size
         return pointer
 
     def allocM(self, base, list_of_sizes, length=1, extra=0): #pylint: disable=invalid-name
@@ -375,7 +371,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
         """
         new_pointer = copy_pointer(pointer)
         if new_pointer not in self.memory:
-            if new_pointer.data == 0: #null is always null
+            if new_pointer == self.null_addr: #null is always null
                 new_pointer.offset += offset
                 return new_pointer
             raise CESKException("Invalid Pointer " + str(new_pointer))
@@ -390,7 +386,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
                     offset -= skip_size - new_pointer.offset
                     new_pointer.offset = 0
                     new_pointer = self.succ_map[new_pointer]
-                    if new_pointer.data == 0:
+                    if new_pointer == self.null_addr:
                         return new_pointer
                     skip_size = self.memory[new_pointer].size
         else:
@@ -402,7 +398,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
                 else:
                     offset += new_pointer.offset
                     new_pointer = self.pred_map[new_pointer]
-                    if new_pointer.data == 0:
+                    if new_pointer == self.null_addr:
                         return new_pointer
                     new_pointer.offset = self.memory[new_pointer].size
         logging.debug("Update %s to %s", str(pointer), str(new_pointer))
@@ -428,8 +424,8 @@ class Stor: #pylint: disable=too-many-instance-attributes
             address.update(self) #update offset of pointer
 
         logging.info("Reading %s", str(address))
-        if address.data >= self.address_counter or \
-                address.data == 0 or \
+        if address.data >= self.next_block_id or \
+                address == self.null_addr or \
                 address not in self.memory:
             raise MemoryAccessViolation("Out of bounds read")
 
@@ -454,7 +450,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
             if bytes_to_read > 0:
                 ptr = self.add_offset_to_pointer(ptr, num_possible)
                 start = ptr.offset
-                if ptr.data == 0 or ptr not in self.memory:
+                if ptr == self.null_addr or ptr not in self.memory:
                     raise MemoryAccessViolation("Out of bounds read")
                 val = self.memory[ptr]
 
@@ -462,7 +458,6 @@ class Stor: #pylint: disable=too-many-instance-attributes
 
     def write(self, address, value):
         """ Calls strong or weak write as determined by configuration """
-        logging.info('  Write %s  to  %s', str(value), str(address))
         if isinstance(address, set):
             #write to all location in the set
             if not address: #if set is empty
@@ -475,8 +470,8 @@ class Stor: #pylint: disable=too-many-instance-attributes
         else:
             address.update(self)
 
-        if address.data == 0 or\
-           address.data >= self.address_counter or\
+        if address == self.null_addr or\
+           address.data >= self.next_block_id or\
            address not in self.memory:
             #update to record seg fault rather than error out
             #TODO produce back tracking capabilities
@@ -489,10 +484,10 @@ class Stor: #pylint: disable=too-many-instance-attributes
         else:
             raise UnknownConfiguration('store_update')
 
-    def weak_write(self, address, value):
-        """ Adds value to a set of values stored at address """
-        old_values = self.memory[address]
-        if address.offset == 0 and value.size == old_values.size:
+    def weak_write(self, pointer, value):
+        """ Adds value to a set of values stored at pointer """
+        old_values = self.memory[pointer]
+        if pointer.offset == 0 and value.size == old_values.size:
             if isinstance(value, SizedSet):
                 for val in value:
                     if val not in old_values:
@@ -507,14 +502,14 @@ class Stor: #pylint: disable=too-many-instance-attributes
         #begin a partial or overlapping write
         raise NotImplementedError("Partial weak write not implemented")
 
-    def strong_write(self, address, value):
-        """Write value to the store at address. If there is an existing value,
+    def strong_write(self, pointer, value):
+        """Write value to the store at pointer. If there is an existing value,
             replace the value
         """
-
-        old_value = self.memory[address]
-        if address.offset == 0 and value.size == old_value.size:
-            self.memory[address] = value
+        logging.info('  Write %s  to  %s', str(value), str(pointer))
+        old_value = self.memory[pointer]
+        if pointer.offset == 0 and value.size == old_value.size:
+            self.memory[pointer] = value
             if value != old_value:
                 self.time += 1
             return
@@ -524,20 +519,20 @@ class Stor: #pylint: disable=too-many-instance-attributes
         bytes_written = 0
 
         while bytes_to_write != 0:
-            if not isinstance(address.offset, int) or \
-                    address.offset >= old_value.size or \
-                    address.offset < 0:
+            if not isinstance(pointer.offset, int) or \
+                    pointer.offset >= old_value.size or \
+                    pointer.offset < 0:
                 raise MemoryAccessViolation("write out of bounds")
 
-            #get unchanged part of value at the given address location
-            if address.offset != 0:
-                new_data = old_value.get_byte_value(0, address.offset)
+            #get unchanged part of value at the given pointer location
+            if pointer.offset != 0:
+                new_data = old_value.get_byte_value(0, pointer.offset)
             else:
                 new_data = ByteValue() #empty byte value
 
             #bytes in store represents the number of bytes in the store that
             #are available to be overwritten
-            bytes_in_store = old_value.size - address.offset
+            bytes_in_store = old_value.size - pointer.offset
             able_to_write = min(bytes_to_write, bytes_in_store)
 
             #get value from data being written
@@ -554,19 +549,19 @@ class Stor: #pylint: disable=too-many-instance-attributes
                 offset = old_value.size - bytes_in_store
                 new_data.append(
                     old_value.get_byte_value(offset, bytes_in_store))
-                self._write_on_offset(address, new_data, old_value)
+                self._write_on_offset(pointer, new_data, old_value)
             elif bytes_to_write > 0:
                 #more data left in value, write to store then continue
-                self._write_on_offset(address, new_data, old_value)
-                address = self.succ_map[address] #update address and old_value
-                old_value = self.read(address)
+                self._write_on_offset(pointer, new_data, old_value)
+                pointer = self.succ_map[pointer] #update pointer and old_value
+                old_value = self.read(pointer)
             else:
-                self._write_on_offset(address, new_data, old_value)
+                self._write_on_offset(pointer, new_data, old_value)
                 #neat finish write to store and be done
 
-    def _write_on_offset(self, address, new_data, old_value):
+    def _write_on_offset(self, pointer, new_data, old_value):
         """ Manages how to write when mixing bytes """
-        self.memory[address] = generate_value(new_data, old_value.type_of)
+        self.memory[pointer] = generate_value(new_data, old_value.type_of)
 
     def get_nearest_address(self, address):
         """ returns a pointer to the nearest address
@@ -576,7 +571,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
             return self.null_addr
         logging.error("Converting from an unknown integer to a pointer")
         #raise MemoryAccessViolation("Convert from unknown int to pointer")
-        if address > self.address_counter:
+        if address > self.next_block_id:
             return self.null_addr
         if address in self.memory:
             return generate_pointer(address, None)

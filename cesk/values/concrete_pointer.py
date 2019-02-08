@@ -72,8 +72,15 @@ class ConcretePointer(ReferenceValue):  #pylint:disable=too-few-public-methods
             raise Exception("Pointers can only be subtracted by int")
 
     def __str__(self):
+        if self.data == 0:
+            return "<NULL_POINTER>"
         return 'Pointer at '+str(self.data)+'.'+str(self.offset) +\
                 ' size '+ str(self.type_size)
+
+    def __repr__(self):
+        if self.data == 0:
+            return str(self)
+        return super.__repr__()
 
     def __eq__(self, other):
         if isinstance(other, int):
