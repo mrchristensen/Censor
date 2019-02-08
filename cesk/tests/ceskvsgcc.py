@@ -82,7 +82,7 @@ def run_c_cesk(file_path):
     string."""
     stdout = subprocess.check_output(['python3', '../../cesk_main.py',
                                       file_path])
-    return stdout
+    return stdout.decode("utf-8")
 
 def run_c(file_path):
     """compiles and runs a c source file and returns stdout as a byte string."""

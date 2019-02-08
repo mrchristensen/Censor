@@ -478,15 +478,15 @@ def malloc_helper(stmt, state, break_up_list):
     else:
         num_bytes = get_int_data(get_value(param, state))
     logging.info("Malloc %d - %s", num_bytes, str(break_up_list))
-    base_pointer = state.stor.allocH(state)
+    heap_pointer = state.stor.allocH(state)
 
     block_size = sum(break_up_list)
     num_blocks = num_bytes // block_size
     leftover = num_bytes % block_size
     if num_blocks == 0:
-        pointer = state.stor.allocM(base_pointer, [num_bytes])
+        pointer = state.stor.allocM(heap_pointer, [num_bytes])
     else:
-        pointer = state.stor.allocM(base_pointer, break_up_list,
+        pointer = state.stor.allocM(heap_pointer, break_up_list,
                                     num_blocks, leftover)
     return pointer
 
