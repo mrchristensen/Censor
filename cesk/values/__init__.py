@@ -157,6 +157,9 @@ def cast(value, typedeclt, state=None):  # pylint: disable=unused-argument
             logging.debug(" Cast %s to %s", str(value), str(typedeclt))
             address = state.stor.get_nearest_address(value.data)
             result = copy_pointer(address, typedeclt.type)
+        else:
+            logging.error('\tUnsupported cast: ' + str(typedeclt) +  "\n\t\t" +str(value))
+            raise Exception("Unsupported cast")
     elif isinstance(typedeclt, pycparser.c_ast.TypeDecl):
         types = typedeclt.type.names
         logging.debug("Casting %s to type %s",str(value)," ".join(types))

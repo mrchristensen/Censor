@@ -6,12 +6,7 @@ union Data {
 
 int main( ) {
 
-   union Data data;        
-   
-   /*for(int i; i < 20; i++){
-      data.myInts[i] = i;
-      printf("%d", data.myInts[i]);
-   }*/
+   union Data data;
 
    int i = 0;
    while (i < 20)

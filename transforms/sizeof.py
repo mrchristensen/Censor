@@ -117,7 +117,7 @@ def get_union_size_and_align(ast_type, env=None):
         decls = env.get_type(union_type_string).decls
     size = None
     alignment = None
-    for decl in ast_type.decls:
+    for decl in decls:
         decl_size, decl_alignment = get_size_and_alignment(decl, env)
         if (size is None) or (c_to_int(size) < c_to_int(decl_size)):
             size = decl_size
@@ -190,7 +190,7 @@ def get_struct_offset(struct_type, field, env):
         raise Exception("Field not found")
     
     if isinstance(struct_type, AST.Union):
-        size = AST.Constant('int', str(0)+'l')
+        size = AST.Constant('int', '0l')
         return size, field_type
 
     size = AST.Constant('int', str(offset)+'l')

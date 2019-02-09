@@ -79,8 +79,8 @@ class ConcreteFloat(BaseFloat):  #pylint:disable=too-few-public-methods
         float_value = cls(0.0, type_of)
         
         if byte_value.size == 4:
-            float_value.data = struct.unpack('!f', byte_value.get_bytes())
+            float_value.data = struct.unpack('!f', byte_value.get_bytes())[0]
         elif byte_value.size == 8:
-            float_value.data = struct.unpack('!d', byte_value.get_bytes())
+            float_value.data = struct.unpack('!d', byte_value.get_bytes())[0]
 
         return float_value
