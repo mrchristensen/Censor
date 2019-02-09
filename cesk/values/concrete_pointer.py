@@ -1,7 +1,7 @@
 '''Concerte Implementation of all the Types'''
-from .base_values import ReferenceValue, ByteValue
-import cesk.limits as limits
 from copy import deepcopy
+import cesk.limits as limits
+from .base_values import ReferenceValue, ByteValue
 from .factory import Factory
 
 class ConcretePointer(ReferenceValue):  #pylint:disable=too-few-public-methods
@@ -16,14 +16,15 @@ class ConcretePointer(ReferenceValue):  #pylint:disable=too-few-public-methods
     def __hash__(self):
         return self.data
 
-    def __eq__(self, other):
+    def equals(self, other):
         if not isinstance(other, ReferenceValue):
             return Factory.Integer(0, 'int')
-        return Factory.Integer(int(self.data == other.data), 'int')
-        
+        return Factory.Integer(int(self.data == other.data and
+                                   self.offset == other.offset), 'int')
+
     def __lt__(self, other):
         return Factory.Integer(int(self.data < other.data), 'int')
-        
+
     def __le__(self, other):
         return Factory.Integer(int(self.data <= other.data), 'int')
 
@@ -65,13 +66,26 @@ class ConcretePointer(ReferenceValue):  #pylint:disable=too-few-public-methods
             ptr.offset += -1 * other
             return ptr
         elif isinstance(other, Factory.getPointerClass()):
-            return Factory.Integer((self.data+self.offset) - (other.data+other.offset), 'long')
+            return Factory.Integer((self.data+self.offset) -
+                                   (other.data+other.offset), 'long')
         else:
             raise Exception("Pointers can only be subtracted by int")
 
     def __str__(self):
+        if self.data == 0:
+            return "<NULL_POINTER>"
         return 'Pointer at '+str(self.data)+'.'+str(self.offset) +\
                 ' size '+ str(self.type_size)
+
+    def __repr__(self):
+        if self.data == 0:
+            return str(self)
+        return super.__repr__()
+
+    def __eq__(self, other):
+        if isinstance(other, int):
+            return self.data == other
+        return self.data == other.data
 
     def get_byte_value(self, start=-1, num_bytes=None):
         """ value of the unsigned bits stored from start to start+num_bytes """
@@ -91,6 +105,6 @@ class ConcretePointer(ReferenceValue):  #pylint:disable=too-few-public-methods
         return byte_value
 
     @classmethod
-    def from_byte_value(cls, byte_value, type_size):
+    def from_byte_value(cls, byte_value, type_of):
         """ Not a valid conversion """
         raise Exception("Making a pointer from bytevalue is not valid")

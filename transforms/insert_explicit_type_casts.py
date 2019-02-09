@@ -115,5 +115,5 @@ class InsertExplicitTypeCasts(NodeTransformer):
             raise NotImplementedError()
 
         if isinstance(rvalue, UnaryOp) and rvalue.op == '*':
-            rvalue = Cast(get_type(rvalue, self.env), rvalue) 
+            rvalue = Cast(get_type(rvalue, self.env), rvalue)
         return rvalue

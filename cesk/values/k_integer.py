@@ -1,9 +1,11 @@
+""" Abstract Integer that acts like a concrete integer from -1 to K """
+import cesk.values.base_values as BV
 from .concrete_integer import ConcreteInteger
 from .abstract_literals import AbstractLiterals as AL
-import cesk.values.base_values as BV
 from .factory import Factory
 
 class KInteger(ConcreteInteger):
+    """ Implementation of K-integer """
     K = 100
     def __init__(self, data, type_of, size=1):
         if isinstance(data, set):
@@ -41,24 +43,24 @@ class KInteger(ConcreteInteger):
             return Factory.Integer(AL.TOP, self.type_of, self.size)
         else:
             return super().__mod__(other)
-        
+
     def __lt__(self, other):
         if self.data == AL.TOP or other.data == AL.TOP:
             return Factory.Integer(AL.TOP, self.type_of, self.size)
         else:
             return super().__lt__(other)
-        
+
     def __le__(self, other):
         if self.data == AL.TOP or other.data == AL.TOP:
             return Factory.Integer(AL.TOP, self.type_of, self.size)
         else:
             return super().__le__(other)
-        
-    def __eq__(self, other):
+
+    def equals(self, other):
         if self.data == AL.TOP or other.data == AL.TOP:
             return Factory.Integer(AL.TOP, self.type_of, self.size)
         else:
-            return super().__eq__(other)
+            return super().equals(other)
 
     def __ne__(self, other):
         if self.data == AL.TOP or other.data == AL.TOP:
@@ -101,3 +103,11 @@ class KInteger(ConcreteInteger):
         if BV.ByteValue.top in byte_value.bits:
             return Factory.Integer(AL.TOP, type_of)
         return super().from_byte_value(byte_value, type_of)
+
+    def cast_to_integer(self, to_type):
+        """ cast to integer """
+        return Factory.Integer(self.data, to_type)
+
+    def cast_to_float(self, to_type):
+        """ cast to float """
+        return Factory.Float(float(self.data), to_type)

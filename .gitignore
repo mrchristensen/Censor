@@ -12,3 +12,4 @@ yacctab.py
 logfile.txt
 cesk/tests/tmp/*
 instrumenter/scripts/sandbox/*
+.pylintrc
