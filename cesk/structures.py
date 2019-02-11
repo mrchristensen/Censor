@@ -278,7 +278,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
             self.next_block_id = 1 # start at 1 so that 0 can be nullptr
             self.memory = {}
             self.base_pointers = {}
-            self.kont = {}
+            self.kont_map = {}
             self.succ_map = {}
             self.pred_map = {}
             self.succ_map[self.null_addr] = self.null_addr
@@ -289,7 +289,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
             self.next_block_id = to_copy.next_block_id
             self.memory = to_copy.memory
             self.base_pointers = to_copy.frames
-            self.kont = to_copy.kont
+            self.kont_map = to_copy.kont
             self.succ_map = to_copy.succ_map
             self.pred_map = to_copy.pred_map
             self.time = to_copy.time
@@ -591,17 +591,17 @@ class Stor: #pylint: disable=too-many-instance-attributes
     def write_kont(self, kont_addr, kai):
         """ records the continuation for the continuation address """
         if cnf.CONFIG['allocK'] == 'concrete':
-            self.kont[kont_addr] = {kai}
+            self.kont_map[kont_addr] = {kai}
         else: #allocK == 0-cfa or p4f or trivial
-            if kont_addr not in self.kont:
-                self.kont[kont_addr] = set()
-            self.kont[kont_addr].add(kai)
+            if kont_addr not in self.kont_map:
+                self.kont_map[kont_addr] = set()
+            self.kont_map[kont_addr].add(kai)
 
     def read_kont(self, kont_addr):
         """ returns the continuation(s) for the given kont_addr """
-        if kont_addr not in self.kont:
+        if kont_addr not in self.kont_map:
             raise CESKException("Address not in memory: " + str(kont_addr))
-        return self.kont[kont_addr]
+        return self.kont_map[kont_addr]
 
     def get_time(self):
         """ Updates when new address is allocated or store value is changed """
@@ -629,14 +629,14 @@ class Kont: #pylint: disable=too-few-public-methods
         self.ctrl = parent_state.ctrl
         self.envr = parent_state.envr
         self.kont_addr = parent_state.kont_addr
-        self.address = address # If Kont returns to an assignment
+        self.return_address = address # If Kont returns to an assignment
 
     def invoke(self, state, value):
         """ Evaluates the return of a function """
-        if self.kont_addr is 0:
+        if self.kont_addr is 0: #Halt
             return None
-        if self.address:
-            state.stor.write(self.address, value)
+        if self.return_address:
+            state.stor.write(self.return_address, value)
         new_state = State(self.ctrl, self.envr,
                           state.stor, self.kont_addr)
         return new_state.get_next()
@@ -645,12 +645,12 @@ class Kont: #pylint: disable=too-few-public-methods
         return self.ctrl == other.ctrl and \
                self.envr == other.envr and \
                self.kont_addr == other.kont_addr and \
-               self.address == other.address
+               self.return_address == other.return_address
 
     def __hash__(self):
         result = 7
         result = result * hash(self.ctrl) + 37
         result = result * hash(self.envr) + 53
         result = result * hash(self.kont_addr) + 97
-        result = result * hash(self.address) + 3
+        result = result * hash(self.return_address) + 3
         return result
