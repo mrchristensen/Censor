@@ -58,7 +58,7 @@ def generate_constant_value(value, type_of='int'):
     """ Given a string, parse it as a constant value. """
     if type_of == 'string':
         return string_constant(value)
-    elif type_of == 'float':
+    elif type_of == 'float' or type_of == 'double':
         return float_constant(value)
     elif type_of == 'int':
         return int_constant(value)
@@ -159,6 +159,10 @@ def cast(value, typedeclt, state=None):  # pylint: disable=unused-argument
             # TODO manage tracking of this
             logging.debug(" Cast %s to %s", str(value), str(typedeclt))
             address = state.stor.get_nearest_address(value.data)
+            result = copy_pointer(address, typedeclt.type)
+        elif isinstance(value, BV.ByteValue):
+            logging.debug(" Cast %s to %s", str(value), str(typedeclt))
+            address = state.stor.get_nearest_address(generate_value(value, "long").data)
             result = copy_pointer(address, typedeclt.type)
     #typedeclt is any TypeDecl in c_ast
     elif isinstance(typedeclt, pycparser.c_ast.TypeDecl):
