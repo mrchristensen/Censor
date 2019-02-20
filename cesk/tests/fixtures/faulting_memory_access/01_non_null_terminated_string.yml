@@ -1,0 +1,9 @@
+format_version: '1.0'
+
+# old file name: test-0019_false-valid-memtrack_true-termination.i
+input_files: '01_non_null_terminated_string.c'
+
+properties:
+  - property_file: valid-memsafety.prp
+    expected_verdict: false
+    subproperty: valid-deref

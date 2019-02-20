@@ -77,8 +77,10 @@ def handle_FuncCall(stmt, state, address=None): # pylint: disable=invalid-name
     '''Handles FuncCalls'''
     logging.debug("FuncCall to %s", stmt.name.name)
     if stmt.name.name in dir(lib_func):
-        args = [get_value(val, state) for val in stmt.args.exprs]
-        return getattr(lib_func, stmt.name.name)(state, args)
+        args = []
+        if stmt.args is not None:
+            args = [get_value(val, state) for val in stmt.args.exprs]
+        return getattr(lib_func, stmt.name.name)(state, args, address)
     elif stmt.name.name == "malloc":
         return state.get_next()
     else:
@@ -474,7 +476,8 @@ def malloc_helper(stmt, state, break_up_list):
     '''performs malloc returns CESKPointer to allocated memory'''
     param = stmt.args.exprs[0]
     if isinstance(param, AST.Constant):
-        num_bytes = int(param.value, 0)
+        val = generate_constant_value(param.value, param.type)
+        num_bytes = val.data
     else:
         num_bytes = get_int_data(get_value(param, state))
     logging.info("Malloc %d - %s", num_bytes, str(break_up_list))

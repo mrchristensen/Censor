@@ -16,7 +16,7 @@ def main(ast): #pylint: disable=too-many-locals
     """Injects execution into main funciton and maintains work queue"""
 
     #values to be returned
-    memory_fault = False
+    memory_safe = True
     states_generated = 1
     states_matched = 0
     states_evaluated = 0
@@ -47,16 +47,16 @@ def main(ast): #pylint: disable=too-many-locals
                         states_matched += 1
 
             except MemoryAccessViolation as error: #pylint: disable=broad-except
-                memory_fault = True
+                memory_safe = False
                 failed_states.add((next_state, error))
         frontier = new_frontier
 
-    if memory_fault:
+    if memory_safe:
         #failed_state and error
         for _, error in failed_states:
             print(error)
 
-    return not memory_fault, states_generated, states_matched, states_evaluated
+    return memory_safe, states_generated, states_matched, states_evaluated
 
 def implemented_nodes():
     """ returns a list of implemented node type names """

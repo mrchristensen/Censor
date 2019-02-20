@@ -188,9 +188,16 @@ class ByteValue:
         self.size += other.size
         self.bits.extend(other.bits)
 
-    def get_byte_value(self):
+    def get_byte_value(self, start=-1, num_bytes=None):
         """ dummy to make casting easier """
-        return self
+        if start == -1:
+            return self
+        if start+num_bytes > self.size:
+            raise CESKException("Request for too many bytes from byte value")
+        value = ByteValue()
+        value.size = num_bytes
+        value.bits = self.bits[start*8:(start+num_bytes)*8]
+        return value
 
     def get_bytes(self):
         """ Results in a bytes-like object of len self.size and top is randomized

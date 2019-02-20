@@ -1,0 +1,8 @@
+format_version: '1.0'
+
+input_files: '02_invalid_struct_cast.c'
+
+properties:
+  - property_file: valid-memsafety.prp
+    expected_verdict: false
+    subproperty: valid-deref

@@ -4,6 +4,7 @@ import os
 import platform
 import subprocess
 from collections import namedtuple
+import re
 import pycparser
 
 Function = namedtuple('Function', ['funcDef'])
@@ -57,7 +58,6 @@ def preserve_include_preprocess(path):
     """
     with open(path, 'r') as myfile:
         data = myfile.read()
-    import re
     newdata = re.sub(
         r'(#include\s*<[:a-zA-Z:]+\.[:a-zA-Z:]>)',
         r'#pragma BEGIN \1\n\1\n#pragma END/',
@@ -122,3 +122,107 @@ def find_dependencies(path_to_makefile="./", name_of_makefile="Makefile"):
             index += 1 # skip duplicate and don't add either
         index += 1
     return dependencies
+
+def semicolon(start_index, string):
+    """if semicolon"""
+    index = start_index
+    while string[index].isspace():
+        index += 1
+
+    if string[index] == ';':
+        index += 1
+    else:
+        return start_index
+
+    return index
+
+def volatile(start_index, string):
+    """ finds end match of a paren ( returns that index,
+        returns start_index if no paren found """
+    index = start_index
+    while string[index].isspace():
+        index += 1
+
+    if string[index:index+8] == 'volatile':
+        index += 8
+    else:
+        return start_index
+
+    return index
+
+def remove_gcc_extentions(text):
+    """ Run sed on source file to remove selected common gcc extentions
+    """
+    pattern = r'(asm)|(__restrict__)|(__inline__)|(__extension__)|(__attribute(__)*)|(\({)' #pylint: disable=line-too-long
+    matches = re.finditer(pattern, text)
+    if matches is None:
+        return text
+    replacements = []
+    last_index = 0
+    for match in matches:
+        #match.group() start and end
+        if match.start() < last_index:
+            continue
+        if match.group() == 'asm':
+            end_index = volatile(match.end(), text)
+            end_index = paren_match(end_index, text)
+            if end_index == match.end():
+                continue
+            end_index = semicolon(end_index, text)
+            replacements.append((match.start(), end_index, ''))
+            last_index = end_index
+
+        elif (match.group() == '__attribute__' or
+              match.group() == '__attribute'):
+            end_index = paren_match(match.end(), text)
+            if end_index == match.end():
+                continue
+            replacements.append((match.start(), end_index, ''))
+            last_index = end_index
+
+        elif match.group() == '__inline__':
+            replacements.append((match.start(), match.end(), 'inline'))
+            last_index = end_index
+
+        elif match.group() == '__restrict__' or '__extension__':
+            replacements.append((match.start(), match.end(), ''))
+            last_index = end_index
+        elif match.group() == '({':
+            end_index = paren_match(match.start(), text)
+            if end_index == match.start():
+                continue
+            #before_semi_colon = end_index
+            #end_index = semicolon(end_index, text)
+            #if end_index == before_semi_colon:
+            replacements.append((match.start(), end_index, '0'))
+            #else:
+            #    replacements.append((match.start(), end_index, '0;'))
+            last_index = end_index
+
+    altered_text = []
+    index = 0
+    for (begin, end, replace) in replacements:
+        altered_text += text[index:begin] + replace
+        index = end
+    altered_text += text[index:]
+
+    return "".join(altered_text)
+
+def paren_match(start_index, string):
+    """ finds end match of a paren ( returns that index,
+    returns start_index if no paren found """
+    index = start_index
+    while string[index].isspace():
+        index += 1
+    if string[index] == '(':
+        index += 1
+    else:
+        return start_index
+    parencount = 1
+    while parencount != 0:
+        if string[index] == '(':
+            parencount += 1
+        elif string[index] == ')':
+            parencount -= 1
+        index += 1
+    return index

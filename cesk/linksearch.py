@@ -1,5 +1,6 @@
 """Functions to interpret c code directly"""
 import logging
+from copy import deepcopy
 import pycparser.c_ast as AST
 from cesk.limits import StructPackingScheme as SPS
 import cesk.limits as limits
@@ -45,10 +46,18 @@ class LinkSearch(AST.NodeVisitor): #
         for i, child in enumerate(node):
             if isinstance(child, AST.Node):
                 if child in LinkSearch.parent_lut:
-                    logging.debug("Child: %s", str(child))
-                    logging.debug("Old Parent: %s",
-                                  str(LinkSearch.parent_lut[child]))
-                    raise Exception("Node duplicated in tree: ")
+                    logging.error("Transform Adds Duplication")
+                    child = deepcopy(child)
+                    #logging.debug("Child: %s", str(child))
+                    #logging.debug("Old Parent: %s",
+                    #              str(LinkSearch.parent_lut[child]))
+                    #logging.debug("New Parent: %s",
+                    #              str(node))
+                    #temp_guy = node
+                    #while temp_guy in LinkSearch.parent_lut:
+                    #    temp_guy = LinkSearch.parent_lut[temp_guy]
+                    #    logging.debug("Grandparent: %s", str(temp_guy))
+                    #raise Exception("Node duplicated in tree: ")
                 LinkSearch.parent_lut[child] = node
                 LinkSearch.index_lut[child] = i
                 self.visit(child)
@@ -76,7 +85,8 @@ class LinkSearch(AST.NodeVisitor): #
                     LinkSearch.scope_decl_lut[compound] = [node]
             else: #is global, or part of struct
                 parent = LinkSearch.parent_lut[node]
-                if (not isinstance(node.type, (AST.FuncDecl, AST.Struct, AST.Union))
+                if (not isinstance(node.type, (AST.FuncDecl, AST.Struct,
+                                               AST.Union))
                         and isinstance(parent, AST.FileAST)):
                     LinkSearch.global_decl_list.append(node)
         return node

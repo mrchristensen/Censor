@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 """Unittest Driver"""
 import sys
 import unittest
@@ -7,6 +7,7 @@ sys.path[0:0] = ['.', '..']
 
 SUITE = unittest.TestLoader().loadTestsFromNames(
     [
+        #'test_memory.yaml_tester',
         'test_transforms.test_node_transformer',
         'test_transforms.test_for_to_while',
         'test_transforms.test_if_goto',
@@ -55,5 +56,5 @@ SUITE = unittest.TestLoader().loadTestsFromNames(
         'test_ssl.test_correct_call_order'
     ]
 )
-TESTRESULT = unittest.TextTestRunner(verbosity=1).run(SUITE)
+TESTRESULT = unittest.TextTestRunner(verbosity=2).run(SUITE)
 sys.exit(0 if TESTRESULT.wasSuccessful() else 1)

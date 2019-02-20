@@ -1,5 +1,6 @@
 """Makes all typecasts explicit"""
-from pycparser.c_ast import Cast, TypeDecl, PtrDecl, ArrayDecl, FuncDecl, UnaryOp
+from pycparser.c_ast import Cast, TypeDecl, PtrDecl, \
+                            ArrayDecl, FuncDecl, UnaryOp
 from pycparser.c_ast import InitList, Constant, Struct, Union, ID, EllipsisParam
 from .helpers import IncorrectTransformOrder
 from .node_transformer import NodeTransformer
