@@ -5,7 +5,7 @@ import pycparser
 import pycparser.c_ast as AST
 import cesk.linksearch as ls
 from cesk.values import generate_unitialized_value
-from cesk.values import copy_pointer, generate_null_pointer
+from cesk.values import generate_null_pointer
 from cesk.values import generate_pointer, generate_value
 from cesk.values.base_values import ByteValue, SizedSet
 import cesk.config as cnf
@@ -268,6 +268,171 @@ class Envr:
     def __hash__(self):
         return hash(self.frame_id)
 
+class MemoryBlock:
+    """ Block of Memory """
+
+    def __init__(self, sizes, length, extra):
+        self.shape = (sizes, length, extra)
+        self.size = sum(sizes)*length + extra
+        self.block = []
+        self.is_free = False
+
+        for _ in range(length):
+            for size in sizes:
+                self._add_value(size)
+
+        if extra != 0:
+            self._add_value(extra)
+
+        if len(sizes) == 1 and length == 1 and extra == 0:
+            self._get_index = self._get_index_item
+        else:
+            self._get_index = self._get_index_list
+
+        if cnf.CONFIG['store_update'] == 'strong':
+            self.write = self.strong_write
+        elif cnf.CONFIG['store_update'] == 'weak':
+            self.write = self.weak_write
+        else:
+            raise UnknownConfiguration('store_update')
+
+    def _add_value(self, size):
+        """ Adds a memory slot to store a value """
+        if cnf.CONFIG['store_update'] == 'strong':
+            self.block.append(generate_unitialized_value(size))
+        elif cnf.CONFIG['store_update'] == 'weak':
+            self.block.append(SizedSet(size))
+        else:
+            raise UnknownConfiguration("store_update")
+
+    def _get_index_item(self, offset):
+        """ given an offset returns value or throws error """
+        return 0, offset
+
+    def _get_index_list(self, offset):
+        """ given an offset returns the number of time a succ map
+            would need to be called to find the item and offset remaning """
+        group = sum(self.shape[0])
+        index = (offset // group)
+        offset = offset % group
+        if index == self.shape[1]:#accesses extra part
+            index *= len(self.shape[0])
+            return index, offset
+        index *= len(self.shape[0])
+        i = 0
+        while offset >= self.shape[0][i]:
+            offset -= self.shape[0][i]
+            index += 1
+            i += 1
+        return index, offset
+
+    def read(self, offset, read_size):
+        """ return value or set of values based on read """
+        if offset < 0 or offset+read_size > self.size:
+            raise MemoryAccessViolation("Illegal Read")
+        index, start = self._get_index(offset)
+        if start == 0 and self.block[index].size == read_size:
+            return self.block[index]
+        #immoral read over/within byte boundary
+        result = ByteValue()
+        bytes_to_read = read_size
+        value = self.block[index]
+        while bytes_to_read > 0:
+            num_possible = min(bytes_to_read, value.size - start)
+            result.append(value.get_byte_value(start, num_possible))
+            bytes_to_read -= num_possible
+            if bytes_to_read > 0:
+                index += 1
+                start = 0
+                value = self.block[index]
+
+        return result
+
+    def strong_write(self, offset, value):
+        """ Writes the value given at the offset given
+            returns True if values are changed False otherwise"""
+        if offset < 0 or offset+value.size > self.size:
+            raise MemoryAccessViolation("Illegal Write")
+        index, start = self._get_index(offset)
+        if start == 0 and self.block[index].size == value.size:
+            self.block[index] = value
+
+        old_value = self.block[index]
+        if start == 0 and value.size == old_value.size:
+            self.block[index] = value
+            return value != old_value
+
+        #begin a partial or overlapping write
+        bytes_to_write = value.size
+        bytes_written = 0
+
+        while bytes_to_write != 0:
+
+            #get unchanged part of value at the given pointer location
+            if start != 0:
+                new_data = old_value.get_byte_value(0, start)
+            else:
+                new_data = ByteValue() #empty byte value
+
+            #bytes in store represents the number of bytes in the store that
+            #are available to be overwritten
+            bytes_in_store = old_value.size - start
+            able_to_write = min(bytes_to_write, bytes_in_store)
+
+            #get value from data being written
+            new_data.append(value.get_byte_value(bytes_written, able_to_write))
+
+            bytes_to_write -= able_to_write
+            bytes_written += able_to_write
+
+            if bytes_to_write > 0:
+                #more data left in value, write to store then continue
+                self._write_on_offset(index, new_data, old_value)
+                index += 1 #update pointer and old_value
+                start = 0
+                old_value = self.block[index]
+            elif bytes_in_store > able_to_write:
+                #get rest of object then write
+                offset = start+able_to_write
+                new_data.append(
+                    old_value.get_byte_value(offset,
+                                             bytes_in_store-able_to_write))
+                self._write_on_offset(index, new_data, old_value)
+            else:
+                self._write_on_offset(index, new_data, old_value)
+                #neat finish write to store and be done
+
+    def _write_on_offset(self, index, new_data, old_value):
+        """ Manages how to write when mixing bytes """
+        # TODO check if old/new value are sets and handle
+        self.block[index] = generate_value(new_data, old_value.type_of)
+
+    def weak_write(self, offset, value):
+        """ Writes the value given at the offset given
+            returns True if values are changed False otherwise"""
+        if offset < 0 or offset+value.size >= self.size:
+            raise MemoryAccessViolation("Illegal Write")
+        is_change = False
+        index, start = self._get_index(offset)
+        if start == 0 and self.block[index].size == value.size:
+            old_values = self.block[index]
+            if isinstance(value, SizedSet):
+                for val in value:
+                    if val not in old_values:
+                        is_change = True
+                        old_values.add(val)
+            else:
+                if value not in old_values:
+                    is_change = True
+                    old_values.add(value)
+            return is_change
+        #begin a partial or overlapping write
+        raise NotImplementedError("Partial weak write not implemented")
+
+    def free(self):
+        """ Marks the block as free """
+        self.is_free = True
+
 class Stor: #pylint: disable=too-many-instance-attributes
     """Represents the contents of memory at a moment in time."""
     heap_address_counter = 0
@@ -278,74 +443,37 @@ class Stor: #pylint: disable=too-many-instance-attributes
             self.next_block_id = 1 # start at 1 so that 0 can be nullptr
             self.memory = {}
             self.base_pointers = {}
-            self.kont = {}
-            self.succ_map = {}
-            self.pred_map = {}
-            self.succ_map[self.null_addr] = self.null_addr
-            self.pred_map[self.null_addr] = self.null_addr
+            self.kont_map = {}
             self.time = 0 #tracks how many times the stor has changed
         elif isinstance(to_copy, Stor): #shallow copy of stor
             self.null_addr = to_copy.null_addr
             self.next_block_id = to_copy.next_block_id
             self.memory = to_copy.memory
             self.base_pointers = to_copy.frames
-            self.kont = to_copy.kont
-            self.succ_map = to_copy.succ_map
-            self.pred_map = to_copy.pred_map
+            self.kont_map = to_copy.kont
             self.time = to_copy.time
         else:
             raise CESKException("Stor Copy Constructor Expects a Stor Object")
 
-    def _make_new_address(self, size):
-        """ Alloc address for a certian size and store unitialized value """
-        logging.info("Alloc %d bytes at %d", size, self.next_block_id)
-        #will throw error if size is None
-        pointer = generate_pointer(self.next_block_id, size)
-        if cnf.CONFIG['store_update'] == 'strong':
-            self.memory[pointer] = generate_unitialized_value(size)
-        elif cnf.CONFIG['store_update'] == 'weak':#Starts with an empty set
-            self.memory[pointer] = SizedSet(size)
-        else:
-            raise UnknownConfiguration('store_update')
-        self.next_block_id += size
+    def _add_new_block(self, block):
+        """ Add new block and return pointer """
+        logging.info("Make new block: shape %s, at %d",
+                     str(block.shape), self.next_block_id)
+        pointer = generate_pointer(self.next_block_id, block.size)
+        self.memory[pointer] = block
+        self.next_block_id += block.size #Value added is arbitrary
         return pointer
 
     def allocM(self, base, list_of_sizes, length=1, extra=0): #pylint: disable=invalid-name
-        """ Given a base pointer or frame address allocate memomory """
+        ''' new allocM to have only successors and
+            all pointers only have one base pointer per block '''
         if base in self.base_pointers:
             return self.base_pointers[base]
-        self.time += 1 #update time
-        start_pointer = None
-        prev = None
-        for _ in range(length):
 
-            if prev is None:
-                prev = self.null_addr
-                start_pointer = self._make_new_address(list_of_sizes[0])
-                self.pred_map[start_pointer] = prev
-                prev = start_pointer
-            else:
-                next_block = self._make_new_address(list_of_sizes[0])
-                self.succ_map[prev] = next_block
-                self.pred_map[next_block] = prev
-                prev = next_block
-
-            for block_size in list_of_sizes[1:]:
-                next_block = self._make_new_address(block_size)
-                self.pred_map[next_block] = prev
-                self.succ_map[prev] = next_block
-                prev = next_block
-
-        if extra != 0: #malloc region is not divisable by the block size
-            next_block = self._make_new_address(extra)
-            self.pred_map[next_block] = prev
-            self.succ_map[prev] = next_block
-            prev = next_block
-
-        self.succ_map[prev] = self.null_addr
-
-        self.base_pointers[base] = start_pointer
-        return start_pointer
+        new_block = MemoryBlock(list_of_sizes, length, extra)
+        block_ptr = self._add_new_block(new_block)
+        self.base_pointers[base] = block_ptr
+        return block_ptr
 
     def allocH(self, state): #pylint: disable=invalid-name
         """ Calls the right allocator based on input and allocH config """
@@ -363,46 +491,17 @@ class Stor: #pylint: disable=too-many-instance-attributes
         """ Fetch store address for a frame address """
         return self.base_pointers[frame_address]
 
-    def add_offset_to_pointer(self, pointer, offset): #pylint: disable=too-many-branches
-        """ updates the pointer's offset by the offset passed.
-        Using the predecessor and successor maps: pointers move
-        to the next block if the offset extends beyond the bounds
-        of the current block.
-        """
-        new_pointer = copy_pointer(pointer)
-        if new_pointer not in self.memory:
-            if new_pointer == self.null_addr: #null is always null
-                new_pointer.offset += offset
-                return new_pointer
-            raise CESKException("Invalid Pointer " + str(new_pointer))
-        skip_size = self.memory[new_pointer].size
-        if offset > 0:
-            while offset != 0:
-                if (offset < skip_size - new_pointer.offset or
-                        self.succ_map[new_pointer] is self.null_addr):
-                    new_pointer.offset += offset
-                    offset = 0
-                else:
-                    offset -= skip_size - new_pointer.offset
-                    new_pointer.offset = 0
-                    new_pointer = self.succ_map[new_pointer]
-                    if new_pointer == self.null_addr:
-                        return new_pointer
-                    skip_size = self.memory[new_pointer].size
-        else:
-            while offset != 0:
-                if (new_pointer.offset + offset >= 0 or
-                        self.pred_map[new_pointer] is self.null_addr):
-                    new_pointer.offset += offset
-                    offset = 0
-                else:
-                    offset += new_pointer.offset
-                    new_pointer = self.pred_map[new_pointer]
-                    if new_pointer == self.null_addr:
-                        return new_pointer
-                    new_pointer.offset = self.memory[new_pointer].size
-        logging.debug("Update %s to %s", str(pointer), str(new_pointer))
-        return new_pointer
+    def _check_address(self, address, action):
+        """ Checks to see if address is valid and
+            reports error if found """
+        if address.data >= self.next_block_id:
+            raise MemoryAccessViolation("Out of bounds "+action)
+        elif address == self.null_addr:
+            raise MemoryAccessViolation("Null "+action)
+        elif address not in self.memory:
+            raise MemoryAccessViolation("Invalid Base in "+action)
+        elif self.memory[address].is_free:
+            raise MemoryAccessViolation("Base is Free, invalid "+action)
 
     def read(self, address):
         """Read the contents of the store at address. Returns None if undefined.
@@ -418,43 +517,14 @@ class Stor: #pylint: disable=too-many-instance-attributes
                     result = SizedSet(temp.size)
                 result.update(temp)
             return result
+
         if address in self.base_pointers:
             address = self.base_pointers[address]
-        else:
-            address.update(self) #update offset of pointer
 
         logging.info("Reading %s", str(address))
-        if address.data >= self.next_block_id or \
-                address == self.null_addr or \
-                address not in self.memory:
-            raise MemoryAccessViolation("Out of bounds read")
+        self._check_address(address, 'read')
 
-        val = self.memory[address]
-        if address.offset == 0 and val.size == address.type_size:
-            logging.debug("\tRead %s", val)
-            return val #no special math needed
-
-        #immoral read over/within byte boundary
-        result = ByteValue()
-        bytes_to_read = address.type_size
-        start = address.offset
-
-        ptr = address
-        while bytes_to_read > 0:
-            if ptr.offset >= val.size or ptr.offset < 0:
-                #signifies top and bottom
-                raise MemoryAccessViolation("Out of bounds read")
-            num_possible = min(bytes_to_read, val.size - start)
-            result.append(val.get_byte_value(start, num_possible))
-            bytes_to_read -= num_possible
-            if bytes_to_read > 0:
-                ptr = self.add_offset_to_pointer(ptr, num_possible)
-                start = ptr.offset
-                if ptr == self.null_addr or ptr not in self.memory:
-                    raise MemoryAccessViolation("Out of bounds read")
-                val = self.memory[ptr]
-
-        return result
+        return self.memory[address].read(address.offset, address.type_size)
 
     def write(self, address, value):
         """ Calls strong or weak write as determined by configuration """
@@ -467,101 +537,28 @@ class Stor: #pylint: disable=too-many-instance-attributes
             return
         if address in self.base_pointers:
             address = self.base_pointers[address]
-        else:
-            address.update(self)
 
-        if address == self.null_addr or\
-           address.data >= self.next_block_id or\
-           address not in self.memory:
-            #update to record seg fault rather than error out
-            #TODO produce back tracking capabilities
-            raise MemoryAccessViolation("Out of Bounds Write")
+        logging.info("Write to %s", str(address))
+        self._check_address(address, 'write')
+        if self.memory[address].write(address.offset, value):
+            self.time += 1
 
-        if cnf.CONFIG['store_update'] == 'strong':
-            self.strong_write(address, value)
-        elif cnf.CONFIG['store_update'] == 'weak':
-            self.weak_write(address, value)
-        else:
-            raise UnknownConfiguration('store_update')
-
-    def weak_write(self, pointer, value):
-        """ Adds value to a set of values stored at pointer """
-        old_values = self.memory[pointer]
-        if pointer.offset == 0 and value.size == old_values.size:
-            if isinstance(value, SizedSet):
-                for val in value:
-                    if val not in old_values:
-                        self.time += 1
-                        old_values.add(val)
-            else:
-                if value not in old_values:
-                    self.time += 1
-                    old_values.add(value)
+    def free(self, address):
+        """ Replaces values in store with a free value """
+        if isinstance(address, SizedSet):
+            if not address:
+                raise MemoryAccessViolation("Invalid Free")
+            for addr in address:
+                self.free(addr)
             return
+        if address in self.base_pointers:
+            address = self.base_pointers[address]
 
-        #begin a partial or overlapping write
-        raise NotImplementedError("Partial weak write not implemented")
+        self._check_address(address, 'free')
+        if address.offset != 0:
+            raise MemoryAccessViolation("Can only free a base pointer")
 
-    def strong_write(self, pointer, value):
-        """Write value to the store at pointer. If there is an existing value,
-            replace the value
-        """
-        logging.info('  Write %s  to  %s', str(value), str(pointer))
-        old_value = self.memory[pointer]
-        if pointer.offset == 0 and value.size == old_value.size:
-            self.memory[pointer] = value
-            if value != old_value:
-                self.time += 1
-            return
-
-        #begin a partial or overlapping write
-        bytes_to_write = value.size
-        bytes_written = 0
-
-        while bytes_to_write != 0:
-            if not isinstance(pointer.offset, int) or \
-                    pointer.offset >= old_value.size or \
-                    pointer.offset < 0:
-                raise MemoryAccessViolation("write out of bounds")
-
-            #get unchanged part of value at the given pointer location
-            if pointer.offset != 0:
-                new_data = old_value.get_byte_value(0, pointer.offset)
-            else:
-                new_data = ByteValue() #empty byte value
-
-            #bytes in store represents the number of bytes in the store that
-            #are available to be overwritten
-            bytes_in_store = old_value.size - pointer.offset
-            able_to_write = min(bytes_to_write, bytes_in_store)
-
-            #get value from data being written
-            new_data.append(value.get_byte_value(bytes_written, able_to_write))
-
-            bytes_to_write -= able_to_write
-            bytes_written += able_to_write
-
-            #update bytes in store to represent unoverwriten bytes left
-            bytes_in_store -= able_to_write
-
-            if bytes_in_store > 0:
-                #get rest of object then write
-                offset = old_value.size - bytes_in_store
-                new_data.append(
-                    old_value.get_byte_value(offset, bytes_in_store))
-                self._write_on_offset(pointer, new_data, old_value)
-            elif bytes_to_write > 0:
-                #more data left in value, write to store then continue
-                self._write_on_offset(pointer, new_data, old_value)
-                pointer = self.succ_map[pointer] #update pointer and old_value
-                old_value = self.read(pointer)
-            else:
-                self._write_on_offset(pointer, new_data, old_value)
-                #neat finish write to store and be done
-
-    def _write_on_offset(self, pointer, new_data, old_value):
-        """ Manages how to write when mixing bytes """
-        self.memory[pointer] = generate_value(new_data, old_value.type_of)
+        self.memory[address].free()
 
     def get_nearest_address(self, address):
         """ returns a pointer to the nearest address
@@ -591,17 +588,17 @@ class Stor: #pylint: disable=too-many-instance-attributes
     def write_kont(self, kont_addr, kai):
         """ records the continuation for the continuation address """
         if cnf.CONFIG['allocK'] == 'concrete':
-            self.kont[kont_addr] = {kai}
+            self.kont_map[kont_addr] = {kai}
         else: #allocK == 0-cfa or p4f or trivial
-            if kont_addr not in self.kont:
-                self.kont[kont_addr] = set()
-            self.kont[kont_addr].add(kai)
+            if kont_addr not in self.kont_map:
+                self.kont_map[kont_addr] = set()
+            self.kont_map[kont_addr].add(kai)
 
     def read_kont(self, kont_addr):
         """ returns the continuation(s) for the given kont_addr """
-        if kont_addr not in self.kont:
+        if kont_addr not in self.kont_map:
             raise CESKException("Address not in memory: " + str(kont_addr))
-        return self.kont[kont_addr]
+        return self.kont_map[kont_addr]
 
     def get_time(self):
         """ Updates when new address is allocated or store value is changed """
@@ -629,14 +626,14 @@ class Kont: #pylint: disable=too-few-public-methods
         self.ctrl = parent_state.ctrl
         self.envr = parent_state.envr
         self.kont_addr = parent_state.kont_addr
-        self.address = address # If Kont returns to an assignment
+        self.return_address = address # If Kont returns to an assignment
 
     def invoke(self, state, value):
         """ Evaluates the return of a function """
-        if self.kont_addr is 0:
+        if self.kont_addr is 0: #Halt
             return None
-        if self.address:
-            state.stor.write(self.address, value)
+        if self.return_address:
+            state.stor.write(self.return_address, value)
         new_state = State(self.ctrl, self.envr,
                           state.stor, self.kont_addr)
         return new_state.get_next()
@@ -645,12 +642,12 @@ class Kont: #pylint: disable=too-few-public-methods
         return self.ctrl == other.ctrl and \
                self.envr == other.envr and \
                self.kont_addr == other.kont_addr and \
-               self.address == other.address
+               self.return_address == other.return_address
 
     def __hash__(self):
         result = 7
         result = result * hash(self.ctrl) + 37
         result = result * hash(self.envr) + 53
         result = result * hash(self.kont_addr) + 97
-        result = result * hash(self.address) + 3
+        result = result * hash(self.return_address) + 3
         return result

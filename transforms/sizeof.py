@@ -48,7 +48,6 @@ def get_size_and_alignment(ast_type, env=None):
 
 def get_identifier_size(ast_type):
     """ gets the size of simple types int, long, etc """
-    #TODO handle typedef'd Types
     num_bytes = limits.CONFIG.get_size(ast_type.names)
     size = AST.Constant('int', str(num_bytes)+'l')
     if num_bytes < limits.CONFIG.get_word_size():
@@ -188,7 +187,7 @@ def get_struct_offset(struct_type, field, env):
 
     if field_type is None:
         raise Exception("Field not found")
-    
+
     if isinstance(struct_type, AST.Union):
         size = AST.Constant('int', '0l')
         return size, field_type

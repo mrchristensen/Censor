@@ -14,7 +14,7 @@ import cesk.config as cnf
 import cesk
 from cesk.exceptions import CESKException
 
-def run_main(ast, results):
+def run_interpreter(ast, results):
     """ function for redirecting the output of main to a file and
         returning the result as a string  """
     output = tempfile.NamedTemporaryFile()
@@ -39,6 +39,9 @@ def main():
     """Parses arguments and calls correct tool"""
     parser = argparse.ArgumentParser()
     parser.add_argument("filename")
+    parser.add_argument("--no_preprocess", "-n", \
+                        required=False, action='store_true', \
+                        help='Do not preproccess the file')
     parser.add_argument('--pycparser', '-p',
                         required=False, type=str, help='the path to pycparser')
     parser.add_argument('--includes', '-I',
@@ -48,6 +51,8 @@ def main():
                         required=False, type=str, help='comma seperate config '\
                             'values. ex: -c limits=cesk,store_update=strong')
     args = parser.parse_args()
+
+    needs_preprocess = False if args.no_preprocess else True
 
     #setup passed in configuration
     if args.configuration is not None:
@@ -63,7 +68,8 @@ def main():
     #TODO add timing option for benchmarks
     try:
         start = time.process_time()
-        ast = parse(args.filename, args.includes, args.pycparser, True)
+        ast = parse(args.filename, args.includes, args.pycparser, \
+                    True, needs_preprocess)
         end = time.process_time()
         result["parse_time"] = end - start
         start = time.process_time()
@@ -71,11 +77,11 @@ def main():
         end = time.process_time()
         result["transform_time"] = end - start
         start = time.process_time()
-        run_main(ast, result)
+        run_interpreter(ast, result)
         end = time.process_time()
         result["interpretation_time"] = end - start
     except CESKException as exception:
-        raise exception #todo stack trace to result
+        raise exception #todo add stack trace to result
     print(json.dumps(result))
 
 if __name__ == "__main__":
