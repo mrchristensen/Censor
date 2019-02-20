@@ -91,7 +91,7 @@ def parse(filename, includes, pycparser_path, sanitize, preproccess=True):
     else:
         text = open(filename, 'r').read()
 
-    text = utils.remove_gcc_extentions(text, filename) #only for large code base
+    text = utils.remove_gcc_extentions(text) #only for large code base
     ast = cparser.parse(text, filename)
     return ast
 
