@@ -162,7 +162,8 @@ def cast(value, typedeclt, state=None):  # pylint: disable=unused-argument
             result = copy_pointer(address, typedeclt.type)
         elif isinstance(value, BV.ByteValue):
             logging.debug(" Cast %s to %s", str(value), str(typedeclt))
-            address = state.stor.get_nearest_address(generate_value(value, "long").data)
+            address = state.stor.get_nearest_address(
+                generate_value(value, "long").data)
             result = copy_pointer(address, typedeclt.type)
     #typedeclt is any TypeDecl in c_ast
     elif isinstance(typedeclt, pycparser.c_ast.TypeDecl):

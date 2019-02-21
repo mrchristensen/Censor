@@ -31,6 +31,8 @@ class RemoveTypedef(LiftNode):
         """ If a struct is namless when defined add an unique name to it """
         if node.decls is None:
             return node #not defining a struct
+        else:
+            node.decls = self.visit(node.decls)
         if node.name is None:
             node.name = self.id_generator.get_unique_id()
             struct_name = type(node).__name__ + " " + node.name
@@ -67,6 +69,6 @@ class RemoveTypedef(LiftNode):
                 typedecl_name = new_node.type
                 while not isinstance(typedecl_name, AST.TypeDecl):
                     typedecl_name = typedecl_name.type
-                typedecl_name.declname = node.declname
+                typedecl_name.declname = deepcopy(node.declname)
                 return new_node
         return node

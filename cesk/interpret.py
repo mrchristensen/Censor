@@ -77,8 +77,10 @@ def handle_FuncCall(stmt, state, address=None): # pylint: disable=invalid-name
     '''Handles FuncCalls'''
     logging.debug("FuncCall to %s", stmt.name.name)
     if stmt.name.name in dir(lib_func):
-        args = [get_value(val, state) for val in stmt.args.exprs]
-        return getattr(lib_func, stmt.name.name)(state, args)
+        args = []
+        if stmt.args is not None:
+            args = [get_value(val, state) for val in stmt.args.exprs]
+        return getattr(lib_func, stmt.name.name)(state, args, address)
     elif stmt.name.name == "malloc":
         return state.get_next()
     else:
@@ -89,7 +91,6 @@ def func(stmt, state, address=None):
     if stmt.name.name not in ls.LinkSearch.function_lut:
         raise Exception("Undefined reference to " + stmt.name.name)
     else:
-        logging.debug(" Calling Function: %s", stmt.name.name)
         func_def = ls.LinkSearch.function_lut[stmt.name.name]
         if func_def.decl.type.args is None:
             param_list = []
@@ -263,7 +264,7 @@ def assignment_helper(operator, address, exp, state):
             return handle_FuncCall(exp, state, address)
         else:
             value = get_value(exp, state)
-        logging.debug("%s assigned %s", str(address), str(value))
+        logging.debug("Frame Address %s assigned to %s", str(address), str(value))
         state.stor.write(address, value)
         return state.get_next()
     else:
@@ -413,8 +414,7 @@ def get_address(reference, state):
             if checked_decl is not None:
                 logging.debug("Found implicit decl: %s", checked_decl.name)
                 decl_helper(checked_decl, state)
-        address = state.envr.get_address(ident)
-        return address
+        return state.envr.get_address(ident)
 
     elif isinstance(reference, AST.ArrayRef):
         raise CESKException("ArrayRef should be transformed")
@@ -474,10 +474,11 @@ def malloc_helper(stmt, state, break_up_list):
     '''performs malloc returns CESKPointer to allocated memory'''
     param = stmt.args.exprs[0]
     if isinstance(param, AST.Constant):
-        num_bytes = int(param.value, 0)
+        val = generate_constant_value(param.value, param.type)
+        num_bytes = val.data
     else:
         num_bytes = get_int_data(get_value(param, state))
-    logging.info("Malloc %d - %s", num_bytes, str(break_up_list))
+    logging.info("Malloc(%d) with structure: %s", num_bytes, str(break_up_list))
     heap_pointer = state.stor.allocH(state)
 
     block_size = sum(break_up_list)

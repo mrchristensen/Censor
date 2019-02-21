@@ -47,7 +47,7 @@ def main():
 
     return run_tool(args.tool, ast, args)
 
-def parse(filename, includes, pycparser_path, sanitize):
+def parse(filename, includes, pycparser_path, sanitize, preproccess=True):
     """ Calls pycparser and returns the ast """
     dir_name = path.dirname(filename)
 
@@ -83,8 +83,16 @@ def parse(filename, includes, pycparser_path, sanitize):
         cpp_compiler = 'g++'
     else:
         cpp_compiler = 'gcc'
-    ast = pycparser.parse_file(
-        filename, use_cpp=True, cpp_path=cpp_compiler, cpp_args=cpp_args)
+
+    cparser = pycparser.c_parser.CParser()
+    if preproccess:
+        text = pycparser.preprocess_file(filename, cpp_path=cpp_compiler,
+                                         cpp_args=cpp_args)
+    else:
+        text = open(filename, 'r').read()
+
+    text = utils.remove_gcc_extentions(text) #only for large code base
+    ast = cparser.parse(text, filename)
     return ast
 
 
