@@ -1,4 +1,4 @@
-* Compatibility header for old-style Unix parameters and limits.
+/* Compatibility header for old-style Unix parameters and limits.
        Copyright (C) 1995-2018 Free Software Foundation, Inc.
        This file is part of the GNU C Library.
     
@@ -32,9 +32,11 @@
     
     
     /* BSD names for some <limits.h> values.  */
-    
+
+    #ifndef NBBY    
     #define NBBY                CHAR_BIT
-    
+    #endif
+
     #if !defined NGROUPS && defined NGROUPS_MAX
     # define NGROUPS        NGROUPS_MAX
     #endif

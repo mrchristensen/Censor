@@ -1,4 +1,4 @@
-nclude/linux/memory.h - generic memory definition
+/*Include/linux/memory.h - generic memory definition
  *
  * This is mainly for topological representation. We define the
  * basic "struct memory_block" here, which can be embedded in per-arch

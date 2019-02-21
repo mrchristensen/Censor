@@ -36,6 +36,11 @@ typedef enum
     memory_order_seq_cst = __ATOMIC_SEQ_CST
   } memory_order;
 
+#ifndef _Atomic
+#define _Atomic
+#endif
+//get rid of compile derictiv _Atomic
+
 
 typedef _Atomic _Bool atomic_bool;
 typedef _Atomic char atomic_char;
