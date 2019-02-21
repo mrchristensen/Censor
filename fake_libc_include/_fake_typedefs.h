@@ -14,6 +14,8 @@ typedef int __int32_t;
 typedef int __uint32_t;
 typedef int __int64_t;
 typedef int __uint64_t;
+typedef int __uint128_t;
+typedef int __int128_t;
 typedef int __int_least32_t;
 typedef int __uint_least32_t;
 typedef int __s8;

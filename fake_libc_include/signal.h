@@ -3,13 +3,13 @@
 #include "_fake_defines.h"
 #include "_fake_typedefs.h"
 
-union
+typedef union
 {
         int sival_int;
-        void *sival_ptr
+        void *sival_ptr;
 } sigval;
 
-struct {
+typedef struct {
         int sigev_notify;
         int sigev_signo;
         union sigval sigev_value;
@@ -17,27 +17,20 @@ struct {
         pthread_attr_t *sigev_notify_attributes;
 } sigevent;
 
-struct {
+struct sigaction{
         void (*sa_handler)(int);
         sigset_t sa_mask;
         int sa_flags;
         void (*sa_sigaction)(int, siginfo_t *, void *);
 } sigaction;
 
-struct {
-        ucontext_t *uc_link;
-        sigset_t uc_sigmask;
-        stack_t uc_stack;
-        mcontext_t uc_mcontext;
-} ucontext_t;
-
-struct {
+typedef struct {
         void *ss_sp;
         size_t ss_size;
         int ss_flags;
 } stack_t;
 
-struct {
+typedef struct {
         int si_signo;
         int si_code;
         int si_errno;
