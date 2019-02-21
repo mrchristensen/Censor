@@ -103,34 +103,25 @@ extern "C" {
 # define BIO_CTRL_DGRAM_GET_RECV_TIMER_EXP 37/* flag whether the last */
 # define BIO_CTRL_DGRAM_GET_SEND_TIMER_EXP 38/* I/O operation tiemd out */
 
-/* #ifdef IP_MTU_DISCOVER */
-# define BIO_CTRL_DGRAM_MTU_DISCOVER       39/* set DF bit on egress packets */
-/* #endif */
+# define BIO_CTRL_DGRAM_MTU_DISCOVER       39
 
-# define BIO_CTRL_DGRAM_QUERY_MTU          40/* as kernel for current MTU */
+# define BIO_CTRL_DGRAM_QUERY_MTU          40
 # define BIO_CTRL_DGRAM_GET_FALLBACK_MTU   47
-# define BIO_CTRL_DGRAM_GET_MTU            41/* get cached value for MTU */
-# define BIO_CTRL_DGRAM_SET_MTU            42/* set cached value for MTU.
-                                              * want to use this if asking
-                                              * the kernel fails */
+# define BIO_CTRL_DGRAM_GET_MTU            41
+# define BIO_CTRL_DGRAM_SET_MTU            42
 
-# define BIO_CTRL_DGRAM_MTU_EXCEEDED       43/* check whether the MTU was
-                                              * exceed in the previous write
-                                              * operation */
+# define BIO_CTRL_DGRAM_MTU_EXCEEDED       43
 
 # define BIO_CTRL_DGRAM_GET_PEER           46
-# define BIO_CTRL_DGRAM_SET_PEER           44/* Destination for the data */
+# define BIO_CTRL_DGRAM_SET_PEER           44
 
-# define BIO_CTRL_DGRAM_SET_NEXT_TIMEOUT   45/* Next DTLS handshake timeout
-                                              * to adjust socket timeouts */
+# define BIO_CTRL_DGRAM_SET_NEXT_TIMEOUT   45
 # define BIO_CTRL_DGRAM_SET_DONT_FRAG      48
 
 # define BIO_CTRL_DGRAM_GET_MTU_OVERHEAD   49
 
-/* Deliberately outside of OPENSSL_NO_SCTP - used in bss_dgram.c */
 #  define BIO_CTRL_DGRAM_SCTP_SET_IN_HANDSHAKE    50
 # ifndef OPENSSL_NO_SCTP
-/* SCTP stuff */
 #  define BIO_CTRL_DGRAM_SCTP_ADD_AUTH_KEY                51
 #  define BIO_CTRL_DGRAM_SCTP_NEXT_AUTH_KEY               52
 #  define BIO_CTRL_DGRAM_SCTP_AUTH_CCS_RCVD               53
@@ -145,7 +136,6 @@ extern "C" {
 
 # define BIO_CTRL_DGRAM_SET_PEEK_MODE      71
 
-/* modifiers */
 # define BIO_FP_READ             0x02
 # define BIO_FP_WRITE            0x04
 # define BIO_FP_APPEND           0x08
@@ -157,15 +147,12 @@ extern "C" {
 # define BIO_FLAGS_RWS (BIO_FLAGS_READ|BIO_FLAGS_WRITE|BIO_FLAGS_IO_SPECIAL)
 # define BIO_FLAGS_SHOULD_RETRY  0x08
 # ifndef BIO_FLAGS_UPLINK
-/*
- * "UPLINK" flag denotes file descriptors provided by application. It
- * defaults to 0, as most platforms don't require UPLINK interface.
- */
+
+
 #  define BIO_FLAGS_UPLINK        0
 # endif
 
 # define BIO_FLAGS_BASE64_NO_NL  0x100
-
 /*
  * This is used with memory BIOs:
  * BIO_FLAGS_MEM_RDONLY means we shouldn't free up or change the data in any way;
@@ -256,7 +243,7 @@ const char *BIO_method_name(const BIO *b);
 int BIO_method_type(const BIO *b);
 
 typedef int BIO_info_cb(BIO *, int, int);
-typedef BIO_info_cb bio_info_cb;  /* backward compatibility */
+typedef BIO_info_cb bio_info_cb; 
 
 struct stack_st_BIO; 
 typedef int (*sk_BIO_compfunc)(const BIO *a, const BIO *b); 
