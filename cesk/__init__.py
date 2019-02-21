@@ -68,6 +68,7 @@ def prepare_start_state(main_function):
     start_ctrl = Ctrl(main_function.body)
     start_envr = Envr(State(start_ctrl, None, None, None)) #state for allocF
     start_stor = Stor()
+    logging.debug("Globals init start")
     init_globals(start_stor)
     logging.debug("Globals init done")
     kont_addr = Kont.allocK(halt_state, start_ctrl, start_envr)
