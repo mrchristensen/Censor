@@ -264,7 +264,8 @@ def assignment_helper(operator, address, exp, state):
             return handle_FuncCall(exp, state, address)
         else:
             value = get_value(exp, state)
-        logging.debug("Frame Address %s assigned to %s", str(address), str(value))
+        logging.debug("Frame Address %s assigned to %s",
+                      str(address), str(value))
         state.stor.write(address, value)
         return state.get_next()
     else:
@@ -409,7 +410,9 @@ def get_address(reference, state):
     """get_address"""
     if isinstance(reference, AST.ID):
         ident = reference
-        if not state.envr.is_localy_defined(ident):
+        while not isinstance(ident, str):
+            ident = ident.name
+        if ident not in state.envr:
             checked_decl = ls.check_for_implicit_decl(ident)
             if checked_decl is not None:
                 logging.debug("Found implicit decl: %s", checked_decl.name)

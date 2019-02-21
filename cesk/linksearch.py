@@ -47,12 +47,12 @@ class LinkSearch(AST.NodeVisitor): #
             if isinstance(child, AST.Node):
                 if child in LinkSearch.parent_lut:
                     logging.error("Transform Adds Duplication")
+                    logging.debug("Child: %s", str(child))
+                    logging.debug("Old Parent: %s",
+                                  str(LinkSearch.parent_lut[child]))
+                    logging.debug("New Parent: %s",
+                                  str(node))
                     child = deepcopy(child)
-                    #logging.debug("Child: %s", str(child))
-                    #logging.debug("Old Parent: %s",
-                    #              str(LinkSearch.parent_lut[child]))
-                    #logging.debug("New Parent: %s",
-                    #              str(node))
                     #temp_guy = node
                     #while temp_guy in LinkSearch.parent_lut:
                     #    temp_guy = LinkSearch.parent_lut[temp_guy]
