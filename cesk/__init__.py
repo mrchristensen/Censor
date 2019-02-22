@@ -11,6 +11,7 @@ from cesk.interpret import (decl_helper, execute, get_value,
 import cesk.linksearch as ls
 from cesk.exceptions import CESKException, MemoryAccessViolation, \
                             UnknownConfiguration
+from cesk.values import generate_function_definition
 
 def main(ast): #pylint: disable=too-many-locals
     """Injects execution into main funciton and maintains work queue"""
@@ -86,5 +87,12 @@ def init_globals(stor):
             address = fake_state.envr.get_address(decl.name)
             value = get_value(decl.init, fake_state)
             fake_state.stor.write(address, value)
+    funcs = ls.LinkSearch.function_lut
+    for func in funcs:
+        logging.debug("Global function %s", func)
+        f_addr = fake_state.envr.map_new_identifier(func)
+        fake_state.stor.allocM(f_addr, [8]) # word size
+        func_val = generate_function_definition(funcs[func])
+        fake_state.stor.write(f_addr, func_val)
 
     Envr.set_global(fake_state.envr)
