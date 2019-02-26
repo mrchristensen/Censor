@@ -77,9 +77,8 @@ def handle_FuncCall(stmt, state, address=None): # pylint: disable=invalid-name
     '''Handles FuncCalls'''
     if isinstance(stmt.name, AST.UnaryOp):
         logging.debug("FuncCall to %s", stmt.name)
-        frame_addr = get_address(stmt.name, state)
-        func_def = state.stor.read(frame_addr).node
-        return func(stmt, state, func_def, address)
+        func_def_frame_addr = get_address(stmt.name, state)
+        return func(stmt, state, func_def_frame_addr, address)
 
     logging.debug("FuncCall to %s", stmt.name.name)
     if stmt.name.name in dir(lib_func):
@@ -90,27 +89,35 @@ def handle_FuncCall(stmt, state, address=None): # pylint: disable=invalid-name
     elif stmt.name.name == "malloc":
         return state.get_next()
     else:
-        frame_addr = state.envr.get_address(stmt.name.name)
-        func_def = state.stor.read(frame_addr).node
-        return func(stmt, state, func_def, address)
+        func_def_frame_addr = state.envr.get_address(stmt.name.name)
+        return func(stmt, state, func_def_frame_addr, address)
 
-def func(stmt, state, func_def, address=None):
+def func(stmt, state, func_def_frame_addr, address=None):
     '''handles most function calls delegated by handle_FuncCall'''
-    if func_def.decl.type.args is None:
-        param_list = []
-    else:
-        param_list = func_def.decl.type.args.params
     if stmt.args is None:
         expr_list = []
     else:
         expr_list = stmt.args.exprs
-    if len(expr_list) != len(param_list):
-        raise Exception("Function " + func_def.decl.name +
-                        " expected " +
-                        str(len(param_list)) +
-                        " parameters but received " +
-                        str(len(expr_list)))
-    return func_helper(param_list, expr_list, func_def, state, address)
+
+    func_defs = state.stor.read(func_def_frame_addr)
+    if isinstance(func_defs, set):
+        func_defs = set([func_def.node for func_def in func_defs])
+    else:
+        func_defs = set([func_defs.node])
+    return_states = set()
+    for func_def in func_defs:
+        if func_def.decl.type.args is None:
+            param_list = []
+        else:
+            param_list = func_def.decl.type.args.params
+        if len(expr_list) != len(param_list):
+            raise Exception("Function " + func_def.decl.name +
+                            " expected " +
+                            str(len(param_list)) +
+                            " parameters but received " +
+                            str(len(expr_list)))
+        return_states.add(func_helper(param_list, expr_list, func_def, state, address))
+    return return_states
 
 def func_helper(param_list, expr_list, func_def, state, address):
     '''Prepares the next_state from param_list and expr_list'''
