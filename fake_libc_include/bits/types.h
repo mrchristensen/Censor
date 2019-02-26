@@ -34,15 +34,15 @@ typedef unsigned int __u_int;
 typedef unsigned long int __u_long;
 
 /* Fixed-size types, underlying types depend on word size and compiler.  */
-typedef signed char __int8_t;
-typedef unsigned char __uint8_t;
-typedef signed short int __int16_t;
-typedef unsigned short int __uint16_t;
-typedef signed int __int32_t;
-typedef unsigned int __uint32_t;
+//typedef signed char __int8_t;
+//typedef unsigned char __uint8_t;
+//typedef signed short int __int16_t;
+//typedef unsigned short int __uint16_t;
+//typedef signed int __int32_t;
+//typedef unsigned int __uint32_t;
 #if __WORDSIZE == 64
-typedef signed long int __int64_t;
-typedef unsigned long int __uint64_t;
+//typedef signed long int __int64_t;
+//typedef unsigned long int __uint64_t;
 #elif defined __GLIBC_HAVE_LONG_LONG
 __extension__ typedef signed long long int __int64_t;
 __extension__ typedef unsigned long long int __uint64_t;
@@ -131,16 +131,16 @@ typedef struct
 #include <bits/typesizes.h>        /* Defines __*_T_TYPE macros.  */
 
 
-__STD_TYPE __DEV_T_TYPE __dev_t;        /* Type of device numbers.  */
-__STD_TYPE __UID_T_TYPE __uid_t;        /* Type of user identifications.  */
-__STD_TYPE __GID_T_TYPE __gid_t;        /* Type of group identifications.  */
+//__STD_TYPE __DEV_T_TYPE __dev_t;        /* Type of device numbers.  */
+//__STD_TYPE __UID_T_TYPE __uid_t;        /* Type of user identifications.  */
+//__STD_TYPE __GID_T_TYPE __gid_t;        /* Type of group identifications.  */
 __STD_TYPE __INO_T_TYPE __ino_t;        /* Type of file serial numbers.  */
 __STD_TYPE __INO64_T_TYPE __ino64_t;        /* Type of file serial numbers (LFS).*/
 __STD_TYPE __MODE_T_TYPE __mode_t;        /* Type of file attribute bitmasks.  */
 __STD_TYPE __NLINK_T_TYPE __nlink_t;        /* Type of file link counts.  */
-__STD_TYPE __OFF_T_TYPE __off_t;        /* Type of file sizes and offsets.  */
+//__STD_TYPE __OFF_T_TYPE __off_t;        /* Type of file sizes and offsets.  */
 __STD_TYPE __OFF64_T_TYPE __off64_t;        /* Type of file sizes and offsets (LFS).  */
-__STD_TYPE __PID_T_TYPE __pid_t;        /* Type of process identifications.  */
+//__STD_TYPE __PID_T_TYPE __pid_t;        /* Type of process identifications.  */
 __STD_TYPE __FSID_T_TYPE __fsid_t;        /* Type of file system IDs.  */
 __STD_TYPE __CLOCK_T_TYPE __clock_t;        /* Type of CPU usage counts.  */
 __STD_TYPE __RLIM_T_TYPE __rlim_t;        /* Type for resource measurement.  */
@@ -181,7 +181,7 @@ __STD_TYPE __SSIZE_T_TYPE __ssize_t; /* Type of a byte count, or error.  */
 
 /* These few don't really vary by system, they always correspond
    to one of the other defined types.  */
-typedef __off64_t __loff_t;        /* Type of file sizes and offsets (LFS).  */
+//typedef __off64_t __loff_t;        /* Type of file sizes and offsets (LFS).  */
 typedef __quad_t *__qaddr_t;
 typedef char *__caddr_t;
 

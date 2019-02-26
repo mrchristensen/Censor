@@ -24,7 +24,7 @@ def visit_Compound(self, node):
 in your visit_Compound, and then self.envr will always be the environment
 of your current scope.
 """
-
+import logging
 from copy import deepcopy
 from pycparser.c_ast import ID, Struct, Union, Enum, FuncDecl, TypeDecl
 from .node_transformer import NodeTransformer
@@ -56,8 +56,9 @@ class Enviornment:
         if isinstance(ident, ID):
             ident = ident.name
         if ident in self.map_to_type:
-            raise Exception("Redefinition of " + ident)
-
+            logging.debug("Redefinition of " + ident)
+            #raise Exception("Redefinition of " + ident)
+            
         self.map_to_type[ident] = type_node
 
     def show(self):
