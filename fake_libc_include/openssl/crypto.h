@@ -8,6 +8,9 @@
  * https://www.openssl.org/source/license.html
  */
 
+#include "_fake_typedefs.h"
+#include "_fake_defines.h"
+
 #ifndef HEADER_CRYPTO_H
 # define HEADER_CRYPTO_H
 
@@ -85,11 +88,11 @@ int CRYPTO_atomic_write(int *val, int n, CRYPTO_RWLOCK *lock);
 # define CRYPTO_MEM_CHECK_ENABLE  0x2   /* Control and mode bit */
 # define CRYPTO_MEM_CHECK_DISABLE 0x3   /* Control only */
 
-struct crypto_ex_data_st {
+/*struct crypto_ex_data_st {
     STACK_OF(void) *sk;
 };
 DEFINE_STACK_OF(void)
-
+*/
 /*
  * Per class, we have a STACK of function pointers.
  */

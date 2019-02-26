@@ -56,10 +56,11 @@ extern "C" {
 # define X509v3_KU_DECIPHER_ONLY         0x8000
 # define X509v3_KU_UNDEF                 0xffff
 
-struct X509_algor_st {
+/*struct X509_algor_st {
     ASN1_OBJECT *algorithm;
     ASN1_TYPE *parameter;
-} /* X509_ALGOR */ ;
+}; // X509_ALGOR
+*/
 
 typedef STACK_OF(X509_ALGOR) X509_ALGORS;
 

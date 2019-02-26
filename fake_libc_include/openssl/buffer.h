@@ -16,7 +16,6 @@
 # endif
 # include <openssl/buffererr.h>
 
-
 #ifdef  __cplusplus
 extern "C" {
 #endif
@@ -35,12 +34,14 @@ extern "C" {
 # define BUF_strlcat(dst, src, size) OPENSSL_strlcat(dst, src, size)
 # define BUF_strnlen(str, maxlen) OPENSSL_strnlen(str, maxlen)
 
+/*
 struct buf_mem_st {
-    size_t length;              /* current number of bytes */
+    size_t length;              // current number of bytes 
     char *data;
-    size_t max;                 /* size of buffer */
+    size_t max;                 // size of buffer 
     unsigned long flags;
 };
+*/
 
 # define BUF_MEM_FLAG_SECURE  0x01
 

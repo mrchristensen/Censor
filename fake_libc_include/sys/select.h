@@ -22,7 +22,7 @@ suseconds_t    tv_usec;//     Microseconds.
 #define    FD_SETSIZE    256
 #endif
 
-typedef long    fd_mask;
+//typedef long    fd_mask;
 #define NFDBITS    (sizeof(fd_mask) * NBBY)    /* bits per mask */
 
 #ifndef howmany
