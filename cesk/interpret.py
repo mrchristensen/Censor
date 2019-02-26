@@ -75,6 +75,12 @@ def handle_Goto(stmt, state): # pylint: disable=invalid-name
 
 def handle_FuncCall(stmt, state, address=None): # pylint: disable=invalid-name
     '''Handles FuncCalls'''
+    if isinstance(stmt.name, AST.UnaryOp):
+        logging.debug("FuncCall to %s", stmt.name)
+        frame_addr = get_address(stmt.name, state)
+        func_def = state.stor.read(frame_addr).node
+        return func(stmt, state, func_def, address)
+
     logging.debug("FuncCall to %s", stmt.name.name)
     if stmt.name.name in dir(lib_func):
         args = []
@@ -84,28 +90,26 @@ def handle_FuncCall(stmt, state, address=None): # pylint: disable=invalid-name
     elif stmt.name.name == "malloc":
         return state.get_next()
     else:
-        return func(stmt, state, address)
+        frame_addr = state.envr.get_address(stmt.name.name)
+        func_def = state.stor.read(frame_addr).node
+        return func(stmt, state, func_def, address)
 
-def func(stmt, state, address=None):
+def func(stmt, state, func_def, address=None):
     '''handles most function calls delegated by handle_FuncCall'''
-    if stmt.name.name not in ls.LinkSearch.function_lut:
-        raise Exception("Undefined reference to " + stmt.name.name)
+    if func_def.decl.type.args is None:
+        param_list = []
     else:
-        func_def = ls.LinkSearch.function_lut[stmt.name.name]
-        if func_def.decl.type.args is None:
-            param_list = []
-        else:
-            param_list = func_def.decl.type.args.params
-        if stmt.args is None:
-            expr_list = []
-        else:
-            expr_list = stmt.args.exprs
-        if len(expr_list) != len(param_list):
-            raise Exception("Function " + stmt.name.name +
-                            " expected " +
-                            str(len(param_list)) +
-                            " parameters but received " +
-                            str(len(expr_list)))
+        param_list = func_def.decl.type.args.params
+    if stmt.args is None:
+        expr_list = []
+    else:
+        expr_list = stmt.args.exprs
+    if len(expr_list) != len(param_list):
+        raise Exception("Function " + func_def.decl.name +
+                        " expected " +
+                        str(len(param_list)) +
+                        " parameters but received " +
+                        str(len(expr_list)))
     return func_helper(param_list, expr_list, func_def, state, address)
 
 def func_helper(param_list, expr_list, func_def, state, address):
@@ -305,7 +309,7 @@ def handle_decl_array(array, list_of_sizes, state, f_addr):
     logging.debug('  Array Decl')
     if isinstance(array.type, AST.ArrayDecl):
         raise Exception("Multidim. arrays should be transformed to single")
-    elif isinstance(array.type, AST.TypeDecl):
+    elif isinstance(array.type, (AST.TypeDecl, AST.PtrDecl)):
         if isinstance(array.dim, (AST.Constant, AST.ID)):
             value = get_value(array.dim, state)
             logging.debug("Array Size is %s", str(value))
