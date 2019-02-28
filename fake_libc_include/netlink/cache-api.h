@@ -15,6 +15,6 @@
 #include <netlink/netlink.h>
 #include <netlink/cache.h>
 
-#warning "You are including a deprecated header file, include <netlink/cache.h>."
+//#warning "You are including a deprecated header file, include <netlink/cache.h>."
 
 #endif

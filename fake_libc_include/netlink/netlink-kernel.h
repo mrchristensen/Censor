@@ -62,24 +62,31 @@ struct nlmsghdr
  * kernel space).
  * @ingroup msg
  */
+#ifndef NLM_F_REQUEST
 #define NLM_F_REQUEST		1
+#endif
 
 /**
  * Indicates the message is part of a multipart message terminated
  * by NLMSG_DONE.
  */
+#ifndef NLM_F_MILTI
 #define NLM_F_MULTI		2
+#endif
 
 /**
  * Request for an acknowledgment on success.
  */
+#ifndef NLM_F_ACK
 #define NLM_F_ACK		4
+#endif
 
 /**
  * Echo this request
  */
+#ifndef NLM_F_ECHO
 #define NLM_F_ECHO		8
-
+#endif
 /** @} */
 
 /**
