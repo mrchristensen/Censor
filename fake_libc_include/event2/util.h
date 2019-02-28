@@ -640,7 +640,7 @@ int evutil_ascii_strncasecmp(const char *str1, const char *str2, size_t n);
 /* Here we define evutil_addrinfo to the native addrinfo type, or redefine it
  * if this system has no getaddrinfo(). */
 #ifdef EVENT__HAVE_STRUCT_ADDRINFO
-#define evutil_addrinfo addrinfo
+//#define evutil_addrinfo addrinfo
 #else
 /** A definition of struct addrinfo for systems that lack it.
     (This is just an alias for struct addrinfo if the system defines
