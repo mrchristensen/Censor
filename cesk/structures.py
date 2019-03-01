@@ -63,7 +63,10 @@ class State: #pylint:disable=too-few-public-methods
             State._time += 1
             self.time_stamp = State._time
         elif cnf.CONFIG['tick'] == 'abstract':
-            self.time_stamp = self.stor.get_time()
+            if self.stor == None:
+                self.time_stamp = State._time
+            else:
+                self.time_stamp = self.stor.get_time()
         elif cnf.CONFIG['tick'] == 'trivial':
             self.time_stamp = State._time
         else:
@@ -162,6 +165,8 @@ class Ctrl: #pylint:disable=too-few-public-methods
         raise CESKException("Malformed ctrl: this should have been unreachable")
 
     def __eq__(self, other):
+        if isinstance(other, int):
+            return False
         if self.body:
             return other.body and self.body == other.body and \
                                  self.index == other.index
@@ -410,7 +415,7 @@ class MemoryBlock:
     def weak_write(self, offset, value):
         """ Writes the value given at the offset given
             returns True if values are changed False otherwise"""
-        if offset < 0 or offset+value.size >= self.size:
+        if offset < 0 or offset+value.size > self.size:
             raise MemoryAccessViolation("Illegal Write")
         is_change = False
         index, start = self._get_index(offset)

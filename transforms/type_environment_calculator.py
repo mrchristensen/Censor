@@ -155,7 +155,7 @@ class TypeEnvironmentCalculator(NodeTransformer):
         self.envr = Enviornment(self.envr)
 
         func_decl = node.decl.type
-        if func_decl.args != None:
+        if func_decl.args is not None:
             func_decl.args = self.visit(func_decl.args)
         node.body = self.generic_visit(node.body)
 
@@ -180,8 +180,11 @@ class TypeEnvironmentCalculator(NodeTransformer):
 
         type_node = deepcopy(node.type)
         ident = remove_identifier(type_node)
-
         if isinstance(type_node, (Struct, Union, Enum)):
+            logging.debug("Ident!!")
+            logging.debug(ident)
+            logging.debug("Type_node")
+            logging.debug(type_node)
             ident = type(type_node).__name__ + " " + ident
 
         self.envr.add(ident, type_node)
