@@ -182,10 +182,6 @@ class TypeEnvironmentCalculator(NodeTransformer):
         type_node = deepcopy(node.type)
         ident = remove_identifier(type_node, self.id_generator)
         if isinstance(type_node, (Struct, Union, Enum)):
-            logging.debug("Ident!!")
-            logging.debug(ident)
-            logging.debug("Type_node")
-            logging.debug(type_node)
             ident = type(type_node).__name__ + " " + ident
 
         self.envr.add(ident, type_node)
