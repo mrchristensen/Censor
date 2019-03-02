@@ -29,7 +29,7 @@ class Enum(NodeTransformer):
                 if isinstance(val, AST.ID):
                     val = NAME_TO_NUMBER[val.name]
                 else:
-                    val = int(val.value)
+                    val = int(val.value, 0)
                 NAME_TO_NUMBER[enumerator.name] = val
             else:
                 NAME_TO_NUMBER[enumerator.name] = current_constant

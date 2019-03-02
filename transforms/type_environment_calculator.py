@@ -104,7 +104,8 @@ class TypeEnvironmentCalculator(NodeTransformer):
     for all the nodes to be the same type, this should inherit from
     NodeVisitor.
     """
-    def __init__(self):
+    def __init__(self, id_generator):
+        self.id_generator = id_generator
         self.envr = None
         self.environemnts = None
         self.declared_not_defined = None
@@ -179,7 +180,7 @@ class TypeEnvironmentCalculator(NodeTransformer):
         #TODO handle extern, static, etc properly
 
         type_node = deepcopy(node.type)
-        ident = remove_identifier(type_node)
+        ident = remove_identifier(type_node, self.id_generator)
         if isinstance(type_node, (Struct, Union, Enum)):
             logging.debug("Ident!!")
             logging.debug(ident)

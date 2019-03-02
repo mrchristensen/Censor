@@ -67,7 +67,7 @@ def cast_if_needed(type_node, expr, env):
         return expr
     return Cast(type_node, expr)
 
-def remove_identifier(node):
+def remove_identifier(node, id_generator=None):
     """Takes in the type attribute of a Decl node and removes the identifier,
     so it can be used for type casting. Returns the identifier"""
     if isinstance(node, TypeDecl):
@@ -77,6 +77,8 @@ def remove_identifier(node):
         return ident
     elif isinstance(node, (Struct, Union, Enum)):
         # remove the identifier, end recursion
+        if node.name is None:
+            node.name = id_generator.get_unique_id()
         ident = node.name
         node.name = None
         return ident

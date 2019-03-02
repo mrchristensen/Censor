@@ -89,7 +89,7 @@ def get_transformers(ast):
     # type environments should be recalculated each time they are needed
     # for a transform, because the AST changes and so the type environments
     # should be different
-    type_env_calc = TypeEnvironmentCalculator()
+    type_env_calc = TypeEnvironmentCalculator(id_generator)
 
     # Each dependency function must take one argument so that we can easily
     # chain transformations together without worrying about arity.
