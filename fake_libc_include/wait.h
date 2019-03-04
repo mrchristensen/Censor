@@ -20,8 +20,8 @@
 
 #include <bits/types.h>
 #ifndef __pid_t_defined
-typedef __pid_t pid_t;
-# define __pid_t_defined
+//typedef __pid_t pid_t;
+//# define __pid_t_defined
 #endif
 #if defined __USE_XOPEN_EXTENDED || defined __USE_XOPEN2K8
 # include <signal.h>

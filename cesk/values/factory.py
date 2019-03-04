@@ -6,6 +6,12 @@ class Factory():
     '''Factory holding the constructor for each value'''
 
     @staticmethod
+    def getFunctionDefinitionClass(): #pylint: disable=invalid-name
+        '''returns class for function definitions'''
+        from .function_definition import FunctionDefinition
+        return FunctionDefinition
+
+    @staticmethod
     def getIntegerClass(): #pylint: disable=invalid-name
         '''returns class for Integer'''
         if cesk.config.CONFIG['values'] == 'concrete':
@@ -60,3 +66,8 @@ class Factory():
     def Pointer(address, type_size, offset=0): #pylint: disable=invalid-name
         '''Pointer constructor'''
         return Factory.getPointerClass()(address, type_size, offset)
+
+    @staticmethod
+    def FunctionDefinition(node): #pylint: disable=invalid-name
+        '''Function Definition constructor'''
+        return Factory.getFunctionDefinitionClass()(node)

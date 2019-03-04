@@ -1228,10 +1228,10 @@ __owur int SSL_check_chain(SSL *s, X509 *x, EVP_PKEY *pk, STACK_OF(X509) *chain)
 # endif
 
 /* TLS Session Ticket extension struct */
-struct tls_session_ticket_ext_st {
+/*struct tls_session_ticket_ext_st {
     unsigned short length;
     void *data;
-};
+};*/
 
 #ifdef  __cplusplus
 }

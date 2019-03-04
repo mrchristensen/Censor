@@ -24,7 +24,7 @@ def visit_Compound(self, node):
 in your visit_Compound, and then self.envr will always be the environment
 of your current scope.
 """
-
+import logging
 from copy import deepcopy
 from pycparser.c_ast import ID, Struct, Union, Enum, FuncDecl, TypeDecl
 from .node_transformer import NodeTransformer
@@ -56,8 +56,9 @@ class Enviornment:
         if isinstance(ident, ID):
             ident = ident.name
         if ident in self.map_to_type:
-            raise Exception("Redefinition of " + ident)
-
+            logging.debug("Redefinition of " + ident)
+            #raise Exception("Redefinition of " + ident)
+            
         self.map_to_type[ident] = type_node
 
     def show(self):
@@ -103,7 +104,8 @@ class TypeEnvironmentCalculator(NodeTransformer):
     for all the nodes to be the same type, this should inherit from
     NodeVisitor.
     """
-    def __init__(self):
+    def __init__(self, id_generator):
+        self.id_generator = id_generator
         self.envr = None
         self.environemnts = None
         self.declared_not_defined = None
@@ -154,7 +156,7 @@ class TypeEnvironmentCalculator(NodeTransformer):
         self.envr = Enviornment(self.envr)
 
         func_decl = node.decl.type
-        if func_decl.args != None:
+        if func_decl.args is not None:
             func_decl.args = self.visit(func_decl.args)
         node.body = self.generic_visit(node.body)
 
@@ -178,8 +180,7 @@ class TypeEnvironmentCalculator(NodeTransformer):
         #TODO handle extern, static, etc properly
 
         type_node = deepcopy(node.type)
-        ident = remove_identifier(type_node)
-
+        ident = remove_identifier(type_node, self.id_generator)
         if isinstance(type_node, (Struct, Union, Enum)):
             ident = type(type_node).__name__ + " " + ident
 

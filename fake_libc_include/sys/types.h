@@ -24,6 +24,8 @@
     
     #include <features.h>
     #include <sys/select.h> 
+    #include "_fake_defines.h"
+    #include "_fake_typedefs.h"
     //__BEGIN_DECLS
     
     //#include <bits/types.h>
@@ -41,11 +43,11 @@
     # endif
     #endif
     
-    typedef __loff_t loff_t;
+    //typedef __loff_t loff_t;
     
     #ifndef __ino_t_defined
     # ifndef __USE_FILE_OFFSET64
-    typedef int ino_t;
+    //typedef int ino_t;
     # else
     typedef __ino64_t ino_t;
     # endif
@@ -57,33 +59,33 @@
     #endif
     
     #ifndef __dev_t_defined
-    typedef __dev_t dev_t;
+    //typedef __dev_t dev_t;
     # define __dev_t_defined
     #endif
     
     #ifndef __gid_t_defined
-    typedef __gid_t gid_t;
+    //typedef __gid_t gid_t;
     # define __gid_t_defined
     #endif
     
     #ifndef __mode_t_defined
-    typedef int mode_t;
+    //typedef int mode_t;
     # define __mode_t_defined
     #endif
     
     #ifndef __nlink_t_defined
-    typedef int nlink_t;
+    //typedef int nlink_t;
     # define __nlink_t_defined
     #endif
     
     #ifndef __uid_t_defined
-    typedef __uid_t uid_t;
+    //typedef __uid_t uid_t;
     # define __uid_t_defined
     #endif
     
     #ifndef __off_t_defined
     # ifndef __USE_FILE_OFFSET64
-    typedef __off_t off_t;
+    //typedef __off_t off_t;
     # else
     typedef __off64_t off_t;
     # endif
@@ -95,8 +97,8 @@
     #endif
     
     #ifndef __pid_t_defined
-    typedef __pid_t pid_t;
-    # define __pid_t_defined
+    //typedef __pid_t pid_t;
+    //# define __pid_t_defined
     #endif
     
     #if (defined __USE_XOPEN || defined __USE_XOPEN2K8) \
@@ -106,7 +108,7 @@
     #endif
     
     #ifndef __ssize_t_defined
-    typedef unsigned int ssize_t;
+    //typedef unsigned int ssize_t;
     # define __ssize_t_defined
     #endif
     

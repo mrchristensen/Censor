@@ -23,6 +23,8 @@ SizeofType < LiftUnaryOp
 Sequence < IfToIfGoto
 DoWhileToGoto < Sequence
 BreakToGoto < DoWhileToGoto
+TypeDef < AlphaName
+AlphaName < Enum
 
 """
 
@@ -64,6 +66,7 @@ from .struct_ref_to_pointer import StructRefToPointerArith
 from .remove_typedef import RemoveTypedef
 from .break_to_goto import BreakToGoto
 from .alpha_name import AlphaName
+from .enum import Enum
 
 # other imports
 from .id_generator import IDGenerator
@@ -86,7 +89,7 @@ def get_transformers(ast):
     # type environments should be recalculated each time they are needed
     # for a transform, because the AST changes and so the type environments
     # should be different
-    type_env_calc = TypeEnvironmentCalculator()
+    type_env_calc = TypeEnvironmentCalculator(id_generator)
 
     # Each dependency function must take one argument so that we can easily
     # chain transformations together without worrying about arity.
@@ -109,6 +112,8 @@ def get_transformers(ast):
     yield (OmpNotImplemented, lambda ast: [])
     yield (RemoveTypedef,
            lambda ast: [id_generator, type_env_calc.get_environments(ast)])
+    yield (AlphaName, lambda ast: [])
+    yield (Enum, lambda ast: [])
     yield (SizeofType,
            lambda ast: [type_env_calc.get_environments(ast)])
     yield (SimplifyOmpFor,
@@ -139,7 +144,6 @@ def get_transformers(ast):
            lambda ast: [type_env_calc.get_environments(ast)])
     yield (LiftToCompoundBlock,
            lambda ast: [id_generator, type_env_calc.get_environments(ast)])
-    yield (AlphaName, lambda ast: [])
 
 def transform(ast):
     """Perform each transform in package"""

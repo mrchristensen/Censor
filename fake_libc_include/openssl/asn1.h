@@ -115,7 +115,7 @@ extern "C" {
 # define SMIME_OLDMIME           0x400
 # define SMIME_CRLFEOL           0x800
 # define SMIME_STREAM            0x1000
-    struct X509_algor_st;
+    //struct X509_algor_st;
 DEFINE_STACK_OF(X509_ALGOR)
 
 # define ASN1_STRING_FLAG_BITS_LEFT 0x08/* Set if 0x07 has bits left value */
@@ -143,7 +143,7 @@ DEFINE_STACK_OF(X509_ALGOR)
 /* String should be parsed in RFC 5280's time format */
 # define ASN1_STRING_FLAG_X509_TIME 0x100
 /* This is the base type that holds just about everything :-) */
-struct asn1_string_st {
+/*struct asn1_string_st {
     int length;
     int type;
     unsigned char *data;
@@ -151,9 +151,9 @@ struct asn1_string_st {
      * The value of the following field depends on the type being held.  It
      * is mostly being used for BIT_STRING so if the input data has a
      * non-zero 'unused bits' value, it will be handled correctly
-     */
+     *
     long flags;
-};
+};*/
 
 /*
  * ASN1_ENCODING structure: this is used to save the received encoding of an
