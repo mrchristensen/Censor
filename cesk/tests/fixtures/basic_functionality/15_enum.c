@@ -4,7 +4,7 @@ enum myEnums {
     zero,
     one,
     two = one,
-    one_again = 1,
+    one_again = 1 + zero,
     two_again,
 };
 

@@ -22,24 +22,21 @@ class Enum(NodeTransformer):
 
     def visit_EnumeratorList(self, node): # pylint: disable=invalid-name
         '''Numbers Enumerators and maps to their names'''
-        current_constant = 0
+        current_constant = AST.Constant('int', '0')
         for enumerator in node.enumerators:
+            enumerator = self.generic_visit(enumerator)
             if enumerator.value:
-                val = enumerator.value
-                if isinstance(val, AST.ID):
-                    val = NAME_TO_NUMBER[val.name]
-                else:
-                    val = int(val.value, 0)
-                NAME_TO_NUMBER[enumerator.name] = val
+                NAME_TO_NUMBER[enumerator.name] = enumerator.value
             else:
                 NAME_TO_NUMBER[enumerator.name] = current_constant
-            current_constant = NAME_TO_NUMBER[enumerator.name] + 1
+            current_constant = AST.BinaryOp('+', AST.Constant('int', '1'),
+                                            NAME_TO_NUMBER[enumerator.name])
         return node
 
     def visit_ID(self, node): # pylint: disable=invalid-name
         '''Replaces all IDs that are enums with their literal value'''
         if node.name in NAME_TO_NUMBER:
-            return AST.Constant('int', str(NAME_TO_NUMBER[node.name]))
+            return NAME_TO_NUMBER[node.name]
         return self.generic_visit(node)
 
     def visit_TypeDecl(self, node):  # pylint: disable=invalid-name
