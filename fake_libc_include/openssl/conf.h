@@ -30,22 +30,22 @@ typedef struct {
 DEFINE_STACK_OF(CONF_VALUE)
 DEFINE_LHASH_OF(CONF_VALUE);
 
-struct conf_st;
+//struct conf_st;
 struct conf_method_st;
 typedef struct conf_method_st CONF_METHOD;
 
-struct conf_method_st {
-    const char *name;
-    CONF *(*create) (CONF_METHOD *meth);
-    int (*init) (CONF *conf);
-    int (*destroy) (CONF *conf);
-    int (*destroy_data) (CONF *conf);
-    int (*load_bio) (CONF *conf, BIO *bp, long *eline);
-    int (*dump) (const CONF *conf, BIO *bp);
-    int (*is_number) (const CONF *conf, char c);
-    int (*to_int) (const CONF *conf, char c);
-    int (*load) (CONF *conf, const char *name, long *eline);
-};
+// struct conf_method_st {
+//     const char *name;
+//     CONF *(*create) (CONF_METHOD *meth);
+//     int (*init) (CONF *conf);
+//     int (*destroy) (CONF *conf);
+//     int (*destroy_data) (CONF *conf);
+//     int (*load_bio) (CONF *conf, BIO *bp, long *eline);
+//     int (*dump) (const CONF *conf, BIO *bp);
+//     int (*is_number) (const CONF *conf, char c);
+//     int (*to_int) (const CONF *conf, char c);
+//     int (*load) (CONF *conf, const char *name, long *eline);
+// };
 
 /* Module definitions */
 
@@ -100,11 +100,11 @@ DEPRECATEDIN_1_1_0(void OPENSSL_config(const char *config_name))
  * that wasn't the case, the above functions would have been replaced
  */
 
-struct conf_st {
-    CONF_METHOD *meth;
-    void *meth_data;
-    LHASH_OF(CONF_VALUE) *data;
-};
+// struct conf_st {
+//     CONF_METHOD *meth;
+//     void *meth_data;
+//     LHASH_OF(CONF_VALUE) *data;
+// };
 
 CONF *NCONF_new(CONF_METHOD *meth);
 CONF_METHOD *NCONF_default(void);

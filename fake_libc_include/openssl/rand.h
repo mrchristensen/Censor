@@ -19,14 +19,14 @@
 extern "C" {
 #endif
 
-struct rand_meth_st {
-    int (*seed) (const void *buf, int num);
-    int (*bytes) (unsigned char *buf, int num);
-    void (*cleanup) (void);
-    int (*add) (const void *buf, int num, double randomness);
-    int (*pseudorand) (unsigned char *buf, int num);
-    int (*status) (void);
-};
+// struct rand_meth_st {
+//     int (*seed) (const void *buf, int num);
+//     int (*bytes) (unsigned char *buf, int num);
+//     void (*cleanup) (void);
+//     int (*add) (const void *buf, int num, double randomness);
+//     int (*pseudorand) (unsigned char *buf, int num);
+//     int (*status) (void);
+// };
 
 int RAND_set_rand_method(const RAND_METHOD *meth);
 const RAND_METHOD *RAND_get_rand_method(void);

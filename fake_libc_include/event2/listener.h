@@ -33,7 +33,7 @@
  
  #include <event2/event.h>
  
- struct sockaddr;
+ //struct sockaddr;
  struct evconnlistener;
  
  typedef void (*evconnlistener_cb)(struct evconnlistener *, evutil_socket_t, struct sockaddr *, int socklen, void *);

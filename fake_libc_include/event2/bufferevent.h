@@ -55,7 +55,7 @@
  ;
  struct event_base;
  struct evbuffer;
- struct sockaddr;
+ //struct sockaddr;
  
  typedef void (*bufferevent_data_cb)(struct bufferevent *bev, void *ctx);
  
