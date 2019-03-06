@@ -132,9 +132,9 @@ enum nlmsgerr_attrs {
 #define NETLINK_LIST_MEMBERSHIPS	9
 #define NETLINK_CAP_ACK			10
 #define NETLINK_EXT_ACK			11
-struct nl_pktinfo {
-	__u32	group;
-};
+// struct nl_pktinfo {
+// 	__u32	group;
+// };
 struct nl_mmap_req {
 	unsigned int	nm_block_size;
 	unsigned int	nm_block_nr;
