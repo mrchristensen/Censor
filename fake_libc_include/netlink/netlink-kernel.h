@@ -24,33 +24,33 @@ struct sockaddr_nl
  * Netlink message header
  * @ingroup msg
  */
-struct nlmsghdr
-{
-	/**
-	 * Length of message including header.
-	 */
-	uint32_t	nlmsg_len;
+// struct nlmsghdr
+// {
+// 	/**
+// 	 * Length of message including header.
+// 	 */
+// 	uint32_t	nlmsg_len;
 
-	/**
-	 * Message type (content type)
-	 */
-	uint16_t	nlmsg_type;
+// 	/**
+// 	 * Message type (content type)
+// 	 */
+// 	uint16_t	nlmsg_type;
 
-	/**
-	 * Message flags
-	 */
-	uint16_t	nlmsg_flags;
+// 	/**
+// 	 * Message flags
+// 	 */
+// 	uint16_t	nlmsg_flags;
 
-	/**
-	 * Sequence number
-	 */
-	uint32_t	nlmsg_seq;
+// 	/**
+// 	 * Sequence number
+// 	 */
+// 	uint32_t	nlmsg_seq;
 
-	/**
-	 * Netlink PID of the proccess sending the message.
-	 */
-	uint32_t	nlmsg_pid;
-};
+// 	/**
+// 	 * Netlink PID of the proccess sending the message.
+// 	 */
+// 	uint32_t	nlmsg_pid;
+// };
 
 /**
  * @name Standard message flags
@@ -186,14 +186,14 @@ struct nlmsghdr
  * Netlink error message
  * @ingroup msg
  */
-struct nlmsgerr
-{
-	/** Error code (errno number) */
-	int		error;
+// struct nlmsgerr
+// {
+// 	/** Error code (errno number) */
+// 	int		error;
 
-	/** Original netlink message causing the error */
-	struct nlmsghdr	msg;
-};
+// 	/** Original netlink message causing the error */
+// 	struct nlmsghdr	msg;
+// };
 
 struct nl_pktinfo
 {

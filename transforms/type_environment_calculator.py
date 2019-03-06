@@ -69,7 +69,7 @@ class Enviornment:
         for ident in self.map_to_type:
             out += "\n\t" + ident
         current = self.parent
-        while current != None:
+        while current is not None:
             out += "\nParent:\n"
             for ident in current.map_to_type:
                 out += "\n\t" + ident

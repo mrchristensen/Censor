@@ -35,13 +35,13 @@ struct sockaddr_nl {
 	__u32		nl_pid;		/* port ID	*/
        	__u32		nl_groups;	/* multicast groups mask */
 };
-struct nlmsghdr {
-	__u32		nlmsg_len;	/* Length of message including header */
-	__u16		nlmsg_type;	/* Message content */
-	__u16		nlmsg_flags;	/* Additional flags */
-	__u32		nlmsg_seq;	/* Sequence number */
-	__u32		nlmsg_pid;	/* Sending process port ID */
-};
+// struct nlmsghdr {
+// 	__u32		nlmsg_len;	/* Length of message including header */
+// 	__u16		nlmsg_type;	/* Message content */
+// 	__u16		nlmsg_flags;	/* Additional flags */
+// 	__u32		nlmsg_seq;	/* Sequence number */
+// 	__u32		nlmsg_pid;	/* Sending process port ID */
+// };
 /* Flags values */
 #define NLM_F_REQUEST		0x01	/* It is request message. 	*/
 #define NLM_F_MULTI		0x02	/* Multipart message, terminated by NLMSG_DONE */
@@ -88,19 +88,19 @@ struct nlmsghdr {
 #define NLMSG_DONE		0x3	/* End of a dump	*/
 #define NLMSG_OVERRUN		0x4	/* Data lost		*/
 #define NLMSG_MIN_TYPE		0x10	/* < 0x10: reserved control messages */
-struct nlmsgerr {
-	int		error;
-	struct nlmsghdr msg;
-	/*
-	 * followed by the message contents unless NETLINK_CAP_ACK was set
-	 * or the ACK indicates success (error == 0)
-	 * message length is aligned with NLMSG_ALIGN()
-	 */
-	/*
-	 * followed by TLVs defined in enum nlmsgerr_attrs
-	 * if NETLINK_EXT_ACK was set
-	 */
-};
+// struct nlmsgerr {
+// 	int		error;
+// 	struct nlmsghdr msg;
+// 	/*
+// 	 * followed by the message contents unless NETLINK_CAP_ACK was set
+// 	 * or the ACK indicates success (error == 0)
+// 	 * message length is aligned with NLMSG_ALIGN()
+// 	 */
+// 	/*
+// 	 * followed by TLVs defined in enum nlmsgerr_attrs
+// 	 * if NETLINK_EXT_ACK was set
+// 	 */
+// };
 /**
  * enum nlmsgerr_attrs - nlmsgerr attributes
  * @NLMSGERR_ATTR_UNUSED: unused

@@ -44,7 +44,7 @@
  /* For int types. */
  #include <event2/util.h>
  
- struct event_base
+ //struct event_base
  #ifdef _EVENT_IN_DOXYGEN
  {/*Empty body so that doxygen will generate documentation here.*/}
  #endif
