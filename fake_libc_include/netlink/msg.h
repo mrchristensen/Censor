@@ -33,7 +33,7 @@ extern "C" {
  * @note Requires the use of nl_send_auto_complete()!
  */
 #define NL_AUTO_SEQ	0
-struct nl_msg;
+// /struct nl_msg;
 struct nl_tree;
 struct ucred;
 /* size calculations */
