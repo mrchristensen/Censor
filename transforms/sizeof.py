@@ -24,7 +24,7 @@ def get_size_and_alignment(ast_type, env=None):
             size = AST.Constant('int', str(c_to_int(size) *
                                            c_to_int(ast_type.dim))+'l')
         else:
-            size = AST.BinaryOp('*', size, ast_type.dim)
+            size = AST.BinaryOp('*', size, ast_type.dim, ast_type.coord)
     elif isinstance(ast_type, (AST.Decl, AST.TypeDecl, AST.Typename)):
         size, alignment = get_size_and_alignment(ast_type.type, env)
     elif isinstance(ast_type, AST.FuncDecl):
@@ -65,7 +65,7 @@ def _size_compact(decls, env):
             num_bytes += c_to_int(decl_size)
         else:
             raise Exception("Not Implemented, Arrays not constant size")
-            #num_bytes = AST.BinaryOp('+',offset,decl_size)
+            #num_bytes = AST.BinaryOp('+',offset,decl_size, ast_type.coord)
         if alignment < decl_alignment:
             alignment = decl_alignment
     return num_bytes, alignment
@@ -81,7 +81,7 @@ def _size_std(decls, env):
             num_bytes += c_to_int(decl_size)
         else:
             raise Exception("Not Implemented, Arrays are not constant size")
-            #num_bytes = AST.BinaryOp('+',offset,decl_size)
+            #num_bytes = AST.BinaryOp('+',offset,decl_size, ast_type.coord)
         if alignment < decl_alignment:
             alignment = decl_alignment
     if num_bytes % alignment != 0:
@@ -138,7 +138,7 @@ def _offset_compact(decls, field, env):
             offset += c_to_int(decl_size)
         else:
             raise Exception("Not Implemented, Arrays not constant size")
-            #offset = AST.BinaryOp('+',offset,decl_size)
+            #offset = AST.BinaryOp('+',offset,decl_size, ast_type.coord)
         if alignment < decl_alignment:
             alignment = decl_alignment
 
@@ -159,7 +159,7 @@ def _offset_std(decls, field, env):
             offset += c_to_int(decl_size)
         else:
             raise Exception("Not Implemented, Array is not constant size")
-            #offset = AST.BinaryOp('+',offset,decl_size)
+            #offset = AST.BinaryOp('+',offset,decl_size, ast_type.coord)
         if alignment < decl_alignment:
             alignment = decl_alignment
     if offset % alignment != 0:

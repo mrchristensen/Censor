@@ -116,7 +116,8 @@ def func(stmt, state, func_def_frame_addr, address=None):
                             str(len(param_list)) +
                             " parameters but received " +
                             str(len(expr_list)))
-        return_states.add(func_helper(param_list, expr_list, func_def, state, address))
+        return_states.add(func_helper(param_list, expr_list, func_def,
+                                      state, address))
     return return_states
 
 def func_helper(param_list, expr_list, func_def, state, address):

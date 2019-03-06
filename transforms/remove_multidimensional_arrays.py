@@ -40,7 +40,7 @@ class RemoveMultidimensionalArray(LiftNode):
         self.generic_visit(node)
         #TODO check proper behavior
         if node.op == '*' and _is_array(get_type(node.expr, self.envr)):
-            node.expr = AST.UnaryOp('&', node.expr)
+            node.expr = AST.UnaryOp('&', node.expr, coord=node.coord)
 
         return node
 
@@ -80,7 +80,7 @@ class RemoveMultidimensionalArray(LiftNode):
                 node.dim = self.lift_to_value(node.dim)
 
         if in_func_decl:
-            node = AST.PtrDecl(None, node.type)
+            node = AST.PtrDecl(None, node.type, coord=node.coord)
 
         return node
 
@@ -89,7 +89,8 @@ class RemoveMultidimensionalArray(LiftNode):
         temp = array_decl.type
         #copy = deepcopy(array_decl) #might need this for type aliasing
         while isinstance(temp, AST.ArrayDecl):
-            array_decl.dim = AST.BinaryOp('*', array_decl.dim, temp.dim)
+            array_decl.dim = AST.BinaryOp('*', array_decl.dim, temp.dim,
+                                          coord=array_decl.coord)
             array_decl.type = temp.type
             temp = temp.type
 
@@ -111,9 +112,10 @@ class RemoveMultidimensionalArray(LiftNode):
         #   combines any nested references into a single on eif possible
         result_type = self.visit_array_ref_helper(array_ref, deepcopy(ref_type))
 
-        array_ref = AST.BinaryOp('+', array_ref.name, array_ref.subscript)
+        array_ref = AST.BinaryOp('+', array_ref.name, array_ref.subscript,
+                                 coord=array_ref.coord)
         if (not is_referenced) and (not isinstance(result_type, AST.ArrayDecl)):
-            array_ref = AST.UnaryOp('*', array_ref)
+            array_ref = AST.UnaryOp('*', array_ref, coord=array_ref.coord)
             parent = array_ref.expr
         else:
             parent = array_ref
@@ -123,10 +125,11 @@ class RemoveMultidimensionalArray(LiftNode):
             if isinstance(parent.left.name, AST.ID):
                 name_type = self.envr.get_type(parent.left.name)
                 if _is_array(name_type):
-                    parent.left.name = AST.UnaryOp('&', parent.left.name)
+                    parent.left.name = AST.UnaryOp('&', parent.left.name,
+                                                   coord=array_ref.coord)
             parent.left = AST.BinaryOp('+', parent.left.name,
-                                       parent.left.subscript)
-            parent.left = AST.UnaryOp('*', parent.left)
+                                       parent.left.subscript, array_ref.coord)
+            parent.left = AST.UnaryOp('*', parent.left, array_ref.coord)
             parent = parent.left.expr
 
         return array_ref
@@ -135,7 +138,7 @@ class RemoveMultidimensionalArray(LiftNode):
         """computes the product of all nested dimensions"""
         result = index
         while isinstance(ref_type, AST.ArrayDecl):
-            result = AST.BinaryOp('*', result, ref_type.dim)
+            result = AST.BinaryOp('*', result, ref_type.dim, ref_type.coord)
             ref_type = ref_type.type
 
         return result
@@ -168,17 +171,21 @@ class RemoveMultidimensionalArray(LiftNode):
                 while i >= 0:
                     if new_subscript is None:
                         new_subscript = (
-                            AST.BinaryOp('*', offsets[i], indices[i+1]))
+                            AST.BinaryOp('*', offsets[i], indices[i+1],
+                                         coord=ref.coord))
                     else:
                         new_subscript = (
-                            AST.BinaryOp('+', new_subscript, indices[i+1]))
+                            AST.BinaryOp('+', new_subscript, indices[i+1],
+                                         coord=ref.coord))
                         new_subscript = (
-                            AST.BinaryOp('*', new_subscript, offsets[i]))
+                            AST.BinaryOp('*', new_subscript, offsets[i],
+                                         coord=ref.coord))
                     i -= 1
 
                 if new_subscript is not None:
                     new_subscript = (
-                        AST.BinaryOp('+', new_subscript, indices[i+1]))
+                        AST.BinaryOp('+', new_subscript, indices[i+1],
+                                     coord=ref.coord))
                     ref.subscript = new_subscript
 
                     ref.name = ref_temp
@@ -223,9 +230,9 @@ class RemoveMultidimensionalArray(LiftNode):
     def _make_next(self, typ, subpart): #pylint: disable=no-self-use
         """ Helper for _reverse_type to build the proper nodes """
         if isinstance(typ, AST.ArrayDecl):
-            return AST.ArrayDecl(subpart, typ.dim, typ.dim_quals)
+            return AST.ArrayDecl(subpart, typ.dim, typ.dim_quals, typ.coord)
         elif isinstance(typ, AST.PtrDecl):
-            return AST.PtrDecl(typ.quals, subpart)
+            return AST.PtrDecl(typ.quals, subpart, coord=typ.coord)
         else:
             return None
 
@@ -236,4 +243,4 @@ class RemoveMultidimensionalArray(LiftNode):
         decl.type.quals += ['const']
         self.insert_into_scope(decl)
         self.envr.add(decl.name, decl.type)
-        return AST.ID(decl.name)
+        return AST.ID(decl.name, coord=value.coord)

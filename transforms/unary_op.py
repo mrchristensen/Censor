@@ -12,8 +12,6 @@ import pycparser.c_ast as AST
 from .lift_node import LiftNode
 from .type_helpers import get_type, make_temp_value
 from .sizeof import get_size_ast
-# from .type_helpers import get_no_op
-# from .helpers import ensure_compound
 
 class LiftUnaryOp(LiftNode):
     """ Tranforms unary operators into another equivalent AST"""
@@ -33,12 +31,12 @@ class LiftUnaryOp(LiftNode):
 
         node.expr = self.generic_visit(node.expr)
         if node.op == '!':
-            return AST.BinaryOp("==", constant_zero(), node.expr)
+            return AST.BinaryOp("==", constant_zero(), node.expr, node.coord)
         elif node.op in ['++', '--', 'p--', 'p++']:
             return self.inc_and_dec(node)
         elif node.op in ['+', '-', '~']:
             if node.op == '-':
-                return AST.BinaryOp('-', constant_zero(), node.expr)
+                return AST.BinaryOp('-', constant_zero(), node.expr, node.coord)
             node.show()
             raise NotImplementedError()
         elif node.op in ['&', '*']:
@@ -51,26 +49,30 @@ class LiftUnaryOp(LiftNode):
         """ handles transforming pre and post increment and decrement op """
         if node.op == 'p++':
             decl = make_temp_value(node.expr, self.id_generator, self.envr)
-            binop = AST.BinaryOp('+', deepcopy(node.expr), constant_one())
-            inc = AST.Assignment('=', deepcopy(node.expr), binop)
+            binop = AST.BinaryOp('+', deepcopy(node.expr),
+                                 constant_one(), node.coord)
+            inc = AST.Assignment('=', deepcopy(node.expr), binop, node.coord)
             self.insert_into_scope(decl, inc)
             self.envr.add(decl.name, decl.type)
-            node = AST.ID(decl.name)
+            node = AST.ID(decl.name, node.coord)
         elif node.op == 'p--':
             decl = make_temp_value(node.expr, self.id_generator, self.envr)
-            binop = AST.BinaryOp('-', deepcopy(node.expr), constant_one())
-            inc = AST.Assignment('=', deepcopy(node.expr), binop)
+            binop = AST.BinaryOp('-', deepcopy(node.expr),
+                                 constant_one(), node.coord)
+            inc = AST.Assignment('=', deepcopy(node.expr), binop, node.coord)
             self.insert_into_scope(decl, inc)
             self.envr.add(decl.name, decl.type)
-            node = AST.ID(decl.name)
+            node = AST.ID(decl.name, node.coord)
         elif node.op == '++':
-            binop = AST.BinaryOp('+', deepcopy(node.expr), constant_one())
-            inc = AST.Assignment('=', deepcopy(node.expr), binop)
+            binop = AST.BinaryOp('+', deepcopy(node.expr),
+                                 constant_one(), node.coord)
+            inc = AST.Assignment('=', deepcopy(node.expr), binop, node.coord)
             self.insert_into_scope(inc)
             node = node.expr
         elif node.op == '--':
-            binop = AST.BinaryOp('-', deepcopy(node.expr), constant_one())
-            inc = AST.Assignment('=', deepcopy(node.expr), binop)
+            binop = AST.BinaryOp('-', deepcopy(node.expr),
+                                 constant_one(), node.coord)
+            inc = AST.Assignment('=', deepcopy(node.expr), binop, node.coord)
             self.insert_into_scope(inc)
             node = node.expr
         return node

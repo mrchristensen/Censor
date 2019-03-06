@@ -9,15 +9,15 @@ https://github.com/python/cpython/blob/3.0/Lib/ast.py
 # Importing both generated AST definitions to use in branch conditions
 # We may want to have our omp AST definitions to inherit from pycparsers
 # Node class if this causes any more problems.
-import pycparser.c_ast
+import pycparser.c_ast as AST
 import omp.omp_ast
 
 CAN_BE_COMPOUND = [
-    (pycparser.c_ast.While, 'stmt'),
-    (pycparser.c_ast.DoWhile, 'stmt'),
-    (pycparser.c_ast.For, 'stmt'),
-    (pycparser.c_ast.If, 'iftrue'),
-    (pycparser.c_ast.If, 'iffalse')
+    (AST.While, 'stmt'),
+    (AST.DoWhile, 'stmt'),
+    (AST.For, 'stmt'),
+    (AST.If, 'iftrue'),
+    (AST.If, 'iffalse')
 ]
 
 def can_be_compound(node, field):
@@ -27,7 +27,7 @@ def can_be_compound(node, field):
             return True
     return False
 
-class NodeTransformer(pycparser.c_ast.NodeVisitor):
+class NodeTransformer(AST.NodeVisitor):
     """
     Base abstract NodeTransformer class
     Subclasses should define 'visit_[__class__.__name__]' methods for any
@@ -59,7 +59,8 @@ class NodeTransformer(pycparser.c_ast.NodeVisitor):
             delattr(node, field)
         elif isinstance(new_node, list):
             if can_be_compound(node, field):
-                setattr(node, field, pycparser.c_ast.Compound(new_node))
+                setattr(node, field,
+                        AST.Compound(new_node, coord=new_node.coord))
             else:
                 new_node.show()
                 print(node, field)
@@ -88,4 +89,4 @@ class NodeTransformer(pycparser.c_ast.NodeVisitor):
 
     def is_node(self, node): # pylint: disable=no-self-use
         """Return true if object is an instance of Node"""
-        return isinstance(node, (pycparser.c_ast.Node, omp.omp_ast.Node))
+        return isinstance(node, (AST.Node, omp.omp_ast.Node))

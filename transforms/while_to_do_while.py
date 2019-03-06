@@ -15,4 +15,5 @@ class WhileToDoWhile(NodeTransformer):
         node = self.generic_visit(node)
         cond = node.cond
         stmt = node.stmt
-        return If(deepcopy(cond), DoWhile(cond, stmt, node.coord), None)
+        return If(deepcopy(cond), DoWhile(cond, stmt, node.coord),
+                  None, coord=node.coord)

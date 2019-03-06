@@ -16,11 +16,12 @@ class DoWhileToGoto(NodeTransformer):
         label = self.id_generator.get_unique_id()
         self.index += 1
         node = self.generic_visit(node)
-        if_node = If(node.cond, Goto(label), None)
+        if_node = If(node.cond, Goto(label, coord=node.coord), None,
+                     coord=node.coord)
         body = append_statement(node.stmt, if_node)
         continue_transformer = ContinueToGoto(label)
         body = continue_transformer.visit(body)
-        return Label(label, body)
+        return Label(label, body, coord=node.coord)
 
 class ContinueToGoto(NodeTransformer):
     """NodeTransformer to change continue statements to goto statements"""
@@ -28,6 +29,6 @@ class ContinueToGoto(NodeTransformer):
     def __init__(self, label):
         self.label = label
 
-    def visit_Continue(self, _): #pylint: disable=invalid-name
+    def visit_Continue(self, node): #pylint: disable=invalid-name
         """Replace continue with goto statment"""
-        return Goto(self.label)
+        return Goto(self.label, coord=node.coord)

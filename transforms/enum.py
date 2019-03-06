@@ -30,7 +30,8 @@ class Enum(NodeTransformer):
             else:
                 NAME_TO_NUMBER[enumerator.name] = current_constant
             current_constant = AST.BinaryOp('+', AST.Constant('int', '1'),
-                                            NAME_TO_NUMBER[enumerator.name])
+                                            NAME_TO_NUMBER[enumerator.name],
+                                            node.coord)
         return node
 
     def visit_ID(self, node): # pylint: disable=invalid-name

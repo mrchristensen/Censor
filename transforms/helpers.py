@@ -12,7 +12,7 @@ def ensure_compound(node):
             node.block_items = []
         return node
     else:
-        return Compound([node])
+        return Compound([node], node.coord)
 
 def append_statement(compound, stmt):
     """

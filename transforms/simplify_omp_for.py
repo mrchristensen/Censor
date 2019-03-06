@@ -36,7 +36,7 @@ def get_iter_var(loop, nodes):
         decl = loop.init.decls[0]
         iter_var = decl.name
         nodes.append(decl)
-        loop.init = Assignment("=", ID(iter_var), decl.init)
+        loop.init = Assignment("=", ID(iter_var), decl.init, loop.coord)
     else:
         raise Exception("Invalid OMP for loop init.")
     return iter_var
@@ -76,13 +76,13 @@ class SimplifyOmpFor(NodeTransformer):
         # step size, evaluate it to a constant in advance
         if isinstance(loop.next, UnaryOp):
             nodes.append(node)
-            return Compound(nodes)
+            return Compound(nodes, node.coord)
         else:
             iter_decl = self.pull_incrementation(loop, iter_var)
             nodes.append(iter_decl)
             node.loops.stmt = self.generic_visit(node.loops.stmt)
             nodes.append(node)
-            return Compound(nodes)
+            return Compound(nodes, node.coord)
 
     def pull_condition(self, loop, iter_var):
         """pull out condition to evaluate it to a constant in advance."""
@@ -113,14 +113,15 @@ class SimplifyOmpFor(NodeTransformer):
                 # unspecified whether, in what order, or how many time any side
                 # effects within the lb, b, or incr expressions occur."
                 binop = BinaryOp(loop.next.op[0], loop.next.lvalue,
-                                 loop.next.rvalue)
-                loop.next = Assignment("=", loop.next.lvalue, binop)
+                                 loop.next.rvalue, loop.next.coord)
+                loop.next = Assignment("=", loop.next.lvalue,
+                                       binop, binop.coord)
 
             binop = loop.next.rvalue
             if isinstance(binop.left, ID) and binop.left.name == iter_var:
                 iter_decl = make_temp_value(binop.right,
                                             self.id_generator, self.env)
-                binop.right = ID(iter_decl.name)
+                binop.right = ID(iter_decl.name, binop.coord)
             elif isinstance(binop.right, ID) and binop.right.name == iter_var:
                 iter_decl = make_temp_value(binop.left,
                                             self.id_generator, self.env)

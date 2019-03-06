@@ -63,7 +63,7 @@ class State: #pylint:disable=too-few-public-methods
             State._time += 1
             self.time_stamp = State._time
         elif cnf.CONFIG['tick'] == 'abstract':
-            if self.stor == None:
+            if self.stor is None:
                 self.time_stamp = State._time
             else:
                 self.time_stamp = self.stor.get_time()

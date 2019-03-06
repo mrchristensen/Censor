@@ -71,4 +71,4 @@ class PrefixContinueWithNext(NodeTransformer):
 
     def visit_Continue(self, node): #pylint: disable=invalid-name
         """Prefix continue with prefix node"""
-        return Compound([self.prefix, node])
+        return Compound([self.prefix, node], node.coord)

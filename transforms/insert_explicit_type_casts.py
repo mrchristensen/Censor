@@ -46,9 +46,9 @@ class InsertExplicitTypeCasts(NodeTransformer):
         cast_to = resolve_types(left_type, right_type)
 
         if cast_to == Side.LEFT:
-            node.right = Cast(left_type, node.right)
+            node.right = Cast(left_type, node.right, coord=node.coord)
         elif cast_to == Side.RIGHT:
-            node.left = Cast(right_type, node.left)
+            node.left = Cast(right_type, node.left, coord=node.coord)
 
         return node
 
@@ -77,11 +77,12 @@ class InsertExplicitTypeCasts(NodeTransformer):
             else:
                 arg_type = get_type(formal_args[i].type, self.env)
                 if isinstance(arg_type, ArrayDecl):
-                    arg_type = PtrDecl(None, arg_type.type)
+                    arg_type = PtrDecl(None, arg_type.type, coord=arg.coord)
                 remove_identifier(arg_type)
                 args[i] = cast_if_needed(arg_type, arg, self.env)
             if isinstance(args[i], UnaryOp) and args[i].op == '*':
-                args[i] = Cast(get_type(args[i], self.env), args[i])
+                args[i] = Cast(get_type(args[i], self.env),
+                               args[i], coord=arg.coord)
 
         return self.generic_visit(node)
 
@@ -118,5 +119,6 @@ class InsertExplicitTypeCasts(NodeTransformer):
             raise NotImplementedError()
 
         if isinstance(rvalue, UnaryOp) and rvalue.op == '*':
-            rvalue = Cast(get_type(rvalue, self.env), rvalue)
+            rvalue = Cast(get_type(rvalue, self.env),
+                          rvalue, coord=rvalue.coord)
         return rvalue

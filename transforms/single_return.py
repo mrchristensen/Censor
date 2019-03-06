@@ -27,23 +27,26 @@ class SingleReturn(NodeTransformer):
             add_identifier(self.return_type, self.retval_id)
 
             retval_declaration = Decl(self.retval_id, [], [], [],
-                                      self.return_type, None, None)
+                                      self.return_type, None, None,
+                                      coord=node.coord)
             node.body = prepend_statement(node.body, retval_declaration)
             return_expression = ID(self.retval_id)
 
         node = self.generic_visit(node)
-        return_statement = Label(self.return_label, Return(return_expression))
+        return_statement = Label(self.return_label,
+                                 Return(return_expression, coord=node.coord),
+                                 coord=node.coord)
         node.body = append_statement(node.body, return_statement)
         return node
 
     def visit_Return(self, node): # pylint: disable=invalid-name
         """Assign the return variable, then goto the return statement at the
         end."""
-        goto = Goto(self.return_label)
+        goto = Goto(self.return_label, coord=node.coord)
         if is_void(self.return_type):
             return goto
 
-        assignment = Assignment("=", ID(self.retval_id), node.expr)
+        assignment = Assignment("=", ID(self.retval_id), node.expr, node.coord)
         return [assignment, goto]
 
 
