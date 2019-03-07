@@ -639,9 +639,9 @@ int evutil_ascii_strncasecmp(const char *str1, const char *str2, size_t n);
 
 /* Here we define evutil_addrinfo to the native addrinfo type, or redefine it
  * if this system has no getaddrinfo(). */
-#ifdef EVENT__HAVE_STRUCT_ADDRINFO
+//#ifdef EVENT__HAVE_STRUCT_ADDRINFO
 //#define evutil_addrinfo addrinfo
-#else
+//#else
 /** A definition of struct addrinfo for systems that lack it.
     (This is just an alias for struct addrinfo if the system defines
     struct addrinfo.)
@@ -656,7 +656,7 @@ struct evutil_addrinfo {
 	struct sockaddr  *ai_addr; /* binary address */
 	struct evutil_addrinfo  *ai_next; /* next structure in linked list */
 };
-#endif
+//#endif
 /** @name evutil_getaddrinfo() error codes
     These values are possible error codes for evutil_getaddrinfo() and
     related functions.
@@ -760,7 +760,7 @@ struct evutil_addrinfo {
 #endif
 /**@}*/
 
-struct evutil_addrinfo;
+//struct evutil_addrinfo;
 /**
  * This function clones getaddrinfo for systems that don't have it.  For full
  * details, see RFC 3493, section 6.1.
