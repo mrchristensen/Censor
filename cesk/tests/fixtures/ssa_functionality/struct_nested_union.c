@@ -1,3 +1,6 @@
+// Anonymous union inside a struct
+// Members of the union should be directly accessible
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -12,6 +15,6 @@ typedef struct a {
 
 int main() {
 	a_name* a;
-	printf("%x", a->i);
+	printf("%d", a->i);
 	return 0;
 }
