@@ -595,7 +595,7 @@ const char *evutil_inet_ntop(int af, const void *src, char *dst, size_t len);
 /** Replacement for inet_pton for platforms which lack it. */
 EVENT2_EXPORT_SYMBOL
 int evutil_inet_pton(int af, const char *src, void *dst);
-struct sockaddr;
+//struct sockaddr;
 
 /** Parse an IPv4 or IPv6 address, with optional port, from a string.
     Recognized formats are:

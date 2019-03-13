@@ -45,7 +45,7 @@ struct sel_arg_struct;
 struct semaphore;
 struct sembuf;
 struct shmid_ds;
-struct sockaddr;
+//struct sockaddr;
 struct stat;
 struct stat64;
 struct statfs;

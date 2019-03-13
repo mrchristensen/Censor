@@ -38,6 +38,8 @@
  * Per RFC 790, September 1981.
  */
 
+#define	INADDR_LOOPBACK		0x7f000001
+
 /*
  * Protocols
  */
