@@ -68,7 +68,7 @@ extern "C" {
  *
  */
 
-#ifdef _ANSI_C_SOURCE
+//#ifdef _ANSI_C_SOURCE
 
 #ifdef	_NONSTD_TYPES
 
@@ -184,7 +184,7 @@ typedef int sig_atomic_t; /* accessable as an atomic entity (ANSI) */
 #define SIG_UNBLOCK	1
 #define SIG_SETMASK	2
 
-#endif /* _ANSI_C_SOURCE */
+//#endif /* _ANSI_C_SOURCE */
 
 /*
  *   The following are values that have historically been in signal.h.
