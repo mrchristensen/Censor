@@ -17,6 +17,9 @@
  * file is included in an ordinary user program, EPERM has the value ( 1).
  */
 
+#include <linux/errno.h>
+
+
 #ifndef _ERRNO_H		/* check if <errno.h> is already included */
 #define _ERRNO_H		/* it is not included; note that fact */
 
