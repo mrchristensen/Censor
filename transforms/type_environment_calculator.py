@@ -58,7 +58,7 @@ class Enviornment:
         if ident in self.map_to_type:
             logging.debug("Redefinition of " + ident)
             #raise Exception("Redefinition of " + ident)
-            
+
         self.map_to_type[ident] = type_node
 
     def show(self):
