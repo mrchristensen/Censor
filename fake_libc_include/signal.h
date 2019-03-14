@@ -68,6 +68,9 @@ extern "C" {
  *
  */
 
+
+// I commented this out so that the rest of the includes will be added, 
+		//but _ansi_c_source is not actually defined
 //#ifdef _ANSI_C_SOURCE
 
 #ifdef	_NONSTD_TYPES
