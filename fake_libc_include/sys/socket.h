@@ -3,6 +3,7 @@
 
 #include "_fake_defines.h"
 #include "_fake_typedefs.h"
+#include <sys/uio.h>
 
 typedef unsigned long socklen_t;
 
@@ -95,5 +96,21 @@ struct addrinfo {
 
 #define	PF_MAX		AF_MAX
 
+struct msghdr {
+	caddr_t	msg_name;		/* optional address */
+	u_int	msg_namelen;		/* size of address */
+	struct	iovec *msg_iov;		/* scatter/gather array */
+	u_int	msg_iovlen;		/* # elements in msg_iov */
+	caddr_t	msg_control;		/* ancillary data, see below */
+	u_int	msg_controllen;		/* ancillary data buffer len */
+	int	msg_flags;		/* flags on received message */
+};
+
+struct cmsghdr {
+	u_int	cmsg_len;		/* data byte count, including hdr */
+	int	cmsg_level;		/* originating protocol */
+	int	cmsg_type;		/* protocol-specific type */
+/* followed by	u_char  cmsg_data[]; */
+};
 
 #endif
