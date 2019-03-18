@@ -12,6 +12,7 @@ class LinkSearch(AST.NodeVisitor): #
     label_lut = {}
     envr_lut = {}
     function_lut = {}
+    func_name_lut = {}
     struct_lut = {}
     union_lut = {}
     scope_decl_lut = {}
@@ -29,6 +30,7 @@ class LinkSearch(AST.NodeVisitor): #
         if isinstance(node, AST.FuncDef):
             name = node.decl.name
             LinkSearch.function_lut[name] = node
+            LinkSearch.func_name_lut[node] = name
 
         if isinstance(node, AST.Struct) and node.decls:
             name = node.name

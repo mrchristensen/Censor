@@ -81,7 +81,7 @@ def run_c_cesk(file_path):
     """runs a c source file using the cesk tool, returns stdout as a byte
     string."""
     stdout = subprocess.check_output(['python3', '../../cesk_main.py',
-                                      file_path])
+                                      '-c', 'CONCRETE', file_path])
     return stdout.decode("utf-8")
 
 def run_c(file_path):

@@ -172,6 +172,10 @@ class ReferenceValue(ArithmeticValue): #pylint:disable=all
     def cast_to_float(self, to_type):
         raise TransformError("Pointers can not be cast to floats")
 
+    def get_block(self):
+        """ Return block identifier """
+        return 0
+
 #Special Case values to handle needed gaps
 class ByteValue:
     """ Class to represent values of bits from a partial read """
@@ -292,6 +296,13 @@ class SizedSet(set):
             else:
                 result.add(left.perform_operation(operator, value))
         return result
+
+    def get_byte_value(self, offset=-1, num_bytes=None):
+        """ Gets all values as their byte value """
+        byte_values = SizedSet(self.size)
+        for value in self:
+            byte_values.add(value.get_byte_value(offset, num_bytes))
+        return byte_values
 
     def __str__(self):
         result = []

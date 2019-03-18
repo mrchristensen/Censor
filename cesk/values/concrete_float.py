@@ -35,7 +35,7 @@ class ConcreteFloat(BaseFloat):  #pylint:disable=too-few-public-methods
     def __le__(self, other):
         return Factory.Integer(int(self.data <= other.data), 'int')
 
-    def __eq__(self, other):
+    def equals(self, other):
         return Factory.Integer(int(self.data == other.data), 'int')
 
     def __ne__(self, other):
@@ -49,6 +49,10 @@ class ConcreteFloat(BaseFloat):  #pylint:disable=too-few-public-methods
 
     def __str__(self):
         return "%f" % self.data
+    def __hash__(self):
+        return hash(self.data)
+    def __eq__(self, other):
+        return self.data == other.data
 
     def get_byte_value(self, start=-1, num_bytes=None):
         """value of the unsigned bits stored"""

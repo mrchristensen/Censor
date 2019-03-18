@@ -116,20 +116,26 @@ def func(stmt, state, func_def_frame_addr, address=None):
                             str(len(param_list)) +
                             " parameters but received " +
                             str(len(expr_list)))
-        return_states.add(func_helper(param_list, expr_list, func_def,
-                                      state, address))
+        #if isinstance(func_def_frame_addr, FrameAddress):
+        #    func_name = func_def_frame_addr.get_id()
+        #else:
+        #    func_name = "func_ptr"
+        return_states.add(
+            func_helper(zip(param_list, expr_list), func_def,
+                        state, address))
     return return_states
 
-def func_helper(param_list, expr_list, func_def, state, address):
+def func_helper(params, func_def, state, ret_address):
     '''Prepares the next_state from param_list and expr_list'''
     next_ctrl = Ctrl(0, func_def.body) # f_0
-    next_envr = Envr(state) #calls allocf
-    kont = Kont(state, address)
+    func_name = ls.LinkSearch.func_name_lut[func_def] #necessary for func ptrs
+    next_envr = Envr(func_name, state.ctrl) #calls allocf
+    kont = Kont(state, ret_address)
     kont_addr = Kont.allocK(state, next_ctrl, next_envr)
     state.stor.write_kont(kont_addr, kont) # stor = stor[a_k'->K]
     new_state = State(next_ctrl, next_envr, state.stor, kont_addr)
 
-    for decl, expr in zip(param_list, expr_list): #add parameters to environment
+    for decl, expr in params: #add parameters to environment
         new_state = decl_helper(decl, new_state)
         new_address = new_state.envr.get_address(decl.name)
         value = get_value(expr, state)
@@ -276,7 +282,7 @@ def assignment_helper(operator, address, exp, state):
             return handle_FuncCall(exp, state, address)
         else:
             value = get_value(exp, state)
-        logging.debug("Frame Address %s assigned to %s",
+        logging.debug("Address %s assigned to %s",
                       str(address), str(value))
         state.stor.write(address, value)
         return state.get_next()

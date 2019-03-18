@@ -107,8 +107,9 @@ def run_tool(tool, ast, args):
         instrumenter.main(ast)
     elif tool == "cesk":
         import cesk
-        transform(ast)
-        cesk.main(ast) #config not customizable
+        print("Deprecated please use cesk_main.py")
+        #transform(ast)
+        #cesk.main(ast) #config not customizable
     elif tool == "observer":
         import observer
         observe_ast(ast, observer, cesk)

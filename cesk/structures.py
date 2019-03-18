@@ -83,6 +83,10 @@ class State: #pylint:disable=too-few-public-methods
         result = result * hash(self.kont_addr) + 17
         return result
 
+    def __str__(self):
+        return (str(self.ctrl)+"\n"+
+                str(self.envr)+"\n"+
+                "ka "+str(self.kont_addr)).replace(':', ' ')
 
 class Ctrl: #pylint:disable=too-few-public-methods
     """Holds the control pointer or location of the program"""
@@ -180,6 +184,14 @@ class Ctrl: #pylint:disable=too-few-public-methods
         else:
             return hash(self.node)
 
+    def __repr__(self):
+        if self.body:#this will not be unique for every contral
+            return (type(self.body.block_items[self.index]).__name__+" at "+
+                    str(self.body.block_items[self.index].coord))
+        if self.node:
+            return type(self.node).__name__+" at "+str(self.node.coord)
+        return "No body in ctrl"
+
 class FrameAddress:
     """ Contains a link between frame identifier and variable identifier """
 
@@ -213,21 +225,25 @@ class Envr:
     global_envr_id = 0
     global_envr = None
 
-    def __init__(self, state):
+    def __init__(self, func_name, ctrl):
         self.local_variables = {} #A set of IdToAddr mappings
-        self.frame_id = self.allocF(state)
+        self.frame_id = self.allocF(func_name, ctrl)
 
-    def allocF(self, state): #pylint: disable=no-self-use,invalid-name
+    def allocF(self, name, ctrl): #pylint: disable=no-self-use,invalid-name
         """ Allocation of frame identefiers """
         value = None
+        if name is None:
+            name = 'global'
+
         if cnf.CONFIG['allocF'] == 'concrete':
             value = Envr.next_frame_id
             Envr.next_frame_id += 1
         elif cnf.CONFIG['allocF'] == '0-cfa':
-            if state is not None:
-                value = state.ctrl
+            value = name
         elif cnf.CONFIG['allocF'] == 'trivial':
             value = Envr.next_frame_id
+        elif cnf.CONFIG['allocF'] == '1-cfa':
+            value = (name, ctrl)
         else:
             raise UnknownConfiguration('allocF')
         return value
@@ -273,6 +289,9 @@ class Envr:
     def __hash__(self):
         return hash(self.frame_id)
 
+    def __str__(self):
+        return str(self.frame_id)
+
 class MemoryBlock:
     """ Block of Memory """
 
@@ -296,8 +315,10 @@ class MemoryBlock:
 
         if cnf.CONFIG['store_update'] == 'strong':
             self.write = self.strong_write
+            self.add = lambda s, v: s.add(v)
         elif cnf.CONFIG['store_update'] == 'weak':
             self.write = self.weak_write
+            self.add = lambda s, v: s.update(v)
         else:
             raise UnknownConfiguration('store_update')
 
@@ -312,100 +333,120 @@ class MemoryBlock:
 
     def _get_index_item(self, offset):
         """ given an offset returns value or throws error """
-        return 0, offset
+        return [[0, offset]]
 
     def _get_index_list(self, offset):
         """ given an offset returns the number of time a succ map
             would need to be called to find the item and offset remaning """
+        if not isinstance(offset, int):
+            logging.error("TOP memory access made")
+            return [[i, 0] for i in range(len(self.block))]
         group = sum(self.shape[0])
         index = (offset // group)
         offset = offset % group
         if index == self.shape[1]:#accesses extra part
             index *= len(self.shape[0])
-            return index, offset
+            return [[index, offset]]
         index *= len(self.shape[0])
         i = 0
         while offset >= self.shape[0][i]:
             offset -= self.shape[0][i]
             index += 1
             i += 1
-        return index, offset
+        return [[index, offset]]
+
+    def not_in_block(self, offset, size):
+        """ function to identify if offset is in the block """
+        if isinstance(offset, int):
+            return offset < 0 or offset+size > self.size
+        else: #is abstract literal top
+            return False #add possible memory error here
 
     def read(self, offset, read_size):
         """ return value or set of values based on read """
-        if offset < 0 or offset+read_size > self.size:
+        if self.not_in_block(offset, read_size):
             raise MemoryAccessViolation("Illegal Read")
-        index, start = self._get_index(offset)
-        if start == 0 and self.block[index].size == read_size:
-            return self.block[index]
-        #immoral read over/within byte boundary
-        result = ByteValue()
-        bytes_to_read = read_size
-        value = self.block[index]
-        while bytes_to_read > 0:
-            num_possible = min(bytes_to_read, value.size - start)
-            result.append(value.get_byte_value(start, num_possible))
-            bytes_to_read -= num_possible
-            if bytes_to_read > 0:
-                index += 1
-                start = 0
-                value = self.block[index]
 
-        return result
+        result = SizedSet(read_size)
+        for index, start in self._get_index(offset):
+            if start == 0 and self.block[index].size == read_size:
+                self.add(result, self.block[index])
+                continue
+            #immoral read over/within byte boundary
+            byte_value = ByteValue()
+            bytes_to_read = read_size
+            value = self.block[index]
+            while bytes_to_read > 0:
+                num_possible = min(bytes_to_read, value.size - start)
+                byte_value.append(value.get_byte_value(start, num_possible))
+                bytes_to_read -= num_possible
+                if bytes_to_read > 0:
+                    index += 1
+                    start = 0
+                    value = self.block[index]
+            logging.debug(byte_value)
+            self.add(result, byte_value)
+
+
+        if len(result) == 1:
+            return result.pop()
+        else:
+            return result
 
     def strong_write(self, offset, value):
         """ Writes the value given at the offset given
             returns True if values are changed False otherwise"""
-        if offset < 0 or offset+value.size > self.size:
+        if self.not_in_block(offset, value.size):
             raise MemoryAccessViolation("Illegal Write")
-        index, start = self._get_index(offset)
-        if start == 0 and self.block[index].size == value.size:
-            self.block[index] = value
+        for index, start in self._get_index(offset):
+            if start == 0 and self.block[index].size == value.size:
+                self.block[index] = value
 
-        old_value = self.block[index]
-        if start == 0 and value.size == old_value.size:
-            self.block[index] = value
-            return value != old_value
+            old_value = self.block[index]
+            if start == 0 and value.size == old_value.size:
+                self.block[index] = value
+                return value != old_value
 
-        #begin a partial or overlapping write
-        bytes_to_write = value.size
-        bytes_written = 0
+            #begin a partial or overlapping write
+            bytes_to_write = value.size
+            bytes_written = 0
 
-        while bytes_to_write != 0:
+            while bytes_to_write != 0:
 
-            #get unchanged part of value at the given pointer location
-            if start != 0:
-                new_data = old_value.get_byte_value(0, start)
-            else:
-                new_data = ByteValue() #empty byte value
+                #get unchanged part of value at the given pointer location
+                if start != 0:
+                    new_data = old_value.get_byte_value(0, start)
+                else:
+                    new_data = ByteValue() #empty byte value
 
-            #bytes in store represents the number of bytes in the store that
-            #are available to be overwritten
-            bytes_in_store = old_value.size - start
-            able_to_write = min(bytes_to_write, bytes_in_store)
+                #bytes in store represents the number of bytes in the store that
+                #are available to be overwritten
+                bytes_in_store = old_value.size - start
+                able_to_write = min(bytes_to_write, bytes_in_store)
 
-            #get value from data being written
-            new_data.append(value.get_byte_value(bytes_written, able_to_write))
-
-            bytes_to_write -= able_to_write
-            bytes_written += able_to_write
-
-            if bytes_to_write > 0:
-                #more data left in value, write to store then continue
-                self._write_on_offset(index, new_data, old_value)
-                index += 1 #update pointer and old_value
-                start = 0
-                old_value = self.block[index]
-            elif bytes_in_store > able_to_write:
-                #get rest of object then write
-                offset = start+able_to_write
+                #get value from data being written
                 new_data.append(
-                    old_value.get_byte_value(offset,
-                                             bytes_in_store-able_to_write))
-                self._write_on_offset(index, new_data, old_value)
-            else:
-                self._write_on_offset(index, new_data, old_value)
-                #neat finish write to store and be done
+                    value.get_byte_value(bytes_written, able_to_write))
+
+                bytes_to_write -= able_to_write
+                bytes_written += able_to_write
+
+                if bytes_to_write > 0:
+                    #more data left in value, write to store then continue
+                    self._write_on_offset(index, new_data, old_value)
+                    index += 1 #update pointer and old_value
+                    start = 0
+                    old_value = self.block[index]
+                elif bytes_in_store > able_to_write:
+                    #get rest of object then write
+                    offset = start+able_to_write
+                    new_data.append(
+                        old_value.get_byte_value(offset,
+                                                 bytes_in_store-able_to_write))
+                    self._write_on_offset(index, new_data, old_value)
+                else:
+                    self._write_on_offset(index, new_data, old_value)
+                    #neat finish write to store and be done
 
     def _write_on_offset(self, index, new_data, old_value):
         """ Manages how to write when mixing bytes """
@@ -415,24 +456,24 @@ class MemoryBlock:
     def weak_write(self, offset, value):
         """ Writes the value given at the offset given
             returns True if values are changed False otherwise"""
-        if offset < 0 or offset+value.size > self.size:
+        if self.not_in_block(offset, value.size):
             raise MemoryAccessViolation("Illegal Write")
         is_change = False
-        index, start = self._get_index(offset)
-        if start == 0 and self.block[index].size == value.size:
-            old_values = self.block[index]
-            if isinstance(value, SizedSet):
-                for val in value:
-                    if val not in old_values:
+        for index, start in self._get_index(offset):
+            if start == 0 and self.block[index].size == value.size:
+                old_values = self.block[index]
+                if isinstance(value, SizedSet):
+                    for val in value:
+                        if val not in old_values:
+                            is_change = True
+                            old_values.add(val)
+                else:
+                    if value not in old_values:
                         is_change = True
-                        old_values.add(val)
-            else:
-                if value not in old_values:
-                    is_change = True
-                    old_values.add(value)
-            return is_change
-        #begin a partial or overlapping write
-        raise NotImplementedError("Partial weak write not implemented")
+                        old_values.add(value)
+                return is_change
+            #begin a partial or overlapping write
+            raise NotImplementedError("Partial weak write not implemented")
 
     def free(self):
         """ Marks the block as free """
@@ -465,7 +506,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
         logging.info("Make new block: shape %s, at %d",
                      str(block.shape), self.next_block_id)
         pointer = generate_pointer(self.next_block_id, block.size)
-        self.memory[pointer] = block
+        self.memory[self.next_block_id] = block
         self.next_block_id += block.size #Value added is arbitrary
         return pointer
 
@@ -496,16 +537,16 @@ class Stor: #pylint: disable=too-many-instance-attributes
         """ Fetch store address for a frame address """
         return self.base_pointers[frame_address]
 
-    def _check_address(self, address, action):
+    def _check_address(self, block, action):
         """ Checks to see if address is valid and
             reports error if found """
-        if address.data >= self.next_block_id:
+        if block >= self.next_block_id:
             raise MemoryAccessViolation("Out of bounds "+action)
-        elif address == self.null_addr:
+        elif block == self.null_addr.get_block():
             raise MemoryAccessViolation("Null "+action)
-        elif address not in self.memory:
+        elif block not in self.memory:
             raise MemoryAccessViolation("Invalid Base in "+action)
-        elif self.memory[address].is_free:
+        elif self.memory[block].is_free:
             raise MemoryAccessViolation("Base is Free, invalid "+action)
 
     def read(self, address):
@@ -515,11 +556,9 @@ class Stor: #pylint: disable=too-many-instance-attributes
             #read to all location in the set
             if not address: #if set is empty
                 raise MemoryAccessViolation("Read from unassigned address")
-            result = None
+            result = SizedSet(address.size)
             for addr in address:
                 temp = self.read(addr)
-                if result is None:
-                    result = SizedSet(temp.size)
                 result.update(temp)
             return result
 
@@ -527,13 +566,14 @@ class Stor: #pylint: disable=too-many-instance-attributes
             address = self.base_pointers[address]
 
         logging.info("Reading %s", str(address))
-        self._check_address(address, 'read')
+        self._check_address(address.get_block(), 'read')
 
-        return self.memory[address].read(address.offset, address.type_size)
+        return self.memory[address.get_block()].read(
+            address.offset, address.type_size)
 
     def write(self, address, value):
         """ Calls strong or weak write as determined by configuration """
-        if isinstance(address, set):
+        if isinstance(address, SizedSet):
             #write to all location in the set
             if not address: #if set is empty
                 raise MemoryAccessViolation("Write to unassigned address")
@@ -544,8 +584,8 @@ class Stor: #pylint: disable=too-many-instance-attributes
             address = self.base_pointers[address]
 
         logging.info("Write %s to %s", str(value), str(address))
-        self._check_address(address, 'write')
-        if self.memory[address].write(address.offset, value):
+        self._check_address(address.get_block(), 'write')
+        if self.memory[address.get_block()].write(address.offset, value):
             self.time += 1
 
     def free(self, address):
@@ -559,11 +599,11 @@ class Stor: #pylint: disable=too-many-instance-attributes
         if address in self.base_pointers:
             address = self.base_pointers[address]
 
-        self._check_address(address, 'free')
+        self._check_address(address.get_block(), 'free')
         if address.offset != 0:
             raise MemoryAccessViolation("Can only free a base pointer")
 
-        self.memory[address].free()
+        self.memory[address.get_block()].free()
 
     def get_nearest_address(self, address):
         """ returns a pointer to the nearest address
