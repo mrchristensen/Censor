@@ -85,7 +85,7 @@ typedef int lldiv_t;
 typedef int sigset_t;
 typedef int __sigset_t;
 typedef int _sig_func_ptr;
-typedef int sig_atomic_t;
+//typedef int sig_atomic_t;
 typedef int __tzrule_type;
 typedef int __tzinfo_type;
 typedef int mbstate_t;
