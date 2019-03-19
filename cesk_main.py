@@ -63,6 +63,7 @@ def main():
             cnf.CONFIG = getattr(cnf, args.configuration)
         else:
             print("Invalid configuration group:", args.configuration)
+            exit(0)
     set_config(cnf.CONFIG['limits'])
 
     result = {}

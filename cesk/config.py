@@ -45,7 +45,7 @@ TRIVIAL = {
     'store_update' : 'weak',   # {strong, weak} nill
     'limits'       : 'CESK',     # {cesk, gcc, std}
     'allocK'       : 'trivial', # {concrete, 0-cfa, p4f, trivial}
-    'allocF'       : 'trivial', # {concrete, 0-cfa, trivial}
+    'allocF'       : '0-cfa', # {concrete, 0-cfa, trivial}
     'allocH'       : 'trivial', # {concrete, abstract, trivial}
-    'tick'         : 'trivial'  # {concrete, abstract, trivial}
+    'tick'         : 'abstract'  # {concrete, abstract, trivial}
     }

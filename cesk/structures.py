@@ -333,6 +333,9 @@ class MemoryBlock:
 
     def _get_index_item(self, offset):
         """ given an offset returns value or throws error """
+        if not isinstance(offset, int):
+            logging.error("TOP memory access made")
+            offset = 0
         return [[0, offset]]
 
     def _get_index_list(self, offset):
@@ -467,13 +470,14 @@ class MemoryBlock:
                         if val not in old_values:
                             is_change = True
                             old_values.add(val)
-                else:
-                    if value not in old_values:
-                        is_change = True
-                        old_values.add(value)
-                return is_change
+                elif value not in old_values:
+                    is_change = True
+                    old_values.add(value)
+                #else value already in store, no update
+                continue
             #begin a partial or overlapping write
             raise NotImplementedError("Partial weak write not implemented")
+        return is_change
 
     def free(self):
         """ Marks the block as free """

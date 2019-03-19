@@ -93,11 +93,11 @@ class TriInteger(BaseInteger): #pylint:disable=too-few-public-methods
         return Factory.Integer(value, self.type_of, self.size)
 
     def __truediv__(self, other):
-        value = None
+        value = {AL.TOP} #not entirely correct but close enough
         return Factory.Integer(value, self.type_of, self.size)
 
     def __mod__(self, other):
-        value = None
+        value = {AL.TOP}
         return Factory.Integer(value, self.type_of, self.size)
 
     def __lt__(self, other):
@@ -142,6 +142,18 @@ class TriInteger(BaseInteger): #pylint:disable=too-few-public-methods
                 value.add(0)
 
         return Factory.Integer(value, 'int')
+
+    def __hash__(self):
+        val = 0 #pylint: disable=invalid-name
+        if AL.TOP in self.data:
+            val += 1
+        if AL.MINUS in self.data:
+            val += 2
+        if AL.ZERO in self.data:
+            val += 4
+        if AL.PLUS in self.data:
+            val += 8
+        return val
 
     def __not__(self):
         not_values = set()

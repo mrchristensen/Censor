@@ -1,7 +1,6 @@
 """Functions to interpret c code directly"""
 import logging
 import pycparser.c_ast as AST
-from transforms.sizeof import get_size_ast
 from cesk.values import generate_constant_value, cast
 from cesk.values.base_values import BaseInteger
 from cesk.structures import (State, Ctrl, Envr, Kont, FrameAddress)
@@ -111,15 +110,11 @@ def func(stmt, state, func_def_frame_addr, address=None):
         else:
             param_list = func_def.decl.type.args.params
         if len(expr_list) != len(param_list):
-            raise Exception("Function " + func_def.decl.name +
-                            " expected " +
-                            str(len(param_list)) +
-                            " parameters but received " +
-                            str(len(expr_list)))
-        #if isinstance(func_def_frame_addr, FrameAddress):
-        #    func_name = func_def_frame_addr.get_id()
-        #else:
-        #    func_name = "func_ptr"
+            raise CESKException("Function " + func_def.decl.name +
+                                " expected " +
+                                str(len(param_list)) +
+                                " parameters but received " +
+                                str(len(expr_list)))
         return_states.add(
             func_helper(zip(param_list, expr_list), func_def,
                         state, address))
@@ -323,35 +318,29 @@ def handle_decl_array(array, list_of_sizes, state, f_addr):
     """Calculates size and allocates Array. Returns address of first item"""
     logging.debug('  Array Decl')
     if isinstance(array.type, AST.ArrayDecl):
-        raise Exception("Multidim. arrays should be transformed to single")
+        raise CESKException("Multidim. arrays should be transformed to single")
     elif isinstance(array.type, (AST.TypeDecl, AST.PtrDecl)):
         if isinstance(array.dim, (AST.Constant, AST.ID)):
             value = get_value(array.dim, state)
             logging.debug("Array Size is %s", str(value))
             length = get_int_data(value)
         else:
-            raise Exception("Unsupported ArrayDecl dimension "+str(array.dim))
+            raise CESKException("Unsupported Array dimension "+str(array.dim))
 
         if length < 1:
-            raise Exception("Non-positive Array Sizes are not supported")
+            raise CESKException("Non-positive Array Sizes are not supported")
 
         if length == 0:
             # TODO
-            raise NotImplementedError("Arrays of size 0 not implemented")
-        if isinstance(array.type.type, (AST.Struct, AST.Union)):
-            # TODO handle Union
-            list_of_sizes = []
-            ls.get_sizes(array.type, list_of_sizes)
-            data_address = state.stor.allocM(f_addr, list_of_sizes, length)
-        else:
-            constant = get_size_ast(array.type)
-            size = generate_constant_value(constant.value, constant.type).data
-            data_address = state.stor.allocM(f_addr, [size], length)
+            raise CESKException("Arrays of size 0 not implemented")
+        list_of_sizes = []
+        ls.get_sizes(array.type, list_of_sizes)
+        data_address = state.stor.allocM(f_addr, list_of_sizes, length)
         #Allocated block: passing back the Array object that points to block
         return data_address
     else:
-        raise Exception("Declarations of " + str(array.type) +
-                        " are not yet implemented")
+        raise CESKException("Declarations of " + str(array.type) +
+                            " are not yet implemented")
 
 def handle_decl_struct(struct, state, f_addr):
     """Handles struct declaration"""
@@ -377,7 +366,9 @@ def get_int_data(integer):
             smallest = 1
         return smallest
     if isinstance(integer, BaseInteger):
-        return integer.data
+        if isinstance(integer.data, int):
+            return integer.data
+        return 1 #could make more versitile
     raise CESKException("Integer was expected")
 
 def handle_Return(stmt, state):# pylint: disable=invalid-name
