@@ -92,6 +92,9 @@ def parse(filename, includes, pycparser_path, sanitize, preproccess=True):
         text = open(filename, 'r').read()
 
     text = utils.remove_gcc_extentions(text) #only for large code base
+    with open("preprocessed.c","w") as asdf:
+        asdf.write(text)
+    #ast = cparser(text, filename)
     ast = cparser.parse(text, filename)
     return ast
 
