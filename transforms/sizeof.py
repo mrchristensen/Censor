@@ -133,6 +133,13 @@ def _offset_compact(decls, field, env):
         if decl.name == field.name:
             field_type = decl.type
             break
+        if decl.name is None:
+            for nestedDecl in decl.type.decls:
+                if nestedDecl.name == field.name:
+                    field_type = nestedDecl.type
+                    break
+        if field_type is not None:
+            break
         decl_size, decl_alignment = get_size_and_alignment(decl, env)
         if isinstance(decl_size, AST.Constant):
             offset += c_to_int(decl_size)

@@ -4,10 +4,10 @@
 #include "_fake_defines.h"
 #include "_fake_typedefs.h"
 #include <sys/uio.h>
+#include <arpa/inet.h>
+#include <sys/cdefs.h>
 
 typedef unsigned long socklen_t;
-
-size_t CMSG_SPACE(size_t length);
 
 struct addrinfo {
                int              ai_flags;
@@ -112,5 +112,33 @@ struct cmsghdr {
 	int	cmsg_type;		/* protocol-specific type */
 /* followed by	u_char  cmsg_data[]; */
 };
+
+
+struct cmsghdr *CMSG_FIRSTHDR(struct msghdr *msgh);
+struct cmsghdr *CMSG_NXTHDR(struct msghdr *msgh, struct cmsghdr *cmsg);
+size_t CMSG_ALIGN(size_t length);
+size_t CMSG_SPACE(size_t length);
+size_t CMSG_LEN(size_t length);
+unsigned char *CMSG_DATA(struct cmsghdr *cmsg);
+
+
+int	accept __P((int, struct sockaddr *, int *));
+int	bind __P((int, const struct sockaddr *, int));
+int	connect __P((int, const struct sockaddr *, int));
+int	getpeername __P((int, struct sockaddr *, int *));
+int	getsockname __P((int, struct sockaddr *, int *));
+int	getsockopt __P((int, int, int, void *, int *));
+int	listen __P((int, int));
+int	recv __P((int, void *, int, int));
+int	recvfrom __P((int, void *, int, int,
+		struct sockaddr *, int *));
+int	recvmsg __P((int, struct msghdr *, int));
+int	send __P((int, const void *, int, int));
+int	sendto __P((int, const void *, int, int, const struct sockaddr *, int));
+int	sendmsg __P((int, const struct msghdr *, int));
+int	setsockopt __P((int, int, int, const void *, int));
+int	shutdown __P((int, int));
+int	socket __P((int, int, int));
+int	socketpair __P((int, int, int, int *));
 
 #endif
