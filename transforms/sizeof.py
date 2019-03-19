@@ -134,9 +134,9 @@ def _offset_compact(decls, field, env):
             field_type = decl.type
             break
         if decl.name is None:
-            for nestedDecl in decl.type.decls:
-                if nestedDecl.name == field.name:
-                    field_type = nestedDecl.type
+            for nested_decl in decl.type.decls:
+                if nested_decl.name == field.name:
+                    field_type = nested_decl.type
                     break
         if field_type is not None:
             break
