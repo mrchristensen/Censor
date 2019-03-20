@@ -14,7 +14,8 @@ typedef struct a {
 } a_name;
 
 int main() {
-	a_name* a;
-	printf("%d", a->i);
+	a_name x;
+	a_name* abc = &x;
+	printf("%d", abc->i);
 	return 0;
 }

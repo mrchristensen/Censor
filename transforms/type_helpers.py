@@ -419,4 +419,12 @@ def _get_structref_type(expr, env):
             ret = deepcopy(decl.type)
             remove_identifier(ret)
             return ret
+        # Functionality for anonymous structs and unions
+        elif decl.name is None:
+            for nested_decl in decl.type.decls:
+                if nested_decl.name == expr.field.name:
+                    ret = deepcopy(nested_decl.type)
+                    remove_identifier(ret)
+                    return ret
+
     raise Exception("Struct doesn't have field " + expr.field.name)
