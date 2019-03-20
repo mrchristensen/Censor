@@ -133,13 +133,31 @@ def _offset_compact(decls, field, env):
         if decl.name == field.name:
             field_type = decl.type
             break
-        if decl.name is None:
+
+        # Functionality for anonymous unions and structs
+        added_offset = 0
+        if decl.name is None and isinstance(decl.type, AST.Union):
+            for nested_decl in decl.type.decls:
+                if nested_decl.name == field.name:
+                    field_type = nested_decl.type
+                    break  
+        elif decl.name is None and isinstance(decl.type, AST.Struct):
             for nested_decl in decl.type.decls:
                 if nested_decl.name == field.name:
                     field_type = nested_decl.type
                     break
+                decl_size, decl_alignment = get_size_and_alignment(nested_decl, env)
+                if isinstance(decl_size, AST.Constant):
+                    added_offset += c_to_int(decl_size)
+                    offset += c_to_int(decl_size)
+                else:
+                    raise Exception("Not Implemented, Arrays not constant size")
+                if alignment < decl_alignment:
+                    alignment = decl_alignment
         if field_type is not None:
             break
+        offset -= added_offset
+
         decl_size, decl_alignment = get_size_and_alignment(decl, env)
         if isinstance(decl_size, AST.Constant):
             offset += c_to_int(decl_size)
