@@ -38,6 +38,9 @@
  * Per RFC 790, September 1981.
  */
 
+#ifndef IN_H
+#define IN_H
+
 #define	INADDR_LOOPBACK		0x7f000001
 
 /*
@@ -152,4 +155,4 @@ struct	in_addr in_makeaddr();
 u_long	in_netof(), in_lnaof();
 #endif
 
-
+#endif
