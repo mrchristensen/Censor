@@ -57,6 +57,10 @@ class State: #pylint:disable=too-few-public-methods
         next_ctrl = self.ctrl.get_next()
         return State(next_ctrl, self.envr, self.stor, self.kont_addr)
 
+    def get_error(self, err_str):
+        """ generates an error state based on current state """
+        return ErrorState(self, err_str)
+
     def tick(self):
         """ Sets the time stamp for the state """
         if cnf.CONFIG['tick'] == 'concrete':
@@ -73,6 +77,8 @@ class State: #pylint:disable=too-few-public-methods
             raise UnknownConfiguration('tick')
 
     def __eq__(self, other):
+        if not isinstance(other, State):
+            return False
         return (self.ctrl == other.ctrl and
                 self.envr == other.envr and
                 self.kont_addr == other.kont_addr)
@@ -87,6 +93,35 @@ class State: #pylint:disable=too-few-public-methods
         return (str(self.ctrl)+"\n"+
                 str(self.envr)+"\n"+
                 "ka "+str(self.kont_addr)).replace(':', ' ')
+
+class ErrorState: #pylint: disable=too-few-public-methods
+    """ Holds program state that errored upon execution """
+    def __init__(self, state, msg): #ctrl, envr, stor, kont_addr, time_stamp):
+        self.ctrl = state.ctrl
+        self.envr = state.envr
+        self.stor = state.stor
+        self.kont_addr = state.kont_addr
+        self.time_stamp = state.time_stamp
+        self.message = msg
+
+    def __eq__(self, other):
+        if not isinstance(other, ErrorState):
+            return False
+        return (self.ctrl == other.ctrl and
+                self.envr == other.envr and
+                self.message == other.message and
+                self.kont_addr == other.kont_addr)
+
+    def __hash__(self):
+        result = hash(self.ctrl) + 53
+        result = result * hash(self.envr) + 37
+        result = result * hash(self.kont_addr) + 17
+        result = result * hash(self.message)
+        return result
+
+    def __str__(self):
+        return ("Error in "+str(self.envr)+"\nat "+str(self.ctrl)+"\n"+
+                "to "+str(self.kont_addr)).replace(':', ' ')+"\n"+self.message
 
 class Ctrl: #pylint:disable=too-few-public-methods
     """Holds the control pointer or location of the program"""
@@ -387,11 +422,10 @@ class MemoryBlock:
                     index += 1
                     start = 0
                     value = self.block[index]
-            logging.debug(byte_value)
             self.add(result, byte_value)
 
-
-        if len(result) == 1:
+        #return result
+        if len(result) == 1 and cnf.CONFIG['store_update'] == 'strong':
             return result.pop()
         else:
             return result
@@ -560,11 +594,17 @@ class Stor: #pylint: disable=too-many-instance-attributes
             #read to all location in the set
             if not address: #if set is empty
                 raise MemoryAccessViolation("Read from unassigned address")
-            result = SizedSet(address.size)
+            result = None #SizedSet()
+            errors = set()
             for addr in address:
-                temp = self.read(addr)
-                result.update(temp)
-            return result
+                try:
+                    temp, _ = self.read(addr)
+                    if result is None:
+                        result = SizedSet(temp.size)
+                    result.update(temp)
+                except MemoryAccessViolation as error:
+                    errors.add(str(error))
+            return result, errors
 
         if address in self.base_pointers:
             address = self.base_pointers[address]
@@ -573,7 +613,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
         self._check_address(address.get_block(), 'read')
 
         return self.memory[address.get_block()].read(
-            address.offset, address.type_size)
+            address.offset, address.type_size), set()
 
     def write(self, address, value):
         """ Calls strong or weak write as determined by configuration """
@@ -581,9 +621,16 @@ class Stor: #pylint: disable=too-many-instance-attributes
             #write to all location in the set
             if not address: #if set is empty
                 raise MemoryAccessViolation("Write to unassigned address")
+            errors = set()
             for addr in address:
-                self.write(addr, value)
-            return
+                try:
+                    errs = self.write(addr, value)
+                    errors.update(errs)
+                except MemoryAccessViolation as error:
+                    logging.error(error)
+                    errors.add(str(error))
+            return errors
+
         if address in self.base_pointers:
             address = self.base_pointers[address]
 
@@ -592,14 +639,22 @@ class Stor: #pylint: disable=too-many-instance-attributes
         if self.memory[address.get_block()].write(address.offset, value):
             self.time += 1
 
+        return set()
+
     def free(self, address):
         """ Replaces values in store with a free value """
         if isinstance(address, SizedSet):
             if not address:
                 raise MemoryAccessViolation("Invalid Free")
+            errors = set()
             for addr in address:
-                self.free(addr)
-            return
+                try:
+                    errs = self.free(addr)
+                    errors.update(errs)
+                except MemoryAccessViolation as error:
+                    errors.add(str(error))
+            return errors
+
         if address in self.base_pointers:
             address = self.base_pointers[address]
 
@@ -608,6 +663,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
             raise MemoryAccessViolation("Can only free a base pointer")
 
         self.memory[address.get_block()].free()
+        return set()
 
     def get_nearest_address(self, address):
         """ returns a pointer to the nearest address
@@ -680,12 +736,13 @@ class Kont: #pylint: disable=too-few-public-methods
     def invoke(self, state, value):
         """ Evaluates the return of a function """
         if self.kont_addr is 0: #Halt
-            return None
+            return set(), set()
+        errors = set()
         if self.return_address:
-            state.stor.write(self.return_address, value)
+            errors = state.stor.write(self.return_address, value)
         new_state = State(self.ctrl, self.envr,
                           state.stor, self.kont_addr)
-        return new_state.get_next()
+        return {new_state.get_next()}, errors
 
     def __eq__(self, other):
         return self.ctrl == other.ctrl and \

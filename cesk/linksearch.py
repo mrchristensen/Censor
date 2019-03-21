@@ -132,7 +132,8 @@ def get_array_sizes(ast_type, list_so_far):
     if isinstance(ast_type.dim, AST.Constant):
         size = int(ast_type.dim.value)
     elif isinstance(ast_type.dim, AST.ID):
-        raise Exception("Size of dynamically sized array unknown")
+        size = 1 #length needs to be handle in interpret.py
+        #raise Exception("Size of dynamically sized array unknown")
     else:
         raise Exception('Array dim must be constant or id')
     for _ in range(size):

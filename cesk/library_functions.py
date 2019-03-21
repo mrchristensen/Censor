@@ -19,15 +19,16 @@ def printf(state, args, return_address):#pylint: disable=unused-argument
     print_string = print_string[1:][:-1] #drop quotes
     print_string = print_string.replace("\\n", "\n")
     print(print_string, end="") #convert newlines
-    return state.get_next()
+    return {state.get_next()}, {}
 
 def free(state, args, return_address):#pylint: disable=unused-argument
     """ Completes a free operation """
-    state.stor.free(args[0])
-    return state.get_next()
+    errs = state.stor.free(args[0])
+    return {state.get_next()}, errs
 
 def __VERIFIER_nondet_int(state, args, return_address):#pylint: disable=unused-argument,invalid-name
     value = values.generate_constant_value(str(random.randint(0, 9)), 'int')
+    errs = set()
     if return_address is not None:
-        state.stor.write(return_address, value)
-    return state.get_next()
+        errs = state.stor.write(return_address, value)
+    return {state.get_next()}, errs

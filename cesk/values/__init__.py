@@ -14,18 +14,18 @@ def string_constant(value):
     """ handle makeing a const string constant """
     #TODO this needs a better implementation so as to be able to copy or
     #   read at an index
-    return value
+    return value, 'string'
     #raise NotImplementedError("Need to implement string constant")
     #return PtrDecl([], TypeDecl(None, [], IdentifierType(['char'])))
 
 def float_constant(value):
     """ handle makeing a const float constant """
     if value[-1] in "fF":
-        return Factory.Float(value[:-1], 'float')
+        return float(value[:-1]), 'float'
     elif value[-1] in "lL":
-        return Factory.Float(value, 'long double')
+        return float(value), 'long double'
     else:
-        return Factory.Float(value, 'double')
+        return float(value), 'double'
 
 def int_constant(value):
     """ handle makeing a const int constant """
@@ -37,33 +37,34 @@ def int_constant(value):
     if value[-1] not in "lL":
         val = int(value, 0)
         if val <= limits.RANGES['unsigned '+type_of].max:
-            return Factory.Integer(val, unsigned+type_of)
+            return val, unsigned+type_of
     else:
         value = value[:-1]
     type_of = 'long '+type_of
     val = int(value, 0)
 
     if val <= limits.RANGES['unsigned '+type_of].max:
-        return Factory.Integer(val, unsigned+type_of)
+        return val, unsigned+type_of
     type_of = 'long '+type_of
     if val <= limits.RANGES['unsigned '+type_of].max:
-        return Factory.Integer(val, unsigned+type_of)
+        return val, unsigned+type_of
 
 def char_constant(value):
     """ handle makeing a const char constant """
-    return Factory.Char(value, 'char')
+    return value, 'char'
 
 # needs to know what size it needs to be sometimes
 def generate_constant_value(value, type_of='int'):
     """ Given a string, parse it as a constant value. """
     if type_of == 'string':
-        return string_constant(value)
+        #raise CESKException("implementation needed for general use of strings")
+        return string_constant(value)[0]
     elif type_of == 'float' or type_of == 'double':
-        return float_constant(value)
+        return Factory.Float(*float_constant(value))
     elif type_of == 'int':
-        return int_constant(value)
+        return Factory.Integer(*int_constant(value))
     elif type_of == 'char':
-        return char_constant(value)
+        return Factory.Char(*char_constant(value))
 
     raise CESKException("Unkown Constant Type %s"%type_of)
 
