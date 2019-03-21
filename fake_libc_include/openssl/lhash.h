@@ -194,7 +194,7 @@ void OPENSSL_LH_node_usage_stats_bio(const OPENSSL_LHASH *lh, BIO *out);
     } \
     LHASH_OF(type)
 
-DEFINE_LHASH_OF(OPENSSL_STRING);
+//DEFINE_LHASH_OF(OPENSSL_STRING);
 # ifdef _MSC_VER
 /*
  * push and pop this warning:
@@ -204,7 +204,7 @@ DEFINE_LHASH_OF(OPENSSL_STRING);
 #  pragma warning (disable: 4090)
 # endif
 
-DEFINE_LHASH_OF(OPENSSL_CSTRING);
+//DEFINE_LHASH_OF(OPENSSL_CSTRING);
 
 # ifdef _MSC_VER
 #  pragma warning (pop)
