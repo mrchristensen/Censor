@@ -38,7 +38,7 @@ void set_next(Node* from, Node* to){
     Element* list = from->neighbors;
     Element* newElement = malloc(sizeof(Element));
     newElement->data = to;
-
+    newElement->next = 0; //Added to fix uninitialized error
     if (!list){
         from->neighbors = newElement;
         return;
@@ -110,7 +110,7 @@ int main(){
     set_next(C, A);
     set_head(A);
     while (queue_not_empty()){
-        // add_to_queue(pop_queue());
-        pop_queue();
+        add_to_queue(pop_queue());
+        // pop_queue();
     }
 }

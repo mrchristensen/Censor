@@ -1,7 +1,7 @@
 '''Concerte Implementation of all the Types'''
 from copy import deepcopy
 import cesk.limits as limits
-from .base_values import ReferenceValue, ByteValue
+from .base_values import ReferenceValue, ByteValue, BaseInteger
 from .factory import Factory
 
 class ConcretePointer(ReferenceValue):  #pylint:disable=too-few-public-methods
@@ -15,6 +15,8 @@ class ConcretePointer(ReferenceValue):  #pylint:disable=too-few-public-methods
 
     def equals(self, other):
         if not isinstance(other, ReferenceValue):
+            if isinstance(other, BaseInteger):
+                return other.equals(self)
             return Factory.Integer(0, 'int')
         return Factory.Integer(int(self.data == other.data and
                                    self.offset == other.offset), 'int')

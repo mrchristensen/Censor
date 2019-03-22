@@ -145,12 +145,14 @@ def cast(value, typedeclt, state=None):  # pylint: disable=unused-argument
     #Pointer -> Pointer
 
     #BV.ByteValue -> ALL
+    if isinstance(typedeclt, pycparser.c_ast.Typename):
+        return cast(value, typedeclt.type, state)
+
+    logging.debug("Casting %s to type %s", str(value), repr(typedeclt))
     if isinstance(value, BV.SizedSet):
         result = BV.SizedSet(value.size)
         for item in value:
             result.add(cast(item, typedeclt, state))
-    elif isinstance(typedeclt, pycparser.c_ast.Typename):
-        result = cast(value, typedeclt.type, state)
     #typedeclt could be a PtrDecl in the c_ast
     elif isinstance(typedeclt, pycparser.c_ast.PtrDecl):
         #value could be a baseValue(see base_values.py) of ReferenceValue
@@ -161,22 +163,17 @@ def cast(value, typedeclt, state=None):  # pylint: disable=unused-argument
         elif isinstance(value, BV.BaseInteger): #I -> P
             # normal number being turned into a pointer not valid to dereference
             # TODO manage tracking of this
-            logging.debug(" Cast %s to %s", str(value), str(typedeclt))
             address = state.stor.get_nearest_address(value.data)
             result = copy_pointer(address, typedeclt.type)
         elif isinstance(value, BV.ByteValue):
-            logging.debug(" Cast %s to %s", str(value), str(typedeclt))
             address = state.stor.get_nearest_address(
                 generate_value(value, "long").data)
             result = copy_pointer(address, typedeclt.type)
     #typedeclt is any TypeDecl in c_ast
     elif isinstance(typedeclt, pycparser.c_ast.TypeDecl):
         types = typedeclt.type.names
-        logging.debug("Casting %s to type %s", str(value), " ".join(types))
         byte_value = value.get_byte_value()
-        logging.debug("Byte_Value before cast %s", str(byte_value))
         result = generate_value(byte_value, " ".join(types))
-        logging.debug("Cast result is %s", str(result.data))
     else:
         logging.error('\tUnsupported cast: %s', str(typedeclt.type))
         raise CESKException("Unsupported cast")

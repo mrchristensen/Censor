@@ -157,10 +157,10 @@ def handle_EmptyStatement(stmt, state): #pylint: disable=invalid-name
 
 def handle_Decl(stmt, state):#pylint: disable=invalid-name
     '''Handles Decls'''
-    logging.debug("Decl %s    %s", str(stmt.name), str(stmt.type))
+    logging.debug("Decl %s", str(stmt.name))
     address = decl_helper(stmt, state)
     if stmt.init:
-        logging.debug("init %s", stmt.name)
+        logging.debug("\tinit %s", stmt.name)
         return assignment_helper("=", address, stmt.init, state)
     else:
         return {state.get_next()}, set()
@@ -210,6 +210,7 @@ def handle_UnaryOp(stmt, state): # pylint: disable=invalid-name,unused-argument
 
 def handle_Return(stmt, state):# pylint: disable=invalid-name
     """satisfies kont"""
+    logging.debug("Return")
     exp = stmt.expr
     value = None
     errors = set()
@@ -312,8 +313,6 @@ def assignment_helper(operator, address, exp, state):
             value, errs = get_value(exp, state)
             errors.update(errs)
 
-        logging.debug("Address %s assigned to %s",
-                      str(address), str(value))
         errs = state.stor.write(address, value)
         errors.update(errs)
         return {state.get_next()}, errors
@@ -393,8 +392,10 @@ def get_value(stmt, state): #pylint: disable=too-many-return-statements
         left, errors = get_value(stmt.left, state)
         right, errs = get_value(stmt.right, state)
         errors.update(errs)
+        result = left.perform_operation(stmt.op, right)
         logging.debug("\tBinop: %s %s %s", str(left), stmt.op, str(right))
-        return left.perform_operation(stmt.op, right), errors
+        logging.debug("\t\t= %s size %d", str(result), result.size)
+        return result, errors
     elif isinstance(stmt, AST.UnaryOp) and stmt.op == '&':
         value, errors = get_address(stmt.expr, state)
         if isinstance(value, FrameAddress):

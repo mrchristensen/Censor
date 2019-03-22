@@ -635,6 +635,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
             address = self.base_pointers[address]
 
         logging.info("Write %s to %s", str(value), str(address))
+        logging.debug("Write size %d", value.size)
         self._check_address(address.get_block(), 'write')
         if self.memory[address.get_block()].write(address.offset, value):
             self.time += 1
