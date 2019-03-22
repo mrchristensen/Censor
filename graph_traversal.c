@@ -102,6 +102,12 @@ void init(){
     queue = 0;
 }
 
+void memory_error(){
+    char c = 0;
+    char* x = &c;
+    x[1] = '0';
+}
+
 int main(){
     init();
     set_next(A, B);
@@ -110,7 +116,7 @@ int main(){
     set_next(C, A);
     set_head(A);
     while (queue_not_empty()){
-        // add_to_queue(pop_queue());
-        pop_queue();
+        add_to_queue(pop_queue());
     }
+    memory_error();
 }
