@@ -5,6 +5,7 @@
 #include "_fake_typedefs.h"
 #include <sys/uio.h>
 #include <arpa/inet.h>
+#include <openssl/asn1t.h>
 #include <sys/cdefs.h>
 
 typedef unsigned long socklen_t;

@@ -11,6 +11,8 @@
 # define HEADER_OPENSSL_TYPES_H
 
 #include <limits.h>
+#include <openssl/asn1.h>
+#include <openssl/asn1t.h>
 
 #ifdef  __cplusplus
 extern "C" {
@@ -59,7 +61,17 @@ typedef int ASN1_NULL;
 
 typedef struct asn1_object_st ASN1_OBJECT;
 
-typedef struct ASN1_ITEM_st ASN1_ITEM;
+typedef struct ASN1_ITEM_st {
+    char itype;                 /* The item type, primitive, SEQUENCE, CHOICE
+                                 * or extern */
+    long utype;                 /* underlying type */
+    const struct ASN1_TEMPLATE_st *templates; /* If SEQUENCE or CHOICE this contains
+                                     * the contents */
+    long tcount;                /* Number of templates if SEQUENCE or CHOICE */
+    const void *funcs;          /* functions that handle this type */
+    long size;                  /* Structure size (usually) */
+    const char *sname;          /* Structure name */
+} ASN1_ITEM;
 typedef struct asn1_pctx_st ASN1_PCTX;
 typedef struct asn1_sctx_st ASN1_SCTX;
 

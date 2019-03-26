@@ -21,10 +21,10 @@ class StructPackingScheme(Enum):
 # the min requirements with IEEE standard for floating point representation
 STD_MIN_BYTE_WIDTHS = {'char':1, 'short':2, 'int':2, 'long':4,
                        'long long':8, 'float':4, 'double':8,
-                       'long double':8, 'void':1, 'word':4}
+                       'long double':8, 'void':1, 'word':4, 'unsigned':4}
 GCC_SPICEY_BYTE_WIDTHS = {'char':1, 'short':2, 'int':4, 'long':8,
                           'long long':8, 'float':4, 'double':8,
-                          'long double':16, 'void':1, 'word':8}
+                          'long double':16, 'void':1, 'word':8, 'unsigned':4}
 
 #defualt char could be either signed or unsigned
 std_char_sign = True #pylint: disable=invalid-name
@@ -62,6 +62,8 @@ def get_size_identifier(identifiers):
                 typ += ' '+identifier
             else:
                 typ = identifier
+        elif len(identifiers) == 1 and identifier == 'unsigned':
+            typ = identifier
         elif (typ is None) and (identifier == 'int'):
             typ = identifier
     return typ
