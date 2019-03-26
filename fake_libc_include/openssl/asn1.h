@@ -17,6 +17,7 @@
 # include <openssl/safestack.h>
 # include <openssl/asn1err.h>
 # include <openssl/symhacks.h>
+# include <openssl/asn1t.h>
 
 # include <openssl/ossl_typ.h>
 # if OPENSSL_API_COMPAT < 0x10100000L
@@ -207,8 +208,8 @@ DEFINE_STACK_OF(ASN1_STRING_TABLE)
 /*
  * Declarations for template structures: for full definitions see asn1t.h
  */
-typedef struct ASN1_TEMPLATE_st ASN1_TEMPLATE;
-typedef struct ASN1_TLC_st ASN1_TLC;
+//typedef struct ASN1_TEMPLATE_st ASN1_TEMPLATE;
+//typedef struct ASN1_TLC_st ASN1_TLC;
 /* This is just an opaque pointer */
 typedef struct ASN1_VALUE_st ASN1_VALUE;
 
@@ -857,7 +858,7 @@ void ASN1_PCTX_set_str_flags(ASN1_PCTX *p, unsigned long flags);
 ASN1_SCTX *ASN1_SCTX_new(int (*scan_cb) (ASN1_SCTX *ctx));
 void ASN1_SCTX_free(ASN1_SCTX *p);
 const ASN1_ITEM *ASN1_SCTX_get_item(ASN1_SCTX *p);
-const ASN1_TEMPLATE *ASN1_SCTX_get_template(ASN1_SCTX *p);
+const struct ASN1_TEMPLATE_st *ASN1_SCTX_get_template(ASN1_SCTX *p);
 unsigned long ASN1_SCTX_get_flags(ASN1_SCTX *p);
 void ASN1_SCTX_set_app_data(ASN1_SCTX *p, void *data);
 void *ASN1_SCTX_get_app_data(ASN1_SCTX *p);
