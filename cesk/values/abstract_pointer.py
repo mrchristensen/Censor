@@ -2,7 +2,7 @@
     Abstracted integer object as its offset """
 from copy import deepcopy
 import cesk.limits as limits
-from .base_values import ReferenceValue, ByteValue
+from .base_values import ReferenceValue, ByteValue, BaseInteger
 from .factory import Factory
 from .abstract_literals import AbstractLiterals
 
@@ -18,13 +18,13 @@ class AbstractPointer(ReferenceValue):  #pylint:disable=too-few-public-methods
         self.offset = offset
         self.type_of = 'pointer'
 
-    def __hash__(self):
-        return self.data
-
     def equals(self, other):
         if not isinstance(other, ReferenceValue):
+            if isinstance(other, BaseInteger):
+                return other.equals(self)
             return Factory.Integer(0, 'int')
-        return Factory.Integer(int(self.data == other.data), 'int')
+        return Factory.Integer(int(self.data == other.data and
+                                   self.offset == other.offset), 'int')
 
     def __lt__(self, other):
         return Factory.Integer(int(self.data < other.data), 'int')
@@ -40,16 +40,6 @@ class AbstractPointer(ReferenceValue):  #pylint:disable=too-few-public-methods
 
     def __ge__(self, other):
         return Factory.Integer(int(self.data >= other.data), 'int')
-
-    def update(self, stor):
-        """ moves the pointer along the pred and succ map """
-        #if self.offset < 0 or self.offset >= self.type_size:
-        offset = self.offset
-        if offset != AbstractLiterals.TOP:
-            self.offset = 0
-            ptr = stor.add_offset_to_pointer(self, offset)
-            self.offset = ptr.offset
-            self.data = ptr.data
 
     def __add__(self, other):
         ptr = deepcopy(self)
@@ -78,6 +68,16 @@ class AbstractPointer(ReferenceValue):  #pylint:disable=too-few-public-methods
         else:
             raise Exception("Pointers can only be subtracted by int")
 
+    def __hash__(self):
+        return ((self.data*7)+3)*hash(self.offset)
+
+    def __eq__(self, other):
+        if not isinstance(other, ReferenceValue):
+            return False
+        return self.data == other.data and \
+               self.offset == other.offset and \
+               self.type_size == other.type_size
+
     def __str__(self):
         return 'Pointer at '+str(self.data)+'.'+str(self.offset) +\
                 ' size '+ str(self.type_size)
@@ -100,3 +100,7 @@ class AbstractPointer(ReferenceValue):  #pylint:disable=too-few-public-methods
         byte_value.fromInt(result)
 
         return byte_value
+
+    def get_block(self):
+        """ returns block identifier """
+        return self.data

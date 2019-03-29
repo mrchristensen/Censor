@@ -110,14 +110,14 @@ class LiftToCompoundBlock(LiftNode):
         decl.type = self.visit(decl.type) # simplify array decls
         self.insert_into_scope(decl)
         self.envr.add(decl.name, decl.type)
-        return AST.UnaryOp('*', AST.ID(decl.name))
+        return AST.UnaryOp('*', AST.ID(decl.name), value.coord)
 
     def lift_to_value(self, value):
         """Lift node to compound block"""
         decl = make_temp_value(value, self.id_generator, self.envr)
         self.insert_into_scope(decl)
         self.envr.add(decl.name, decl.type)
-        return AST.ID(decl.name)
+        return AST.ID(decl.name, coord=decl.coord)
 
     def propagate_constant(self, binop):
         """ If both sides are a constant combine into a sigle constant """
@@ -161,6 +161,8 @@ class LiftToCompoundBlock(LiftNode):
                 value = AST.Constant(result_type, str(left_value / right_value))
         else:
             value = self.lift_to_value(binop)
+
+        value.coord = binop.coord
         return value
 
     def lift_assignment(self, value):

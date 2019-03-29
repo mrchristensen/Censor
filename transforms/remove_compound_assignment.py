@@ -51,8 +51,10 @@ class RemoveCompoundAssignment(NodeTransformer):
 
         first_ln = make_temp_ptr(node.lvalue, self.id_generator, self.env)
 
-        dereferenced_operator = UnaryOp('*', ID(first_ln.name))
-        operation = BinaryOp(node.op[:-1], dereferenced_operator, node.rvalue)
-        second_ln = Assignment('=', deepcopy(dereferenced_operator), operation)
+        dereferenced_operator = UnaryOp('*', ID(first_ln.name), node.coord)
+        operation = BinaryOp(node.op[:-1], dereferenced_operator, node.rvalue,
+                             node.coord)
+        second_ln = Assignment('=', deepcopy(dereferenced_operator), operation,
+                               node.coord)
 
         return [first_ln, second_ln]

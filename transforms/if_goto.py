@@ -43,20 +43,25 @@ class IfToIfGoto(NodeTransformer):
             return node
 
         end_label = self.id_gen.get_unique_id() + "_ENDIF"
-        return self.mangle_if(node, end_label) + [Label(end_label,
-                                                        get_no_op())]
+        no_op = get_no_op()
+        no_op.coord = node.coord
+        return self.mangle_if(node, end_label) + \
+               [Label(end_label, no_op, coord=node.coord)]
 
     def mangle_if(self, node, end_label):
         """ If rewrite
         """
         true_branch = ensure_compound(node.iftrue)
-        true_branch.block_items.append(Goto(end_label))
+        true_branch.block_items.append(Goto(end_label, coord=node.coord))
 
         false_branch = ensure_compound(node.iffalse)
         if isinstance(false_branch, If):
             false_branch = self.mangle_if(false_branch, end_label)
-            return [If(node.cond, true_branch, None), false_branch]
+            return [If(node.cond, true_branch, None, coord=node.coord),
+                    false_branch]
         elif isinstance(false_branch, Compound):
-            return [If(node.cond, true_branch, None), false_branch]
+            return [If(node.cond, true_branch, None, coord=node.coord),
+                    false_branch]
         else:
-            return [If(node.cond, true_branch, None), Compound([false_branch])]
+            return [If(node.cond, true_branch, None, coord=node.coord),
+                    Compound([false_branch], coord=node.coord)]

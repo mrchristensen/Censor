@@ -30,10 +30,12 @@ def make_temp_ptr(lvalue_expr, id_generator, env):
     given lvalue to that unique idenitfier. This is very useful when you need
     a temp variable while simplifying complicated expressions in the AST."""
     temp_name = id_generator.get_unique_id()
-    lvalue_addr = UnaryOp('&', lvalue_expr)
+    lvalue_addr = UnaryOp('&', lvalue_expr, coord=lvalue_expr.coord)
     lvalue_type = get_type(lvalue_expr, env)
-    ptr_to_lvalue = PtrDecl([], add_identifier(lvalue_type, temp_name))
-    return Decl(temp_name, [], [], [], ptr_to_lvalue, lvalue_addr, None)
+    ptr_to_lvalue = PtrDecl([], add_identifier(lvalue_type, temp_name),
+                            coord=lvalue_expr.coord)
+    return Decl(temp_name, [], [], [], ptr_to_lvalue, lvalue_addr, None,
+                coord=lvalue_expr.coord)
 
 def make_temp_value(expr, id_generator, env):
     """Given an expression, this function will return a Decl node representing
@@ -42,7 +44,8 @@ def make_temp_value(expr, id_generator, env):
     a temp variable while simplifying complicated expressions in the AST."""
     name = id_generator.get_unique_id()
     typ = get_type(expr, env)
-    return Decl(name, [], [], [], add_identifier(typ, name), expr, None)
+    return Decl(name, [], [], [], add_identifier(typ, name), expr, None,
+                coord=expr.coord)
 
 def cast_if_needed(type_node, expr, env):
     """Decides if it is necessary to cast the given expr to the given type,
@@ -65,9 +68,9 @@ def cast_if_needed(type_node, expr, env):
     elif isinstance(type_node, ArrayDecl):
         # Cannot cast to array type
         return expr
-    return Cast(type_node, expr)
+    return Cast(type_node, expr, coord=expr.coord)
 
-def remove_identifier(node, id_generator=None):
+def remove_identifier(node):
     """Takes in the type attribute of a Decl node and removes the identifier,
     so it can be used for type casting. Returns the identifier"""
     if isinstance(node, TypeDecl):
@@ -77,8 +80,6 @@ def remove_identifier(node, id_generator=None):
         return ident
     elif isinstance(node, (Struct, Union, Enum)):
         # remove the identifier, end recursion
-        if node.name is None:
-            node.name = id_generator.get_unique_id()
         ident = node.name
         node.name = None
         return ident

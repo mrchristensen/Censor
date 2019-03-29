@@ -11,7 +11,7 @@ class MemoryAccessViolation(CESKException):
     """ Exception class to signify an out of bounds memory access """
     error_code = 2
     def __init__(self, msg=""):
-        super().__init__("Illegal Memory Access Detected: %s"%msg)
+        super().__init__("Illegal Memory Access Detected-> %s"%msg)
 
 class UnknownConfiguration(CESKException):
     """ Configuration value is invalid """

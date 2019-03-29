@@ -93,8 +93,6 @@ class Sequence(LiftNode):
                 if elements[i].op == '*' or elements[i].op == '&':
                     if isinstance(elements[i].expr, (ID, Constant)):
                         continue
-                    elements[i].expr = self.lift_from_func(elements[i].expr)
-                    continue
             elements[i] = self.lift_from_func(elements[i])
         return node
 
@@ -115,13 +113,13 @@ class Sequence(LiftNode):
         self.envr.add(val_1, decl_1.type)
 
         #express if statement
-        if_true = Assignment('=', ID(val_1), node.iftrue)
-        if_true = Compound([if_true])
+        if_true = Assignment('=', ID(val_1), node.iftrue, node.coord)
+        if_true = Compound([if_true], coord=node.coord)
         self.environments[if_true] = self.envr
-        if_false = Assignment('=', ID(val_1), node.iffalse)
-        if_false = Compound([if_false])
+        if_false = Assignment('=', ID(val_1), node.iffalse, node.coord)
+        if_false = Compound([if_false], coord=node.coord)
         self.environments[if_false] = self.envr
-        if_statement = If(node.cond, if_true, if_false)
+        if_statement = If(node.cond, if_true, if_false, coord=node.coord)
 
         self.generic_visit(if_statement)
         self.insert_into_scope(decl_1, if_statement)
@@ -144,14 +142,15 @@ class Sequence(LiftNode):
 
         else: # case ||
             decl_1.init = Constant('int', '1')
-            condition = BinaryOp('==', node.left, Constant('int', '0'))
+            condition = BinaryOp('==', node.left, Constant('int', '0'),
+                                 node.coord)
 
         #add if statement
-        if_true = BinaryOp('!=', node.right, Constant('int', '0'))
-        if_true = Assignment('=', ID(val_1), if_true)
-        if_compound = Compound([if_true])
-        if_statement = If(condition, if_compound, None)
+        if_true = BinaryOp('!=', node.right, Constant('int', '0'), node.coord)
+        if_true = Assignment('=', ID(val_1), if_true, node.coord)
+        if_compound = Compound([if_true], node.coord)
+        if_statement = If(condition, if_compound, None, coord=node.coord)
         self.environments[if_compound] = self.envr
         self.generic_visit(if_statement)
         self.insert_into_scope(decl_1, if_statement)
-        return ID(val_1)
+        return ID(val_1, node.coord)

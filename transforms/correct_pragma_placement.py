@@ -43,8 +43,8 @@ class CorrectPragmaPlacement(NodeTransformer):
             self.remove_list.append(index)
             block.append(compound.block_items[index])
 
-            return AST.Compound(block)
+            return AST.Compound(block, item.coord)
         elif isinstance(item, AST.Compound):
             return item
         else:
-            return AST.Compound([item])
+            return AST.Compound([item], item.coord)

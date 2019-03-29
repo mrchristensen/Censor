@@ -31,8 +31,7 @@ AlphaName < Enum
 # imports for transforms
 from .sizeof_type import SizeofType
 from .correct_pragma_placement import CorrectPragmaPlacement
-from .do_while_to_goto import DoWhileToGoto
-from .while_to_do_while import WhileToDoWhile
+from .loops_to_goto import WhileToGoto
 from .for_to_while import ForToWhile
 from .switch_if import SwitchToIf
 from .if_goto import IfToIfGoto
@@ -120,10 +119,9 @@ def get_transformers(ast):
            lambda ast: [id_generator, type_env_calc.get_environments(ast)])
     yield (SwitchToIf, lambda ast: [id_generator])
     yield (ForToWhile, lambda ast: [])
-    yield (WhileToDoWhile, lambda ast: [])
     yield (BreakToGoto,
            lambda ast: [id_generator, type_env_calc.get_environments(ast)])
-    yield (DoWhileToGoto, lambda ast: [id_generator])
+    yield (WhileToGoto, lambda ast: [id_generator])
     yield (Sequence,
            lambda ast: [id_generator, type_env_calc.get_environments(ast)])
     yield (IfToIfGoto, lambda ast: [id_generator])

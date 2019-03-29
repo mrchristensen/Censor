@@ -55,7 +55,9 @@ class YamlTestCase(unittest.TestCase):
             if output['memory_safe'] == is_safe:
                 return True, 'pass test'
             else:
-                #fail
+                #faili
+                if check_for is None:
+                    check_for = 'memsafety'
                 return False, 'Expected '+str(is_safe)+' in checking '+check_for
 
         except CESKException as exception:

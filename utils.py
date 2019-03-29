@@ -59,7 +59,7 @@ def preserve_include_preprocess(path):
     with open(path, 'r') as myfile:
         data = myfile.read()
     newdata = re.sub(
-        r'(#include\s*<[:a-zA-Z:]+\.[:a-zA-Z:]>)',
+        r'(#include\s*<([:a-zA-Z0-9:]|/)+\.[:a-zA-Z:]>)',
         r'#pragma BEGIN \1\n\1\n#pragma END/',
         data)
     open(path, "w").write(newdata)

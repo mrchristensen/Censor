@@ -239,7 +239,7 @@ class Config:
 
 #---------------------------------------------------------------------
 # Change this line to change default configuration
-CONFIG = Config(ConfigTypes.GCC)
+CONFIG = Config(ConfigTypes.CESK)
 #---------------------------------------------------------------------
 def set_config(config_string):
     """ Take a string and sets global CONFIG and types appropriately """

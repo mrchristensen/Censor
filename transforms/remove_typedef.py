@@ -21,7 +21,7 @@ class RemoveTypedef(LiftNode):
                                    AST.IdentifierType(['unsigned']))
 
             const_decl = AST.Decl(new_id, ['const'], [], [],
-                                  id_type, node.dim, None)
+                                  id_type, node.dim, None, coord=node.coord)
             # make decl with new ID that is const to store the
             self.insert_into_scope(const_decl)
             node.dim = AST.ID(new_id)

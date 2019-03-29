@@ -12,6 +12,7 @@ class LinkSearch(AST.NodeVisitor): #
     label_lut = {}
     envr_lut = {}
     function_lut = {}
+    func_name_lut = {}
     struct_lut = {}
     union_lut = {}
     scope_decl_lut = {}
@@ -29,6 +30,7 @@ class LinkSearch(AST.NodeVisitor): #
         if isinstance(node, AST.FuncDef):
             name = node.decl.name
             LinkSearch.function_lut[name] = node
+            LinkSearch.func_name_lut[node] = name
 
         if isinstance(node, AST.Struct) and node.decls:
             name = node.name
@@ -47,12 +49,12 @@ class LinkSearch(AST.NodeVisitor): #
             if isinstance(child, AST.Node):
                 if child in LinkSearch.parent_lut:
                     logging.error("Transform Adds Duplication")
+                    logging.debug("Child: %s", str(child))
+                    logging.debug("Old Parent: %s",
+                                  str(LinkSearch.parent_lut[child]))
+                    logging.debug("New Parent: %s",
+                                  str(node))
                     child = deepcopy(child)
-                    #logging.debug("Child: %s", str(child))
-                    #logging.debug("Old Parent: %s",
-                    #              str(LinkSearch.parent_lut[child]))
-                    #logging.debug("New Parent: %s",
-                    #              str(node))
                     #temp_guy = node
                     #while temp_guy in LinkSearch.parent_lut:
                     #    temp_guy = LinkSearch.parent_lut[temp_guy]
@@ -130,7 +132,8 @@ def get_array_sizes(ast_type, list_so_far):
     if isinstance(ast_type.dim, AST.Constant):
         size = int(ast_type.dim.value)
     elif isinstance(ast_type.dim, AST.ID):
-        raise Exception("Size of dynamically sized array unknown")
+        size = 1 #length needs to be handle in interpret.py
+        #raise Exception("Size of dynamically sized array unknown")
     else:
         raise Exception('Array dim must be constant or id')
     for _ in range(size):

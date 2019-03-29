@@ -13,7 +13,21 @@ from cesk.exceptions import CESKException, MemoryAccessViolation, \
                             UnknownConfiguration
 from cesk.values import generate_function_definition
 
-def main(ast): #pylint: disable=too-many-locals
+class StateEnumaration: #pylint: disable=too-few-public-methods
+    """ Keeps track of information about a state """
+    next_id = 0
+    def __init__(self, time):
+        self.time = time
+        self.successors = set()
+        self.ident = StateEnumaration.next_id
+        self.time0 = time
+        StateEnumaration.next_id += 1
+
+    def get_time(self):
+        """ string of first created to last updated """
+        return str(self.ident)+'-'+str(self.time0)+'/'+str(self.time)
+
+def main(ast, graph_file_name): #pylint: disable=too-many-locals,too-many-branches,too-many-statements
     """Injects execution into main funciton and maintains work queue"""
 
     #values to be returned
@@ -27,35 +41,68 @@ def main(ast): #pylint: disable=too-many-locals
     main_function = find_main(ast)[0]
 
     start_state = prepare_start_state(main_function)
-
-    seen_set = {start_state:start_state.time_stamp}
+    #map of states to time last seen and states generated from
+    seen_set = {start_state:StateEnumaration(start_state.time_stamp)}
     failed_states = set()
     frontier = set([start_state])
     while frontier: #is not empty
-        #seen_set.update(frontier)
         new_frontier = set()
         for next_state in frontier:
             try:
-                successors = execute(next_state)
+                successors, errors = execute(next_state)
                 states_evaluated += 1
                 for successor in successors:
                     states_generated += 1
-                    if (successor not in seen_set or
-                            successor.time_stamp > seen_set[successor]):
-                        seen_set[successor] = successor.time_stamp
+                    if successor not in seen_set:
+                        seen_set[successor] = \
+                            StateEnumaration(successor.time_stamp)
+                        new_frontier.add(successor)
+                    elif successor.time_stamp > seen_set[successor].time:
+                        seen_set[successor].time = successor.time_stamp
                         new_frontier.add(successor)
                     else:
                         states_matched += 1
+                    seen_set[next_state].successors.add(successor)
+                for error in errors:
+                    error_state = next_state.get_error(error)
+                    seen_set[next_state].successors.add(error_state)
+                    failed_states.add(error_state)
+                    if error_state not in seen_set:
+                        seen_set[error_state] = \
+                            StateEnumaration(error_state.time_stamp)
+                    elif error_state.time_stamp > seen_set[error_state].time:
+                        seen_set[error_state].time = error_state.time_stamp
 
             except MemoryAccessViolation as error: #pylint: disable=broad-except
-                memory_safe = False
-                failed_states.add((next_state, error))
+                logging.error("Access Violation")
+                error_state = next_state.get_error(str(error))
+                seen_set[next_state].successors.add(error_state)
+                failed_states.add(error_state)
+                if error_state not in seen_set:
+                    seen_set[error_state] = \
+                        StateEnumaration(error_state.time_stamp)
+                elif error_state.time_stamp > seen_set[error_state].time:
+                    seen_set[error_state].time = error_state.time_stamp
+
         frontier = new_frontier
 
-    if memory_safe:
-        #failed_state and error
-        for _, error in failed_states:
-            print(error)
+    memory_safe = len(failed_states) == 0
+
+    if graph_file_name is not None:
+        from graphviz import Digraph
+        graph = Digraph("CESK State Graph", filename=graph_file_name)
+        graph.attr('node', shape='diamond', style='filled', color='red')
+        for state in failed_states:
+            graph.node(seen_set[state].get_time()+"\n"+str(state))
+
+        graph.attr('node', shape='ellipse', style='solid', color='black')
+        for state, enumeration in seen_set.items():
+            node = enumeration.get_time()+"\n"+str(state)
+            for to_state in enumeration.successors:
+                node2 = seen_set[to_state].get_time()+"\n"+str(to_state)
+                graph.edge(node, node2)
+
+        graph.render()
 
     return memory_safe, states_generated, states_matched, states_evaluated
 
@@ -67,7 +114,7 @@ def prepare_start_state(main_function):
     '''Creates the first state'''
     halt_state = State(None, None, None, 0) # zero is halt kont
     start_ctrl = Ctrl(main_function.body)
-    start_envr = Envr(State(start_ctrl, None, None, None)) #state for allocF
+    start_envr = Envr('main', None) #state for allocF
     start_stor = Stor()
     logging.debug("Globals init start")
     init_globals(start_stor)
@@ -79,13 +126,13 @@ def prepare_start_state(main_function):
 
 def init_globals(stor):
     """ Initializes the global found by linksearch """
-    fake_state = State(None, Envr(None), stor, None)
+    fake_state = State(None, Envr("init_globals", None), stor, None)
     for decl in ls.LinkSearch.global_decl_list:
         logging.debug("Global %s", str(decl.name))
         decl_helper(decl, fake_state)
         if decl.init:
             address = fake_state.envr.get_address(decl.name)
-            value = get_value(decl.init, fake_state)
+            value, _ = get_value(decl.init, fake_state)
             fake_state.stor.write(address, value)
     funcs = ls.LinkSearch.function_lut
     for func in funcs:

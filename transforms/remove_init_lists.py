@@ -47,6 +47,7 @@ void censorXX_INIT_GLOBALS() {
 # after having four lines of pycparser import, I decided to do them all at once
 from copy import deepcopy
 from pycparser.c_ast import * # pylint: disable=wildcard-import, unused-wildcard-import
+from pycparser.plyparser import Coord
 from .node_transformer import NodeTransformer
 from .helpers import prepend_statement
 from .type_helpers import get_type
@@ -99,19 +100,22 @@ class RemoveInitLists(NodeTransformer):
         """Insert function declaration, definition, and call for initializing
         globals."""
         # node.show()
+        line_info = Coord("None", 1, 0)
         func_name = self.id_generator.get_unique_id() + "_INIT_GLOBALS"
         func_type = TypeDecl(func_name, [], IdentifierType(["void"]))
         init_globals_decl = Decl(func_name, [], [], [],
-                                 FuncDecl(ParamList([]), func_type), None, None)
+                                 FuncDecl(ParamList([]), func_type),
+                                 None, None, line_info)
         init_globals_def = FuncDef(deepcopy(init_globals_decl),
-                                   [], Compound([]))
-        init_globals_call = FuncCall(ID(func_name), ExprList([]))
+                                   [], Compound([], line_info), line_info)
+        init_globals_call = FuncCall(ID(func_name), ExprList([]), line_info)
 
         main_index = None
         inits = []
         for i, decl in enumerate(node.ext):
             node.ext[i] = self.generic_visit(decl)
             if is_main(decl):
+                line_info.file = decl.coord.file
                 main_index = i
             elif isinstance(decl, Decl):
                 if isinstance(decl.type, ArrayDecl):
@@ -179,8 +183,8 @@ def flatten_array_init(decl):
             decl.show()
             raise NotImplementedError(_NOT_IMPLEMENTED_MESSAGE)
         index = Constant('int', str(i))
-        lvalue = ArrayRef(ID(decl.name), index)
-        assignment = Assignment("=", lvalue, init)
+        lvalue = ArrayRef(ID(decl.name), index, decl.coord)
+        assignment = Assignment("=", lvalue, init, decl.coord)
         inits.append(assignment)
     return inits
 
@@ -193,7 +197,7 @@ def flatten_struct_init(decl, env):
     if decl.init is None:
         return inits #Nothing to do
     if not isinstance(decl.init, InitList):
-        inits.append(Assignment("=", ID(decl.name), decl.init))
+        inits.append(Assignment("=", ID(decl.name), decl.init, decl.coord))
         return inits
         #decl.show()
         #raise NotImplementedError(_NOT_IMPLEMENTED_MESSAGE)
@@ -202,7 +206,7 @@ def flatten_struct_init(decl, env):
         #    decl.show()
         #    raise NotImplementedError(_NOT_IMPLEMENTED_MESSAGE)
         field = ID(fields[i].name)
-        lvalue = StructRef(ID(decl.name), ".", field)
-        assignment = Assignment("=", lvalue, init)
+        lvalue = StructRef(ID(decl.name), ".", field, decl.coord)
+        assignment = Assignment("=", lvalue, init, decl.coord)
         inits.append(assignment)
     return inits

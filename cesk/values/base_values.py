@@ -1,4 +1,5 @@
-from cesk.exceptions import CESKException, TransformError
+from cesk.exceptions import CESKException, TransformError, \
+                            MemoryAccessViolation
 
 BINOPS = {
     "+" : "__add__",
@@ -172,6 +173,10 @@ class ReferenceValue(ArithmeticValue): #pylint:disable=all
     def cast_to_float(self, to_type):
         raise TransformError("Pointers can not be cast to floats")
 
+    def get_block(self):
+        """ Return block identifier """
+        return 0
+
 #Special Case values to handle needed gaps
 class ByteValue:
     """ Class to represent values of bits from a partial read """
@@ -250,12 +255,12 @@ class UnitializedValue(ArithmeticValue):
 
     def perform_operation(self, operator, value):
         """Performs operation and returns value."""
-        raise CESKException(UnitializedValue.bad_use_str)        
+        raise MemoryAccessViolation(UnitializedValue.bad_use_str)        
 
     def get_truth_value(self):
         """Returns a bool denoting what truth value the ArithmeticValue would
         have if it were inside of an if statement in C"""
-        raise CESKException(UnitializedValue.bad_use_str)
+        raise MemoryAccessViolation(UnitializedValue.bad_use_str)
 
     def get_byte_value(self, offset=-1, num_bytes=None):
         """ Returns x random bytes, should only be valid if called from write """
@@ -284,14 +289,25 @@ class SizedSet(set):
 
     def perform_operation(self, operator, value):
         """ Selects and performs operation on all values in set and in value"""
-        result = SizedSet(self.size)
+        result = None
         for left in self:
             if isinstance(value, SizedSet):
                 for right in value:
-                    result.add(left.perform_operation(operator, right))
+                    val = left.perform_operation(operator, right)
             else:
-                result.add(left.perform_operation(operator, value))
+                val = left.perform_operation(operator, value)
+
+            if result is None:
+                result = SizedSet(val.size)
+            result.add(val)
         return result
+
+    def get_byte_value(self, offset=-1, num_bytes=None):
+        """ Gets all values as their byte value """
+        byte_values = SizedSet(self.size)
+        for value in self:
+            byte_values.add(value.get_byte_value(offset, num_bytes))
+        return byte_values
 
     def __str__(self):
         result = []

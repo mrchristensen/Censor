@@ -1,5 +1,6 @@
 """AST transform that transforms a for loop to a while loop"""
 
+from copy import deepcopy
 from pycparser.c_ast import While, Compound, Constant, DoWhile, DeclList
 from pycparser.c_ast import Assignment, ExprList
 from omp.clause import Collapse, Ordered
@@ -71,4 +72,4 @@ class PrefixContinueWithNext(NodeTransformer):
 
     def visit_Continue(self, node): #pylint: disable=invalid-name
         """Prefix continue with prefix node"""
-        return Compound([self.prefix, node])
+        return Compound([deepcopy(self.prefix), node], node.coord)

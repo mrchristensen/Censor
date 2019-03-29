@@ -1,6 +1,6 @@
 '''Is a factory for each value type'''
 import cesk.config
-
+from cesk.exceptions import UnknownConfiguration
 
 class Factory():
     '''Factory holding the constructor for each value'''
@@ -9,6 +9,7 @@ class Factory():
     def getFunctionDefinitionClass(): #pylint: disable=invalid-name
         '''returns class for function definitions'''
         from .function_definition import FunctionDefinition
+        Factory.getFunctionDefinitionClass = lambda: FunctionDefinition
         return FunctionDefinition
 
     @staticmethod
@@ -18,6 +19,11 @@ class Factory():
             from .concrete_integer import ConcreteInteger as Integer
         elif cesk.config.CONFIG['values'] == 'abstract':
             from .k_integer import KInteger as Integer
+        elif cesk.config.CONFIG['values'] == 'trivial':
+            from .tri_integer import TriInteger as Integer
+        else:
+            raise UnknownConfiguration('values')
+        Factory.getIntegerClass = lambda: Integer #perform checks only once
         return Integer
 
     @staticmethod
@@ -27,6 +33,11 @@ class Factory():
             from .concrete_pointer import ConcretePointer as Pointer
         elif cesk.config.CONFIG['values'] == 'abstract':
             from .abstract_pointer import AbstractPointer as Pointer
+        elif cesk.config.CONFIG['values'] == 'trivial':
+            from .abstract_pointer import AbstractPointer as Pointer
+        else:
+            raise UnknownConfiguration('values')
+        Factory.getPointerClass = lambda: Pointer #perform checks only once
         return Pointer
 
     @staticmethod
@@ -36,6 +47,11 @@ class Factory():
             from .concrete_char import ConcreteChar as Char
         elif cesk.config.CONFIG['values'] == 'abstract':
             from .abstract_char import AbstractChar as Char
+        elif cesk.config.CONFIG['values'] == 'trivial':
+            from .abstract_char import AbstractChar as Char
+        else:
+            raise UnknownConfiguration('values')
+        Factory.getCharClass = lambda: Char #perform checks only once
         return Char
 
     @staticmethod
@@ -45,6 +61,11 @@ class Factory():
             from .concrete_float import ConcreteFloat as Float
         elif cesk.config.CONFIG['values'] == 'abstract':
             from .tfloat import TFloat as Float
+        elif cesk.config.CONFIG['values'] == 'trivial':
+            from .tfloat import TFloat as Float
+        else:
+            raise UnknownConfiguration('values')
+        Factory.getFloatClass = lambda: Float #perform checks only once
         return Float
 
     @staticmethod

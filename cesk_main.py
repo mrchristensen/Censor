@@ -14,7 +14,7 @@ import cesk.config as cnf
 import cesk
 from cesk.exceptions import CESKException
 
-def run_interpreter(ast, results):
+def run_interpreter(ast, results, graph_name):
     """ function for redirecting the output of main to a file and
         returning the result as a string  """
     output = tempfile.NamedTemporaryFile()
@@ -24,7 +24,7 @@ def run_interpreter(ast, results):
     sys.stdout = open(output.name, "w")#I might need to close this
 
     memory_safe, states_generated, states_matched, states_evaluated \
-        = cesk.main(ast)
+        = cesk.main(ast, graph_name)
 
     os.dup2(prevfd, prev.fileno())
     sys.stdout = prev
@@ -44,24 +44,26 @@ def main():
                         help='Do not preproccess the file')
     parser.add_argument('--pycparser', '-p',
                         required=False, type=str, help='the path to pycparser')
+    parser.add_argument('--graph', '-g',
+                        required=False, type=str,
+                        help='name of graph output file')
     parser.add_argument('--includes', '-I',
                         required=False, type=str,
                         help='Comma separated includes for preprocessing')
     parser.add_argument('--configuration', '-c',
-                        required=False, type=str, help='comma seperate config '\
-                            'values. ex: -c limits=cesk,store_update=strong')
+                        required=False, type=str,\
+                        help='name of configuration group ex: -c CONCRETE')
     args = parser.parse_args()
 
     needs_preprocess = False if args.no_preprocess else True
 
     #setup passed in configuration
     if args.configuration is not None:
-        configs = args.configuration.split(',')
-        for config in configs:
-            conf = config.split('=')
-            #todo add error check for invalid input
-            print(conf[0]+" set to "+conf[1])
-            cnf.CONFIG[conf[0]] = conf[1] #set or add new config
+        if args.configuration in dir(cnf):
+            cnf.CONFIG = getattr(cnf, args.configuration)
+        else:
+            print("Invalid configuration group:", args.configuration)
+            exit(0)
     set_config(cnf.CONFIG['limits'])
 
     result = {}
@@ -77,7 +79,7 @@ def main():
         end = time.process_time()
         result["transform_time"] = end - start
         start = time.process_time()
-        run_interpreter(ast, result)
+        run_interpreter(ast, result, args.graph)
         end = time.process_time()
         result["interpretation_time"] = end - start
     except CESKException as exception:

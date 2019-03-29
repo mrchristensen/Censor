@@ -28,6 +28,7 @@ import logging
 from copy import deepcopy
 from pycparser.c_ast import ID, Struct, Union, Enum, FuncDecl, TypeDecl
 from .node_transformer import NodeTransformer
+from .id_generator import IDGenerator
 from .type_helpers import remove_identifier
 
 class Enviornment:
@@ -56,7 +57,7 @@ class Enviornment:
         if isinstance(ident, ID):
             ident = ident.name
         if ident in self.map_to_type:
-            logging.debug("Redefinition of " + ident)
+            logging.debug("Redefinition of %s", ident)
             #raise Exception("Redefinition of " + ident)
 
         self.map_to_type[ident] = type_node
@@ -104,7 +105,7 @@ class TypeEnvironmentCalculator(NodeTransformer):
     for all the nodes to be the same type, this should inherit from
     NodeVisitor.
     """
-    def __init__(self, id_generator):
+    def __init__(self, id_generator=None):
         self.id_generator = id_generator
         self.envr = None
         self.environemnts = None
@@ -180,7 +181,12 @@ class TypeEnvironmentCalculator(NodeTransformer):
         #TODO handle extern, static, etc properly
 
         type_node = deepcopy(node.type)
-        ident = remove_identifier(type_node, self.id_generator)
+
+        ident = remove_identifier(type_node)
+        if ident is None:
+            if self.id_generator is None:
+                self.id_generator = IDGenerator(node)
+            ident = self.id_generator.get_unique_id()
         if isinstance(type_node, (Struct, Union, Enum)):
             ident = type(type_node).__name__ + " " + ident
 

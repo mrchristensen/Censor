@@ -1,7 +1,7 @@
 '''Concerte Implementation of all the Types'''
 from copy import deepcopy
 import cesk.limits as limits
-from .base_values import ReferenceValue, ByteValue
+from .base_values import ReferenceValue, ByteValue, BaseInteger
 from .factory import Factory
 
 class ConcretePointer(ReferenceValue):  #pylint:disable=too-few-public-methods
@@ -13,11 +13,10 @@ class ConcretePointer(ReferenceValue):  #pylint:disable=too-few-public-methods
         self.offset = offset
         self.type_of = 'pointer'
 
-    def __hash__(self):
-        return self.data
-
     def equals(self, other):
         if not isinstance(other, ReferenceValue):
+            if isinstance(other, BaseInteger):
+                return other.equals(self)
             return Factory.Integer(0, 'int')
         return Factory.Integer(int(self.data == other.data and
                                    self.offset == other.offset), 'int')
@@ -36,15 +35,6 @@ class ConcretePointer(ReferenceValue):  #pylint:disable=too-few-public-methods
 
     def __ge__(self, other):
         return Factory.Integer(int(self.data >= other.data), 'int')
-
-    def update(self, stor):
-        """ moves the pointer along the pred and succ map """
-        #if self.offset < 0 or self.offset >= self.type_size:
-        offset = self.offset
-        self.offset = 0
-        ptr = stor.add_offset_to_pointer(self, offset)
-        self.offset = ptr.offset
-        self.data = ptr.data
 
     def __add__(self, other):
         ptr = deepcopy(self)
@@ -82,10 +72,17 @@ class ConcretePointer(ReferenceValue):  #pylint:disable=too-few-public-methods
             return str(self)
         return super.__repr__()
 
+    def __hash__(self):
+        return (hash(self.data) + 7) * hash(self.size)
+
     def __eq__(self, other):
         if isinstance(other, int):
-            return self.data == other
-        return self.data == other.data
+            return self.data+self.offset == other
+        return self.data == other.data and self.offset == other.offset
+
+    def get_block(self):
+        """ return block identifier """
+        return self.data
 
     def get_byte_value(self, start=-1, num_bytes=None):
         """ value of the unsigned bits stored from start to start+num_bytes """

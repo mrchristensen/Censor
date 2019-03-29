@@ -14,18 +14,18 @@ def string_constant(value):
     """ handle makeing a const string constant """
     #TODO this needs a better implementation so as to be able to copy or
     #   read at an index
-    return value
+    return value, 'string'
     #raise NotImplementedError("Need to implement string constant")
     #return PtrDecl([], TypeDecl(None, [], IdentifierType(['char'])))
 
 def float_constant(value):
     """ handle makeing a const float constant """
     if value[-1] in "fF":
-        return Factory.Float(value[:-1], 'float')
+        return float(value[:-1]), 'float'
     elif value[-1] in "lL":
-        return Factory.Float(value, 'long double')
+        return float(value), 'long double'
     else:
-        return Factory.Float(value, 'double')
+        return float(value), 'double'
 
 def int_constant(value):
     """ handle makeing a const int constant """
@@ -37,33 +37,34 @@ def int_constant(value):
     if value[-1] not in "lL":
         val = int(value, 0)
         if val <= limits.RANGES['unsigned '+type_of].max:
-            return Factory.Integer(val, unsigned+type_of)
+            return val, unsigned+type_of
     else:
         value = value[:-1]
     type_of = 'long '+type_of
     val = int(value, 0)
 
     if val <= limits.RANGES['unsigned '+type_of].max:
-        return Factory.Integer(val, unsigned+type_of)
+        return val, unsigned+type_of
     type_of = 'long '+type_of
     if val <= limits.RANGES['unsigned '+type_of].max:
-        return Factory.Integer(val, unsigned+type_of)
+        return val, unsigned+type_of
 
 def char_constant(value):
     """ handle makeing a const char constant """
-    return Factory.Char(value, 'char')
+    return value, 'char'
 
 # needs to know what size it needs to be sometimes
 def generate_constant_value(value, type_of='int'):
     """ Given a string, parse it as a constant value. """
     if type_of == 'string':
-        return string_constant(value)
+        #raise CESKException("implementation needed for general use of strings")
+        return string_constant(value)[0]
     elif type_of == 'float' or type_of == 'double':
-        return float_constant(value)
+        return Factory.Float(*float_constant(value))
     elif type_of == 'int':
-        return int_constant(value)
+        return Factory.Integer(*int_constant(value))
     elif type_of == 'char':
-        return char_constant(value)
+        return Factory.Char(*char_constant(value))
 
     raise CESKException("Unkown Constant Type %s"%type_of)
 
@@ -82,6 +83,7 @@ def generate_value(value, type_of):
         return Factory.getFloatClass().from_byte_value(value, type_of)
 
     if type_of == 'pointer':
+        #TODO change to be a pointer offset from null
         raise CESKException(
             'Pointer not expected here/not valid to change dynamically')
 
@@ -144,12 +146,13 @@ def cast(value, typedeclt, state=None):  # pylint: disable=unused-argument
     #Pointer -> Pointer
 
     #BV.ByteValue -> ALL
+    if isinstance(typedeclt, pycparser.c_ast.Typename):
+        return cast(value, typedeclt.type, state)
+
     if isinstance(value, BV.SizedSet):
         result = BV.SizedSet(value.size)
         for item in value:
             result.add(cast(item, typedeclt, state))
-    elif isinstance(typedeclt, pycparser.c_ast.Typename):
-        result = cast(value, typedeclt.type, state)
     #typedeclt could be a PtrDecl in the c_ast
     elif isinstance(typedeclt, pycparser.c_ast.PtrDecl):
         #value could be a baseValue(see base_values.py) of ReferenceValue
@@ -160,24 +163,20 @@ def cast(value, typedeclt, state=None):  # pylint: disable=unused-argument
         elif isinstance(value, BV.BaseInteger): #I -> P
             # normal number being turned into a pointer not valid to dereference
             # TODO manage tracking of this
-            logging.debug(" Cast %s to %s", str(value), str(typedeclt))
             address = state.stor.get_nearest_address(value.data)
             result = copy_pointer(address, typedeclt.type)
         elif isinstance(value, BV.ByteValue):
-            logging.debug(" Cast %s to %s", str(value), str(typedeclt))
             address = state.stor.get_nearest_address(
                 generate_value(value, "long").data)
             result = copy_pointer(address, typedeclt.type)
     #typedeclt is any TypeDecl in c_ast
     elif isinstance(typedeclt, pycparser.c_ast.TypeDecl):
         types = typedeclt.type.names
-        logging.debug("Casting %s to type %s", str(value), " ".join(types))
         byte_value = value.get_byte_value()
-        logging.debug("Byte_Value before cast %s", str(byte_value))
         result = generate_value(byte_value, " ".join(types))
-        logging.debug("Cast result is %s", str(result.data))
     else:
         logging.error('\tUnsupported cast: %s', str(typedeclt.type))
         raise CESKException("Unsupported cast")
 
+    logging.debug("Cast %s to %s", str(value), str(result))
     return result

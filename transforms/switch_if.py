@@ -52,31 +52,36 @@ class SwitchToIf(NodeTransformer):
             label = self.id_gen.get_unique_id()
             if isinstance(stmt, Default):
                 default_label = label
-                labellist.append((default_label, Compound(stmt.stmts)))
+                labellist.append((default_label,
+                                  Compound(stmt.stmts, coord=stmt.coord)))
                 continue
-            binop = BinaryOp('==', deepcopy(cond), deepcopy(stmt.expr))
-            iftrue = Compound([Goto(label)])
+            binop = BinaryOp('==', deepcopy(cond), deepcopy(stmt.expr),
+                             coord=stmt.coord)
+            iftrue = Compound([Goto(label, coord=stmt.coord)], coord=stmt.coord)
             iffalse = None
-            labellist.append((label, Compound(stmt.stmts)))
-            complist.append(If(binop, iftrue, iffalse))
+            labellist.append((label, Compound(stmt.stmts, coord=stmt.coord)))
+            complist.append(If(binop, iftrue, iffalse, coord=node.coord))
 
         endlabel = self.id_gen.get_unique_id()
 
         # Make if statement for default
         if default_label is not None:
-            complist.append(Compound([Goto(default_label)]))
+            complist.append(Compound([Goto(default_label, coord=node.coord)],
+                                     coord=node.coord))
         else:
-            complist.append(Compound([Goto(endlabel)]))
+            complist.append(Compound([Goto(endlabel, coord=node.coord)],
+                                     coord=node.coord))
 
         # Create labels for if statements to jump to
         for label in labellist:
             compound = self.BreakToGoto(endlabel).generic_visit(label[1])
-            current_label = Label(label[0], compound)
+            current_label = Label(label[0], compound, coord=compound.coord)
             complist.append(current_label)
 
-        complist.append(Label(endlabel, EmptyStatement()))
+        complist.append(Label(endlabel, EmptyStatement(coord=node.coord),
+                              coord=node.coord))
 
-        return Compound(complist)
+        return Compound(complist, coord=node.coord)
 
     class BreakToGoto(NodeTransformer):
         """NodeTransformer to change breaks into Goto statements"""
@@ -90,6 +95,6 @@ class SwitchToIf(NodeTransformer):
             else:
                 return super().generic_visit(node)
 
-        def visit_Break(self, node): #pylint: disable=invalid-name,unused-argument
+        def visit_Break(self, node): #pylint: disable=invalid-name
             """ changes breaks to Goto nodes """
-            return Goto(self.endlabel)
+            return Goto(self.endlabel, coord=node.coord)

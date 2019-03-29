@@ -21,7 +21,7 @@ int main(){
 from copy import deepcopy
 import pycparser.c_ast as AST
 from .lift_node import LiftNode
-from .type_helpers import get_type
+from .type_helpers import get_type, remove_identifier
 from .change_void_pointer import make_void_pointer
 from .sizeof import get_struct_offset
 
@@ -32,7 +32,7 @@ class StructRefToPointerArith(LiftNode):
         """ Remove by changing to pointer arithmetic """
         self.generic_visit(node)
         if node.type == '.':
-            reference = AST.UnaryOp('&', node.name)
+            reference = AST.UnaryOp('&', node.name, node.coord)
             struct_type = get_type(node.name, self.envr).type
         else: #node.type == '->'
             reference = node.name
@@ -41,17 +41,15 @@ class StructRefToPointerArith(LiftNode):
         offset, result_type = get_struct_offset(struct_type,
                                                 node.field,
                                                 self.envr)
-        arithmetic = AST.BinaryOp('+', void_ptr_cast, offset)
+        arithmetic = AST.BinaryOp('+', void_ptr_cast, offset, node.coord)
 
-        ptr_to_result = AST.Cast(make_ptr_of_type(result_type), arithmetic)
-        result = AST.UnaryOp('*', ptr_to_result)
+        ptr_to_result = AST.Cast(make_ptr_of_type(result_type), arithmetic,
+                                 coord=node.coord)
+        result = AST.UnaryOp('*', ptr_to_result, coord=node.coord)
 
         return deepcopy(result)
 
 def make_ptr_of_type(node):
     """ Nests a type in a PtrDecl """
-    if isinstance(node, AST.TypeDecl):
-        node.declname = None
-    elif isinstance(node, AST.ArrayDecl):
-        node.type.declname = None
-    return AST.PtrDecl([], node)
+    remove_identifier(node)
+    return AST.PtrDecl([], node, coord=node.coord)
