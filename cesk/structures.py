@@ -271,7 +271,7 @@ class Envr:
             name = 'global'
 
         if cnf.CONFIG['allocF'] == 'concrete':
-            value = Envr.next_frame_id
+            value = str(Envr.next_frame_id)+" "+str(name)
             Envr.next_frame_id += 1
         elif cnf.CONFIG['allocF'] == '0-cfa':
             value = name
@@ -718,7 +718,7 @@ class Kont: #pylint: disable=too-few-public-methods
     def allocK(state=None, nxt_ctrl=None, nxt_envr=None): #pylint: disable=invalid-name
         """ Generator for continuation addresses """
         if cnf.CONFIG['allocK'] == "concrete":
-            value = Kont.allocK_address
+            value = str(Kont.allocK_address)+" "+str(state.ctrl)
             Kont.allocK_address += 1
         elif cnf.CONFIG['allocK'] == "0-cfa":
             value = state.ctrl

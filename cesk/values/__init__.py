@@ -83,6 +83,7 @@ def generate_value(value, type_of):
         return Factory.getFloatClass().from_byte_value(value, type_of)
 
     if type_of == 'pointer':
+        #TODO change to be a pointer offset from null
         raise CESKException(
             'Pointer not expected here/not valid to change dynamically')
 
@@ -148,7 +149,6 @@ def cast(value, typedeclt, state=None):  # pylint: disable=unused-argument
     if isinstance(typedeclt, pycparser.c_ast.Typename):
         return cast(value, typedeclt.type, state)
 
-    logging.debug("Casting %s to type %s", str(value), repr(typedeclt))
     if isinstance(value, BV.SizedSet):
         result = BV.SizedSet(value.size)
         for item in value:
@@ -178,4 +178,5 @@ def cast(value, typedeclt, state=None):  # pylint: disable=unused-argument
         logging.error('\tUnsupported cast: %s', str(typedeclt.type))
         raise CESKException("Unsupported cast")
 
+    logging.debug("Cast %s to %s", str(value), str(result))
     return result

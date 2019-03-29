@@ -93,8 +93,6 @@ class Sequence(LiftNode):
                 if elements[i].op == '*' or elements[i].op == '&':
                     if isinstance(elements[i].expr, (ID, Constant)):
                         continue
-                    elements[i].expr = self.lift_from_func(elements[i].expr)
-                    continue
             elements[i] = self.lift_from_func(elements[i])
         return node
 

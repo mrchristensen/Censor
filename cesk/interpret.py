@@ -67,6 +67,7 @@ def handle_Goto(stmt, state): # pylint: disable=invalid-name
     '''Handles Gotos'''
     logging.debug('Goto %s', stmt.name)
     body = ls.LinkSearch.label_lut[stmt.name]
+    logging.debug(body)
     while not isinstance(body, AST.Compound):
         index = ls.LinkSearch.index_lut[body]
         body = ls.LinkSearch.parent_lut[body]

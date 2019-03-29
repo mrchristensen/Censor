@@ -1,6 +1,6 @@
 """Test DoWhileToGoto -- Replacing do-while loops with goto code"""
 
-from transforms.do_while_to_goto import DoWhileToGoto
+from transforms.loops_to_goto import WhileToGoto
 from transforms.id_generator import IDGenerator
 from tests.helpers import GoldenTestCase
 
@@ -14,7 +14,7 @@ class TestDoWhileToGoto(GoldenTestCase):
 
     def transform(self, ast):
         """Transform input AST"""
-        self.transformer = DoWhileToGoto(IDGenerator(ast))
+        self.transformer = WhileToGoto(IDGenerator(ast))
         return self.transformer.visit(ast)
 
     def test_simple_stmt(self):

@@ -9,6 +9,14 @@ class BreakToGoto(LiftNode):
 
     def visit_DoWhile(self, node): #pylint: disable=invalid-name
         """for each DoWhile, look for break statments"""
+        return self.visit_loop(node)
+
+    def visit_While(self, node): #pylint: disable=invalid-name
+        """ While breaks """
+        return self.visit_loop(node)
+
+    def visit_loop(self, node):
+        """ general function for removing breaks """
         node = self.generic_visit(node)
         break_placer = BreakPlacer(self.id_generator)
         node = break_placer.generic_visit(node)

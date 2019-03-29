@@ -1,5 +1,6 @@
 """Test WhileToDoWhile -- Replacing while with do while loops"""
-from transforms.while_to_do_while import WhileToDoWhile
+from transforms.loops_to_goto import WhileToGoto
+from transforms.id_generator import IDGenerator
 from tests.helpers import GoldenTestCase
 
 
@@ -9,10 +10,11 @@ class TestWhileToDoWhile(GoldenTestCase):
     def setUp(self):
         """Set up test variables needed for GoldenTestCase"""
         self.fixtures = '/test_transforms/fixtures/while_to_do_while'
-        self.transformer = WhileToDoWhile()
+        self.transformer = None
 
     def transform(self, ast):
         """Transform input AST"""
+        self.transformer = WhileToGoto(IDGenerator(ast))
         return self.transformer.visit(ast)
 
     def test_while_to_do_while(self):

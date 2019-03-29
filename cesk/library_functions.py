@@ -27,7 +27,7 @@ def free(state, args, return_address):#pylint: disable=unused-argument
     return {state.get_next()}, errs
 
 def __VERIFIER_nondet_int(state, args, return_address):#pylint: disable=unused-argument,invalid-name
-    value = values.generate_constant_value(str(random.randint(0, 9)), 'int')
+    value = values.generate_constant_value(str(random.randint(0, 2)), 'int')
     errs = set()
     if return_address is not None:
         errs = state.stor.write(return_address, value)
