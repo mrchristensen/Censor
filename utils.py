@@ -23,7 +23,7 @@ def find_main(ast):
 
 def is_main(ext):
     """Determines if an AST object is a FuncDef named main."""
-    return isinstance(ext, pycparser.c_ast.FuncDef) and ext.decl.name == 'main'
+    return isinstance(ext, pycparser.c_ast.FuncDef) and ext.decl.name == 'socket_cb'
 
 def sanitize(ast):
     """ Strip fake includes from preprocessed ast.
