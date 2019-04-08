@@ -103,7 +103,10 @@ def handle_FuncCall(stmt, state, address=None): # pylint: disable=invalid-name
         return {state.get_next()}, set()
     else:
         func_def_frame_addr = state.envr.get_address(stmt.name.name)
-        return func(stmt, state, func_def_frame_addr, address)
+        if func_def_frame_addr is None:
+            return {state.get_next()}, set()
+        else: 
+            return func(stmt, state, func_def_frame_addr, address)
 
 def func(stmt, state, func_def_frame_addr, address=None):
     '''handles most function calls delegated by handle_FuncCall'''

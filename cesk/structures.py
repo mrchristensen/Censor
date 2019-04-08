@@ -291,9 +291,12 @@ class Envr:
             return self.local_variables[ident]
         elif ident in Envr.global_envr:
             return Envr.global_envr.local_variables[ident]
-        raise CESKException(ident + " is not defined in this scope: " +
-                            str(self.frame_id))
-
+        # raise CESKException(ident + " is not defined in this scope: " +
+        #                     str(self.frame_id))
+        logging.debug(ident + " is not defined in this scope: " + str(self.frame_id))
+        print(ident + " is not defined in this scope: " + str(self.frame_id))
+        return None
+        
     def map_new_identifier(self, ident):
         """Add a new identifier to the mapping"""
         frame_addr = FrameAddress(self.frame_id, ident)
