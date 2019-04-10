@@ -294,7 +294,6 @@ class Envr:
         # raise CESKException(ident + " is not defined in this scope: " +
         #                     str(self.frame_id))
         logging.debug(ident + " is not defined in this scope: " + str(self.frame_id))
-        print(ident + " is not defined in this scope: " + str(self.frame_id))
         return None
         
     def map_new_identifier(self, ident):
