@@ -8,9 +8,6 @@ import cesk.values as values
 
 def hashmap_get(state, args, return_address):#pylint: disable=unused-argument
     '''mocks the functionality of hashmap_get()'''
-    logging.debug("Args of hashmap_get " + str(args))
-    logging.debug("state of hashmap_get " + str(state))
-    logging.debug("return_address of hashmap_get " + str(return_address))
     value = values.generate_null_pointer()
     state.stor.write(return_address, value)
     return {state.get_next()}, {}

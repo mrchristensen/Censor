@@ -65,7 +65,11 @@ from .struct_ref_to_pointer import StructRefToPointerArith
 from .remove_typedef import RemoveTypedef
 from .break_to_goto import BreakToGoto
 from .alpha_name import AlphaName
+<<<<<<< HEAD
 from .enum import Enum
+=======
+from .setjmp import Setjmp
+>>>>>>> origin
 
 # other imports
 from .id_generator import IDGenerator
@@ -121,7 +125,13 @@ def get_transformers(ast):
     yield (ForToWhile, lambda ast: [])
     yield (BreakToGoto,
            lambda ast: [id_generator, type_env_calc.get_environments(ast)])
+<<<<<<< HEAD
     yield (WhileToGoto, lambda ast: [id_generator])
+=======
+    yield (DoWhileToGoto, lambda ast: [id_generator])
+    yield (Setjmp,
+           lambda ast: [])
+>>>>>>> origin
     yield (Sequence,
            lambda ast: [id_generator, type_env_calc.get_environments(ast)])
     yield (IfToIfGoto, lambda ast: [id_generator])
