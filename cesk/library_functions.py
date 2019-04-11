@@ -8,16 +8,26 @@ import cesk.values as values
 
 def hashmap_get(state, args, return_address):#pylint: disable=unused-argument
     '''mocks the functionality of hashmap_get()'''
-    logging.debug("Args of hashmap_get " + str(args))
-    logging.debug("state of hashmap_get " + str(state))
-    logging.debug("return_address of hashmap_get " + str(return_address))
     value = values.generate_null_pointer()
     state.stor.write(return_address, value)
     return {state.get_next()}, {}
 
 def socket(state, args, return_address):#pylint: disable=unused-argument
-    '''mocks the functionality of socket()'''
+    '''mocks the functionality of socket(int domain, int type, int protocol)'''
     #TODO make this top
+    value = values.generate_constant_value(str(random.randint(0, 2)), 'int')
+    state.stor.write(return_address, value)
+    return {state.get_next()}, {}
+
+def calloc(state, args, return_address):
+    '''mocks the functionality of calloc(size_t num, size_t size)'''
+    #TODO make calloc functionality like malloc
+    value = values.generate_null_pointer()
+    state.stor.write(return_address, value)
+    return {state.get_next()},  {}
+
+def evutil_make_socket_nonblocking(state, args, return_address):
+    '''mocks the functionality of evutil_make_socket_nonblocking(evutil_socket_t sock)'''
     value = values.generate_constant_value(str(random.randint(0, 2)), 'int')
     state.stor.write(return_address, value)
     return {state.get_next()}, {}
