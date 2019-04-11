@@ -5,7 +5,6 @@ import re
 import random
 import cesk.values as values
 
-
 def hashmap_get(state, args, return_address):#pylint: disable=unused-argument
     '''mocks the functionality of hashmap_get()'''
     value = values.generate_null_pointer()
@@ -15,6 +14,12 @@ def hashmap_get(state, args, return_address):#pylint: disable=unused-argument
 def socket(state, args, return_address):#pylint: disable=unused-argument
     '''mocks the functionality of socket(int domain, int type, int protocol)'''
     #TODO make this top
+    value = values.generate_constant_value(str(random.randint(0, 2)), 'int')
+    state.stor.write(return_address, value)
+    return {state.get_next()}, {}
+
+def nla_len(state, args, return_address):
+    '''mocks the functionality of nla_len()'''
     value = values.generate_constant_value(str(random.randint(0, 2)), 'int')
     state.stor.write(return_address, value)
     return {state.get_next()}, {}
