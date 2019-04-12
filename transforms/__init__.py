@@ -65,10 +65,7 @@ from .struct_ref_to_pointer import StructRefToPointerArith
 from .remove_typedef import RemoveTypedef
 from .break_to_goto import BreakToGoto
 from .alpha_name import AlphaName
-<<<<<<< HEAD
 from .enum import Enum
-=======
->>>>>>> commit
 from .setjmp import Setjmp
 
 # other imports
