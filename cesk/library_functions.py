@@ -24,13 +24,6 @@ def nla_len(state, args, return_address):
     state.stor.write(return_address, value)
     return {state.get_next()}, {}
 
-def calloc(state, args, return_address):
-    '''mocks the functionality of calloc(size_t num, size_t size)'''
-    #TODO make calloc functionality like malloc
-    value = values.generate_null_pointer()
-    state.stor.write(return_address, value)
-    return {state.get_next()},  {}
-
 def evutil_make_socket_nonblocking(state, args, return_address):
     '''mocks the functionality of evutil_make_socket_nonblocking(evutil_socket_t sock)'''
     value = values.generate_constant_value(str(random.randint(0, 2)), 'int')
