@@ -15,7 +15,7 @@ import cesk
 from cesk.exceptions import CESKException
 
 def run_interpreter(ast, results, graph_name):
-    """ function for redirecting the output of main to a file and
+    """ function for  redirecting the output of main to a file and
         returning the result as a string  """
     output = tempfile.NamedTemporaryFile()
     prev = sys.stdout
