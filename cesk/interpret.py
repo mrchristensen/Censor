@@ -1073,4 +1073,3 @@ def is_malloc(stmt):
         stmt = stmt.expr
     return (isinstance(stmt, AST.FuncCall) and
             stmt.name.name == 'malloc')
->>>>>>> Mock for Socket()
