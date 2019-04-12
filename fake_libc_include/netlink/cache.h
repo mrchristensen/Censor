@@ -18,7 +18,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-struct nl_cache;
+//struct nl_cache;
 typedef void (*change_func_t)(struct nl_cache *, struct nl_object *, int, void *);
 /* Access Functions */
 extern int			nl_cache_nitems(struct nl_cache *);

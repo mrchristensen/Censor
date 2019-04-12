@@ -66,7 +66,6 @@ from .remove_typedef import RemoveTypedef
 from .break_to_goto import BreakToGoto
 from .alpha_name import AlphaName
 from .enum import Enum
-from .setjmp import Setjmp
 
 # other imports
 from .id_generator import IDGenerator
@@ -123,8 +122,6 @@ def get_transformers(ast):
     yield (BreakToGoto,
            lambda ast: [id_generator, type_env_calc.get_environments(ast)])
     yield (WhileToGoto, lambda ast: [id_generator])
-    yield (Setjmp,
-           lambda ast: [])
     yield (Sequence,
            lambda ast: [id_generator, type_env_calc.get_environments(ast)])
     yield (IfToIfGoto, lambda ast: [id_generator])

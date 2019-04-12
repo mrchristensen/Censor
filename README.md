@@ -49,5 +49,3 @@ As a temporary fix, we cloned the pycparser master branch from github (https://g
 [//]: # (## observer todo)
 
 [//]: # (## censor todo)
-- Tests can be found in /tests, /cesk/tests, and /regression/tests.
-- Execute `python3 all_tests.py` to run the tests.
