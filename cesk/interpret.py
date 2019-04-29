@@ -93,13 +93,13 @@ def handle_FuncCall(stmt, state, address=None): # pylint: disable=invalid-name
         results, errs = getattr(lib_func, stmt.name.name)(state, args, address)
         error_states.update(errs)
         return results, error_states
-    elif stmt.name.name == "malloc":
+    elif stmt.name.name in ['malloc', 'calloc']:
         return {state.get_next()}, set()
     else:
         func_def_frame_addr = state.envr.get_address(stmt.name.name)
         if func_def_frame_addr is None:
             return {state.get_next()}, set()
-        else: 
+        else:
             return func(stmt, state, func_def_frame_addr, address)
 
 def func(stmt, state, func_def_frame_addr, address=None):
@@ -309,8 +309,8 @@ def assignment_helper(operator, address, exp, state):
     if operator == '=':
         value = None
         errors = set()
-        if is_malloc(exp):
-            value = malloc(exp, state)
+        if is_mem_alloc(exp):
+            value = mem_alloc(exp, state)
         elif isinstance(exp, AST.FuncCall):
             return handle_FuncCall(exp, state, address)
         else:
@@ -465,30 +465,40 @@ def get_address(reference, state):
     else:
         raise CESKException("Unsupported lvalue " + str(reference))
 
-def malloc(exp, state):
-    """ Calls malloc and evaluates the cast """
+def mem_alloc(exp, state):
+    """ Calls the appropriate memory allocation and evaluates the cast """
+    logging.debug("memory alloc exp: " + str(exp))
+    logging.debug("memory alloc state: " + str(state))
+    logging.debug("memory alloc exp.expr.name.name: " + str(exp.expr.name.name))
     if isinstance(exp, AST.Cast):
-        malloc_call = exp
-        while isinstance(malloc_call, AST.Cast): #handle nested cast
-            malloc_type = malloc_call.to_type
-            malloc_call = malloc_call.expr
+        mem_alloc_call = exp
+        while isinstance(mem_alloc_call, AST.Cast): #handle nested cast
+            mem_alloc_type = mem_alloc_call.to_type
+            mem_alloc_call = mem_alloc_call.expr
 
-        if isinstance(malloc_type, AST.Typename):
-            malloc_type = malloc_type.type.type
+        if isinstance(mem_alloc_type, AST.Typename):
+            mem_alloc_type = mem_alloc_type.type.type
         else:
-            malloc_type = malloc_type.type
+            mem_alloc_type = mem_alloc_type.type
         size_list = []
-        ls.get_sizes(malloc_type, size_list)
-        malloc_result = malloc_helper(malloc_call, state, size_list)
-        malloc_result = cast(malloc_result, exp.to_type, state)
+        ls.get_sizes(mem_alloc_type, size_list)
+        mem_alloc_result = mem_alloc_helper(mem_alloc_call, state, size_list)
+        mem_alloc_result = cast(mem_alloc_result, exp.to_type, state)
     else:
-        raise CESKException("Malloc appeared without a cast")
-        #malloc_result = malloc(exp, state, [1])
-    return malloc_result
+        raise CESKException("Memory allocation appeared without a cast")
+        #mem_alloc_result = mem_alloc(exp, state, [1])
+    return mem_alloc_result
 
-def malloc_helper(stmt, state, break_up_list):
-    '''performs malloc returns CESKPointer to allocated memory'''
-    param = stmt.args.exprs[0]
+def mem_alloc_helper(stmt, state, break_up_list):
+    '''performs memory allocation and returns CESKPointer to allocated memory'''
+    if stmt.name.name == "malloc":
+        param = stmt.args.exprs[0]
+    #TODO Implement spesifics of calloc (write all alloc with nmemb)
+    elif stmt.name.name == "calloc": 
+        param = stmt.args.exprs[1]
+    else:
+        logging.debug("Failed allocation type: " + str(stmt.name.name))
+        raise CESKException("Unknown type of memory allocation")
     if isinstance(param, AST.Constant):
         #could fetch this concretely no matter what
         value = generate_constant_value(param.value, param.type)
@@ -500,7 +510,7 @@ def malloc_helper(stmt, state, break_up_list):
         value, _ = get_value(param, state) #possibilty of ignored errors
 
     num_bytes = get_int_data(value)
-    logging.info("Malloc(%d) with structure: %s", num_bytes, str(break_up_list))
+    logging.info("Memory allocation(%d) with structure: %s", num_bytes, str(break_up_list))
     heap_pointer = state.stor.allocH(state)
 
     block_size = sum(break_up_list)
@@ -513,9 +523,9 @@ def malloc_helper(stmt, state, break_up_list):
                                     num_blocks, leftover)
     return pointer
 
-def is_malloc(stmt):
-    """ check to see if a function is a call to malloc """
+def is_mem_alloc(stmt):
+    """ check to see if a function is a memory allocation call - currently checking for malloc and calloc """
     while isinstance(stmt, AST.Cast):
         stmt = stmt.expr
     return (isinstance(stmt, AST.FuncCall) and
-            stmt.name.name == 'malloc')
+            (stmt.name.name in ['malloc', 'calloc']))
