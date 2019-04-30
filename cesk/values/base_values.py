@@ -1,3 +1,4 @@
+from copy import deepcopy
 from cesk.exceptions import CESKException, TransformError, \
                             MemoryAccessViolation
 
@@ -189,14 +190,17 @@ class ByteValue:
         self.size = size
 
     def append(self, other):
-        """ increase self by others size and add its bits to self """
-        self.size += other.size
-        self.bits.extend(other.bits)
+        """ increase self by others size and add its bits to self 
+            Warning this fuction does not mutate it only copies and appends"""
+        result = ByteValue()
+        result.size = self.size + other.size
+        result.bits = self.bits + other.bits
+        return result
 
     def get_byte_value(self, start=-1, num_bytes=None):
         """ dummy to make casting easier """
         if start == -1:
-            return self
+            return deepcopy(self)
         if start+num_bytes > self.size:
             raise CESKException("Request for too many bytes from byte value")
         value = ByteValue()
@@ -243,6 +247,12 @@ class ByteValue:
 
     def __str__(self):
        return str(self.bits)
+
+    def __eq__(self, other):
+        return str(self) == str(other)
+
+    def __hash__(self):
+        return hash(str(self))
  
 class UnitializedValue(ArithmeticValue):
     """ Type to represent a unitialized value of a certian size """
@@ -261,6 +271,10 @@ class UnitializedValue(ArithmeticValue):
         """Returns a bool denoting what truth value the ArithmeticValue would
         have if it were inside of an if statement in C"""
         raise MemoryAccessViolation(UnitializedValue.bad_use_str)
+
+    def get_block(self):
+        """Mimics a pointer trying to access unitialized values."""
+        raise MemoryAccessViolation(UnitializedValue.bad_use_str)        
 
     def get_byte_value(self, offset=-1, num_bytes=None):
         """ Returns x random bytes, should only be valid if called from write """
@@ -294,12 +308,14 @@ class SizedSet(set):
             if isinstance(value, SizedSet):
                 for right in value:
                     val = left.perform_operation(operator, right)
+                    if result is None:
+                        result = SizedSet(val.size)
+                    result.add(val)
             else:
                 val = left.perform_operation(operator, value)
-
-            if result is None:
-                result = SizedSet(val.size)
-            result.add(val)
+                if result is None:
+                    result = SizedSet(val.size)
+                result.add(val)
         return result
 
     def get_byte_value(self, offset=-1, num_bytes=None):

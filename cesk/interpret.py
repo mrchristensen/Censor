@@ -7,8 +7,6 @@ from cesk.structures import (State, Ctrl, Envr, Kont, FrameAddress)
 import cesk.linksearch as ls
 import cesk.library_functions as lib_func
 from cesk.exceptions import CESKException
-logging.basicConfig(filename='logfile.txt', level=logging.DEBUG,
-                    format='%(levelname)s: %(message)s', filemode='w')
 
 def execute(state):
     """Takes a state evaluates the stmt from ctrl and returns a set of
@@ -93,7 +91,7 @@ def handle_FuncCall(stmt, state, address=None): # pylint: disable=invalid-name
         results, errs = getattr(lib_func, stmt.name.name)(state, args, address)
         error_states.update(errs)
         return results, error_states
-    elif stmt.name.name == "malloc":
+    elif is_malloc(stmt):
         return {state.get_next()}, set()
     else:
         func_def_frame_addr = state.envr.get_address(stmt.name.name)
@@ -118,6 +116,12 @@ def func(stmt, state, func_def_frame_addr, address=None):
             param_list = []
         else:
             param_list = func_def.decl.type.args.params
+            if len(param_list) == 1 and \
+                    isinstance(param_list[0], AST.Typename) and \
+                    isinstance(param_list[0].type, AST.TypeDecl) and \
+                    isinstance(param_list[0].type.type, AST.IdentifierType) and\
+                    param_list[0].type.type.names[0] == 'void':
+                param_list = []
         if len(expr_list) != len(param_list):
             raise CESKException("Function " + func_def.decl.name +
                                 " expected " +
@@ -386,6 +390,7 @@ def get_value(stmt, state): #pylint: disable=too-many-return-statements
     elif isinstance(stmt, AST.ID):
         return state.stor.read(get_address(stmt, state)[0])
     elif isinstance(stmt, AST.Cast):
+        logging.debug(stmt.expr)
         value, errors = get_value(stmt.expr, state)
         value = cast(value, stmt.to_type, state)
         return value, errors
@@ -440,12 +445,15 @@ def get_address(reference, state):
                 return state.stor.read(pointer) #safe
             elif isinstance(name, AST.UnaryOp) and name.op == "&":
                 return get_address(name.expr, state) #They cancel out
-            elif (isinstance(name, AST.Cast) and
-                  isinstance(name.to_type, AST.PtrDecl)):
+            elif isinstance(name, AST.Cast):
+                if isinstance(name.to_type, AST.PtrDecl):
+                    to_type = name.to_type
+                elif isinstance(name.to_type, AST.Typename):
+                    to_type = name.to_type.type
                 address, errors = get_address(name.expr, state)
                 address, errs = state.stor.read(address)
                 errors.update(errs)
-                address = cast(address, name.to_type, state)
+                address = cast(address, to_type, state)
                 return address, errors
             else:
                 raise CESKException("Unknown Case for UnaryOp, nested part is "
@@ -479,12 +487,14 @@ def malloc(exp, state):
         malloc_result = malloc_helper(malloc_call, state, size_list)
         malloc_result = cast(malloc_result, exp.to_type, state)
     else:
-        raise CESKException("Malloc appeared without a cast")
-        #malloc_result = malloc(exp, state, [1])
+        #raise CESKException("Malloc appeared without a cast")
+        logging.error("Malloc with no cast")
+        malloc_result = malloc_helper(exp, state, [1])
     return malloc_result
 
 def malloc_helper(stmt, state, break_up_list):
     '''performs malloc returns CESKPointer to allocated memory'''
+    #TODO apply special handling to alloca and calloc
     param = stmt.args.exprs[0]
     if isinstance(param, AST.Constant):
         #could fetch this concretely no matter what
@@ -515,4 +525,4 @@ def is_malloc(stmt):
     while isinstance(stmt, AST.Cast):
         stmt = stmt.expr
     return (isinstance(stmt, AST.FuncCall) and
-            stmt.name.name == 'malloc')
+            stmt.name.name in ['malloc', 'alloca', 'calloc'])

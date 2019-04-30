@@ -62,6 +62,7 @@ class RemoveMultidimensionalArray(LiftNode):
 
     def visit_ArrayRef(self, node): #pylint: disable=invalid-name
         """ Simplifies ArrayRef to a single dimension """
+        node.subscript = self.generic_visit(node.subscript)
         node = self.visit_array_ref(node)
         return node
 

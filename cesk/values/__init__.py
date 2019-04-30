@@ -51,6 +51,13 @@ def int_constant(value):
 
 def char_constant(value):
     """ handle makeing a const char constant """
+    if isinstance(value, str):
+        if len(value) == 1:
+            return ord(value), 'char'
+        if value[0] == "'":
+            return char_constant(value[1:-1])
+        if value[0] == "\\":
+            return int(value[1:]), 'char'
     return value, 'char'
 
 # needs to know what size it needs to be sometimes
@@ -62,6 +69,7 @@ def generate_constant_value(value, type_of='int'):
     elif type_of == 'float' or type_of == 'double':
         return Factory.Float(*float_constant(value))
     elif type_of == 'int':
+        logging.debug(value)
         return Factory.Integer(*int_constant(value))
     elif type_of == 'char':
         return Factory.Char(*char_constant(value))
@@ -85,7 +93,7 @@ def generate_value(value, type_of):
     if type_of == 'pointer':
         #TODO change to be a pointer offset from null
         raise CESKException(
-            'Pointer not expected here/not valid to change dynamically')
+            'Pointer not expected here/not valid to create dynamically')
 
     if type_of == 'uninitialized' or type_of == 'bit_value':
         #debate whether this should return an Integer or BV.ByteValue
@@ -150,9 +158,13 @@ def cast(value, typedeclt, state=None):  # pylint: disable=unused-argument
         return cast(value, typedeclt.type, state)
 
     if isinstance(value, BV.SizedSet):
-        result = BV.SizedSet(value.size)
+        sizes = []
+        get_sizes(typedeclt, sizes)  # returns alignment
+        size = sum(sizes)
+        result = BV.SizedSet(size)
         for item in value:
-            result.add(cast(item, typedeclt, state))
+            new_item = cast(item, typedeclt, state)
+            result.add(new_item)
     #typedeclt could be a PtrDecl in the c_ast
     elif isinstance(typedeclt, pycparser.c_ast.PtrDecl):
         #value could be a baseValue(see base_values.py) of ReferenceValue
@@ -173,6 +185,7 @@ def cast(value, typedeclt, state=None):  # pylint: disable=unused-argument
     elif isinstance(typedeclt, pycparser.c_ast.TypeDecl):
         types = typedeclt.type.names
         byte_value = value.get_byte_value()
+        logging.debug(byte_value)
         result = generate_value(byte_value, " ".join(types))
     else:
         logging.error('\tUnsupported cast: %s', str(typedeclt.type))

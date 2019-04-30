@@ -90,7 +90,7 @@ class LiftToCompoundBlock(LiftNode):
         elif isinstance(value, (AST.StructRef, AST.ArrayRef)):
             ref = self.lift_to_ptr(value)
         elif isinstance(value, AST.FuncCall):
-            if value.name.name == "malloc":
+            if value.name.name in ["malloc", "alloca", "calloc"]:
                 pass # edge case: don't lift malloc (cast type remains)
             else:
                 ref = self.lift_to_value(value)

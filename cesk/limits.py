@@ -19,10 +19,10 @@ class StructPackingScheme(Enum):
 
 #actual min size of floats and doubles are unspecified, but this matches
 # the min requirements with IEEE standard for floating point representation
-STD_MIN_BYTE_WIDTHS = {'char':1, 'short':2, 'int':2, 'long':4,
+STD_MIN_BYTE_WIDTHS = {'_Bool':1, 'char':1, 'short':2, 'int':2, 'long':4,
                        'long long':8, 'float':4, 'double':8,
                        'long double':8, 'void':1, 'word':4}
-GCC_SPICEY_BYTE_WIDTHS = {'char':1, 'short':2, 'int':4, 'long':8,
+GCC_SPICEY_BYTE_WIDTHS = {'_Bool':1, 'char':1, 'short':2, 'int':4, 'long':8,
                           'long long':8, 'float':4, 'double':8,
                           'long double':16, 'void':1, 'word':8}
 
@@ -57,7 +57,8 @@ def get_size_identifier(identifiers):
     """ returns the combined string to look up in the size_dict """
     typ = None
     for identifier in identifiers:
-        if identifier in ['long', 'float', 'double', 'char', 'short', 'void']:
+        if identifier in ['_Bool', 'long', 'float', 'double',
+                          'char', 'short', 'void']:
             if typ:
                 typ += ' '+identifier
             else:
@@ -97,6 +98,7 @@ def set_alias():
     #signed char
 
     #unsigned char
+    RANGES["_Bool"] = RANGES["unsigned char"]
 
     #short
     #short int

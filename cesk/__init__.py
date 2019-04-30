@@ -12,6 +12,8 @@ import cesk.linksearch as ls
 from cesk.exceptions import CESKException, MemoryAccessViolation, \
                             UnknownConfiguration
 from cesk.values import generate_function_definition
+logging.basicConfig(filename='logfile.txt', level=logging.DEBUG,
+                    format='%(levelname)s: %(message)s', filemode='w')
 
 class StateEnumaration: #pylint: disable=too-few-public-methods
     """ Keeps track of information about a state """

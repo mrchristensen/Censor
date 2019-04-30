@@ -8,6 +8,7 @@ from cesk.values import generate_unitialized_value
 from cesk.values import generate_null_pointer
 from cesk.values import generate_pointer, generate_value
 from cesk.values.base_values import ByteValue, SizedSet
+from cesk.values.factory import Factory
 import cesk.config as cnf
 from cesk.exceptions import MemoryAccessViolation, UnknownConfiguration, \
                            CESKException
@@ -327,7 +328,7 @@ class Envr:
     def __str__(self):
         return str(self.frame_id)
 
-class MemoryBlock:
+class MemoryBlock: #pylint: disable=too-many-instance-attributes
     """ Block of Memory """
 
     def __init__(self, sizes, length, extra):
@@ -350,9 +351,11 @@ class MemoryBlock:
 
         if cnf.CONFIG['store_update'] == 'strong':
             self.write = self.strong_write
+            self.read = self.strong_read
             self.add = lambda s, v: s.add(v)
         elif cnf.CONFIG['store_update'] == 'weak':
             self.write = self.weak_write
+            self.read = self.weak_read
             self.add = lambda s, v: s.update(v)
         else:
             raise UnknownConfiguration('store_update')
@@ -400,7 +403,31 @@ class MemoryBlock:
         else: #is abstract literal top
             return False #add possible memory error here
 
-    def read(self, offset, read_size):
+    def strong_read(self, offset, read_size):
+        """ return value or set of values based on read """
+        if self.not_in_block(offset, read_size):
+            raise MemoryAccessViolation("Illegal Read")
+
+        index, start = self._get_index(offset)[0]
+        if start == 0 and self.block[index].size == read_size:
+            return self.block[index]
+
+        #immoral read over/within byte boundary
+        byte_value = ByteValue()
+        bytes_to_read = read_size
+        value = self.block[index]
+        while bytes_to_read > 0:
+            num_possible = min(bytes_to_read, value.size - start)
+            value = value.get_byte_value(start, num_possible)
+            byte_value = byte_value.append(value)
+            bytes_to_read -= num_possible
+            if bytes_to_read > 0:
+                index += 1
+                start = 0
+                value = self.block[index]
+        return byte_value
+
+    def weak_read(self, offset, read_size):
         """ return value or set of values based on read """
         if self.not_in_block(offset, read_size):
             raise MemoryAccessViolation("Illegal Read")
@@ -408,25 +435,30 @@ class MemoryBlock:
         result = SizedSet(read_size)
         for index, start in self._get_index(offset):
             if start == 0 and self.block[index].size == read_size:
-                self.add(result, self.block[index])
+                result.update(self.block[index])
                 continue
             #immoral read over/within byte boundary
-            byte_value = ByteValue()
+            byte_values = {ByteValue()}
             bytes_to_read = read_size
             value = self.block[index]
             while bytes_to_read > 0:
                 num_possible = min(bytes_to_read, value.size - start)
-                byte_value.append(value.get_byte_value(start, num_possible))
+                values = value.get_byte_value(start, num_possible)
+                old_byte_values = byte_values
+                byte_values = set()
+                for front in old_byte_values:
+                    for back in values:
+                        byte_values.add(front.append(back))
                 bytes_to_read -= num_possible
                 if bytes_to_read > 0:
                     index += 1
                     start = 0
                     value = self.block[index]
-            self.add(result, byte_value)
+            result.update(byte_values)
 
         #return result
-        if len(result) == 1 and cnf.CONFIG['store_update'] == 'strong':
-            return result.pop()
+        if not result:
+            raise MemoryAccessViolation("Read from Unasigned Address")
         else:
             return result
 
@@ -462,7 +494,7 @@ class MemoryBlock:
                 able_to_write = min(bytes_to_write, bytes_in_store)
 
                 #get value from data being written
-                new_data.append(
+                new_data = new_data.append(
                     value.get_byte_value(bytes_written, able_to_write))
 
                 bytes_to_write -= able_to_write
@@ -477,7 +509,7 @@ class MemoryBlock:
                 elif bytes_in_store > able_to_write:
                     #get rest of object then write
                     offset = start+able_to_write
-                    new_data.append(
+                    new_data = new_data.append(
                         old_value.get_byte_value(offset,
                                                  bytes_in_store-able_to_write))
                     self._write_on_offset(index, new_data, old_value)
@@ -604,6 +636,8 @@ class Stor: #pylint: disable=too-many-instance-attributes
                     result.update(temp)
                 except MemoryAccessViolation as error:
                     errors.add(str(error))
+            if result is None:
+                raise MemoryAccessViolation(str(errors))
             return result, errors
 
         if address in self.base_pointers:
@@ -611,9 +645,14 @@ class Stor: #pylint: disable=too-many-instance-attributes
 
         logging.info("Reading %s", str(address))
         self._check_address(address.get_block(), 'read')
-
+        if isinstance(address.offset, int):
+            offset = address.offset
+        elif isinstance(address.offset, Factory.getIntegerClass()):
+            offset = address.offset.data
+        else:
+            raise CESKException("Unknown Offset Type")
         return self.memory[address.get_block()].read(
-            address.offset, address.type_size), set()
+            offset, address.type_size), set()
 
     def write(self, address, value):
         """ Calls strong or weak write as determined by configuration """
@@ -637,7 +676,13 @@ class Stor: #pylint: disable=too-many-instance-attributes
         logging.info("Write %s to %s", str(value), str(address))
         logging.debug("Write size %d", value.size)
         self._check_address(address.get_block(), 'write')
-        if self.memory[address.get_block()].write(address.offset, value):
+        if isinstance(address.offset, int):
+            offset = address.offset
+        elif isinstance(address.offset, Factory.getIntegerClass()):
+            offset = address.offset.data
+        else:
+            raise CESKException("Unknown Offset Type")
+        if self.memory[address.get_block()].write(offset, value):
             self.time += 1
 
         return set()
@@ -660,7 +705,13 @@ class Stor: #pylint: disable=too-many-instance-attributes
             address = self.base_pointers[address]
 
         self._check_address(address.get_block(), 'free')
-        if address.offset != 0:
+        if isinstance(address.offset, int):
+            offset = address.offset
+        elif isinstance(address.offset, Factory.getIntegerClass()):
+            offset = address.offset.data
+        else:
+            raise CESKException("Unknown Offset Type")
+        if offset != 0:
             raise MemoryAccessViolation("Can only free a base pointer")
 
         self.memory[address.get_block()].free()

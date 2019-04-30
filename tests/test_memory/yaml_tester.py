@@ -41,7 +41,7 @@ class YamlTestCase(unittest.TestCase):
             if test_case[-2:] == '.i':
                 test_case = test_case[:-1] + 'c'
             output = subprocess.check_output(['python3', '../cesk_main.py',\
-                test_case])
+                test_case, '-c', 'CONCRETE'])
 
             #maybe have includes here
             #if test_case[-2:] == '.c':
@@ -81,4 +81,5 @@ class YamlTestCase(unittest.TestCase):
                 print("Testing ", file)
                 pass_test, msg = self.run_c_file(os.path.join(file_path, file))
                 if not pass_test:
+                    print("\t", pass_test, msg)
                     self.failureException(msg)

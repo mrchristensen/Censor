@@ -2,19 +2,20 @@
     Abstracted integer object as its offset """
 from copy import deepcopy
 import cesk.limits as limits
+from cesk.exceptions import MemoryAccessViolation
 from .base_values import ReferenceValue, ByteValue, BaseInteger
 from .factory import Factory
-from .abstract_literals import AbstractLiterals
-
 
 class AbstractPointer(ReferenceValue):  #pylint:disable=too-few-public-methods
     """ implementation of a Pointer to a store address.
         if it changes by a non const amount then it is top """
 
-    def __init__(self, address, type_size, offset=0):
+    def __init__(self, address, type_size, offset=Factory.Integer(0, 'long')):
         self.data = int(address)
         self.size = limits.CONFIG.get_word_size()
         self.type_size = type_size
+        if isinstance(offset, int):
+            offset = Factory.Integer(offset, 'long')
         self.offset = offset
         self.type_of = 'pointer'
 
@@ -43,13 +44,8 @@ class AbstractPointer(ReferenceValue):  #pylint:disable=too-few-public-methods
 
     def __add__(self, other):
         ptr = deepcopy(self)
-        if isinstance(other, Factory.getIntegerClass()):
-            if isinstance(other.data, int):
-                ptr.offset += other.data
-            else:
-                ptr.offset = AbstractLiterals.TOP
-        elif isinstance(other, int):
-            ptr.offset += other
+        if isinstance(other, (Factory.getIntegerClass(), int)):
+            ptr.offset = ptr.offset + other
         else:
             raise Exception("Pointers can only be added to int")
         return ptr
@@ -57,16 +53,19 @@ class AbstractPointer(ReferenceValue):  #pylint:disable=too-few-public-methods
     def __sub__(self, other):
         ptr = deepcopy(self)
         if isinstance(other, Factory.getIntegerClass()):
-            ptr.offset += -1 * other.data
+            ptr.offset = ptr.offset - other
             return ptr
         elif isinstance(other, int):
-            ptr.offset += -1 * other
+            ptr.offset = ptr.offset - Factory.Integer(other, 'long')
             return ptr
         elif isinstance(other, Factory.getPointerClass()):
-            return Factory.Integer(self.get_byte_value(), 'long') - \
-                   Factory.Integer(other.get_byte_value(), 'long')
+            if self.get_block() != other.get_block():
+                raise MemoryAccessViolation("Invalid pointer difference")
+            return Factory.Integer(self.offset.data, 'long') - \
+                   Factory.Integer(other.offset.data, 'long')
         else:
-            raise Exception("Pointers can only be subtracted by int")
+            raise Exception("Pointers can only be subtracted by int,"+
+                            " or used in pointer difference.")
 
     def __hash__(self):
         return ((self.data*7)+3)*hash(self.offset)
