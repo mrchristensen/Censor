@@ -5,9 +5,25 @@ import re
 import random
 import cesk.values as values
 
+def mocked_function(state, args, return_address):#pylint: disable=unused-argument
+    '''returns two values to the store, 1 and 2, in order to test the weak store functionality'''
+    value = values.generate_constant_value(str(1), 'int')
+    state.stor.write(return_address, value)
+    value = values.generate_constant_value(str(2), 'int')
+    state.stor.write(return_address, value)
+    return {state.get_next()}, {}
+
 def hashmap_get(state, args, return_address):#pylint: disable=unused-argument
-    '''mocks the functionality of hashmap_get()'''
+    '''mocks the functionality of void* hashmap_get(hmap_t* map, unsigned long key)'''
     value = values.generate_null_pointer()
+    state.stor.write(return_address, value)
+    return {state.get_next()}, {}
+
+def hashmap_add(state, args, return_address):#pylint: disable=unused-argument
+    '''mocks the functionality of int hashmap_add(hmap_t* map, unsigned long key, void* value)'''
+    value = values.generate_constant_value(str(0), 'int')
+    state.stor.write(return_address, value)
+    value = values.generate_constant_value(str(1), 'int')
     state.stor.write(return_address, value)
     return {state.get_next()}, {}
 
@@ -28,6 +44,11 @@ def evutil_make_socket_nonblocking(state, args, return_address):
     '''mocks the functionality of evutil_make_socket_nonblocking(evutil_socket_t sock)'''
     value = values.generate_constant_value(str(random.randint(0, 2)), 'int')
     state.stor.write(return_address, value)
+    return {state.get_next()}, {}
+
+def tls_server_wrapper_setup(state, args, return_address):
+    '''mocks the functionality of tls_conn_ctx_t* tls_server_wrapper_setup(evutil_socket_t efd, evutil_socket_t ifd, tls_daemon_ctx_t* daemon_ctx,
+	tls_opts_t* tls_opts, struct sockaddr* internal_addr, int internal_addrlen)'''
     return {state.get_next()}, {}
 
 def printf(state, args, return_address):#pylint: disable=unused-argument
