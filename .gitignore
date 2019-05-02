@@ -93,3 +93,6 @@ stuff.dot - before socket_mock.pdf
 stuff.dot - nornal quote on quote - 43 states.pdf
 stuff.dot w slots.pdf
 preprocessed.c
+tempfile~
+ast_pickle.pkl
+.gitignore
