@@ -20,6 +20,10 @@ class ConcreteInteger(BV.BaseInteger): #pylint:disable=too-few-public-methods
             self.min_value, self.max_value = limits.RANGES[type_of]
             self.data = self.bound(data)
 
+    def get_truth_value(self):
+        """ Truth value of an integer """
+        return {self.data != 0}
+
     def __add__(self, other):
         value = self.bound(self.data + other.data)
         return Factory.Integer(value, self.type_of, self.size)
@@ -89,10 +93,17 @@ class ConcreteInteger(BV.BaseInteger): #pylint:disable=too-few-public-methods
         """ Method for Integer Generation from a byte value """
         data = 0
         place = 1
-        for byte in [byte_value.bits[i:i+8]
-                     for i in range(0, len(byte_value.bits), 8)]:
+        look_for = BV.ByteValue.one
+        byte_list = [byte_value.bits[i:i+8]
+                     for i in range(0, len(byte_value.bits), 8)]
+        if 'unsigned' not in type_of:
+            if byte_list[-1][0] == BV.ByteValue.one: #negative number
+                look_for = BV.ByteValue.zero
+                place = -1
+                data = -1
+        for byte in byte_list:
             for bit in byte[::-1]:
-                if bit == BV.ByteValue.one:
+                if bit == look_for:
                     data += place
                 elif bit == BV.ByteValue.top:
                     data += place*random.randint(0, 1)#unknown pick ranodm value

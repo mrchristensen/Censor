@@ -33,6 +33,10 @@ class AlphaName(NodeTransformer):
         '''Don't transform Structs, their decls are unique already'''
         return node
 
+    def visit_For(self, node): # pylint: disable=invalid-name
+        """ handles declarations in a for loop """
+        return self.visit_Compound(node)
+
     def visit_Compound(self, node): # pylint: disable=invalid-name
         '''Create new set for decls in this scope, put on stack
            do a generic visit

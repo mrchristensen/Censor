@@ -6,13 +6,20 @@ from .factory import Factory
 
 class KInteger(ConcreteInteger):
     """ Implementation of K-integer """
-    K = 100
+    K = 100 #TODO allow for dynamic configuration of K value
     def __init__(self, data, type_of, size=1):
         if isinstance(data, set):
             data = AL.TOP
         super().__init__(data, type_of, size)
         self.min_value = -1
         self.max_value = KInteger.K
+
+    def get_truth_value(self):
+        """ Set of truth values """
+        if self.data == AL.TOP:
+            return {True, False}
+        else:
+            return super(KInteger, self).get_truth_value()
 
     def __add__(self, other):
         if self.data == AL.TOP or other.data == AL.TOP:
@@ -100,7 +107,9 @@ class KInteger(ConcreteInteger):
     @classmethod
     def from_byte_value(cls, byte_value, type_of):
         """ Method for Integer Generation from a byte value """
+        import logging
         if BV.ByteValue.top in byte_value.bits:
+            logging.debug("Top Created")
             return Factory.Integer(AL.TOP, type_of)
         return super().from_byte_value(byte_value, type_of)
 
@@ -111,3 +120,9 @@ class KInteger(ConcreteInteger):
     def cast_to_float(self, to_type):
         """ cast to float """
         return Factory.Float(float(self.data), to_type)
+
+    def __hash__(self):
+        return hash(self.data)
+
+    def __eq__(self, other):
+        return self.data == other.data

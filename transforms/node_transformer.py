@@ -42,6 +42,8 @@ class NodeTransformer(AST.NodeVisitor):
         return node is None
 
     def generic_visit(self, node):
+        if node is None:
+            return node
         for field in node.__class__.__slots__:
             old_value = getattr(node, field, None)
             if self.skip(old_value):

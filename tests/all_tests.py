@@ -7,8 +7,7 @@ import unittest
 sys.path[0:0] = ['.', '..']
 
 SUITE = unittest.TestLoader().loadTestsFromNames(
-    [
-        #'test_memory.yaml_tester',
+    [   #'test_memory.yaml_tester'])"""
         'test_transforms.test_node_transformer',
         'test_transforms.test_for_to_while',
         'test_transforms.test_if_goto',
@@ -56,7 +55,7 @@ SUITE = unittest.TestLoader().loadTestsFromNames(
         'test_instrumenter.test_instrumenter',
         'test_ssl.test_correct_call_order'
     ]
-)
+)#"""
 TESTRESULT = unittest.TextTestRunner(verbosity=2).run(SUITE)
 sys.exit(0 if TESTRESULT.wasSuccessful() else 1)
 =======

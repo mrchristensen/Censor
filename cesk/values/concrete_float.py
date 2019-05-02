@@ -69,7 +69,8 @@ class ConcreteFloat(BaseFloat):  #pylint:disable=too-few-public-methods
 
         byte_value = ByteValue()
         for i in range(num_bytes):
-            byte_value.append(ByteValue.fromByte(byte_array[start+i]))
+            byte_value = \
+                byte_value.append(ByteValue.fromByte(byte_array[start+i]))
 
         return byte_value
 

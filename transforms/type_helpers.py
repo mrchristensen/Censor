@@ -48,8 +48,8 @@ def make_temp_value(expr, id_generator, env):
                 coord=expr.coord)
 
 def cast_if_needed(type_node, expr, env):
-    """Decides if it is necessary to cast the given expr to the given type,
-    or if the types are already unified."""
+    """Decides if it is necessary to cast the given expr to be assigned to a
+       variable of the given type, or if the types are already unified."""
     expr_type = get_type(expr, env)
     expr_str = io.StringIO()
     type_str = io.StringIO()
@@ -58,12 +58,12 @@ def cast_if_needed(type_node, expr, env):
     if type_str.getvalue() == expr_str.getvalue():
         return expr
 
-    if _is_integral(type_node) or _is_float(type_node):
-        if resolve_types(type_node, expr_type) == Side.NOCAST:
-            return expr
-    elif isinstance(type_node, ArrayDecl):
+    #if _is_integral(type_node) or _is_float(type_node):
+    #    if resolve_types(type_node, expr_type) == Side.NOCAST:
+    #        return expr
+    #elif isinstance(type_node, ArrayDecl):
         # Cannot cast to array type
-        return expr
+    #    return expr
     return Cast(type_node, expr, coord=expr.coord)
 
 def remove_identifier(node):
@@ -167,6 +167,14 @@ def _get_type_helper(expr, env): # pylint: disable=too-many-return-statements,to
                 return TypeDecl(None, [], IdentifierType(['long', 'double']))
             else:
                 return TypeDecl(None, [], IdentifierType(['double']))
+        elif expr.type == 'int':
+            types = []
+            if 'u' in expr.value or 'U' in expr.value:
+                types.append('unsigned')
+            if 'l' in expr.value or 'L' in expr.value:
+                types.append('long')
+            types.append('int')
+            return TypeDecl(None, [], IdentifierType(types))
         else:
             return TypeDecl(None, [], IdentifierType([expr.type]))
     elif isinstance(expr, Cast):
