@@ -619,6 +619,9 @@ class Stor: #pylint: disable=too-many-instance-attributes
 
     def write(self, address, value):
         """ Calls strong or weak write as determined by configuration """
+        if address is None:
+            #if there is nothing to catch what we return then just quit (no reason to write)%%%
+            return
         if isinstance(address, SizedSet):
             #write to all location in the set
             if not address: #if set is empty
