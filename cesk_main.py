@@ -7,6 +7,8 @@ import time
 import os
 import sys
 import argparse
+import pickle
+import logging
 from main import parse
 from transforms import transform
 from cesk.limits import set_config
@@ -59,11 +61,14 @@ def main():
 
     #setup passed in configuration
     if args.configuration is not None:
+        logging.info("Current configuration: " + str(args.configuration))
         if args.configuration in dir(cnf):
             cnf.CONFIG = getattr(cnf, args.configuration)
         else:
             print("Invalid configuration group:", args.configuration)
             exit(0)
+    else:
+        logging.info("Current configuration: DEFAULT")
     set_config(cnf.CONFIG['limits'])
 
     result = {}
@@ -74,6 +79,13 @@ def main():
                     True, needs_preprocess)
         end = time.process_time()
         result["parse_time"] = end - start
+
+        #Pickling to serialize the ast for faster debuging
+        # with open('ast_pickle.pkl', 'wb') as pickle_file:
+        #      pickle.dump(ast, pickle_file)
+        # with open('ast_pickle.pkl', 'rb') as pickle_file:
+        #     ast = pickle.load(pickle_file)
+
         start = time.process_time()
         transform(ast)
         end = time.process_time()
