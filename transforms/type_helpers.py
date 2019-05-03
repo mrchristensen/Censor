@@ -187,11 +187,14 @@ def _is_float(type_node):
     if isinstance(type_node, TypeDecl):
         if isinstance(type_node.type, IdentifierType):
             return 'float' in type_node.type.names or \
-                    'double' in type_node.type.names
+                    'double' in type_node.type.names or \
+                    'long double' in type_node.type.names
         return False
     elif isinstance(type_node, IdentifierType):
         return 'float' in type_node.names or \
-                'double' in type_node.names
+                'double' in type_node.names or \
+                'long double' in type_node.type.names
+
     return False
 
 def _is_arithmetic_type(typ):

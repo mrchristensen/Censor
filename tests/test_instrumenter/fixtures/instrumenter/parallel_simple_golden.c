@@ -1,8 +1,4 @@
 int yeti_task_id_generator = -1;
-#pragma BEGIN #include<stdlib.h>
-#pragma END
-#pragma BEGIN #include<stdio.h>
-#pragma END
 void yeti_log_memory_access(char *mode, void *var, char *task_id)
 {
   printf("%s, %p, %s\n", mode, var, task_id);
@@ -41,6 +37,10 @@ char *yeti_make_task_id(void)
   return yeti_task_id;
 }
 
+#pragma BEGIN #include<stdlib.h>
+#pragma END
+#pragma BEGIN #include<stdio.h>
+#pragma END
 #pragma BEGIN #include<omp.h>
 #pragma END
 void x(char *yeti_task_id, char *yeti_parent_task_id)

@@ -16,7 +16,7 @@ struct two
 int main()
 {
   struct two *tester;
-  *((char *) (((void *) (&(*((struct one *) (((void *) tester) + 4l))))) + 8l));
-  *((long *) (((void *) tester) + 16l));
+  *((char *) (((char *) (&(*((struct one *) (((char *) tester) + 4l))))) + 8l));
+  *((long *) (((char *) tester) + 16l));
   return 0;
 }

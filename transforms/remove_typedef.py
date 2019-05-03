@@ -19,16 +19,16 @@ class RemoveTypedef(LiftNode):
                 node.dim = propagate_constant(node.dim)
             if isinstance(node.dim, AST.Constant):
                 return node
-            raise Exception("typedef'd arrays must be of constant size")
-            #new_id = self.id_generator.get_unique_id()
-            #id_type = AST.TypeDecl(new_id, ['const'],
-            #                       AST.IdentifierType(['unsigned']))
+            #raise Exception("typedef'd arrays must be of constant size")
+            new_id = self.id_generator.get_unique_id()
+            id_type = AST.TypeDecl(new_id, ['const'],
+                                   AST.IdentifierType(['unsigned']))
 
-            #const_decl = AST.Decl(new_id, ['const'], [], [],
-            #                      id_type, node.dim, None, coord=node.coord)
-            ## make decl with new ID that is const to store the
-            #self.insert_into_scope(const_decl)
-            #node.dim = AST.ID(new_id)
+            const_decl = AST.Decl(new_id, ['const'], [], [],
+                                  id_type, node.dim, None, coord=node.coord)
+            # make decl with new ID that is const to store the
+            self.insert_into_scope(const_decl)
+            node.dim = AST.ID(new_id)
         return node
 
     def visit_Struct(self, node): #pylint: disable=invalid-name

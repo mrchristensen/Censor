@@ -1,3 +1,3 @@
 int main(int argc, char** argv) {
-  int *n = (int*)malloc(sizeof(n));
+  int *n = (int*)malloc(sizeof(*n));
 }

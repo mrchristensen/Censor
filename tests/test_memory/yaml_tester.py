@@ -41,7 +41,7 @@ class YamlTestCase(unittest.TestCase):
             if test_case[-2:] == '.i':
                 test_case = test_case[:-1] + 'c'
             output = subprocess.check_output(['python3', '../cesk_main.py',\
-                test_case, '-c', 'CONCRETE'])
+                test_case, '-c', 'ABSTRACT'])
 
             #maybe have includes here
             #if test_case[-2:] == '.c':

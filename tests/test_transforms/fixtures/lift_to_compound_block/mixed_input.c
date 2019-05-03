@@ -6,7 +6,7 @@ struct rects {
 };
 
 int main() {
-  struct rects *r = (struct rects*)malloc(sizeof(r));
+  struct rects *r = (struct rects*)malloc(sizeof(struct rects));
   int i = 0;
   int t = 0;
  OUTER:
