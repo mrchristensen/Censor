@@ -102,7 +102,7 @@ def prepend_statement(compound, stmt):
 
 def make_unit_pointer(node):
     """ helper function to nest a pointer in a void* cast """
-    void_id = AST.IdentifierType(['void'])
+    void_id = AST.IdentifierType(['char'])
     void_ptr_type = AST.PtrDecl([], AST.TypeDecl(None, [], void_id),
                                 coord=node.coord)
     return AST.Cast(AST.Typename(None, [], void_ptr_type), node,

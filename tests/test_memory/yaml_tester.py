@@ -74,8 +74,17 @@ class YamlTestCase(unittest.TestCase):
                     self.failureException(msg)
 
     def test_memsafety(self):
-        """ test sv_comp memsaftey test cases """
-        file_path = '../../sv-benchmarks/c/memsafety'
+        """ test sv_comp memsaftey test cases
+            array-memsafety, array-examples, memsafety,
+            memsafety-ext, memsafety-ext2, list-ext-properties,
+            memory-alloca, ldv-memsafety, heap-manipulation,
+            forester-heap, list-properties, ddv-machzwd,
+            loop-acceleration, ntdrivers, ntdrivers-simplified,
+            locks
+
+            this is the list of folders that have
+            at least a few applicaple test"""
+        file_path = '../../sv-benchmarks/c/heap-manipulation/'
         for file in os.listdir(file_path):
             if file.endswith(".yml"):
                 print("Testing ", file)

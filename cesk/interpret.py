@@ -442,7 +442,7 @@ def get_address(reference, state):
             name = unary_op.expr
             if isinstance(name, AST.ID):
                 pointer = state.envr.get_address(name)
-                return state.stor.read(pointer) #safe
+                return state.stor.read(pointer)
             elif isinstance(name, AST.UnaryOp) and name.op == "&":
                 return get_address(name.expr, state) #They cancel out
             elif isinstance(name, AST.Cast):
@@ -454,6 +454,11 @@ def get_address(reference, state):
                 address, errs = state.stor.read(address)
                 errors.update(errs)
                 address = cast(address, to_type, state)
+                return address, errors
+            elif isinstance(name, AST.UnaryOp) and name.op == "*":
+                pointer, errors = get_value(name.expr, state)
+                address, errs = state.stor.read(pointer)
+                errors.update(errs)
                 return address, errors
             else:
                 raise CESKException("Unknown Case for UnaryOp, nested part is "
