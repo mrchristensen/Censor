@@ -1,7 +1,7 @@
 """Classes to represent values, and a function for generating
 a value based on an assignment node"""
 import logging
-import pycparser
+import pycparser.c_ast as AST
 from cesk.linksearch import get_sizes
 import cesk.config
 from cesk.values import base_values as BV
@@ -154,7 +154,7 @@ def cast(value, typedeclt, state=None):  # pylint: disable=unused-argument
     #Pointer -> Pointer
 
     #BV.ByteValue -> ALL
-    if isinstance(typedeclt, pycparser.c_ast.Typename):
+    if isinstance(typedeclt, AST.Typename):
         return cast(value, typedeclt.type, state)
 
     if isinstance(value, BV.SizedSet):
@@ -166,7 +166,7 @@ def cast(value, typedeclt, state=None):  # pylint: disable=unused-argument
             new_item = cast(item, typedeclt, state)
             result.add(new_item)
     #typedeclt could be a PtrDecl in the c_ast
-    elif isinstance(typedeclt, pycparser.c_ast.PtrDecl):
+    elif isinstance(typedeclt, AST.PtrDecl):
         #value could be a baseValue(see base_values.py) of ReferenceValue
         if isinstance(value, BV.ReferenceValue):
             result = copy_pointer(value, typedeclt.type) #P ->
@@ -182,11 +182,16 @@ def cast(value, typedeclt, state=None):  # pylint: disable=unused-argument
                 generate_value(value, "long").data)
             result = copy_pointer(address, typedeclt.type)
     #typedeclt is any TypeDecl in c_ast
-    elif isinstance(typedeclt, pycparser.c_ast.TypeDecl):
-        types = typedeclt.type.names
-        byte_value = value.get_byte_value()
-        logging.debug(byte_value)
-        result = generate_value(byte_value, " ".join(types))
+    elif isinstance(typedeclt, AST.TypeDecl):
+        if isinstance(typedeclt.type, AST.IdentifierType):
+            types = typedeclt.type.names
+            byte_value = value.get_byte_value()
+            logging.debug(byte_value)
+            result = generate_value(byte_value, " ".join(types))
+        else:
+            #TODO do this the right way, the rest of casting as well
+            #this is a temperary measure for struct and union casts
+            result = value
     else:
         logging.error('\tUnsupported cast: %s', str(typedeclt.type))
         raise CESKException("Unsupported cast")

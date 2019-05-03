@@ -5,7 +5,7 @@ from pycparser.c_ast import InitList, Constant, Struct, Union, ID, EllipsisParam
 from .helpers import IncorrectTransformOrder
 from .node_transformer import NodeTransformer
 from .type_helpers import Side, get_type, resolve_types, cast_if_needed
-from .type_helpers import remove_identifier
+from .helpers import remove_identifier
 
 # NOTE: return statements are note type casted because
 
