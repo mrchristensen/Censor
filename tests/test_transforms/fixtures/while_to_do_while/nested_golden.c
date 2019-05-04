@@ -2,19 +2,31 @@ int main()
 {
     int i = 0;
     int j = 0;
-    if(i < 10)
-    do
+    goto censor03;
+    censor04:
     {
-        if(j < 10)
-            do
+        goto censor01;
+        censor02:
             {
                 j++;
+                censor01:
+                {
+                    if (j < 10)
+                        goto censor02;
+
+                }
+
             }
-            while(j < 10);
 
         i++;
+        censor03:
+        {
+            if (i < 10)
+                goto censor04;
+
+        }
+
     }
-    while(i < 10);
 
 }
 

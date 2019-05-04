@@ -21,8 +21,8 @@ int main(){
 from copy import deepcopy
 import pycparser.c_ast as AST
 from .lift_node import LiftNode
-from .type_helpers import get_type, remove_identifier
-from .change_void_pointer import make_void_pointer
+from .type_helpers import get_type
+from .helpers import make_unit_pointer, remove_identifier
 from .sizeof import get_struct_offset
 
 class StructRefToPointerArith(LiftNode):
@@ -37,13 +37,14 @@ class StructRefToPointerArith(LiftNode):
         else: #node.type == '->'
             reference = node.name
             struct_type = get_type(node.name, self.envr).type.type
-        void_ptr_cast = make_void_pointer(reference)
+        void_ptr_cast = make_unit_pointer(reference)
         offset, result_type = get_struct_offset(struct_type,
                                                 node.field,
                                                 self.envr)
         arithmetic = AST.BinaryOp('+', void_ptr_cast, offset, node.coord)
 
-        ptr_to_result = AST.Cast(make_ptr_of_type(result_type), arithmetic,
+        ptr_to_result = AST.Cast(make_ptr_of_type(deepcopy(result_type)),
+                                 arithmetic,
                                  coord=node.coord)
         result = AST.UnaryOp('*', ptr_to_result, coord=node.coord)
 

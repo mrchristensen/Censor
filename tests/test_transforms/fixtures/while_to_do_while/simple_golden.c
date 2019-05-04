@@ -1,12 +1,18 @@
 int main()
 {
     int i = 0;
-    if(i < 10)
-        do
+    goto censor01;
+    censor02:
+    {
+        i++;
+        censor01:
         {
-            i++;
+            if(i < 10)
+                goto censor02;
+
         }
-        while(i < 10);
+
+    }
 
 }
 

@@ -24,8 +24,7 @@
 
 from pycparser.c_ast import If, Compound, Goto, Label
 from .node_transformer import NodeTransformer
-from .type_helpers import get_no_op
-from .helpers import ensure_compound
+from .helpers import ensure_compound, get_no_op
 
 class IfToIfGoto(NodeTransformer):
     """NodeTransformer to change if-else-if-else to if-goto"""

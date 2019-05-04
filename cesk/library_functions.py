@@ -130,6 +130,8 @@ def __VERIFIER_nondet_ulong(state, args, return_address):#pylint: disable=invali
     return __VERIFIER_nondet(state, return_address,
                              0, 10, 'unsigned long')
 
+def __VERIFIER_error(state, args, return_address): #pylint: disable=invalid-name,unused-argument
+    return set(), set()
 
 
 #def alloca(state, args, return_address):#pylint: disable=unused-argument,invalid-name

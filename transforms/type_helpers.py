@@ -8,6 +8,7 @@ import io
 from enum import Enum
 from pycparser.c_ast import * # pylint: disable=wildcard-import, unused-wildcard-import
 import cesk.limits as limits
+from transforms.helpers import add_identifier, remove_identifier
 
 class Side(Enum):
     """Return type of function asking which type of a binary operand that
@@ -58,51 +59,7 @@ def cast_if_needed(type_node, expr, env):
     if type_str.getvalue() == expr_str.getvalue():
         return expr
 
-    #if _is_integral(type_node) or _is_float(type_node):
-    #    if resolve_types(type_node, expr_type) == Side.NOCAST:
-    #        return expr
-    #elif isinstance(type_node, ArrayDecl):
-        # Cannot cast to array type
-    #    return expr
     return Cast(type_node, expr, coord=expr.coord)
-
-def remove_identifier(node):
-    """Takes in the type attribute of a Decl node and removes the identifier,
-    so it can be used for type casting. Returns the identifier"""
-    if isinstance(node, TypeDecl):
-        # remove the identifier, end recursion
-        ident = node.declname
-        node.declname = None
-        return ident
-    elif isinstance(node, (Struct, Union, Enum)):
-        # remove the identifier, end recursion
-        ident = node.name
-        node.name = None
-        return ident
-    elif isinstance(node, (PtrDecl, ArrayDecl, FuncDecl)):
-        # recur
-        return remove_identifier(node.type)
-    else:
-        node.show()
-        raise NotImplementedError()
-
-def add_identifier(node, ident):
-    """Given a node that could be used as the type attribute of a Decl, attach
-    the given identifier to it."""
-    if isinstance(node, TypeDecl):
-        # add the identifier, end recursion
-        node.declname = ident
-        return node
-    elif isinstance(node, (Struct, Union, Enum)):
-        # add the identifier, end recursion
-        node.name = ident
-        return node
-    elif isinstance(node, (PtrDecl, ArrayDecl, FuncDecl)):
-        # recur
-        node.type = add_identifier(node.type, ident)
-        return node
-    else:
-        raise NotImplementedError()
 
 def resolve_types(left, right): # pylint: disable=too-many-return-statements
     """Given two types, figure out what types they should be cast to when
@@ -133,19 +90,6 @@ def resolve_types(left, right): # pylint: disable=too-many-return-statements
     print("---right:")
     right.show()
     raise NotImplementedError()
-
-def get_no_op():
-    """Returns node representina a no-op. Makes a deep copy because we con't
-    have any node duplication in the tree because parent links are used
-    for interpreting."""
-    return deepcopy(_NO_OP)
-
-## Private helper functions that shouldn't be called from outside this file ##
-
-# statement representing a no-op in C. See
-# https://stackoverflow.com/questions/7978620/whats-a-portable-way-to-implement-no-op-statement-in-c
-_NO_OP = Cast(Typename(None, [], IdentifierType(['void'])),
-              Constant('int', '0'))
 
 def _get_type_helper(expr, env): # pylint: disable=too-many-return-statements,too-many-branches
     """Does all of the actual work for get_type, but returns a reference to
@@ -243,11 +187,14 @@ def _is_float(type_node):
     if isinstance(type_node, TypeDecl):
         if isinstance(type_node.type, IdentifierType):
             return 'float' in type_node.type.names or \
-                    'double' in type_node.type.names
+                    'double' in type_node.type.names or \
+                    'long double' in type_node.type.names
         return False
     elif isinstance(type_node, IdentifierType):
         return 'float' in type_node.names or \
-                'double' in type_node.names
+                'double' in type_node.names or \
+                'long double' in type_node.type.names
+
     return False
 
 def _is_arithmetic_type(typ):

@@ -1,9 +1,9 @@
 int main()
 {
   int *x = 100;
-  int *y = (int *) (((void *) x) + (20 * 2l));
-  int diff = (((void *) y) - ((void*)x)) / 2l;
-  x = (int *) (((void *) y) - (10 * 2l));
-  y = (int *) ((10 * 2l) + ((void *) x));
+  int *y = (int *) (((char *) x) + (20 * 2l));
+  int diff = (((char *) y) - ((char*)x)) / 2l;
+  x = (int *) (((char *) y) - (10 * 2l));
+  y = (int *) ((10 * 2l) + ((char *) x));
   return 0;
 }

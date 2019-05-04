@@ -3,6 +3,7 @@ import re
 import pycparser.c_ast as AST
 import cesk.limits as limits
 from cesk.limits import StructPackingScheme as SPS
+from transforms.helpers import propagate_constant
 
 def get_size_ast(ast_type_node, env=None):
     """returns the size in bytes of the ast type,
@@ -63,12 +64,20 @@ def _size_compact(decls, env):
         decl_size, decl_alignment = get_size_and_alignment(decl, env)
         if isinstance(decl_size, AST.Constant):
             num_bytes += c_to_int(decl_size)
+        elif isinstance(decl_size, AST.BinaryOp):
+            num_bytes += _reduce_binop(decl_size)
         else:
             raise Exception("Not Implemented, Arrays not constant size")
-            #num_bytes = AST.BinaryOp('+',offset,decl_size, ast_type.coord)
         if alignment < decl_alignment:
             alignment = decl_alignment
     return num_bytes, alignment
+
+def _reduce_binop(binop):
+    """ evaluates binops of constant integer values """
+    binop = propagate_constant(binop)
+    if not isinstance(binop, AST.Constant):
+        raise Exception("Arrays must be of constant size to get size")
+    return binop
 
 def _size_std(decls, env):
     num_bytes = 0
@@ -79,6 +88,8 @@ def _size_std(decls, env):
             num_bytes += decl_alignment - (num_bytes % decl_alignment)
         if isinstance(decl_size, AST.Constant):
             num_bytes += c_to_int(decl_size)
+        elif isinstance(decl_size, AST.BinaryOp):
+            num_bytes += _reduce_binop(decl_size)
         else:
             raise Exception("Not Implemented, Arrays are not constant size")
             #num_bytes = AST.BinaryOp('+',offset,decl_size, ast_type.coord)

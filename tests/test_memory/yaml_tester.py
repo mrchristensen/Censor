@@ -41,7 +41,7 @@ class YamlTestCase(unittest.TestCase):
             if test_case[-2:] == '.i':
                 test_case = test_case[:-1] + 'c'
             output = subprocess.check_output(['python3', '../cesk_main.py',\
-                test_case, '-c', 'CONCRETE'])
+                test_case, '-c', 'ABSTRACT'])
 
             #maybe have includes here
             #if test_case[-2:] == '.c':
@@ -74,8 +74,17 @@ class YamlTestCase(unittest.TestCase):
                     self.failureException(msg)
 
     def test_memsafety(self):
-        """ test sv_comp memsaftey test cases """
-        file_path = '../../sv-benchmarks/c/memsafety'
+        """ test sv_comp memsaftey test cases
+            array-memsafety, array-examples, memsafety,
+            memsafety-ext, memsafety-ext2, list-ext-properties,
+            memory-alloca, ldv-memsafety, heap-manipulation,
+            forester-heap, list-properties, ddv-machzwd,
+            loop-acceleration, ntdrivers, ntdrivers-simplified,
+            locks
+
+            this is the list of folders that have
+            at least a few applicaple test"""
+        file_path = '../../sv-benchmarks/c/heap-manipulation/'
         for file in os.listdir(file_path):
             if file.endswith(".yml"):
                 print("Testing ", file)

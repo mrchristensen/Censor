@@ -24,7 +24,7 @@ Sequence < IfToIfGoto
 DoWhileToGoto < Sequence
 BreakToGoto < DoWhileToGoto
 TypeDef < AlphaName
-AlphaName < Enum
+Enum < TypeDef
 
 """
 
@@ -85,9 +85,6 @@ def get_transformers(ast):
     # ensure unique ids across transforms
     id_generator = IDGenerator(ast)
 
-    # type environments should be recalculated each time they are needed
-    # for a transform, because the AST changes and so the type environments
-    # should be different
     type_env_calc = TypeEnvironmentCalculator(id_generator)
 
     # Each dependency function must take one argument so that we can easily

@@ -62,7 +62,7 @@ class NodeTransformer(AST.NodeVisitor):
         elif isinstance(new_node, list):
             if can_be_compound(node, field):
                 setattr(node, field,
-                        AST.Compound(new_node, coord=new_node.coord))
+                        AST.Compound(new_node, coord=node.coord))
             else:
                 new_node.show()
                 print(node, field)

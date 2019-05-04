@@ -2,7 +2,7 @@
 from copy import deepcopy
 from pycparser.c_ast import Return, Label, Goto, Decl, Assignment, ID
 from pycparser.c_ast import IdentifierType
-from .type_helpers import remove_identifier, add_identifier
+from .helpers import remove_identifier, add_identifier
 from .node_transformer import NodeTransformer
 from .helpers import append_statement, prepend_statement
 

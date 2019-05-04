@@ -8,9 +8,10 @@ k = (int*) (((void*)k) + (1 * sizeof(int)))
 sizeof will be replace with a constant
 """
 import pycparser.c_ast as AST
-from .lift_node import LiftNode
-from .type_helpers import get_type, _is_integral, _is_ptr, _is_array
-from .sizeof import get_size_ast
+from transforms.lift_node import LiftNode
+from transforms.type_helpers import get_type, _is_integral, _is_ptr, _is_array
+from transforms.sizeof import get_size_ast
+from transforms.helpers import make_unit_pointer
 
 class ChangeToVoidPointer(LiftNode):
     """ Transforms all pointer arithmetic to void* arithmetic """
@@ -28,7 +29,7 @@ class ChangeToVoidPointer(LiftNode):
                 if ptr_size.value != '1':
                     node.left = AST.BinaryOp('*', node.left, ptr_size,
                                              node.coord)
-                    node.right = make_void_pointer(node.right)
+                    node.right = make_unit_pointer(node.right)
                     node = AST.Cast(AST.PtrDecl([], right_type.type), node,
                                     coord=node.coord)
         elif node.op == '-':
@@ -39,8 +40,8 @@ class ChangeToVoidPointer(LiftNode):
                 # same type of object. The result should equal the difference
                 # in index values of the two pointers
                 # left_type.type must be equivalent to right_type.type
-                node.left = make_void_pointer(node.left)
-                node.right = make_void_pointer(node.right)
+                node.left = make_unit_pointer(node.left)
+                node.right = make_unit_pointer(node.right)
                 ptr_size = get_size_ast(left_type.type, self.envr)
                 node = AST.BinaryOp('/', node, ptr_size, node.coord)
         elif node.op == '=':
@@ -91,15 +92,7 @@ class ChangeToVoidPointer(LiftNode):
             ptr_size = get_size_ast(left_type.type, self.envr)
             if not isinstance(ptr_size, AST.Constant) or ptr_size.value != '1':
                 node.right = AST.BinaryOp('*', node.right, ptr_size, node.coord)
-                node.left = make_void_pointer(node.left)
+                node.left = make_unit_pointer(node.left)
                 node = AST.Cast(AST.PtrDecl([], left_type.type), node,
                                 coord=node.coord)
         return left_type, right_type, node
-
-def make_void_pointer(node):
-    """ helper function to nest a pointer in a void* cast """
-    void_id = AST.IdentifierType(['void'])
-    void_ptr_type = AST.PtrDecl([], AST.TypeDecl(None, [], void_id),
-                                coord=node.coord)
-    return AST.Cast(AST.Typename(None, [], void_ptr_type), node,
-                    coord=node.coord)

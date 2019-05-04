@@ -55,6 +55,7 @@ from copy import deepcopy
 import pycparser.c_ast as AST
 from .lift_node import LiftNode
 from .type_helpers import make_temp_ptr, make_temp_value
+from .helpers import propagate_constant
 
 class LiftToCompoundBlock(LiftNode):
     """LiftToCompoundBlock Transform"""
@@ -95,11 +96,11 @@ class LiftToCompoundBlock(LiftNode):
             else:
                 ref = self.lift_to_value(value)
         elif isinstance(value, AST.BinaryOp):
-            if (isinstance(value.left, AST.Constant) and
-                    isinstance(value.right, AST.Constant)):
-                ref = self.propagate_constant(value)
-            else:
+            value = propagate_constant(value)
+            if isinstance(value, AST.BinaryOp):
                 ref = self.lift_to_value(value)
+            else:
+                ref = value
         if ref is not None:
             setattr(node, field, ref)
         return node
@@ -118,52 +119,6 @@ class LiftToCompoundBlock(LiftNode):
         self.insert_into_scope(decl)
         self.envr.add(decl.name, decl.type)
         return AST.ID(decl.name, coord=decl.coord)
-
-    def propagate_constant(self, binop):
-        """ If both sides are a constant combine into a sigle constant """
-        result_type = 'int'
-        if binop.left.type == 'int':
-            left_value = int(binop.left.value.translate(
-                {ord(c):None for c in 'uUlL'}), 0)
-        elif binop.left.type == 'float':
-            left_value = float(binop.left.value.translate(
-                {ord(c):None for c in 'fFlL'}))
-            result_type = 'float'
-        else:
-            return self.lift_to_value(binop)
-        if binop.right.type == 'int':
-            right_value = int(binop.right.value.translate(
-                {ord(c):None for c in 'uUlL'}), 0)
-        elif binop.right.type == 'float':
-            right_value = float(binop.right.value.translate(
-                {ord(c):None for c in 'fFlL'}))
-            result_type = 'float'
-        else:
-            return self.lift_to_value(binop)
-
-        return self.perform_operation(binop, result_type,
-                                      left_value, right_value)
-
-    def perform_operation(self, binop, result_type, left_value, right_value):
-        """ Combines two constants  """
-        if binop.op == '+':
-            value = AST.Constant(result_type, str(left_value + right_value))
-        elif binop.op == '-':
-            value = AST.Constant(result_type, str(left_value - right_value))
-        elif binop.op == '*':
-            value = AST.Constant(result_type, str(left_value * right_value))
-        elif binop.op == '%':
-            value = AST.Constant(result_type, str(left_value % right_value))
-        elif binop.op == '/':
-            if result_type == 'int':
-                value = AST.Constant(result_type, str(left_value//right_value))
-            else:
-                value = AST.Constant(result_type, str(left_value / right_value))
-        else:
-            value = self.lift_to_value(binop)
-
-        value.coord = binop.coord
-        return value
 
     def lift_assignment(self, value):
         """Lift node to compound block"""

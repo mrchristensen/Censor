@@ -26,10 +26,10 @@ of your current scope.
 """
 import logging
 from copy import deepcopy
-from pycparser.c_ast import ID, Struct, Union, Enum, FuncDecl, TypeDecl
+from pycparser.c_ast import ID, Struct, Union, Enum, FuncDecl
 from .node_transformer import NodeTransformer
 from .id_generator import IDGenerator
-from .type_helpers import remove_identifier
+from .helpers import remove_identifier
 
 class Enviornment:
     """Holds the enviornment (a mapping of identifiers to types)"""
@@ -57,7 +57,7 @@ class Enviornment:
         if isinstance(ident, ID):
             ident = ident.name
         if ident in self.map_to_type:
-            logging.debug("Redefinition of %s", ident)
+            logging.error("Redefinition of %s", ident)
             #raise Exception("Redefinition of " + ident)
 
         self.map_to_type[ident] = type_node
@@ -125,14 +125,7 @@ class TypeEnvironmentCalculator(NodeTransformer):
     def visit_Typedef(self, node): # pylint: disable=invalid-name
         """Add typedefs to the type environment."""
         self.envr.add(node.name, node.type)
-        if isinstance(node.type, TypeDecl):
-            type_node = node.type.type
-            if isinstance(type_node, (Struct, Union, Enum)):
-                ident = type_node.name
-                if ident is not None:
-                    ident = type(type_node).__name__ + " " + ident
-                    if ident not in self.envr:
-                        self.envr.add(ident, type_node)
+        self.generic_visit(node)
         return node
 
     def visit_Compound(self, node): # pylint: disable=invalid-name
@@ -195,4 +188,22 @@ class TypeEnvironmentCalculator(NodeTransformer):
         if isinstance(type_node, FuncDecl):
             self.declared_not_defined.add(node.name)
 
+        return node
+
+    def visit_TypeDecl(self, node): #pylint: disable=invalid-name
+        """ Examine TypeDecl """
+        type_node = node.type
+        if isinstance(type_node, (Struct, Union)):
+            ident = type_node.name
+            if ident is not None and type_node.decls is not None:
+                ident = type(type_node).__name__ + " " + ident
+                if ident not in self.envr:
+                    self.envr.add(ident, type_node)
+        if isinstance(type_node, Enum):
+            ident = type_node.name
+            if ident is not None and type_node.values is not None:
+                ident = type(type_node).__name__ + " " + ident
+                if ident not in self.envr:
+                    self.envr.add(ident, type_node)
+        node = self.generic_visit(node)
         return node

@@ -29,7 +29,7 @@ class LiftUnaryOp(LiftNode):
             #type_node = node.expr
             return get_size_ast(type_node, self.envr)
 
-        node.expr = self.generic_visit(node.expr)
+        node.expr = self.visit(node.expr)
         if node.op == '!':
             return AST.BinaryOp("==", constant_zero(), node.expr, node.coord)
         elif node.op in ['++', '--', 'p--', 'p++']:
@@ -40,7 +40,6 @@ class LiftUnaryOp(LiftNode):
             node.show()
             raise NotImplementedError()
         elif node.op in ['&', '*']:
-            node.expr = self.visit(node.expr)
             return node
         else:
             raise NotImplementedError()
