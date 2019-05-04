@@ -95,10 +95,7 @@ def handle_FuncCall(stmt, state, address=None): # pylint: disable=invalid-name
         return {state.get_next()}, set()
     else:
         func_def_frame_addr = state.envr.get_address(stmt.name.name)
-        if func_def_frame_addr is None:
-            return {state.get_next()}, set()
-        else:
-            return func(stmt, state, func_def_frame_addr, address)
+        return func(stmt, state, func_def_frame_addr, address)
 
 def func(stmt, state, func_def_frame_addr, address=None):
     '''handles most function calls delegated by handle_FuncCall'''
@@ -493,9 +490,11 @@ def mem_alloc(exp, state):
         mem_alloc_result = mem_alloc_helper(mem_alloc_call, state, size_list)
         mem_alloc_result = cast(mem_alloc_result, exp.to_type, state)
     else:
-        raise CESKException("Memory allocation appeared without a cast")
-        #mem_alloc_result = mem_alloc(exp, state, [1])
+        #raise CESKException("Malloc appeared without a cast")
+        logging.error("Mem alloc with no cast")
+        mem_alloc_result = mem_alloc_helper(exp, state, [1])
     return mem_alloc_result
+
 
 def mem_alloc_helper(stmt, state, break_up_list):
     '''performs memory allocation and returns CESKPointer to allocated memory'''
