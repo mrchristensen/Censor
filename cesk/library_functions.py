@@ -1,7 +1,7 @@
 """ Set of cstd library functions with a CESK specific implementation:
 need the state and an array containing the values of the arguements passed """
-import logging
 import re
+import logging
 import random
 import cesk.values as values
 import cesk.values.base_values as BV
@@ -17,41 +17,69 @@ def mocked_function(state, args, return_address):#pylint: disable=unused-argumen
     state.stor.write(return_address, value)
     return {state.get_next()}, {}
 
+def netlink_notify_kernel(state, args, return_address):#pylint: disable=unused-argument
+    '''mocks void netlink_notify_kernel(tls_daemon_ctx_t* ctx, unsigned long id, int response)'''
+    return {state.get_next()}, {}
+
+def tls_opts_create(state, args, return_address):#pylint: disable=unused-argument
+    '''mocks tls_opts_t* tls_opts_create(char* path)'''
+    return {state.get_next()}, {}
+
+def memcpy(state, args, return_address):#pylint: disable=unused-argument
+    '''void* __cdecl memcpy(...)'''
+    return {state.get_next()}, {}
+
+def nla_get_u64(state, args, return_address):#pylint: disable=unused-argument
+    '''mocks uint64_t nla_get_u64(struct nlattr *);'''
+    return {state.get_next()}, {}
+
+def nla_data(state, args, return_address):#pylint: disable=unused-argument
+    '''mocks void *	nla_data(const struct nlattr *)'''
+    return {state.get_next()}, {}
+
+def event_base_new(state, args, return_address):#pylint: disable=unused-argument
+    '''mocks struct event_base *event_base_new(void)'''
+    return {state.get_next()}, {}
+
+def hashmap_create(state, args, return_address):#pylint: disable=unused-argument
+    '''mock hmap_t* hashmap_create(int num_buckets)'''
+    #Return: "struct hmap" with "num_buckets = arg[0]" - at also malloc'ed up some stuff
+    return {state.get_next()}, {}
+
 def hashmap_get(state, args, return_address):#pylint: disable=unused-argument
-    '''mocks the functionality of void* hashmap_get(hmap_t* map, unsigned long key)'''
+    '''mocks void* hashmap_get(hmap_t* map, unsigned long key)'''
     value = values.generate_null_pointer()
     state.stor.write(return_address, value)
     return {state.get_next()}, {}
 
 def hashmap_add(state, args, return_address):#pylint: disable=unused-argument
-    '''mocks the functionality of int hashmap_add(hmap_t* map, unsigned long key, void* value)'''
-    value = values.generate_constant_value(str(0), 'int')
-    state.stor.write(return_address, value)
-    value = values.generate_constant_value(str(1), 'int')
-    state.stor.write(return_address, value)
-    return {state.get_next()}, {}
+    '''mocks int hashmap_add(hmap_t* map, unsigned long key, void* value)'''
+    value = SizedSet(4).update({values.generate_constant_value(str(0), 'int'), values.generate_constant_value(str(1), 'int')})
+    errors = state.stor.write(return_address, value)
+    return {state.get_next()}, errors
 
 def socket(state, args, return_address):#pylint: disable=unused-argument
-    '''mocks the functionality of socket(int domain, int type, int protocol)'''
+    '''mocks socket(int domain, int type, int protocol)'''
     #TODO make this top
     value = values.generate_constant_value(str(random.randint(0, 2)), 'int')
     state.stor.write(return_address, value)
     return {state.get_next()}, {}
 
 def nla_len(state, args, return_address):
-    '''mocks the functionality of nla_len()'''
-    value = values.generate_constant_value(str(random.randint(0, 2)), 'int')
-    state.stor.write(return_address, value)
+    '''mocks nla_len()'''
+    # value = str(args[0].nla_len)
+    # logging.debug("%%% " + value)
+    # state.stor.write(return_address, value)
     return {state.get_next()}, {}
 
 def evutil_make_socket_nonblocking(state, args, return_address):
-    '''mocks the functionality of evutil_make_socket_nonblocking(evutil_socket_t sock)'''
+    '''mocks evutil_make_socket_nonblocking(evutil_socket_t sock)'''
     value = values.generate_constant_value(str(random.randint(0, 2)), 'int')
     state.stor.write(return_address, value)
     return {state.get_next()}, {}
 
 def tls_server_wrapper_setup(state, args, return_address):
-    '''mocks the functionality of tls_conn_ctx_t* tls_server_wrapper_setup(evutil_socket_t efd, evutil_socket_t ifd, tls_daemon_ctx_t* daemon_ctx,
+    '''mocks tls_conn_ctx_t* tls_server_wrapper_setup(evutil_socket_t efd, evutil_socket_t ifd, tls_daemon_ctx_t* daemon_ctx,
 	tls_opts_t* tls_opts, struct sockaddr* internal_addr, int internal_addrlen)'''
     return {state.get_next()}, {}
 
