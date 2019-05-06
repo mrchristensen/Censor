@@ -96,3 +96,5 @@ preprocessed.c
 tempfile~
 ast_pickle.pkl
 .gitignore
+ast.txt
+transformed_code.c

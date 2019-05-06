@@ -7,15 +7,16 @@ import cesk.values as values
 import cesk.values.base_values as BV
 import cesk.config as cnf
 import cesk.limits as limits
+from cesk.values.base_values import SizedSet
 #from cesk.values.abstract_literals import AbstractLiterals as AL
 
 def mocked_function(state, args, return_address):#pylint: disable=unused-argument
     '''returns two values to the store, 1 and 2, in order to test the weak store functionality'''
     value = values.generate_constant_value(str(1), 'int')
-    state.stor.write(return_address, value)
+    errs = state.stor.write(return_address, value)
     value = values.generate_constant_value(str(2), 'int')
-    state.stor.write(return_address, value)
-    return {state.get_next()}, {}
+    errs.add(state.stor.write(return_address, value))
+    return {state.get_next()}, errs
 
 def netlink_notify_kernel(state, args, return_address):#pylint: disable=unused-argument
     '''mocks void netlink_notify_kernel(tls_daemon_ctx_t* ctx, unsigned long id, int response)'''
@@ -49,34 +50,37 @@ def hashmap_create(state, args, return_address):#pylint: disable=unused-argument
 def hashmap_get(state, args, return_address):#pylint: disable=unused-argument
     '''mocks void* hashmap_get(hmap_t* map, unsigned long key)'''
     value = values.generate_null_pointer()
-    state.stor.write(return_address, value)
-    return {state.get_next()}, {}
+    errs = state.stor.write(return_address, value)
+    return {state.get_next()}, errs
 
 def hashmap_add(state, args, return_address):#pylint: disable=unused-argument
     '''mocks int hashmap_add(hmap_t* map, unsigned long key, void* value)'''
     value = SizedSet(4).update({values.generate_constant_value(str(0), 'int'), values.generate_constant_value(str(1), 'int')})
-    errors = state.stor.write(return_address, value)
-    return {state.get_next()}, errors
+    errs = set()
+    if return_address is not None:
+        errs = state.stor.write(return_address, value)
+    return {state.get_next()}, errs
 
 def socket(state, args, return_address):#pylint: disable=unused-argument
     '''mocks socket(int domain, int type, int protocol)'''
     #TODO make this top
     value = values.generate_constant_value(str(random.randint(0, 2)), 'int')
-    state.stor.write(return_address, value)
-    return {state.get_next()}, {}
+    errs = state.stor.write(return_address, value)
+    return {state.get_next()}, errs
 
 def nla_len(state, args, return_address):
     '''mocks nla_len()'''
+    errs = set()
     # value = str(args[0].nla_len)
     # logging.debug("%%% " + value)
-    # state.stor.write(return_address, value)
-    return {state.get_next()}, {}
+    # errs = state.stor.write(return_address, value)
+    return {state.get_next()}, errs
 
 def evutil_make_socket_nonblocking(state, args, return_address):
     '''mocks evutil_make_socket_nonblocking(evutil_socket_t sock)'''
     value = values.generate_constant_value(str(random.randint(0, 2)), 'int')
-    state.stor.write(return_address, value)
-    return {state.get_next()}, {}
+    errs = state.stor.write(return_address, value)
+    return {state.get_next()}, errs
 
 def tls_server_wrapper_setup(state, args, return_address):
     '''mocks tls_conn_ctx_t* tls_server_wrapper_setup(evutil_socket_t efd, evutil_socket_t ifd, tls_daemon_ctx_t* daemon_ctx,
@@ -132,6 +136,5 @@ def __VERIFIER_nondet_ulong(state, args, return_address):#pylint: disable=invali
 
 def __VERIFIER_error(state, args, return_address): #pylint: disable=invalid-name,unused-argument
     return set(), set()
-
 
 #def alloca(state, args, return_address):#pylint: disable=unused-argument,invalid-name

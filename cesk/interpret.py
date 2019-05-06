@@ -477,9 +477,6 @@ def get_address(reference, state):
 
 def mem_alloc(exp, state):
     """ Calls the appropriate memory allocation and evaluates the cast """
-    logging.debug("memory alloc exp: " + str(exp))
-    logging.debug("memory alloc state: " + str(state))
-    logging.debug("memory alloc exp.expr.name.name: " + str(exp.expr.name.name))
     if isinstance(exp, AST.Cast):
         mem_alloc_call = exp
         while isinstance(mem_alloc_call, AST.Cast): #handle nested cast
@@ -536,7 +533,7 @@ def mem_alloc_helper(stmt, state, break_up_list):
     return pointer
 
 def is_mem_alloc(stmt):
-    """ check to see if a function is a memory allocation call - currently checking for malloc and calloc """
+    """ checks to see if a function is a memory allocation call """
     while isinstance(stmt, AST.Cast):
         stmt = stmt.expr
     return (isinstance(stmt, AST.FuncCall) and

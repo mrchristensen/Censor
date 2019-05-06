@@ -80,17 +80,18 @@ def main():
         end = time.process_time()
         result["parse_time"] = end - start
 
-        #Pickling to serialize the ast for faster debuging
-        # with open('ast_pickle.pkl', 'wb') as pickle_file:
-        #      pickle.dump(ast, pickle_file)
-        # with open('ast_pickle.pkl', 'rb') as pickle_file:
-        #     ast = pickle.load(pickle_file)
-
         start = time.process_time()
         transform(ast)
         end = time.process_time()
         result["transform_time"] = end - start
         start = time.process_time()
+
+        #Pickling to serialize the ast for faster debuging
+        with open('ast_pickle.pkl', 'wb') as pickle_file:
+             pickle.dump(ast, pickle_file)
+        # with open('ast_pickle.pkl', 'rb') as pickle_file:
+        #     ast = pickle.load(pickle_file)
+
         run_interpreter(ast, result, args.graph)
         end = time.process_time()
         result["interpretation_time"] = end - start
