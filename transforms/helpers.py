@@ -27,6 +27,9 @@ def propagate_constant(binop):
     """ If both sides are a constant combine into a single constant """
     if isinstance(binop, AST.Constant):
         return binop
+    
+    if isinstance(binop, AST.UnaryOp):
+        return _perform_unary_operation(binop)
 
     if isinstance(binop.left, AST.BinaryOp):
         left = propagate_constant(binop.left)
@@ -192,4 +195,25 @@ def _perform_operation(binop, result_type, left_value, right_value):
         value = binop
 
     value.coord = binop.coord
+    return value
+
+def  _perform_unary_operation(unop):
+    """ perform unary operation if possible """
+    if not isinstance(unop.expr, AST.Constant):
+        return unop
+
+    if unop.op == '+':
+        value = unop.expr
+    elif unop.op == '-':
+        result_type = 'int'
+        if unop.expr.type == 'int':
+            expr_value = int(unop.expr.value.translate(
+                {ord(c):None for c in 'uUlL'}), 0)
+        elif unop.expr.type == 'float':
+            expr_value = float(unop.expr.value.translate(
+                {ord(c):None for c in 'fFlL'}))
+            result_type = 'float'
+        value = AST.Constant(result_type, str(-expr_value))
+    else:
+        value = unop
     return value
