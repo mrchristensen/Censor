@@ -53,7 +53,7 @@ def parse(filename, includes, pycparser_path, sanitize, preproccess=True):
 
     temp = None
     if sanitize:
-        temp = open('tempfile~', 'wb')
+        temp = open('results/tempfile~', 'wb')
         temp.write(open(filename, 'rb').read())
         temp.flush()
         utils.preserve_include_preprocess(temp.name)
@@ -92,8 +92,8 @@ def parse(filename, includes, pycparser_path, sanitize, preproccess=True):
         text = open(filename, 'r').read()
 
     text = utils.remove_gcc_extentions(text) #only for large code base
-    with open("preprocessed.c","w") as asdf:
-        asdf.write(text)
+    with open("results/preprocessed.c","w") as preprocessed_text:
+        preprocessed_text.write(text)
     ast = cparser.parse(text, filename)
     return ast
 

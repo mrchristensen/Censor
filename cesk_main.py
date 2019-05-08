@@ -40,8 +40,8 @@ def run_interpreter(ast, results, graph_name):
 def main():
     """Parses arguments and calls correct tool"""
     parser = argparse.ArgumentParser()
-    parser.add_argument("filename")
-    parser.add_argument("--no_preprocess", "-n", \
+    parser.add_argument('filename')
+    parser.add_argument('--no_preprocess', '-n', \
                         required=False, action='store_true', \
                         help='Do not preproccess the file')
     parser.add_argument('--pycparser', '-p',

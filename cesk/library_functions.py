@@ -12,10 +12,11 @@ from cesk.values.base_values import SizedSet
 
 def mocked_function(state, args, return_address):#pylint: disable=unused-argument
     '''returns two values to the store, 1 and 2, in order to test the weak store functionality'''
-    value = values.generate_constant_value(str(1), 'int')
-    errs = state.stor.write(return_address, value)
-    value = values.generate_constant_value(str(2), 'int')
-    errs.add(state.stor.write(return_address, value))
+    errs = set()
+    value = SizedSet(4)
+    value.update({values.generate_constant_value(str(2), 'int'), values.generate_constant_value(str(4), 'int')})
+    if return_address is not None:
+        errs = state.stor.write(return_address, value)
     return {state.get_next()}, errs
 
 def netlink_notify_kernel(state, args, return_address):#pylint: disable=unused-argument
@@ -55,7 +56,8 @@ def hashmap_get(state, args, return_address):#pylint: disable=unused-argument
 
 def hashmap_add(state, args, return_address):#pylint: disable=unused-argument
     '''mocks int hashmap_add(hmap_t* map, unsigned long key, void* value)'''
-    value = SizedSet(4).update({values.generate_constant_value(str(0), 'int'), values.generate_constant_value(str(1), 'int')})
+    value = SizedSet(4)
+    value.update({values.generate_constant_value(str(0), 'int'), values.generate_constant_value(str(1), 'int')})
     errs = set()
     if return_address is not None:
         errs = state.stor.write(return_address, value)
