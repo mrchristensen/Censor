@@ -15,15 +15,15 @@ from cesk.values import generate_function_definition
 logging.basicConfig(filename='logfile.txt', level=logging.DEBUG,
                     format='%(levelname)s: %(message)s', filemode='w')
 
-class StateEnumaration: #pylint: disable=too-few-public-methods
+class StateEnumeration: #pylint: disable=too-few-public-methods
     """ Keeps track of information about a state """
     next_id = 0
     def __init__(self, time):
         self.time = time
         self.successors = set()
-        self.ident = StateEnumaration.next_id
+        self.ident = StateEnumeration.next_id
         self.time0 = time
-        StateEnumaration.next_id += 1
+        StateEnumeration.next_id += 1
 
     def get_time(self):
         """ string of first created to last updated """
@@ -44,7 +44,7 @@ def main(ast, graph_file_name): #pylint: disable=too-many-locals,too-many-branch
 
     start_state = prepare_start_state(main_function)
     #map of states to time last seen and states generated from
-    seen_set = {start_state:StateEnumaration(start_state.time_stamp)}
+    seen_set = {start_state:StateEnumeration(start_state.time_stamp)}
     failed_states = set()
     frontier = set([start_state])
     while frontier: #is not empty
@@ -57,7 +57,7 @@ def main(ast, graph_file_name): #pylint: disable=too-many-locals,too-many-branch
                     states_generated += 1
                     if successor not in seen_set:
                         seen_set[successor] = \
-                            StateEnumaration(successor.time_stamp)
+                            StateEnumeration(successor.time_stamp)
                         new_frontier.add(successor)
                     elif successor.time_stamp > seen_set[successor].time:
                         seen_set[successor].time = successor.time_stamp
@@ -71,7 +71,7 @@ def main(ast, graph_file_name): #pylint: disable=too-many-locals,too-many-branch
                     failed_states.add(error_state)
                     if error_state not in seen_set:
                         seen_set[error_state] = \
-                            StateEnumaration(error_state.time_stamp)
+                            StateEnumeration(error_state.time_stamp)
                     elif error_state.time_stamp > seen_set[error_state].time:
                         seen_set[error_state].time = error_state.time_stamp
 
@@ -82,7 +82,7 @@ def main(ast, graph_file_name): #pylint: disable=too-many-locals,too-many-branch
                 failed_states.add(error_state)
                 if error_state not in seen_set:
                     seen_set[error_state] = \
-                        StateEnumaration(error_state.time_stamp)
+                        StateEnumeration(error_state.time_stamp)
                 elif error_state.time_stamp > seen_set[error_state].time:
                     seen_set[error_state].time = error_state.time_stamp
 
@@ -135,6 +135,7 @@ def init_globals(stor):
         if decl.init:
             address = fake_state.envr.get_address(decl.name)
             value, _ = get_value(decl.init, fake_state)
+            # MARKER
             fake_state.stor.write(address, value)
     funcs = ls.LinkSearch.function_lut
     for func in funcs:
@@ -142,6 +143,7 @@ def init_globals(stor):
         f_addr = fake_state.envr.map_new_identifier(func)
         fake_state.stor.allocM(f_addr, [8]) # word size
         func_val = generate_function_definition(funcs[func])
+        # MARKER
         fake_state.stor.write(f_addr, func_val)
 
     Envr.set_global(fake_state.envr)

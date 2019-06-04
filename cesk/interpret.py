@@ -149,6 +149,7 @@ def func_helper(params, func_def, state, ret_address):#pylint: disable=too-many-
         new_address = decl_helper(decl, new_state)
         value, errs = get_value(expr, state)
         errors.update(errs)
+        # MARKER
         errs = new_state.stor.write(new_address, value)
         errors.update(errs)
 
@@ -318,6 +319,7 @@ def assignment_helper(operator, address, exp, state):
             value, errs = get_value(exp, state)
             errors.update(errs)
 
+        # MARKER
         errs = state.stor.write(address, value)
         errors.update(errs)
         return {state.get_next()}, errors
@@ -503,10 +505,10 @@ def mem_alloc_helper(stmt, state, break_up_list):
     if stmt.name.name == "malloc":
         param = stmt.args.exprs[0]
     #TODO Implement spesifics of calloc (write all alloc with nmemb)
-    elif stmt.name.name == "calloc": 
+    elif stmt.name.name == "calloc":
         param = stmt.args.exprs[1]
     else:
-        logging.debug("Failed allocation type: " + str(stmt.name.name))
+        logging.debug("Failed allocation type: %s", str(stmt.name.name))
         raise CESKException("Unknown type of memory allocation")
     if isinstance(param, AST.Constant):
         #could fetch this concretely no matter what
@@ -519,7 +521,8 @@ def mem_alloc_helper(stmt, state, break_up_list):
         value, _ = get_value(param, state) #possibilty of ignored errors
 
     num_bytes = get_int_data(value)
-    logging.info("Memory allocation(%d) with structure: %s", num_bytes, str(break_up_list))
+    logging.info("Memory allocation(%d) with structure: %s", num_bytes,
+                 str(break_up_list))
     heap_pointer = state.stor.allocH(state)
 
     block_size = sum(break_up_list)
