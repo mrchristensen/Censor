@@ -23,3 +23,9 @@ cesk/tests/preprocessed.c
 cesk/tests/tempfile~
 mainPreprocces.c
 fake_libc_include/netlink/addrinfo.c
+testofcommentsTransform.txt
+testTransformWithRedefs.txt
+testTransformWithoutRedefs.txt
+testWithRedefs.txt
+testWithoutRedefs.txt
+testofcommentsPrint.txt
