@@ -4,7 +4,7 @@ import logging
 import sys
 from collections import deque
 import errno
-from utils import find_main
+from utils import find_injection
 from cesk.structures import State, Ctrl, Envr, Stor, Kont
 from cesk.interpret import (decl_helper, execute, get_value,
                             implemented_nodes as impl_nodes)
@@ -29,7 +29,7 @@ class StateEnumeration: #pylint: disable=too-few-public-methods
         """ string of first created to last updated """
         return str(self.ident)+'-'+str(self.time0)+'/'+str(self.time)
 
-def main(ast, graph_file_name): #pylint: disable=too-many-locals,too-many-branches,too-many-statements
+def main(ast, graph_file_name, injection_point): #pylint: disable=too-many-locals,too-many-branches,too-many-statements
     """Injects execution into main funciton and maintains work queue"""
 
     #values to be returned
@@ -40,9 +40,9 @@ def main(ast, graph_file_name): #pylint: disable=too-many-locals,too-many-branch
 
     #Search ast. link children to parents, map names FuncDef and Label nodes
     ls.LinkSearch().visit(ast)
-    main_function = find_main(ast)[0]
+    injection_function = find_injection(ast, injection_point)[0]
 
-    start_state = prepare_start_state(main_function)
+    start_state = prepare_start_state(injection_function)
     #map of states to time last seen and states generated from
     seen_set = {start_state:StateEnumeration(start_state.time_stamp)}
     failed_states = set()
@@ -112,10 +112,10 @@ def implemented_nodes():
     """ returns a list of implemented node type names """
     return impl_nodes()
 
-def prepare_start_state(main_function):
+def prepare_start_state(injection_function):
     '''Creates the first state'''
     halt_state = State(None, None, None, 0) # zero is halt kont
-    start_ctrl = Ctrl(main_function.body)
+    start_ctrl = Ctrl(injection_function.body)
     start_envr = Envr('main', None) #state for allocF
     start_stor = Stor()
     logging.debug("Globals init start")

@@ -14,7 +14,7 @@ import cesk.config as cnf
 import cesk
 from cesk.exceptions import CESKException
 
-def run_interpreter(ast, results, graph_name):
+def run_interpreter(ast, results, graph_name, injection_point):
     """ function for redirecting the output of main to a file and
         returning the result as a string  """
     output = tempfile.NamedTemporaryFile()
@@ -24,7 +24,7 @@ def run_interpreter(ast, results, graph_name):
     sys.stdout = open(output.name, "w")#I might need to close this
 
     memory_safe, states_generated, states_matched, states_evaluated \
-        = cesk.main(ast, graph_name)
+        = cesk.main(ast, graph_name, injection_point)
 
     os.dup2(prevfd, prev.fileno())
     sys.stdout = prev
@@ -53,6 +53,9 @@ def main():
     parser.add_argument('--configuration', '-c',
                         required=False, type=str,\
                         help='name of configuration group ex: -c CONCRETE')
+    parser.add_argument('--inject', '-j', \
+                        required=False, type=str, \
+                        help='name of injection point function')
     args = parser.parse_args()
 
     needs_preprocess = False if args.no_preprocess else True
@@ -79,7 +82,7 @@ def main():
         end = time.process_time()
         result["transform_time"] = end - start
         start = time.process_time()
-        run_interpreter(ast, result, args.graph)
+        run_interpreter(ast, result, args.graph, args.inject)
         end = time.process_time()
         result["interpretation_time"] = end - start
     except CESKException as exception:
