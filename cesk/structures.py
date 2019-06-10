@@ -655,7 +655,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
             offset, address.type_size), set()
 
     # MARKER - this is the one
-    def write(self, address, value, sources, loc):
+    def write(self, address, value):
         """ Calls strong or weak write as determined by configuration """
         if isinstance(address, SizedSet):
             #write to all location in the set
@@ -665,7 +665,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
             for addr in address:
                 try:
                     # MARKER - recursive call with a single address
-                    errs = self.write(addr, value, sources, loc)
+                    errs = self.write(addr, value)
                     errors.update(errs)
                 except MemoryAccessViolation as error:
                     logging.error(error)
