@@ -7,6 +7,8 @@ import time
 import os
 import sys
 import argparse
+import pickle
+import logging
 from main import parse
 from transforms import transform
 from cesk.limits import set_config
@@ -35,6 +37,7 @@ def run_interpreter(ast, results, graph_name, injection_point):
     results['states_matched'] = states_matched
     results['states_evaluated'] = states_evaluated
 
+#pylint: disable=too-many-statements
 def main():
     """Parses arguments and calls correct tool"""
     parser = argparse.ArgumentParser()
@@ -43,44 +46,74 @@ def main():
                         required=False, action='store_true', \
                         help='Do not preproccess the file')
     parser.add_argument('--pycparser', '-p',
-                        required=False, type=str, help='the path to pycparser')
+                        required=False, type=str, help='The path to pycparser')
     parser.add_argument('--graph', '-g',
                         required=False, type=str,
-                        help='name of graph output file')
+                        help='Name of graph output file')
     parser.add_argument('--includes', '-I',
                         required=False, type=str,
                         help='Comma separated includes for preprocessing')
     parser.add_argument('--configuration', '-c',
                         required=False, type=str,\
-                        help='name of configuration group ex: -c CONCRETE')
+                        help='Name of configuration group ex: -c CONCRETE')
     parser.add_argument('--inject', '-j', \
                         required=False, type=str, \
-                        help='name of injection point function')
+                        help='Name of injection point function')
+    parser.add_argument('--serialize_ast_parsing', '-sp',
+                        required=False, type=str,
+                        help='Skip parsing by passing in a pickle file')
+    parser.add_argument('--serialize_ast_transform', '-st',
+                        required=False, type=str,
+                        help='Skip parsing and trasforming \
+                            by passing in a pickle file')
     args = parser.parse_args()
 
     needs_preprocess = False if args.no_preprocess else True
 
     #setup passed in configuration
     if args.configuration is not None:
+        logging.info("Current configuration: %s", str(args.configuration))
         if args.configuration in dir(cnf):
             cnf.CONFIG = getattr(cnf, args.configuration)
         else:
             print("Invalid configuration group:", args.configuration)
             exit(0)
+    else:
+        logging.info("Current configuration: DEFAULT")
     set_config(cnf.CONFIG['limits'])
 
     result = {}
     #TODO add timing option for benchmarks
     try:
-        start = time.process_time()
-        ast = parse(args.filename, args.includes, args.pycparser, \
-                    True, needs_preprocess)
-        end = time.process_time()
-        result["parse_time"] = end - start
-        start = time.process_time()
-        transform(ast)
-        end = time.process_time()
-        result["transform_time"] = end - start
+        #parse
+        if args.serialize_ast_parsing is not None:
+            logging.info("Using pickle file for parsing: %s", \
+                str(args.serialize_ast_parsing))
+            with open(args.serialize_ast_parsing, 'rb') as pickle_file:
+                ast = pickle.load(pickle_file)
+            result["parse_time"] = 0
+        elif args.serialize_ast_transform is None:
+            start = time.process_time()
+            ast = parse(args.filename, args.includes, args.pycparser, \
+                        True, needs_preprocess) #parses with sanitation (True)
+            end = time.process_time()
+            result["parse_time"] = end - start
+
+        #transform
+        if args.serialize_ast_transform is not None:
+            logging.info("Using pickle file for parsing and transform: %s", \
+                str(args.serialize_ast_transform))
+            with open(args.serialize_ast_transform, 'rb') as pickle_file:
+                ast = pickle.load(pickle_file)
+            result["parse_time"] = 0
+            result["transform_time"] = 0
+        else:
+            start = time.process_time()
+            transform(ast)
+            end = time.process_time()
+            result["transform_time"] = end - start
+
+        #interpret
         start = time.process_time()
         run_interpreter(ast, result, args.graph, args.inject)
         end = time.process_time()
