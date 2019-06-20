@@ -1,7 +1,6 @@
 """Functions to interpret c code directly"""
 import logging
 import pycparser.c_ast as AST
-from cesk.values.base_values import BaseInteger
 from cesk.values import generate_constant_value, cast
 from cesk.values.factory import Factory
 from cesk.structures import State, Ctrl, Envr, Kont
@@ -357,24 +356,6 @@ def assignment_helper(operator, address, exp, state):
     else:
         raise CESKException(operator + " is not yet implemented")
 
-def get_int_data(integer):
-    """ When a store is weak determines what integer value to use for size,
-        It chooses the smalles value """
-    if isinstance(integer, set):
-        smallest = None
-        for item in integer:
-            if isinstance(item.data, int):
-                if smallest is None or smallest > item.data:
-                    smallest = item.data
-        if smallest is None:
-            smallest = 1
-        return smallest
-    if isinstance(integer, BaseInteger):
-        if isinstance(integer.data, int):
-            return integer.data
-        return 1 #could make more versitile
-    raise CESKException("Integer was expected")
-
 def mem_alloc(exp, state):
     """ Calls the appropriate memory allocation and evaluates the cast """
     if isinstance(exp, AST.Cast):
@@ -418,7 +399,7 @@ def mem_alloc_helper(stmt, state, break_up_list):
     else:
         value, _ = state.get_value(param) #possibilty of ignored errors
 
-    num_bytes = get_int_data(value)
+    num_bytes = State.get_int_data(value)
     logging.info("Memory allocation(%d) with structure: %s", num_bytes,
                  str(break_up_list))
     heap_pointer = state.stor.allocH(state)
