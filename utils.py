@@ -121,7 +121,7 @@ def find_dependencies(path_to_makefile="./", name_of_makefile="Makefile"):
     popen = subprocess.Popen(command, shell=True, stdout=pipe, stderr=out)
     output = popen.communicate()[0]
     output = output.decode('ascii').split('\n')
-    output = [path_to_makefile + item for item in output if len(item) is not 0]
+    output = [path_to_makefile + item for item in output if len(item) != 0]
     dependencies = []
     index = 0
     while index < len(output):

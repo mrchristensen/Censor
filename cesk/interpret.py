@@ -4,7 +4,7 @@ import pycparser.c_ast as AST
 from cesk.values.base_values import BaseInteger
 from cesk.values import generate_constant_value, cast
 from cesk.values.factory import Factory
-from cesk.structures import State, Ctrl, Envr, Kont, FrameAddress
+from cesk.structures import State, Ctrl, Envr, Kont
 import cesk.linksearch as ls
 import cesk.library_functions as lib_func
 from cesk.exceptions import CESKException
@@ -42,7 +42,7 @@ def handle_Label(stmt, state): # pylint: disable=invalid-name
 def handle_If(stmt, state): # pylint: disable=invalid-name
     '''Handles Ifs'''
     logging.debug("If")
-    value, errors = get_value(stmt.cond, state)
+    value, errors = state.get_value(stmt.cond)
     next_states = set()
     truth = value.get_truth_value()
     if True in truth:
@@ -77,7 +77,7 @@ def handle_FuncCall(stmt, state, address=None): # pylint: disable=invalid-name
     '''Handles FuncCalls'''
     if isinstance(stmt.name, AST.UnaryOp):
         logging.debug("FuncCall to %s", stmt.name)
-        func_def_frame_addr, _ = get_address(stmt.name, state)
+        func_def_frame_addr, _ = state.get_address(stmt.name)
         return func(stmt, state, func_def_frame_addr, address)
 
     logging.debug("FuncCall to %s", stmt.name.name)
@@ -89,7 +89,7 @@ def handle_FuncCall(stmt, state, address=None): # pylint: disable=invalid-name
         args = []
         error_states = set()
         if stmt.args is not None:
-            arguments = [get_value(val, state) for val in stmt.args.exprs]
+            arguments = [state.get_value(val) for val in stmt.args.exprs]
             for arg, errs in arguments:
                 args.append(arg)
                 error_states.update(errs)
@@ -111,7 +111,7 @@ def func(stmt, state, func_def_frame_addr, address=None):
 
     func_defs, errors = state.stor.read(func_def_frame_addr)
     if isinstance(func_defs, set):
-        func_defs = set([func_def.node for func_def in func_defs])
+        func_defs = {func_def.node for func_def in func_defs}
     else:
         func_defs = set([func_defs.node])
     return_states = set()
@@ -151,8 +151,8 @@ def func_helper(params, func_def, state, ret_address):#pylint: disable=too-many-
 
     errors = set()
     for decl, expr in params: #add parameters to environment
-        new_address = decl_helper(decl, new_state)
-        value, errs = get_value(expr, state)
+        new_address = new_state.decl_helper(decl)
+        value, errs = state.get_value(expr)
         errors.update(errs)
         # MARKER
         errs = new_state.stor.write(new_address, value)
@@ -166,7 +166,7 @@ def setjmp(stmt, state, address):
     new_buf_name = AST.UnaryOp('*', stmt.args.exprs[0])
     buf_name = stmt.args.exprs[0]
     buf_name = new_buf_name
-    buf_addr = get_address(buf_name, state)
+    buf_addr = state.get_address(buf_name)
     jmp_buf = Kont.allocK()
     state.stor.write_kont(jmp_buf, Kont(state, address))
 
@@ -179,10 +179,10 @@ def setjmp(stmt, state, address):
 
 def longjmp(stmt, state):
     '''Resolves longjmp by restoring the kont in jmp_buf'''
-    buf_val = get_value(stmt.args.exprs[0], state)
+    buf_val = state.get_value(stmt.args.exprs[0])
     kont = state.stor.read_kont(buf_val.data)
 
-    val = get_value(stmt.args.exprs[1], state)
+    val = state.get_value(stmt.args.exprs[1])
     if val.data == 0:
         val = Factory.Integer(1, 'int')
     return kont.invoke(state, val)
@@ -195,7 +195,7 @@ def handle_EmptyStatement(stmt, state): #pylint: disable=invalid-name
 def handle_Decl(stmt, state):#pylint: disable=invalid-name
     '''Handles Decls'''
     logging.debug("Decl %s", str(stmt.name))
-    address = decl_helper(stmt, state)
+    address = state.decl_helper(stmt)
     if stmt.init:
         logging.debug("\tinit %s", stmt.name)
         return assignment_helper("=", address, stmt.init, state)
@@ -236,7 +236,7 @@ def handle_Assignment(stmt, state): #pylint: disable=invalid-name
     '''Handles Assignments'''
     logging.debug("Assignment")
     rexp = stmt.rvalue
-    laddress, errors = get_address(stmt.lvalue, state)
+    laddress, errors = state.get_address(stmt.lvalue)
     states, errs = assignment_helper(stmt.op, laddress, rexp, state)
     errors.update(errs)
     return states, errors
@@ -347,7 +347,7 @@ def assignment_helper(operator, address, exp, state):
         elif isinstance(exp, AST.FuncCall):
             return handle_FuncCall(exp, state, address)
         else:
-            value, errs = get_value(exp, state)
+            value, errs = state.get_value(exp)
             errors.update(errs)
 
         # MARKER
@@ -356,24 +356,6 @@ def assignment_helper(operator, address, exp, state):
         return {state.get_next()}, errors
     else:
         raise CESKException(operator + " is not yet implemented")
-
-def decl_helper(decl, state):
-    """Maps the identifier to a new address and passes assignment part"""
-    name = decl.name
-    f_addr = state.envr.map_new_identifier(name)
-
-    length = 1
-    size = []
-    if isinstance(decl.type, AST.ArrayDecl):
-        length = get_array_length(decl.type, state)
-        ls.get_sizes(decl.type.type, size)
-        if decl.init:
-            raise CESKException("array init should be transformed")
-    else:
-        ls.get_sizes(decl.type, size)
-
-    state.stor.allocM(f_addr, size, length)
-    return f_addr
 
 def get_int_data(integer):
     """ When a store is weak determines what integer value to use for size,
@@ -392,121 +374,6 @@ def get_int_data(integer):
             return integer.data
         return 1 #could make more versitile
     raise CESKException("Integer was expected")
-
-def get_array_length(array, state):
-    """Calculates size and allocates Array. Returns address of first item"""
-    logging.debug('  Array Decl')
-    if isinstance(array.type, AST.ArrayDecl):
-        raise CESKException("Multidim. arrays should be transformed to single")
-    elif isinstance(array.type, (AST.TypeDecl, AST.PtrDecl)):
-        if isinstance(array.dim, (AST.Constant, AST.ID)):
-            value, _ = get_value(array.dim, state)
-            #never should get an err when reading an id
-            length = get_int_data(value) #support for abstract type
-        else:
-            raise CESKException("Unsupported Array dimension "+str(array.dim))
-
-        if length < 1:
-            raise CESKException("Non-positive Array Sizes are not supported")
-            #TODO could implement arrays of size 0
-
-        return length
-    else:
-        raise CESKException("Declarations of " + str(array.type) +
-                            " are not yet implemented")
-
-def get_value(stmt, state): #pylint: disable=too-many-return-statements
-    """ get value for simple id's constants or references and casts of them """
-    if isinstance(stmt, AST.Constant):
-        value = generate_constant_value(stmt.value, stmt.type)
-        return value, set()
-    elif isinstance(stmt, AST.ID):
-        return state.stor.read(get_address(stmt, state)[0])
-    elif isinstance(stmt, AST.Cast):
-        logging.debug(stmt.expr)
-        value, errors = get_value(stmt.expr, state)
-        value = cast(value, stmt.to_type, state)
-        return value, errors
-    elif isinstance(stmt, AST.BinaryOp):
-        left, errors = get_value(stmt.left, state)
-        right, errs = get_value(stmt.right, state)
-        errors.update(errs)
-        result = left.perform_operation(stmt.op, right)
-        logging.debug("\tBinop: %s %s %s", str(left), stmt.op, str(right))
-        logging.debug("\t\t= %s size %d", str(result), result.size)
-        return result, errors
-    elif isinstance(stmt, AST.UnaryOp) and stmt.op == '&':
-        value, errors = get_address(stmt.expr, state)
-        if isinstance(value, FrameAddress):
-            value = state.stor.fa2ptr(value)
-        return value, errors
-    elif isinstance(stmt, AST.UnaryOp) and stmt.op == '*':
-        address, errors = get_address(stmt, state)
-        value, errs = state.stor.read(address)
-        errors.update(errs)
-        return value, errors
-    elif isinstance(stmt, AST.FuncCall):
-        raise CESKException("Cannot get value from " + stmt.name.name + "()")
-    else:
-        raise CESKException("Cannot get value from " + stmt.__class__.__name__)
-
-def get_address(reference, state):
-    # pylint: disable=too-many-branches
-    """get_address"""
-    if isinstance(reference, AST.ID):
-        ident = reference
-        while not isinstance(ident, str):
-            ident = ident.name
-        if ident not in state.envr:
-            checked_decl = ls.check_for_implicit_decl(ident)
-            if checked_decl is not None:
-                logging.debug("Found implicit decl: %s", checked_decl.name)
-                decl_helper(checked_decl, state)
-            else:
-                raise CESKException("Decl for %s not found"%(ident))
-        return state.envr.get_address(ident), set()
-
-    elif isinstance(reference, AST.ArrayRef):
-        raise CESKException("ArrayRef should be transformed")
-
-    elif isinstance(reference, AST.UnaryOp):
-        unary_op = reference
-        if unary_op.op == "*":
-            name = unary_op.expr
-            if isinstance(name, AST.ID):
-                pointer = state.envr.get_address(name)
-                return state.stor.read(pointer)
-            elif isinstance(name, AST.UnaryOp) and name.op == "&":
-                return get_address(name.expr, state) #They cancel out
-            elif isinstance(name, AST.Cast):
-                if isinstance(name.to_type, AST.PtrDecl):
-                    to_type = name.to_type
-                elif isinstance(name.to_type, AST.Typename):
-                    to_type = name.to_type.type
-                address, errors = get_address(name.expr, state)
-                address, errs = state.stor.read(address)
-                errors.update(errs)
-                address = cast(address, to_type, state)
-                return address, errors
-            elif isinstance(name, AST.UnaryOp) and name.op == "*":
-                pointer, errors = get_value(name.expr, state)
-                address, errs = state.stor.read(pointer)
-                errors.update(errs)
-                return address, errors
-            else:
-                raise CESKException("Unknown Case for UnaryOp, nested part is "
-                                    + str(name))
-        else:
-            raise CESKException("Unsupported UnaryOp lvalue in assignment: "
-                                + unary_op.op)
-
-    elif isinstance(reference, AST.StructRef):
-        raise CESKException("StructRef should be transformed")
-    elif isinstance(reference, AST.Struct):
-        # TODO
-        raise NotImplementedError("Access to struct as a whole undefined still")
-    else:
-        raise CESKException("Unsupported lvalue " + str(reference))
 
 def mem_alloc(exp, state):
     """ Calls the appropriate memory allocation and evaluates the cast """
@@ -545,11 +412,11 @@ def mem_alloc_helper(stmt, state, break_up_list):
         #could fetch this concretely no matter what
         value = generate_constant_value(param.value, param.type)
     #elif isinstance(param, AST.ID):
-    #    value, _ = get_value(param, state) #id's should not produce an error
+    #    value, _ = state.get_value(param) #id's should not produce an error
     #else:
     #    raise CESKException("Constant or ID expected %s "%repr(param))
     else:
-        value, _ = get_value(param, state) #possibilty of ignored errors
+        value, _ = state.get_value(param) #possibilty of ignored errors
 
     num_bytes = get_int_data(value)
     logging.info("Memory allocation(%d) with structure: %s", num_bytes,

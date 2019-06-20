@@ -72,7 +72,7 @@ class PragmaToOmp(NodeTransformer):
         """
         if not self.pattern:
             raise ValueError("self.pattern must be set by child class")
-        return self.pattern.match(pragma_string) != None
+        return self.pattern.match(pragma_string) is not None
 
     def clause_nodes_from_pragma_string(self, pragma_string):
         """ Generate OmpClause nodes from a pragma string.

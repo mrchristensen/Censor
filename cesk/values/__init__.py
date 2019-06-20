@@ -66,7 +66,7 @@ def generate_constant_value(value, type_of='int'):
     if type_of == 'string':
         #raise CESKException("implementation needed for general use of strings")
         return string_constant(value)[0]
-    elif type_of == 'float' or type_of == 'double':
+    elif type_of in ('float', 'double'):
         return Factory.Float(*float_constant(value))
     elif type_of == 'int':
         logging.debug(value)
@@ -95,7 +95,7 @@ def generate_value(value, type_of):
         raise CESKException(
             'Pointer not expected here/not valid to create dynamically')
 
-    if type_of == 'uninitialized' or type_of == 'bit_value':
+    if type_of in ('uninitialized', 'bit_value'):
         #debate whether this should return an Integer or BV.ByteValue
         #if BV.ByteValue a few more functions need to be added or
         #if unitialized was an option for individual types rather than a group

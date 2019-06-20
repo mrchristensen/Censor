@@ -13,4 +13,3 @@ class BigfootInstrumenter(Instrumenter): # pylint: disable=abstract-method
         # TODO override this method to register reads and writes
         # after trimming redundant ones with Bigfoot analysis
         # TODO coalesce object and array accesses
-        pass

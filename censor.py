@@ -79,17 +79,19 @@ def analyze_threads():
     for thread in THREAD_QUEUE:
         analyze_thread(thread)
 
+#pylint: disable=unused-argument
 def may_be_zero(aint):
     """Evaluate if the given abstract int may be zero."""
     # TODO
-    return aint == aint
+    return True
 
+#pylint: disable=unused-argument
 def may_be_nonzero(aint):
     """Evaluate if the given abstract int may be nonzero. This is not simply the
     inverse of may_be_zero!
     """
     # TODO
-    return aint == aint
+    return True
 
 def do_unary_op(unop, store):
     """Evaluate a unary op. Return the result and the store, which may change.

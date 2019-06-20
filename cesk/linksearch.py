@@ -35,14 +35,14 @@ class LinkSearch(AST.NodeVisitor): #
         if isinstance(node, AST.Struct) and node.decls:
             name = node.name
             LinkSearch.struct_lut[name] = node
-            logging.debug('Store struct '+str(name)
-                          +' with decls '+str(node.decls))
+            logging.debug('Store struct %s with decls %s', str(name),
+                          str(node.decls))
 
         if isinstance(node, AST.Union) and node.decls:
             name = node.name
             LinkSearch.union_lut[name] = node
-            logging.debug('Store union '+str(name)
-                          +' with decls '+str(node.decls))
+            logging.debug('Store union %s with decls %s', str(name),
+                          str(node.decls))
 
         #link children to parents via lut
         for i, child in enumerate(node):
@@ -80,7 +80,7 @@ class LinkSearch(AST.NodeVisitor): #
                     break
                 parent = LinkSearch.parent_lut[parent]
 
-            if compound != None:
+            if compound is not None:
                 if compound in LinkSearch.scope_decl_lut:
                     LinkSearch.scope_decl_lut[compound].append(node)
                 else:

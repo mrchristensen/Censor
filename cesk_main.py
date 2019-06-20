@@ -68,7 +68,7 @@ def main():
                             by passing in a pickle file')
     args = parser.parse_args()
 
-    needs_preprocess = False if args.no_preprocess else True
+    needs_preprocess = not args.no_preprocess
 
     #setup passed in configuration
     if args.configuration is not None:

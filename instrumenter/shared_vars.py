@@ -87,7 +87,6 @@ class DeclVisitor(NodeVisitor):
         #        and not self.node_is_private(node.rvalue):
         #    self.locals.remove(node.lvalue.name)
         #    self.whitelist.remove(node.lvalue.name)
-        pass
 
 class IDVisitor(NodeVisitor):
     """Used to update state: scope"""

@@ -6,7 +6,7 @@ from collections import deque
 import errno
 from utils import find_injection
 from cesk.structures import State, Ctrl, Envr, Stor, Kont
-from cesk.interpret import (decl_helper, execute, get_value,
+from cesk.interpret import (execute,
                             implemented_nodes as impl_nodes)
 import cesk.linksearch as ls
 from cesk.exceptions import CESKException, MemoryAccessViolation, \
@@ -131,10 +131,10 @@ def init_globals(stor):
     fake_state = State(None, Envr("init_globals", None), stor, None)
     for decl in ls.LinkSearch.global_decl_list:
         logging.debug("Global %s", str(decl.name))
-        decl_helper(decl, fake_state)
+        fake_state.decl_helper(decl)
         if decl.init:
             address = fake_state.envr.get_address(decl.name)
-            value, _ = get_value(decl.init, fake_state)
+            value, _ = fake_state.get_value(decl.init)
             # MARKER
             fake_state.stor.write(address, value)
     funcs = ls.LinkSearch.function_lut

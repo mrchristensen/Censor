@@ -7,122 +7,12 @@ import cesk.linksearch as ls
 from cesk.values import generate_unitialized_value
 from cesk.values import generate_null_pointer
 from cesk.values import generate_pointer, generate_value
+from cesk.state import State
 from cesk.values.base_values import ByteValue, SizedSet
 from cesk.values.factory import Factory
 import cesk.config as cnf
 from cesk.exceptions import MemoryAccessViolation, UnknownConfiguration, \
                            CESKException
-
-class State: #pylint:disable=too-few-public-methods
-    """Holds a program state"""
-    #ctrl = None #control
-    #envr = None  #environment
-    #stor = None #store
-    #kont_addr = None #k(c)ontinuation Address
-    #time_stamp = None
-
-    _time = 0
-
-    def __init__(self, ctrl, envr, stor, kont_addr):
-        self.set_ctrl(ctrl)
-        self.set_envr(envr)
-        self.set_stor(stor)
-        self.set_kont_addr(kont_addr)
-        self.tick()
-
-    def set_ctrl(self, ctrl):
-        """attaches a control object to the state"""
-        self.ctrl = ctrl
-
-    def set_envr(self, envr):
-        """attaches an environment object to the state"""
-        self.envr = envr
-
-    def set_stor(self, stor):
-        """attaches a stor object to the state"""
-        self.stor = stor
-
-    def set_kont_addr(self, kont_addr):
-        """attaches a kont_addr object to the state"""
-        self.kont_addr = kont_addr
-
-    def get_kont(self):
-        '''returns kont'''
-        if self.kont_addr == 0:
-            return None #halt kont
-        else:
-            return self.stor.read_kont(self.kont_addr)
-
-    def get_next(self):
-        """ Moves the ctrl and returns the new state """
-        next_ctrl = self.ctrl.get_next()
-        return State(next_ctrl, self.envr, self.stor, self.kont_addr)
-
-    def get_error(self, err_str):
-        """ generates an error state based on current state """
-        return ErrorState(self, err_str)
-
-    def tick(self):
-        """ Sets the time stamp for the state """
-        if cnf.CONFIG['tick'] == 'concrete':
-            State._time += 1
-            self.time_stamp = State._time
-        elif cnf.CONFIG['tick'] == 'abstract':
-            if self.stor is None:
-                self.time_stamp = State._time
-            else:
-                self.time_stamp = self.stor.get_time()
-        elif cnf.CONFIG['tick'] == 'trivial':
-            self.time_stamp = State._time
-        else:
-            raise UnknownConfiguration('tick')
-
-    def __eq__(self, other):
-        if not isinstance(other, State):
-            return False
-        return (self.ctrl == other.ctrl and
-                self.envr == other.envr and
-                self.kont_addr == other.kont_addr)
-
-    def __hash__(self):
-        result = hash(self.ctrl)
-        result = result * hash(self.envr) + 37
-        result = result * hash(self.kont_addr) + 17
-        return result
-
-    def __str__(self):
-        return (str(self.ctrl)+"\n"+
-                str(self.envr)+"\n"+
-                "ka "+str(self.kont_addr)).replace(':', ' ')
-
-class ErrorState: #pylint: disable=too-few-public-methods
-    """ Holds program state that errored upon execution """
-    def __init__(self, state, msg): #ctrl, envr, stor, kont_addr, time_stamp):
-        self.ctrl = state.ctrl
-        self.envr = state.envr
-        self.stor = state.stor
-        self.kont_addr = state.kont_addr
-        self.time_stamp = state.time_stamp
-        self.message = msg
-
-    def __eq__(self, other):
-        if not isinstance(other, ErrorState):
-            return False
-        return (self.ctrl == other.ctrl and
-                self.envr == other.envr and
-                self.message == other.message and
-                self.kont_addr == other.kont_addr)
-
-    def __hash__(self):
-        result = hash(self.ctrl) + 53
-        result = result * hash(self.envr) + 37
-        result = result * hash(self.kont_addr) + 17
-        result = result * hash(self.message)
-        return result
-
-    def __str__(self):
-        return ("Error in "+str(self.envr)+"\nat "+str(self.ctrl)+"\n"+
-                "to "+str(self.kont_addr)).replace(':', ' ')+"\n"+self.message
 
 class Ctrl: #pylint:disable=too-few-public-methods
     """Holds the control pointer or location of the program"""
@@ -290,7 +180,7 @@ class Envr:
             ident = ident.name
         if ident in self.local_variables:
             return self.local_variables[ident]
-        elif ident in Envr.global_envr:
+        elif ident in Envr.global_envr: #pylint: disable=unsupported-membership-test
             return Envr.global_envr.local_variables[ident]
         raise CESKException(ident + " is not defined in this scope: " +
                             str(self.frame_id))
@@ -790,7 +680,7 @@ class Kont: #pylint: disable=too-few-public-methods
 
     def invoke(self, state, value):
         """ Evaluates the return of a function """
-        if self.kont_addr is 0: #Halt
+        if self.kont_addr == 0: #Halt
             return set(), set()
         errors = set()
         if self.return_address:
