@@ -183,10 +183,8 @@ class State:
                 else:
                     raise CESKException("Decl for %s not found"%(ident))
             return self.envr.get_address(ident), set()
-
         elif isinstance(reference, AST.ArrayRef):
             raise CESKException("ArrayRef should be transformed")
-
         elif isinstance(reference, AST.UnaryOp):
             unary_op = reference
             if unary_op.op == "*":
@@ -201,6 +199,9 @@ class State:
                         to_type = name.to_type
                     elif isinstance(name.to_type, AST.Typename):
                         to_type = name.to_type.type
+                    else:
+                        type_name = name.to_type.__class__.__name__
+                        raise NotImplementedError('Cast to %s' % type_name)
                     address, errors = self.get_address(name.expr)
                     address, errs = self.stor.read(address)
                     errors.update(errs)
@@ -216,7 +217,6 @@ class State:
             else:
                 raise CESKException("Unsupported UnaryOp lvalue in assignment: "
                                     + unary_op.op)
-
         elif isinstance(reference, AST.StructRef):
             raise CESKException("StructRef should be transformed")
         elif isinstance(reference, AST.Struct): # TODO
