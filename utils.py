@@ -19,8 +19,6 @@ def find_main(ast):
 
 def find_injection(ast, injection_point):
     """Examines the AST for a unique main function."""
-    if injection_point is None:
-        injection_point = 'main'
 
     mains = [child for child in ast.ext if is_injection(child, injection_point)]
     if len(mains) == 1:

@@ -55,6 +55,7 @@ def main():
                         help='name of configuration group ex: -c CONCRETE')
     parser.add_argument('--inject', '-j', \
                         required=False, type=str, \
+                        default='main', \
                         help='name of injection point function')
     args = parser.parse_args()
 
@@ -73,10 +74,18 @@ def main():
     #TODO add timing option for benchmarks
     try:
         start = time.process_time()
+        print("parsing first file")
         ast = parse(args.filename, args.includes, args.pycparser, \
                     True, needs_preprocess)
         end = time.process_time()
+        print("time: " + str(end - start))
+        from manifest_visitor import ManifestVisitor
+        man_visit = ManifestVisitor(args.filename)
+        man_visit.visit(ast)
+        print(man_visit.externals)
+
         result["parse_time"] = end - start
+
         start = time.process_time()
         transform(ast)
         end = time.process_time()
