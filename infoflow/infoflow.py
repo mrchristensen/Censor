@@ -1,5 +1,30 @@
 """The information flow analysis, packaged in the InfoFlow class."""
 
+import functools
+
+class WeakMap(dict):
+    """A specialized dictionary that keeps track of when it is modified."""
+    def __init__(self, *args, **kwargs):
+        dict.__init__(self, args, kwargs)
+        self.modified = True
+
+    def reset(self):
+        """Reset the modified bit on the weak map."""
+        self.modified = False
+
+    def __getitem__(self, key):
+        if dict.__contains__(key):
+            return dict.__getitem__(self, key)
+        else:
+            return frozenset()
+
+    def __setitem__(self, key, val):
+        """Perform a weak update. Also, set modified if anything changes."""
+        existing = self.__getitem__(key)
+        if self.modified or not val.issubset(existing):
+            self.modified = True
+            dict.__setitem__(self, key, existing | val)
+
 class InfoFlow:
     """A class that performs information flow analysis. It requires a graph to
         create the EPG and branching map. It also requires the writes map."""
@@ -47,13 +72,14 @@ class InfoFlow:
         'Return' : expr_addresses,
     }
 
-    def __init__(self, graph, writes):
+    def __init__(self, graph, writes, start):
         self.writes = writes
-        self.epg = self.make_epg(graph)
-        self.branches = {}
-        self.get_branches(graph)
+        self._make_epg(graph)
+        self._serialize(start, graph)
+        self.epg = None
         self.eps = {}
         self.shs = {}
+        self._flows = None
 
     def stack_height(self, kont_addr, stor, seen=frozenset()):
         """Get the stack height of an abstract state."""
@@ -92,33 +118,74 @@ class InfoFlow:
         self.eps[state] = result
         return result
 
-    def make_epg(self, graph):
-        """Create an execution point graph from an abstract state graph."""
-        result = {}
-        for (state, succs) in graph.items():
-            kep = self.get_ep(state)
-            succ_eps = map(self.get_ep, succs)
-            if kep in result:
-                result[kep] = result[kep] | succ_eps
-            else:
-                result[kep] = succ_eps
-        return result
+    def _make_epg(self, graph):
+        """Create an execution point graph from an abstract state graph.
+           Intended for internal use."""
+        if not self.epg:
+            self.epg = WeakMap()
+            for (state, s_enum) in graph.items():
+                kep = state.get_e_p()
+                succs = s_enum.successors
+                succ_eps = map(lambda state: state.get_e_p(), succs)
+                self.epg[kep] = succ_eps
 
-    def get_branch(self, state):
-        """Create a binding from a branch to the addresses that affect it."""
-        if state in self.branches:
-            return self.branches[state]
+    def _serialize(self, start, graph):
+        """Order the states in the graph and return them as a list. Currently a
+           depth-first search. Intended for internal use."""
+        seen = set()
+        order = []
+        def inner_serialize(node):
+            if node not in seen:
+                seen.add(node)
+                order.append(node)
+                for succ in graph[node].successors:
+                    inner_serialize(succ)
+        inner_serialize(start)
+        self.state_list = order
+
+    def ipd(self, e_p):
+        """Compute the immediate postdominator of e_p, if necessary, and return
+           it."""
         # TODO
-        result = None
-        self.branches[state] = result
-        return result
 
-    def get_branches(self, graph):
-        """Create a branches map from an abstract state graph."""
-        for (state, succs) in graph.items():
-            self.get_branch(state)
-            for succ in succs:
-                self.get_branch(succ)
+    def origins(self, state, t_s):
+        """Record any new taints at state in t_s."""
+        # TODO
 
-    def run(self):
-        """Perform an information flow analysis."""
+    def _run(self):
+        """Perform an information flow analysis. Intended for internal use."""
+        self._flows = WeakMap()
+        cts = WeakMap()
+        t_s = WeakMap()
+        def taints(addr):
+            if addr in t_s:
+                return t_s[addr]
+            else:
+                return frozenset()
+        def all_taints(addrs):
+            _taints = map(taints, addrs)
+            return functools.reduce(lambda a, b: a|b, _taints, frozenset())
+        while t_s.modified or cts.modified:
+            self._flows.reset()
+            for state in self.state_list:
+                e_p = state.get_e_p()
+                # TODO cts needs to map to maps, not sets - so we have to
+                # extract and flatten
+                from_context = cts[e_p]
+                self.origins(state, t_s)
+                writes = self.writes.writes_at(state.ctrl)
+                for (dest, sources) in writes:
+                    t_s[dest] = all_taints(sources) | from_context
+                current_cts = WeakMap(cts[e_p]) # TODO this argument won't work
+                current_cts[e_p] = all_taints(state.get_branches())
+                for succ in self.epg[state]:
+                    for (branch, taints) in current_cts:
+                        if succ != self.ipd(branch):
+                            cts[succ] = taints
+        # TODO go through sinks and report flows from sources
+
+    def flows(self):
+        """Run the analysis if necessary and return the information flows."""
+        if not self.flows:
+            self._run()
+        return self.flows

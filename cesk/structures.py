@@ -20,28 +20,13 @@ class State:
     _time = 0
 
     def __init__(self, ctrl, envr, stor, kont_addr):
-        self.set_ctrl(ctrl)
-        self.set_envr(envr)
-        self.set_stor(stor)
-        self.set_kont_addr(kont_addr)
+        self.ctrl = ctrl
+        self.envr = envr
+        self.stor = stor
+        self.kont_addr = kont_addr
         self.tick()
         self.e_p = None
-
-    def set_ctrl(self, ctrl):
-        """attaches a control object to the state"""
-        self.ctrl = ctrl
-
-    def set_envr(self, envr):
-        """attaches an environment object to the state"""
-        self.envr = envr
-
-    def set_stor(self, stor):
-        """attaches a stor object to the state"""
-        self.stor = stor
-
-    def set_kont_addr(self, kont_addr):
-        """attaches a kont_addr object to the state"""
-        self.kont_addr = kont_addr
+        self.branches = None
 
     def get_kont(self):
         '''returns kont'''
@@ -273,7 +258,10 @@ class State:
     def get_branches(self):
         """Retrieve the set of addresses that influence control flow at this
            state."""
-        InfoFlow.branch_funs[self.ctrl.stmt.__class__.__name__](self)
+        if not self.branches:
+            stmt_type = self.ctrl.stmt.__class__.__name__
+            self.branches = InfoFlow.branch_funs[stmt_type](self)
+        return self.branches
 
     def get_addresses(self, stmt):
         """Retrieve the set of addresses read at this state."""

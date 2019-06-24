@@ -27,6 +27,14 @@ class WritesMap:
         else:
             return frozenset()
 
+    def writes_at(self, loc):
+        """Retrieve the mapping of addresses written to sources at a given
+           location."""
+        if loc in self.writes:
+            return self.writes[loc]
+        else:
+            return frozenset()
+
     def sources(self, loc, dest):
         """Retrieve the set of addresses influencing a write at a location and
             to a destination address."""
