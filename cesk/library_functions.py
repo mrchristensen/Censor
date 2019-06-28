@@ -125,6 +125,7 @@ def __VERIFIER_nondet(state, return_address,#pylint: disable=invalid-name
     value = values.generate_value(byte_value, type_str)
     errs = set()
     if return_address is not None:
+        # MARKER
         errs = state.stor.write(return_address, value)
     return {state.get_next()}, errs
 def __VERIFIER_nondet_int(state, args, return_address):#pylint: disable=invalid-name,unused-argument

@@ -667,6 +667,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
         return self.memory[address.get_block()].read(
             offset, address.type_size), set()
 
+    # MARKER - this is the one
     def write(self, address, value):
         """ Calls strong or weak write as determined by configuration """
         #if there is nothing to catch what we return then just quit
@@ -680,6 +681,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
             errors = set()
             for addr in address:
                 try:
+                    # MARKER - recursive call with a single address
                     errs = self.write(addr, value)
                     errors.update(errs)
                 except MemoryAccessViolation as error:
@@ -692,6 +694,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
 
         logging.info("Write %s to %s", str(value), str(address))
         logging.debug("Write size %d", value.size)
+        # TODO update writes map
         self._check_address(address.get_block(), 'write')
         if isinstance(address.offset, int):
             offset = address.offset
@@ -808,6 +811,7 @@ class Kont: #pylint: disable=too-few-public-methods
             return set(), set()
         errors = set()
         if self.return_address:
+            # MARKER
             errors = state.stor.write(self.return_address, value)
         new_state = State(self.ctrl, self.envr,
                           state.stor, self.kont_addr)

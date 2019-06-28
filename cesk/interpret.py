@@ -1,9 +1,10 @@
 """Functions to interpret c code directly"""
 import logging
 import pycparser.c_ast as AST
-from cesk.values import generate_constant_value, cast
 from cesk.values.base_values import BaseInteger
-from cesk.structures import (State, Ctrl, Envr, Kont, FrameAddress)
+from cesk.values import generate_constant_value, cast
+from cesk.values.factory import Factory
+from cesk.structures import State, Ctrl, Envr, Kont, FrameAddress
 import cesk.linksearch as ls
 import cesk.library_functions as lib_func
 from cesk.exceptions import CESKException
@@ -80,7 +81,11 @@ def handle_FuncCall(stmt, state, address=None): # pylint: disable=invalid-name
         return func(stmt, state, func_def_frame_addr, address)
 
     logging.debug("FuncCall to %s", stmt.name.name)
-    if stmt.name.name in dir(lib_func):
+    if stmt.name.name == "setjmp":
+        return setjmp(stmt, state, address)
+    elif stmt.name.name == "longjmp":
+        return longjmp(stmt, state)
+    elif stmt.name.name in dir(lib_func):
         args = []
         error_states = set()
         if stmt.args is not None:
@@ -149,11 +154,38 @@ def func_helper(params, func_def, state, ret_address):#pylint: disable=too-many-
         new_address = decl_helper(decl, new_state)
         value, errs = get_value(expr, state)
         errors.update(errs)
+        # MARKER
         errs = new_state.stor.write(new_address, value)
         errors.update(errs)
 
     return new_state, errors
 
+
+def setjmp(stmt, state, address):
+    '''Resolves setjmp by storing a Kont in the setjmp'''
+    new_buf_name = AST.UnaryOp('*', stmt.args.exprs[0])
+    buf_name = stmt.args.exprs[0]
+    buf_name = new_buf_name
+    buf_addr = get_address(buf_name, state)
+    jmp_buf = Kont.allocK()
+    state.stor.write_kont(jmp_buf, Kont(state, address))
+
+    # return 0
+    if address:
+        state.stor.write(address, Factory.Integer(0, 'int'))
+
+    return assignment_helper('=', buf_addr, AST.Constant('int', str(jmp_buf)),
+                             state)
+
+def longjmp(stmt, state):
+    '''Resolves longjmp by restoring the kont in jmp_buf'''
+    buf_val = get_value(stmt.args.exprs[0], state)
+    kont = state.stor.read_kont(buf_val.data)
+
+    val = get_value(stmt.args.exprs[1], state)
+    if val.data == 0:
+        val = Factory.Integer(1, 'int')
+    return kont.invoke(state, val)
 
 def handle_EmptyStatement(stmt, state): #pylint: disable=invalid-name
      #pylint: disable=unused-argument
@@ -318,6 +350,7 @@ def assignment_helper(operator, address, exp, state):
             value, errs = get_value(exp, state)
             errors.update(errs)
 
+        # MARKER
         errs = state.stor.write(address, value)
         errors.update(errs)
         return {state.get_next()}, errors
@@ -519,8 +552,8 @@ def mem_alloc_helper(stmt, state, break_up_list):
         value, _ = get_value(param, state) #possibilty of ignored errors
 
     num_bytes = get_int_data(value)
-    logging.info("Memory allocation(%d) with structure: %s",
-                 num_bytes, str(break_up_list))
+    logging.info("Memory allocation(%d) with structure: %s", num_bytes,
+                 str(break_up_list))
     heap_pointer = state.stor.allocH(state)
 
     block_size = sum(break_up_list)

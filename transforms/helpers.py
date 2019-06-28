@@ -22,8 +22,8 @@ from copy import deepcopy
 from transforms.node_transformer import NodeTransformer
 import pycparser.c_ast as AST
 
-#Propegate constants
-#pylint: disable-msg=too-many-branches
+#Propagate constants
+#pylint: disable=too-many-branches
 def propagate_constant(binop):
     """ If both sides are a constant combine into a single constant """
     if isinstance(binop, AST.Constant):
@@ -67,6 +67,7 @@ def propagate_constant(binop):
 
     return _perform_operation(binop, result_type,
                               left_value, right_value)
+
 def get_no_op():
     """Returns node representina a no-op. Makes a deep copy because we con't
     have any node duplication in the tree because parent links are used

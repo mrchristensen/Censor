@@ -55,10 +55,17 @@ def main():
                         help='Comma separated includes for preprocessing')
     parser.add_argument('--configuration', '-c',
                         required=False, type=str,\
-                        help='name of configuration group ex: -c CONCRETE')
+                        help='Name of configuration group ex: -c CONCRETE')
     parser.add_argument('--inject', '-j', \
                         required=False, type=str, \
-                        help='name of injection point function')
+                        help='Name of injection point function')
+    parser.add_argument('--serialize_ast_parsing', '-sp',
+                        required=False, type=str,
+                        help='Skip parsing by passing in a pickle file')
+    parser.add_argument('--serialize_ast_transform', '-st',
+                        required=False, type=str,
+                        help='Skip parsing and trasforming \
+                            by passing in a pickle file')
     args = parser.parse_args()
 
     needs_preprocess = False if args.no_preprocess else True
