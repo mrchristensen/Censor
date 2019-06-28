@@ -15,6 +15,6 @@ int main( ) {
       printf("%d", data.myInts[i]);
       i++;
    }
-   
+
    return 0;
 }

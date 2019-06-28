@@ -294,7 +294,7 @@ class Envr:
             return Envr.global_envr.local_variables[ident]
         raise CESKException(ident + " is not defined in this scope: " +
                             str(self.frame_id))
-        # logging.debug(ident + " is not defined in this scope: " + str(self.frame_id))
+#logging.debug(ident + " is not defined in this scope: " + str(self.frame_id))
         # return None
 
     def map_new_identifier(self, ident):
@@ -537,24 +537,24 @@ class MemoryBlock: #pylint: disable=too-many-instance-attributes
                 if isinstance(value, SizedSet):
                     for val in value:
                         if val not in old_values:
-                            logging.debug("%%%First True Change")
+                            logging.debug("$$$First True Change")
                             is_change = True
                             old_values.add(val)
                 elif value not in old_values:
-                    logging.debug("%%%Seccond True Change")
+                    logging.debug("$$$Seccond True Change")
                     is_change = True
                     old_values.add(value)
                 #else value already in store, no update
                 continue
             #begin a partial or overlapping write
-            logging.debug("%%%Self on weak write: " + str(self))
-            logging.debug("%%%Self.block on weak write: " + str(self.block))
-            logging.debug("%%%Self.read on weak write: " + str(self.read))
-            logging.debug("%%%value on weak write: " + str(value))
-            logging.debug("Is_change: " + str(is_change))
+            logging.debug("$$$Self on weak write: %s", str(self))
+            logging.debug("$$$Self.block on weak write: %s", str(self.block))
+            logging.debug("$$$Self.read on weak write: %s", str(self.read))
+            logging.debug("$$$value on weak write: %s", str(value))
+            logging.debug("Is_change: %s", str(is_change))
             logging.debug("Ending a weak write")
             raise NotImplementedError("Partial weak write not implemented")
-        logging.debug("Is_change: " + str(is_change))
+        logging.debug("Is_change: %s", str(is_change))
         logging.debug("Ending a weak write")
         return is_change
 
@@ -669,8 +669,9 @@ class Stor: #pylint: disable=too-many-instance-attributes
 
     def write(self, address, value):
         """ Calls strong or weak write as determined by configuration """
+        #if there is nothing to catch what we return then just quit
+        # (no reason to write)
         # if address is None:
-        #     #if there is nothing to catch what we return then just quit (no reason to write)
         #     return
         if isinstance(address, SizedSet):
             #write to all location in the set

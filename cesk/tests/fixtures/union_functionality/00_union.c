@@ -7,7 +7,7 @@ union Data {
 
 int main( ) {
 
-   union Data data;   
+   union Data data;
 
    data.d = 3;
    printf("%d", data.d);

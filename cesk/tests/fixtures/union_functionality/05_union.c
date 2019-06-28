@@ -1,14 +1,14 @@
 #include <stdio.h>
 //Second wonky array test
- 
+
 union Data {
    int i;
    float f;
    char str[20];
 };
- 
+
 int main( ) {
-   union Data data;        
+   union Data data;
 
    data.i = 5;
    printf("%d", data.i);

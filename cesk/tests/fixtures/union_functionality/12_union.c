@@ -5,17 +5,17 @@ struct Nested {
         char *c;
 };
 
-union Test { 
+union Test {
     struct Nested n;
-}; 
-  
-int main() 
-{ 
-    union Test p1; 
+};
+
+int main()
+{
+    union Test p1;
     p1.n.x = 5;
     char a = 'a';
     p1.n.c = &a;
 
-    printf("%d %c", p1.n.x, *(p1.n.c)); 
-    return 0; 
-} 
+    printf("%d %c", p1.n.x, *(p1.n.c));
+    return 0;
+}

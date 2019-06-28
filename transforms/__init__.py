@@ -29,6 +29,7 @@ Enum < TypeDef
 """
 
 # imports for transforms
+import logging
 from .sizeof_type import SizeofType
 from .correct_pragma_placement import CorrectPragmaPlacement
 from .loops_to_goto import WhileToGoto
@@ -107,42 +108,43 @@ def get_transformers(ast):
     yield (PragmaToOmpSimd, lambda ast: [])
     yield (OmpNotImplemented, lambda ast: [])
     yield (RemoveTypedef,
-           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
+           lambda ast: [id_generator, type_env_calc.get_environments(ast)]) #ReD
     yield (AlphaName, lambda ast: [])
     yield (Enum, lambda ast: [])
     yield (SizeofType,
-           lambda ast: [type_env_calc.get_environments(ast)])
+           lambda ast: [type_env_calc.get_environments(ast)]) #ReD
     yield (SimplifyOmpFor,
-           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
+           lambda ast: [id_generator, type_env_calc.get_environments(ast)]) #ReD
     yield (SwitchToIf, lambda ast: [id_generator])
     yield (ForToWhile, lambda ast: [])
     yield (BreakToGoto,
-           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
+           lambda ast: [id_generator, type_env_calc.get_environments(ast)]) #ReD
     yield (WhileToGoto, lambda ast: [id_generator])
     yield (Sequence,
-           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
+           lambda ast: [id_generator, type_env_calc.get_environments(ast)]) #ReD
     yield (IfToIfGoto, lambda ast: [id_generator])
     yield (RemoveCompoundAssignment,
-           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
+           lambda ast: [id_generator, type_env_calc.get_environments(ast)]) #ReD
     yield (RemoveInitLists,
-           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
+           lambda ast: [id_generator, type_env_calc.get_environments(ast)]) #ReD
     yield (RemoveMultidimensionalArray,
-           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
+           lambda ast: [id_generator, type_env_calc.get_environments(ast)]) #ReD
     yield (LiftUnaryOp,
-           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
+           lambda ast: [id_generator, type_env_calc.get_environments(ast)]) #ReD
     yield (ChangeToVoidPointer,
-           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
+           lambda ast: [id_generator, type_env_calc.get_environments(ast)]) #ReD
     yield (StructRefToPointerArith,
-           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
+           lambda ast: [id_generator, type_env_calc.get_environments(ast)]) #ReD
     yield (SingleReturn, lambda ast: [id_generator])
-#     yield (InsertExplicitTypeCasts,
-#            lambda ast: [type_env_calc.get_environments(ast)])
+    yield (InsertExplicitTypeCasts,
+           lambda ast: [type_env_calc.get_environments(ast)])
     yield (LiftToCompoundBlock,
-           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
+           lambda ast: [id_generator, type_env_calc.get_environments(ast)]) #ReD
 
 def transform(ast):
     """Perform each transform in package"""
     for (constructor, dep_func) in get_transformers(ast):
+        logging.info("Starting %s transfrom", constructor)
         transformer = constructor(*dep_func(ast))
         ast = transformer.visit(ast)
     return ast

@@ -16,8 +16,8 @@ import cesk.config as cnf
 import cesk
 from cesk.exceptions import CESKException
 
-def run_interpreter(ast, results, graph_name):
-    """ function for  redirecting the output of main to a file and
+def run_interpreter(ast, results, graph_name, injection_point):
+    """ function for redirecting the output of main to a file and
         returning the result as a string  """
     output = tempfile.NamedTemporaryFile()
     prev = sys.stdout
@@ -26,7 +26,7 @@ def run_interpreter(ast, results, graph_name):
     sys.stdout = open(output.name, "w")#I might need to close this
 
     memory_safe, states_generated, states_matched, states_evaluated \
-        = cesk.main(ast, graph_name)
+        = cesk.main(ast, graph_name, injection_point)
 
     os.dup2(prevfd, prev.fileno())
     sys.stdout = prev
@@ -37,6 +37,7 @@ def run_interpreter(ast, results, graph_name):
     results['states_matched'] = states_matched
     results['states_evaluated'] = states_evaluated
 
+#pylint: disable=too-many-statements
 def main():
     """Parses arguments and calls correct tool"""
     parser = argparse.ArgumentParser()
@@ -54,20 +55,17 @@ def main():
                         help='Comma separated includes for preprocessing')
     parser.add_argument('--configuration', '-c',
                         required=False, type=str,\
-                        help='Name of configuration group ex: -c CONCRETE')
-    parser.add_argument('--serialize_ast_parsing', '-sp',
-                        required=False, type=str,
-                        help='Skip parsing by passing in a pickle file')
-    parser.add_argument('--serialize_ast_transform', '-st',
-                        required=False, type=str,
-                        help='Skip parsing and trasforming by passing in a pickle file')
+                        help='name of configuration group ex: -c CONCRETE')
+    parser.add_argument('--inject', '-j', \
+                        required=False, type=str, \
+                        help='name of injection point function')
     args = parser.parse_args()
 
     needs_preprocess = False if args.no_preprocess else True
 
     #setup passed in configuration
     if args.configuration is not None:
-        logging.info("Current configuration: " + str(args.configuration))
+        logging.info("Current configuration: %s", str(args.configuration))
         if args.configuration in dir(cnf):
             cnf.CONFIG = getattr(cnf, args.configuration)
         else:
@@ -82,7 +80,8 @@ def main():
     try:
         #parse
         if args.serialize_ast_parsing is not None:
-            logging.info("Using pickle file for parsing: " + str(args.serialize_ast_parsing))
+            logging.info("Using pickle file for parsing: %s",
+                         str(args.serialize_ast_parsing))
             with open(args.serialize_ast_parsing, 'rb') as pickle_file:
                 ast = pickle.load(pickle_file)
             result["parse_time"] = 0
@@ -95,7 +94,8 @@ def main():
 
         #transform
         if args.serialize_ast_transform is not None:
-            logging.info("Using pickle file for parsing and transform: " + str(args.serialize_ast_transform))
+            logging.info("Using pickle file for parsing and transform: %s",
+                         str(args.serialize_ast_transform))
             with open(args.serialize_ast_transform, 'rb') as pickle_file:
                 ast = pickle.load(pickle_file)
             result["parse_time"] = 0
@@ -108,7 +108,7 @@ def main():
 
         #interpret
         start = time.process_time()
-        run_interpreter(ast, result, args.graph)
+        run_interpreter(ast, result, args.graph, args.inject)
         end = time.process_time()
         result["interpretation_time"] = end - start
     except CESKException as exception:

@@ -15,15 +15,26 @@ State = namedtuple('State', ['loc', 'store'])
 
 def find_main(ast):
     """Examines the AST for a unique main function."""
-    mains = [child for child in ast.ext if is_main(child)]
+    return find_injection(ast, 'main')
+
+def find_injection(ast, injection_point):
+    """Examines the AST for a unique main function."""
+    if injection_point is None:
+        injection_point = 'main'
+
+    mains = [child for child in ast.ext if is_injection(child, injection_point)]
     if len(mains) == 1:
         return Function(mains[0])
     else:
         raise Exception("No main function found")
 
+def is_injection(ext, inject):
+    """Determines if an AST object is a FuncDef where the name is inject"""
+    return isinstance(ext, pycparser.c_ast.FuncDef) and ext.decl.name == inject
+
 def is_main(ext):
-    """Determines if an AST object is a FuncDef named main."""
-    return isinstance(ext, pycparser.c_ast.FuncDef) and ext.decl.name == 'socket_cb'
+    """Determines if an AST object is a FuncDef where the name is main"""
+    return is_injection(ext, 'main')
 
 def sanitize(ast):
     """ Strip fake includes from preprocessed ast.

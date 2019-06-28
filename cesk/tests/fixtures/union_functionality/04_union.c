@@ -9,12 +9,12 @@ union Data {
 
 int main( ) {
    union Data data1;
-   data1.j = 0.2f; 
+   data1.j = 0.2f;
    printf("%f", data1.j);
    data1.i = 2;
    printf("%d", data1.i);
 
-   for (int i = 0; i < 20; ++i) { 
+   for (int i = 0; i < 20; ++i) {
       if(i == 0){
          data1.str[i] = 'a';
       }

@@ -1,7 +1,7 @@
 """ Set of cstd library functions with a CESK specific implementation:
 need the state and an array containing the values of the arguements passed """
 import re
-import logging
+#import logging
 import random
 import cesk.values as values
 import cesk.values.base_values as BV
@@ -10,8 +10,9 @@ import cesk.limits as limits
 from cesk.values.base_values import SizedSet
 #from cesk.values.abstract_literals import AbstractLiterals as AL
 
+#pylint: disable=line-too-long
 def mocked_function(state, args, return_address):#pylint: disable=unused-argument
-    '''returns two values to the store, 1 and 2, in order to test the weak store functionality'''
+    '''returns two values to the store, 1 and 2, in orderto test the weak store functionality'''
     errs = set()
     value = SizedSet(4)
     value.update({values.generate_constant_value(str(2), 'int'), values.generate_constant_value(str(4), 'int')})
@@ -70,7 +71,7 @@ def socket(state, args, return_address):#pylint: disable=unused-argument
     errs = state.stor.write(return_address, value)
     return {state.get_next()}, errs
 
-def nla_len(state, args, return_address):
+def nla_len(state, args, return_address):#pylint: disable=unused-argument
     '''mocks nla_len()'''
     errs = set()
     # value = str(args[0].nla_len)
@@ -78,13 +79,13 @@ def nla_len(state, args, return_address):
     # errs = state.stor.write(return_address, value)
     return {state.get_next()}, errs
 
-def evutil_make_socket_nonblocking(state, args, return_address):
+def evutil_make_socket_nonblocking(state, args, return_address):#pylint: disable=unused-argument
     '''mocks evutil_make_socket_nonblocking(evutil_socket_t sock)'''
     value = values.generate_constant_value(str(random.randint(0, 2)), 'int')
     errs = state.stor.write(return_address, value)
     return {state.get_next()}, errs
 
-def tls_server_wrapper_setup(state, args, return_address):
+def tls_server_wrapper_setup(state, args, return_address):#pylint: disable=unused-argument
     '''mocks tls_conn_ctx_t* tls_server_wrapper_setup(evutil_socket_t efd, evutil_socket_t ifd, tls_daemon_ctx_t* daemon_ctx,
 	tls_opts_t* tls_opts, struct sockaddr* internal_addr, int internal_addrlen)'''
     return {state.get_next()}, {}

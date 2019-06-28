@@ -7,7 +7,7 @@ union Data {
 };
 
 int main( ) {
-   union Data data;        
+   union Data data;
    data.d = 3.14;
    data.f = 2.87f;
    printf("%f", data.f);

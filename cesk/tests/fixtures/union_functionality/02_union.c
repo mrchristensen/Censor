@@ -6,7 +6,7 @@ union DataU {
 };
 
 int main( ) {
-   union DataU data;           
+   union DataU data;
    int i = 3;
    int *ptr = &i;
    data.iptr = ptr;

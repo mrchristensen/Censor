@@ -136,6 +136,7 @@ def get_union_size_and_align(ast_type, env=None):
 
     return size, alignment
 
+#pylint: disable-msg=too-many-branches
 def _offset_compact(decls, field, env):
     offset = 0
     alignment = 1
@@ -151,13 +152,14 @@ def _offset_compact(decls, field, env):
             for nested_decl in decl.type.decls:
                 if nested_decl.name == field.name:
                     field_type = nested_decl.type
-                    break  
+                    break
         elif decl.name is None and isinstance(decl.type, AST.Struct):
             for nested_decl in decl.type.decls:
                 if nested_decl.name == field.name:
                     field_type = nested_decl.type
                     break
-                decl_size, decl_alignment = get_size_and_alignment(nested_decl, env)
+                decl_size, decl_alignment = \
+                        get_size_and_alignment(nested_decl, env)
                 if isinstance(decl_size, AST.Constant):
                     added_offset += c_to_int(decl_size)
                     offset += c_to_int(decl_size)

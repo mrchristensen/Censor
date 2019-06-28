@@ -9,7 +9,8 @@ yacctab.py
 **/*.pyc
 .vscode
 .idea
-ssa_verify_codebase/*
+ssa-daemon-verify-editted-codebase
+ssa-daemon-verify-editted-codebase/*
 results/*
 cesk/tests/tmp/*
 instrumenter/scripts/sandbox/*
@@ -29,3 +30,7 @@ testTransformWithoutRedefs.txt
 testWithRedefs.txt
 testWithoutRedefs.txt
 testofcommentsPrint.txt
+logfile.txt
+preprocessed.c
+ssa-daemon-verify-editted-codebase
+tempfile~

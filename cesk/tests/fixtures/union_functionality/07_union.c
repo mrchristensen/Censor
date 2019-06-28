@@ -6,16 +6,16 @@ struct nestedStruct {
    double y;
 };
 
-union Test { 
+union Test {
    struct nestedStruct n;
-}; 
-  
-int main() 
-{ 
+};
+
+int main()
+{
    union Test p1;
    p1.n.x = 5;
    p1.n.y = 2.12;
 
-   printf("%d %f", p1.n.x, p1.n.y); 
-   return 0; 
+   printf("%d %f", p1.n.x, p1.n.y);
+   return 0;
 }

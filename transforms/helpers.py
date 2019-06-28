@@ -23,11 +23,12 @@ from transforms.node_transformer import NodeTransformer
 import pycparser.c_ast as AST
 
 #Propegate constants
+#pylint: disable-msg=too-many-branches
 def propagate_constant(binop):
     """ If both sides are a constant combine into a single constant """
     if isinstance(binop, AST.Constant):
         return binop
-    
+
     if isinstance(binop, AST.UnaryOp):
         return _perform_unary_operation(binop)
 

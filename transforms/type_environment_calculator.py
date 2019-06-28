@@ -26,7 +26,7 @@ of your current scope.
 """
 import logging
 from copy import deepcopy
-from pycparser.c_ast import ID, Struct, Union, Enum, FuncDecl
+from pycparser.c_ast import ID, Struct, Union, Enum, FuncDecl, TypeDecl
 from .node_transformer import NodeTransformer
 from .id_generator import IDGenerator
 from .helpers import remove_identifier
@@ -124,8 +124,37 @@ class TypeEnvironmentCalculator(NodeTransformer):
 
     def visit_Typedef(self, node): # pylint: disable=invalid-name
         """Add typedefs to the type environment."""
+        # raise Exception("Unexpected Operation\n")
+        # logging.debug("ccc " + str(node))
         self.envr.add(node.name, node.type)
+        # if isinstance(node.type, TypeDecl):
+        #     type_node = node.type.type
+        #     if isinstance(type_node, (Struct, Union, Enum)):
+        #         ident = type_node.name
+        #         if ident is not None:
+        #             ident = type(type_node).__name__ + " " + ident
+        #             if ident not in self.envr:
+        #                 self.envr.add(ident, type_node)
         self.generic_visit(node)
+        if node is None:
+            return node
+        if isinstance(node.type, TypeDecl):
+            type_node = node.type.type
+            if isinstance(type_node, (Struct, Union, Enum)):
+                ident = type_node.name
+                if ident is not None:
+                    ident = type(type_node).__name__ + " " + ident
+                    if ident not in self.envr:
+                        self.envr.add(ident, type_node)
+        else:
+            for field in node.__class__.__slots__:
+                old_value = getattr(node, field, None)
+                if self.skip(old_value):
+                    continue
+                elif isinstance(old_value, list):
+                    old_value[:] = self.visit_list(old_value)
+                elif self.is_node(old_value):
+                    node = self.visit_node(node, field, old_value)
         return node
 
     def visit_Compound(self, node): # pylint: disable=invalid-name
@@ -172,7 +201,7 @@ class TypeEnvironmentCalculator(NodeTransformer):
         """Visit Decl nodes so that we can save type information about
         identifiers in the environment."""
         #TODO handle extern, static, etc properly
-
+        # raise Exception("Unexpected Operation\n")
         type_node = deepcopy(node.type)
 
         ident = remove_identifier(type_node)
@@ -192,6 +221,8 @@ class TypeEnvironmentCalculator(NodeTransformer):
 
     def visit_TypeDecl(self, node): #pylint: disable=invalid-name
         """ Examine TypeDecl """
+        # logging.debug("$$$ " +str(node))
+        # raise Exception("Unexpected Operation\n")
         type_node = node.type
         if isinstance(type_node, (Struct, Union)):
             ident = type_node.name
