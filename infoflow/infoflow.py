@@ -5,7 +5,7 @@ import functools
 class WeakMap(dict):
     """A specialized dictionary that keeps track of when it is modified."""
     def __init__(self, *args, **kwargs):
-        dict.__init__(self, args, kwargs)
+        dict.__init__(self, *args, **kwargs)
         self.modified = True
 
     def reset(self):
@@ -13,17 +13,137 @@ class WeakMap(dict):
         self.modified = False
 
     def __getitem__(self, key):
-        if dict.__contains__(key):
+        if dict.__contains__(self, key):
             return dict.__getitem__(self, key)
         else:
             return frozenset()
 
     def __setitem__(self, key, val):
         """Perform a weak update. Also, set modified if anything changes."""
-        existing = self.__getitem__(key)
-        if self.modified or not val.issubset(existing):
+        self.add_all(key, frozenset([val]))
+
+    def add_all(self, key, values):
+        """Perform a weak update with multiple values."""
+        if self.__contains__(key):
+            existing = self.__getitem__(key)
+        else:
+            existing = frozenset()
+        if self.modified or not values.subsetof(existing):
             self.modified = True
-            dict.__setitem__(self, key, existing | val)
+            dict.__setitem__(self, key, existing | values)
+
+    def calc_ipds(self, ex): #pylint: disable=too-many-locals,too-many-statements
+        #pylint: disable=invalid-name
+        """Calculate the immediate postdominator of each node in the graph."""
+        def dfs(v):
+            vertex.append(v)
+            semi[v] = len(vertex)
+            v.index = len(vertex)
+            for w in succ[v]:
+                if semi[w] == 0:
+                    parent[w] = v
+                    dfs(w)
+        def compress(v):
+            if ancestor[u] in ancestor:
+                compress(ancestor[u])
+                if semi[label[ancestor[v]]] < semi[label[v]]:
+                    label[v] = label[ancestor[v]]
+                ancestor[v] = ancestor[ancestor[v]]
+        def ev(v):
+            if ancestor[v] == 0:
+                return label[v]
+            else:
+                compress(v)
+                if semi[label[ancestor[v]]] >= semi[label[v]]:
+                    return label[v]
+                else:
+                    return label[ancestor[v]]
+        def link(v, w):
+            s = w
+            while semi[label[w]] < semi[label[child[s]]]:
+                if size[s] + size[child[child[s]]] >= 2*size[child[s]]:
+                    ancestor[child[s]] = s
+                    child[s] = child[child[s]]
+                else:
+                    size[child[s]] = size[s]
+                    ancestor[s] = child[s]
+                    s = child[s]
+                label[s] = label[w]
+                size[v] = size[v] + size[w]
+                if size[v] < 2*size[w]:
+                    temp = s
+                    s = child[v]
+                    child[v] = temp
+                while s != 0:
+                    ancestor[s] = v
+                    s = child[s]
+        pred = self # TODO just an alias
+        succ = self.reverse()
+        semi = {}
+        parent = {}
+        vertex = [None]
+        dom = {}
+        dfs(ex)
+        label = [i for i in range(len(vertex))]
+        print(vertex)
+        ancestor = [0] * len(vertex)
+        child = [0] * len(vertex)
+        size = [1] * len(vertex)
+        size[0] = 0
+        bucket = [set()] * len(vertex)
+        for w in vertex[:1:-1]:
+            print("w: %s" % w)
+            for v in pred[w]:
+                u = ev(v)
+                semi[w] = min(semi[w], semi[u])
+            print("semi[w]: %s" % semi[w])
+            bucket[semi[w]] = w
+            link(parent[w], w)
+            if parent[w] in bucket:
+                print("bucket: %s" % bucket[parent[w]])
+            else:
+                print("empty bucket")
+            for v in bucket[parent[w]]:
+                u = ev(v)
+                if semi[u] < semi[v]:
+                    dom[v] = u
+                else:
+                    dom[v] = parent[w]
+            print("parent[w]: %s" % parent[w])
+            if parent[w] in bucket:
+                bucket.pop(parent[w])
+        for w in vertex[2:]:
+            print("dom: %s" % dom)
+            print("vertex: %s" % vertex)
+            print("semi: %s" % semi)
+            if dom[w] != vertex[semi[w]]:
+                dom[w] = dom[dom[w]]
+        dom[ex] = 0
+        print("pred: %s" % pred)
+        print("succ: %s" % succ)
+        print("semi: %s" % semi)
+        print("parent: %s" % parent)
+        print("vertex: %s" % vertex)
+        return dom
+
+    def reverse(self):
+        """Create a new WeakMap with reversed bindings."""
+        _reverse = WeakMap()
+        for (key, values) in self.items():
+            for value in values:
+                _reverse[value] = key
+        return _reverse
+
+    def _binding_to_str(self, key):
+        values = map(lambda v: str(v), self[key])
+        v_str = ", ".join(values)
+        return "%s: %s" % (key, v_str)
+
+    def __str__(self):
+        return "\n".join(map(self._binding_to_str, self.keys()))
+
+    def __repr__(self):
+        return "\n".join(map(self._binding_to_str, self.keys()))
 
 class InfoFlow:
     """A class that performs information flow analysis. It requires a graph to
@@ -166,7 +286,8 @@ class InfoFlow:
             _taints = map(taints, addrs)
             return functools.reduce(lambda a, b: a|b, _taints, frozenset())
         while t_s.modified or cts.modified:
-            self._flows.reset()
+            cts.reset()
+            t_s.reset()
             for state in self.state_list:
                 e_p = state.get_e_p()
                 # TODO cts needs to map to maps, not sets - so we have to
@@ -189,3 +310,30 @@ class InfoFlow:
         if not self.flows:
             self._run()
         return self.flows
+
+class Node:
+    """A simple Node class for a test."""
+    def __init__(self, value):
+        self.value = value
+    def __str__(self):
+        return "n(%s)" % self.value
+    def __repr__(self):
+        return "n(%s)" % self.value
+
+def test_ipds():
+    """Run a quick test case to see if IPDs are found correctly."""
+    cfg = WeakMap()
+    nodes = [Node(i) for i in range(7)]
+    cfg[nodes[1]] = nodes[2]
+    cfg[nodes[1]] = nodes[3]
+    cfg[nodes[2]] = nodes[6]
+    cfg[nodes[3]] = nodes[4]
+    cfg[nodes[3]] = nodes[5]
+    cfg[nodes[4]] = nodes[6]
+    cfg[nodes[5]] = nodes[6]
+    cfg[nodes[5]] = nodes[3]
+    pds = cfg.calc_ipds(6)
+    print(pds)
+
+if __name__ == "__main__":
+    test_ipds()
