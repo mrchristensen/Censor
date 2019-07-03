@@ -50,11 +50,12 @@ def main():
     parser.add_argument('--graph', '-g',
                         required=False, type=str,
                         help='Name of graph output file')
-    parser.add_argument('--includes', '-I',
+    parser.add_argument('--includes', '-i',
                         required=False, type=str,
                         help='Comma separated includes for preprocessing')
     parser.add_argument('--configuration', '-c',
                         required=False, type=str,\
+                        choices=[*cnf.CONFIGS, 'list'],\
                         help='Name of configuration group ex: -c CONCRETE')
     parser.add_argument('--inject', '-j', \
                         required=False, type=str, \
@@ -64,7 +65,7 @@ def main():
                         help='Skip parsing by passing in a pickle file')
     parser.add_argument('--serialize_ast_transform', '-st',
                         required=False, type=str,
-                        help='Skip parsing and trasforming \
+                        help='Skip parsing and transforming \
                             by passing in a pickle file')
     args = parser.parse_args()
 
@@ -75,6 +76,9 @@ def main():
         logging.info("Current configuration: %s", str(args.configuration))
         if args.configuration in dir(cnf):
             cnf.CONFIG = getattr(cnf, args.configuration)
+        elif args.configuration == "list":
+            print(*cnf.CONFIGS, sep=", ")
+            exit(0)
         else:
             print("Invalid configuration group:", args.configuration)
             exit(0)

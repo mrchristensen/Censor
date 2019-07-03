@@ -22,6 +22,8 @@ allocF
 """
 
 #Groups of configuration types for different analysis
+CONFIGS = ['CONCRETE', 'ABSTRACT', 'TRIVIAL']
+
 CONCRETE = {
     'values'       : 'concrete', # {concrete, abstract}
     'store_update' : 'strong',   # {strong, weak}

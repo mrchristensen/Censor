@@ -147,7 +147,7 @@ def get_transformers(ast):
 def transform(ast):
     """Perform each transform in package"""
     for (constructor, dep_func) in get_transformers(ast):
-        logging.info("Starting %s transfrom", constructor)
+        logging.info("Starting %s transform", constructor)
         transformer = constructor(*dep_func(ast))
         ast = transformer.visit(ast)
     return ast

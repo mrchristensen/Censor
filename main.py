@@ -13,27 +13,27 @@ from omp.c_with_omp_generator import CWithOMPGenerator
 from cesk.limits import set_config
 from transforms import transform
 
+TOOLS = ['censor', 'observer', 'ssl', 'print', 'transform', 'instrumenter']
+
 def read_args():
     """ build argument parser and returns parsed args """
 
     parser = argparse.ArgumentParser()
     parser.add_argument("filenames", nargs='+')
     parser.add_argument('--tool', '-t',
-                        choices=['censor', 'cesk',
-                                 'observer', 'ssl', 'print',
-                                 'transform', 'instrumenter'],
+                        choices=[*TOOLS, 'list'],
                         required=False, type=str.lower,
-                        help='the (case-insensitive) name of the analysis')
+                        help='The (case-insensitive) name of the analysis')
     parser.add_argument('--pycparser', '-p',
-                        required=False, type=str, help='the path to pycparser')
+                        required=False, type=str, help='The path to pycparser')
     parser.add_argument('--sanitize', '-s',
                         required=False, action="store_true",
-                        help='remove typedefs added by fake includes')
-    parser.add_argument('--includes', '-I',
+                        help='Remove typedefs added by fake includes')
+    parser.add_argument('--includes', '-i',
                         required=False, type=str,
                         help='Comma separated includes for preprocessing')
     parser.add_argument('--configuration', '-c',
-                        required=False, type=str, help='limits for types')
+                        required=False, type=str, help='Limits for types')
     return parser.parse_args()
 
 def main():
@@ -108,12 +108,8 @@ def run_tool(tool, ast, args):
     elif tool == "instrumenter":
         transform(ast)
         instrumenter.main(ast)
-    elif tool == "cesk":
-        import cesk
-        print("Deprecated please use cesk_main.py")
-        #transform(ast)
-        #cesk.main(ast) #config not customizable
     elif tool == "observer":
+        import cesk
         import observer
         observe_ast(ast, observer, cesk)
     elif tool == "ssl":
@@ -127,6 +123,8 @@ def run_tool(tool, ast, args):
             print(CWithOMPGenerator().visit(ast).replace("#pragma BEGIN ", ""))
         else:
             print(CWithOMPGenerator().visit(ast))
+    elif tool == "list":
+        print(*TOOLS, sep=", ")
     else:
         print("No valid tool name given; defaulting to censor.")
         censor.main(ast) #default to censor
