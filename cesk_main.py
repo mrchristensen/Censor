@@ -40,7 +40,8 @@ def run_interpreter(ast, results, graph_name, injection_point):
 #pylint: disable=too-many-statements
 def main():
     """Parses arguments and calls correct tool"""
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description='Runs censor with the cesk ' +
+                                     'interpreter. For more info see the md.')
     parser.add_argument('filename')
     parser.add_argument('--no_preprocess', '-n', \
                         required=False, action='store_true', \

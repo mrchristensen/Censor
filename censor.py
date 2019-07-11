@@ -310,7 +310,7 @@ def analyze_thread(thread: Thread):
 
 def main(ast):
     """Perform AAM-style abstract interpretation intraprocedurally on each
-    function in the ast reacable from main.
+    function in the ast reachable from main.
     """
 
     main_function = find_main(ast)

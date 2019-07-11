@@ -18,7 +18,8 @@ TOOLS = ['censor', 'observer', 'ssl', 'print', 'transform', 'instrumenter']
 def read_args():
     """ build argument parser and returns parsed args """
 
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description='Runs censor concretely. ' +
+                                     'For more information see the readme.')
     parser.add_argument("filenames", nargs='+')
     parser.add_argument('--tool', '-t',
                         choices=[*TOOLS, 'list'],
@@ -33,6 +34,7 @@ def read_args():
                         required=False, type=str,
                         help='Comma separated includes for preprocessing')
     parser.add_argument('--configuration', '-c',
+                        choices=['gcc', 'std', 'list'],
                         required=False, type=str, help='Limits for types')
     return parser.parse_args()
 
@@ -42,6 +44,9 @@ def main():
 
     ast = parse(args.filenames[0], args.includes, args.pycparser, args.sanitize)
 
+    if args.configuration == 'list':
+        print('gcc, std')
+        return
     if args.configuration is not None:
         set_config(args.configuration)
 
@@ -126,6 +131,7 @@ def run_tool(tool, ast, args):
     elif tool == "list":
         print(*TOOLS, sep=", ")
     else:
+        import censor
         print("No valid tool name given; defaulting to censor.")
         censor.main(ast) #default to censor
 
