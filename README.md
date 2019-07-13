@@ -1,11 +1,9 @@
 # Censor
 
-## Table of Contents
-[TOC]
-
-## Intro
 Censor static analyzer that attempts to disprove the existence of data races in OpenMP programs. It uses ideas from Abstracting Abstract Machines, SP-bags, computation graphs, and other research.
 
+### Table of Contents
+[TOC]
 
 # Pre-requisites
 
@@ -117,3 +115,6 @@ Arguments | Example | Description
 
 ### Diagram
 - [A simple diagram](https://www.lucidchart.com/invitations/accept/931a0544-c973-4a39-9e32-8a884f57f445 "Lucid Charts") of the major parts of the Censor codebase and a sequence diagram.
+
+
+[//]: # (## talk about list)
