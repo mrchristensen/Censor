@@ -1,43 +1,37 @@
 # Censor
-A static analyzer that attempts to disprove the existence of data races in OpenMP programs. It uses ideas from Abstracting Abstract Machines, SP-bags, computation graphs, and other research.
-
-[TOC]
 
 ## Table of Contents
-- [Pre-requisites](#Pre-requisites)
-- [Running the Tool](#Run)
-    - [main.py](#main.py)
-    - [cesk_main.py](#cesk_main.py)
-- [Testing](#Testing)
-- [Planned Features](#Plans)
-- [Resources](#Resources)
+[TOC]
+
+## Intro
+Censor static analyzer that attempts to disprove the existence of data races in OpenMP programs. It uses ideas from Abstracting Abstract Machines, SP-bags, computation graphs, and other research.
+
 
 # Pre-requisites
 
-It depends on pycparser 2.15 or later (2.15 added support for pragmas, which are essential to OpenMP). Pycparser is available through standard package managers, including pip. However, Ubuntu LTS's version is currently behind this version and pip only includes the source, not the fake headers.
+This tool depends on pycparser 2.15 or later (2.15 added support for pragmas, which are essential to OpenMP). Pycparser is available through standard package managers, including pip. However, Ubuntu LTS's version is currently behind this version and pip only includes the source, not the fake headers.
 
 As a temporary fix, we cloned the pycparser master branch from [github](https://github.com/eliben/pycparser.git "Github.com"). You can notify main.py of the location of pycparser in one of two ways:
 
-1. create a symbolic link _inside_ the censor repository named `pycparser` to the pycparser directory
+1. create a symbolic link _inside_ the censor repository named *pycparser* to the pycparser directory
 
-2. pass "-p /path/to/pycparser" to main.py as a command line argument.
+2. Pass the path to pycparser while running main.py with the -p flag (i.e. `./main.py -p /path/to/pycparser my_code.c`).
 
-<a name="Run"></a>
 # Running the Tool
 
-There are two major ways to run the tool %%%
+There are two major ways to run the tool:
 
 ## main.py
 
-The first option is to use main.py, which will parse, transform, and interpret concretely (using the concrete cesk interpreter found in `cesk/__init__.py`) a given program. (see [cesk_main.py](#cesk_main.py) to run an abstract interpretation)
+The first option is to use main.py, which will parse, transform, and interpret concretely (using the concrete cesk interpreter found in *cesk/__init__.py*) a given program. (see [cesk_main.py](#cesk_main.py) to run an abstract interpretation)
 
 Arguments | Example | Description
 --------- | ------- | -----------
-`--sanitize` or `-s` | `` | remove typedefs added by fake includes
-`--includes` or `-i` | `` | Comma separated includes for preprocessing %%%
-`--configuration` or `-c` | `` | limits for types
-`--pycparser` or `-p` | `` | The path to pycparser (instead of a symbolic link, pass in the path of pycparser) %%%
-`--tool` or `-t` | `./main.py -t transform my_code.c` | choices=[*censor* - produces an untransformed AST, *observer*, *ssl*, *print* - produces an untransformed and transformed AST,  *transform* - produces the desugared and transformed code, *instrumenter*]
+*--sanitize* or *-s* | `` | remove typedefs added by fake includes
+*--includes* or *-i* | `` | Comma separated includes for preprocessing %%%
+*--configuration* or *-c* | `` | limits for types
+*--pycparser* or *-p* | `` | The path to pycparser (instead of a symbolic link, pass in the path of pycparser) %%%
+*--tool* or *-t* | `./main.py -t transform my_code.c` | choices=[*censor* - produces an untransformed AST, *observer*, *ssl*, *print* - produces an untransformed and transformed AST,  *transform* - produces the desugared and transformed code, *instrumenter*]
 "filenames" | `` | nargs='+'
 print | `./main.py -st print my_code.c` |
 transform |  |
@@ -64,13 +58,13 @@ Preprocessing is automatically on.  Default config mode.
 
 Arguments | Example | Description
 --------- | ------- | -----------
-`--no_preprocess` or `-n` | `` | Skips preprocessing during - Do not preprocess the file
-`--pycparser` or `-p` | `` | The path to pycparser (instead of a symbolic link, pass in the path of pycparser) %%%
-`--graph` or `-g` | `` | Name of graph output file
-`--includes` or `-I` | `` | Comma separated includes for preprocessing %%%
-`--configuration` or `-c` | `` | Add configuration options argument (like, -c) Name of configuration group ex: -c *CONCRETE*, *ABSTRACT*, or *TRIVIAL* (see *cesk/config.py* for more information about each configuration and to create custom configurations). %%%
-`--inject` or `-j` | `` | Add injection argument - Name of injection point function %%%
-`--serialize_ast_parsing` or `-sp` and `--serialize_ast_transform` or `-st` | `` | Add serialized pickle option argument %%% Skip parsing by passing in a pickle file or Skip parsing and transforming by passing in a pickle file
+*--no_preprocess* or *-n* | `` | Skips preprocessing during - Do not preprocess the file
+*--pycparser* or *-p* | `` | The path to pycparser (instead of a symbolic link, pass in the path of pycparser) %%%
+*--graph* or *-g* | `` | Name of graph output file
+*--configuration* or *-c* | `` | Add configuration options argument (like, -c) Name of configuration group ex: -c *CONCRETE*, *ABSTRACT*, or *TRIVIAL* (see *cesk/config.py* for more information about each configuration and to create custom configurations). %%%
+*--includes* or *-I* | `` | Comma separated includes for preprocessing %%%
+*--inject* or *-j* | `` | Add injection argument - Name of injection point function %%%
+*--serialize_ast_parsing* or *-sp* and *--serialize_ast_transform* or *-st* | `` | Add serialized pickle option argument %%% Skip parsing by passing in a pickle file or Skip parsing and transforming by passing in a pickle file
 
 ### Preprocessing
  - Skip preprocessing %%%
@@ -92,11 +86,11 @@ Arguments | Example | Description
 
 
 # Testing
-- To run all regression tests run `all_tests.py` in the `tests/` directory to run regression suite
+- To run all regression tests run *all_tests.py* in the *tests/* directory to run regression suite
 
-- The cesk interpreter is the exception. Its tests can be found in `cesk/tests/`. Run `all_tests.py` to test
+- The cesk interpreter is the exception. Its tests can be found in *cesk/tests/*. Run *all_tests.py* to test %%%
 
-- You can easily test just one c interpreted file by running `run_one_file.py <cfile>` (in both the `tests/` and `cesk/tests/` directories)
+- You can easily test just one c interpreted file by running `run_one_file.py <cfile>` (in both the *tests/* and *cesk/tests/* directories)
 
 
 [//]: # (## yeti todo)
@@ -107,7 +101,6 @@ Arguments | Example | Description
 
 [//]: # (## censor todo)
 
-<a name="Plans"></a>
 # Planned Features
  - The ability to read in multiple files
 
