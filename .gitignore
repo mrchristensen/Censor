@@ -30,7 +30,4 @@ testTransformWithoutRedefs.txt
 testWithRedefs.txt
 testWithoutRedefs.txt
 testofcommentsPrint.txt
-logfile.txt
-preprocessed.c
 ssa-daemon-verify-editted-codebase
-tempfile~
