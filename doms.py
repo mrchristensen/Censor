@@ -20,7 +20,7 @@ def doms(succ, r, n):
 
     def ev(v):
         if ancestor[v] == 0:
-            return v
+            return label[v]
         else:
             compress(v)
             if semi[label[ancestor[v]]] >= semi[label[v]]:
@@ -38,15 +38,15 @@ def doms(succ, r, n):
                 size[child[s]] = size[s]
                 s = child[s]
                 ancestor[s] = child[s]
-            label[s] = label[w]
-            size[v] = size[v] + size[w]
-            if size[v] < 2*size[w]:
-                temp = s
-                s = child[v]
-                child[v] = temp
-            while s != 0:
-                ancestor[s] = v
-                s = child[s]
+        label[s] = label[w]
+        size[v] = size[v] + size[w]
+        if size[v] < 2*size[w]:
+            temp = s
+            s = child[v]
+            child[v] = temp
+        while s != 0:
+            ancestor[s] = v
+            s = child[s]
 
     dom = [None] * (n + 1)
     parent = [None] * (n + 1)
@@ -68,7 +68,7 @@ def doms(succ, r, n):
     print("parent: %s" % str(parent))
     print("pred:   %s" % str(pred))
     print("vertex: %s" % str(vertex))
-    print("semi:   %s" % str(semi))
+    print("semi: %s" % to_dict(list(map(lambda i: vertex[i], semi))))
 
     while i >= 2:
         print("i: %i" % i)
@@ -83,14 +83,9 @@ def doms(succ, r, n):
                 semi[w] = semi[u]
         # this next line may be confusing; semi seems to record pre-order numbers, not vertex names
         print("semi[%s] = %s" % (to_char(w), to_char(vertex[semi[w]])))
-        # print("vertex[%i] = %s" % (semi[w], to_char(vertex[semi[w]])))
-        print("before: bucket[%i]: %s" % (vertex[semi[w]], str(sorted(list(map(to_char, bucket[vertex[semi[w]]]))))))
         bucket[vertex[semi[w]]].add(w)
-        print("after:  bucket[%i]: %s" % (vertex[semi[w]], str(sorted(list(map(to_char, bucket[vertex[semi[w]]]))))))
         link(parent[w], w)
-        print("parent[%s] = %s" % (to_char(w), to_char(parent[w])))
 
-        print("bucket: %s" % str(list(map(lambda b: set(map(to_char, b)), bucket))))
         for v in bucket[parent[w]]:
             u = ev(v)
             if semi[u] < semi[v]:
@@ -103,8 +98,8 @@ def doms(succ, r, n):
     print("semi: %s" % to_dict(list(map(lambda i: vertex[i], semi))))
     for i in range(2, n+1):
         w = vertex[i]
-        print("finalizing vertex #%i: %s" % (i, to_char(w)))
-        print("doms: %s" % str(list(map(to_char, dom))))
+        # print("finalizing vertex #%i: %s" % (i, to_char(w)))
+        # print("doms: %s" % str(list(map(to_char, dom))))
         if dom[w] != vertex[semi[w]]:
             dom[w] = dom[dom[w]]
     dom[r] = 0
@@ -133,9 +128,14 @@ def to_dict(m):
         return (to_char(i), v)
     return dict([binding(i) for i in range(len(m))])
 
-succs = [None, set([4]), set([1, 4, 5]), set([6, 7]), set([12]), set([8]), set([9]), set([9, 10]), set([5, 11, 12]), set([11]), set([9]), set([9, 13]), set([8]), set([1, 2, 3])]
+succs = [None, set([4]), set([1, 4, 5]), set([6, 7]), set([12]), set([8]), set([9]), set([9, 10]), set([5, 11]), set([11]), set([9]), set([9, 13]), set([8]), set([1, 2, 3])]
 # succs = [None, set([2]), set([3, 4]), set([1]), set()]
-print("succs: %s" % to_dict(succs))
+# print("succs: %s" % to_dict(succs))
 ds = doms(succs, 13, 13)
 # ds = doms(succs, 1, 4)
 print(to_dict(ds))
+expected = [None, 13, 13, 13, 13, 13, 3, 3, 13, 13, 7, 13, 4, 0]
+for (ex, act) in zip(expected, ds):
+    if ex != act:
+        print("expected %d but got %d" % (ex, act))
+print(ds)
