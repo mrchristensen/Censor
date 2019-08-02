@@ -1,5 +1,12 @@
+"""An implementation of Tarjan's algorithm. This code is intended to be
+incorporated into master."""
+#pylint: disable=invalid-name
 
 def doms(succ, r, n):
+    #pylint: disable=too-many-locals
+    #pylint: disable=too-many-statements
+    """Calculate the dominators in the graph defined by succ. r is the entry
+       node (the root of the tree) and n is the number of nodes in the graph."""
     def dfs(v):
         nonlocal n
         n = n+1
@@ -65,24 +72,13 @@ def doms(succ, r, n):
     label[0] = 0
     semi[0] = 0
     i = n
-    print("parent: %s" % str(parent))
-    print("pred:   %s" % str(pred))
-    print("vertex: %s" % str(vertex))
-    print("semi: %s" % to_dict(list(map(lambda i: vertex[i], semi))))
 
     while i >= 2:
-        print("i: %i" % i)
         w = vertex[i]
-        print("w: %s" % to_char(w))
-        # The problem seems to be in here. Semidominators aren't being computed
-        # correctly. The only other lines of code that affect semi are obvious.
-        # It could be an error in ev() or something downstream from it.
         for v in pred[w]:
             u = ev(v)
             if semi[u] < semi[w]:
                 semi[w] = semi[u]
-        # this next line may be confusing; semi seems to record pre-order numbers, not vertex names
-        print("semi[%s] = %s" % (to_char(w), to_char(vertex[semi[w]])))
         bucket[vertex[semi[w]]].add(w)
         link(parent[w], w)
 
@@ -95,11 +91,8 @@ def doms(succ, r, n):
         bucket[parent[w]].clear()
         i = i-1
 
-    print("semi: %s" % to_dict(list(map(lambda i: vertex[i], semi))))
     for i in range(2, n+1):
         w = vertex[i]
-        # print("finalizing vertex #%i: %s" % (i, to_char(w)))
-        # print("doms: %s" % str(list(map(to_char, dom))))
         if dom[w] != vertex[semi[w]]:
             dom[w] = dom[dom[w]]
     dom[r] = 0
@@ -107,6 +100,8 @@ def doms(succ, r, n):
     return dom
 
 def to_char(i):
+    """Make a human-readable version of the node number - for debugging the
+       example in the Lengauer and Tarjan paper."""
     if i is None:
         return 'None'
     if i == 0:
@@ -116,26 +111,25 @@ def to_char(i):
     return chr(96 + i)
 
 def to_dict(m):
-    def binding(i):
+    """Also for debugging. This takes a list and prints it as a map from
+       indices to values."""
+    def rhs(i):
         if m[i] is None:
-            v = 'None'
+            return 'None'
         elif isinstance(m[i], int):
-            v = to_char(m[i])
+            return to_char(m[i])
         elif m[i]:
-            v = sorted(list(map(to_char, m[i])))
+            return sorted(list(map(to_char, m[i])))
         else:
-            v = '[]'
-        return (to_char(i), v)
-    return dict([binding(i) for i in range(len(m))])
+            return '[]'
+    return {i: rhs(i) for i in range(len(m))}
 
-succs = [None, set([4]), set([1, 4, 5]), set([6, 7]), set([12]), set([8]), set([9]), set([9, 10]), set([5, 11]), set([11]), set([9]), set([9, 13]), set([8]), set([1, 2, 3])]
-# succs = [None, set([2]), set([3, 4]), set([1]), set()]
-# print("succs: %s" % to_dict(succs))
+succs = [None, set([4]), set([1, 4, 5]), set([6, 7]), set([12]), set([8]),
+         set([9]), set([9, 10]), set([5, 11]), set([11]), set([9]),
+         set([9, 13]), set([8]), set([1, 2, 3])]
 ds = doms(succs, 13, 13)
-# ds = doms(succs, 1, 4)
 print(to_dict(ds))
 expected = [None, 13, 13, 13, 13, 13, 3, 3, 13, 13, 7, 13, 4, 0]
 for (ex, act) in zip(expected, ds):
     if ex != act:
         print("expected %d but got %d" % (ex, act))
-print(ds)
