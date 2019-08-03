@@ -2,11 +2,12 @@
 incorporated into master."""
 #pylint: disable=invalid-name
 
-def doms(succ, r, n):
+def doms(succ, r):
     #pylint: disable=too-many-locals
     #pylint: disable=too-many-statements
     """Calculate the dominators in the graph defined by succ. r is the entry
-       node (the root of the tree) and n is the number of nodes in the graph."""
+       node (the root of the tree). succ should have a mapping for every node
+       in the graph."""
     def dfs(v):
         nonlocal n
         n = n+1
@@ -55,16 +56,17 @@ def doms(succ, r, n):
             ancestor[s] = v
             s = child[s]
 
-    dom = [None] * (n + 1)
-    parent = [None] * (n + 1)
-    ancestor = [0] * (n + 1)
-    child = [0] * (n + 1)
+    n = len(succ.keys())
+    dom = {i: None for i in succ.keys()}
+    parent = {i: None for i in succ.keys()}
+    ancestor = {i: 0 for i in succ.keys()}
+    child = {i: 0 for i in succ.keys()}
     vertex = [None] * (n + 1)
-    pred = [set() for i in range(n+1)]
-    bucket = [set() for i in range(n+1)]
-    label = [i for i in range(n+1)]
-    semi = [0] * (n + 1)
-    size = [1] * (n + 1)
+    pred = {i: set() for i in succ.keys()}
+    bucket = {i: set() for i in succ.keys()}
+    label = {i: i for i in succ.keys()}
+    semi = {i: 0 for i in succ.keys()}
+    size = {i: 1 for i in succ.keys()}
 
     n = 0
     dfs(r)
@@ -99,37 +101,14 @@ def doms(succ, r, n):
 
     return dom
 
-def to_char(i):
-    """Make a human-readable version of the node number - for debugging the
-       example in the Lengauer and Tarjan paper."""
-    if i is None:
-        return 'None'
-    if i == 0:
-        return 'z'
-    if i == 13:
-        return 'r'
-    return chr(96 + i)
-
-def to_dict(m):
-    """Also for debugging. This takes a list and prints it as a map from
-       indices to values."""
-    def rhs(i):
-        if m[i] is None:
-            return 'None'
-        elif isinstance(m[i], int):
-            return to_char(m[i])
-        elif m[i]:
-            return sorted(list(map(to_char, m[i])))
-        else:
-            return '[]'
-    return {i: rhs(i) for i in range(len(m))}
-
-succs = [None, set([4]), set([1, 4, 5]), set([6, 7]), set([12]), set([8]),
-         set([9]), set([9, 10]), set([5, 11]), set([11]), set([9]),
-         set([9, 13]), set([8]), set([1, 2, 3])]
-ds = doms(succs, 13, 13)
-print(to_dict(ds))
-expected = [None, 13, 13, 13, 13, 13, 3, 3, 13, 13, 7, 13, 4, 0]
-for (ex, act) in zip(expected, ds):
-    if ex != act:
-        print("expected %d but got %d" % (ex, act))
+succs = {'a': set(['d']), 'b': set(['a', 'd', 'e']), 'c': set(['f', 'g']),
+         'd': set(['l']), 'e': set(['h']), 'f': set(['i']),
+         'g': set(['i', 'j']), 'h': set(['e', 'k']), 'i': set(['k']),
+         'j': set(['i']), 'k': set(['i', 'r']), 'l': set(['h']),
+         'r': set(['a', 'b', 'c'])}
+ds = doms(succs, 'r')
+expected = {'a': 'r', 'b': 'r', 'c': 'r', 'd': 'r', 'e': 'r', 'f': 'c',
+            'g': 'c', 'h': 'r', 'i': 'r', 'j': 'g', 'k': 'r', 'l': 'd', 'r': 0}
+for k in ds.keys():
+    if ds[k] != expected[k]:
+        print("expected %s but got %s" % (expected[k], ds[k]))
