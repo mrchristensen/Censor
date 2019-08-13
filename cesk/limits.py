@@ -1,5 +1,5 @@
 """ Stores and generates necessary run time environment information
-Concrete values for macros that would be accesed through <limits.h> in C.
+Concrete values for macros that would be accessed through <limits.h> in C.
 From the C99 standard: "Their implementation-defined values shall be equal or
 greater in magnitude (absolute value) to those shown, with the same sign."""
 from enum import Enum
@@ -13,7 +13,7 @@ class NumberRepresentation(Enum):
     TWOS_COMPLEMENT = 2
 
 class StructPackingScheme(Enum):
-    """ Enum to represent diferent packing schemes """
+    """ Enum to represent different packing schemes """
     PACT_COMPACT = 1
     GCC_STD = 2
 
@@ -26,7 +26,7 @@ GCC_SPICEY_BYTE_WIDTHS = {'_Bool':1, 'char':1, 'short':2, 'int':4, 'long':8,
                           'long long':8, 'float':4, 'double':8,
                           'long double':16, 'void':1, 'word':8, 'unsigned':4}
 
-#defualt char could be either signed or unsigned
+#default char could be either signed or unsigned
 std_char_sign = True #pylint: disable=invalid-name
 gcc_char_sign = True #pylint: disable=invalid-name
 
@@ -193,7 +193,7 @@ class Config:
 
         self.set_constants()
 
-    #takes a list of strings and returns type size if availble
+    #takes a list of strings and returns type size if available
     #will only work for valid c types that are listed below
     def get_size(self, identifiers):
         """ return the size based on a list of identifiers """
@@ -206,7 +206,7 @@ class Config:
         return self.size_dict['word']
 
     def set_constants(self):
-        """ Declares contants to match choosen configuration
+        """ Declares contants to match chosen configuration
             Also sets RANGES to match as well """
         global CHAR_BIT, SCHAR_MIN, SCHAR_MAX, UCHAR_MIN, UCHAR_MAX #pylint: disable=global-statement
         global CHAR_MIN, CHAR_MAX, MB_LEN_MAX, SHRT_MIN, SHRT_MAX #pylint: disable=global-statement

@@ -11,7 +11,7 @@ from cesk.exceptions import CESKException
 
 def execute(state):
     """Takes a state evaluates the stmt from ctrl and returns a set of
-    states, and a set of error strings if an error occured"""
+    states, and a set of error strings if an error occurred"""
     stmt = state.ctrl.stmt()
     obj_name = stmt.__class__.__name__
     if obj_name in implemented_nodes():
@@ -63,7 +63,7 @@ def handle_ID(stmt, state): # pylint: disable=invalid-name
     return {state.get_next()}, set()
 
 def handle_Goto(stmt, state): # pylint: disable=invalid-name
-    '''Handles Gotos'''
+    '''Handles Goto's'''
     logging.debug('Goto %s', stmt.name)
     body = ls.LinkSearch.label_lut[stmt.name]
     logging.debug(body)
@@ -221,14 +221,14 @@ def handle_Compound(stmt, state): #pylint: disable=invalid-name
 def handle_Cast(stmt, state): #pylint: disable=invalid-name,unused-argument
     '''Handles Cast'''
     logging.debug('Cast')
-    #is not evaluated becase the operator is not stored
+    #is not evaluated because the operator is not stored
     # anywhere so should not affect the program
     return {state.get_next()}, set()
 
 def handle_BinaryOp(stmt, state): #pylint: disable=invalid-name,unused-argument
     '''Handles BinaryOps'''
     logging.debug("BinaryOp")
-    #is not evaluated becase the operator is not stored
+    #is not evaluated because the operator is not stored
     # anywhere so should not affect the program
     return {state.get_next()}, set()
 
@@ -377,7 +377,7 @@ def decl_helper(decl, state):
 
 def get_int_data(integer):
     """ When a store is weak determines what integer value to use for size,
-        It chooses the smalles value """
+        It chooses the smallest value """
     if isinstance(integer, set):
         smallest = None
         for item in integer:
@@ -390,7 +390,7 @@ def get_int_data(integer):
     if isinstance(integer, BaseInteger):
         if isinstance(integer.data, int):
             return integer.data
-        return 1 #could make more versitile
+        return 1 #could make more versatile
     raise CESKException("Integer was expected")
 
 def get_array_length(array, state):
@@ -535,7 +535,7 @@ def mem_alloc_helper(stmt, state, break_up_list):
     '''performs memory allocation and returns CESKPointer to allocated memory'''
     if stmt.name.name == "malloc":
         param = stmt.args.exprs[0]
-    #TODO Implement spesifics of calloc (write all alloc with nmemb)
+    #TODO Implement specifics of calloc (write all alloc with nmemb)
     elif stmt.name.name == "calloc":
         param = stmt.args.exprs[1]
     else:
@@ -549,7 +549,7 @@ def mem_alloc_helper(stmt, state, break_up_list):
     #else:
     #    raise CESKException("Constant or ID expected %s "%repr(param))
     else:
-        value, _ = get_value(param, state) #possibilty of ignored errors
+        value, _ = get_value(param, state) #possibility of ignored errors
 
     num_bytes = get_int_data(value)
     logging.info("Memory allocation(%d) with structure: %s", num_bytes,

@@ -74,7 +74,7 @@ def generate_constant_value(value, type_of='int'):
     elif type_of == 'char':
         return Factory.Char(*char_constant(value))
 
-    raise CESKException("Unkown Constant Type %s"%type_of)
+    raise CESKException("Unknown Constant Type %s"%type_of)
 
 
 def generate_value(value, type_of):
@@ -98,14 +98,14 @@ def generate_value(value, type_of):
     if type_of == 'uninitialized' or type_of == 'bit_value':
         #debate whether this should return an Integer or BV.ByteValue
         #if BV.ByteValue a few more functions need to be added or
-        #if unitialized was an option for individual types rather than a group
+        #if uninitialized was an option for individual types rather than a group
         return Factory.getIntegerClass().from_byte_value(value, 'bit_value')
 
     raise CESKException("Unexpected value type %s"%type_of)
 
-def generate_unitialized_value(size):
-    """ Generates special value that is unitialized but has a size """
-    return BV.UnitializedValue(size)
+def generate_uninitialized_value(size):
+    """ Generates special value that is uninitialized but has a size """
+    return BV.uninitializedValue(size)
 
 
 def generate_default_value(size):
@@ -190,7 +190,7 @@ def cast(value, typedeclt, state=None):  # pylint: disable=unused-argument
             result = generate_value(byte_value, " ".join(types))
         else:
             #TODO do this the right way, the rest of casting as well
-            #this is a temperary measure for struct and union casts
+            #this is a temporary measure for struct and union casts
             result = value
     else:
         logging.error('\tUnsupported cast: %s', str(typedeclt.type))

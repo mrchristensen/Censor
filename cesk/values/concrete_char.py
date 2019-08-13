@@ -52,7 +52,7 @@ class ConcreteChar(Factory.getIntegerClass()):
             if bit == ByteValue.one:
                 data += place
             elif bit == ByteValue.top:
-                data += place*random.randint(0, 1)#unknown pick a ranodm value
+                data += place*random.randint(0, 1)#unknown pick a random value
             place //= 2
 
         return cls(data, type_of)

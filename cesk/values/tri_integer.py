@@ -26,7 +26,7 @@ class TriInteger(BaseInteger): #pylint:disable=too-few-public-methods
             elif element > 0:
                 self.data.add(AL.PLUS)
             else:
-                raise Exception("Unkown value" +  str(element))
+                raise Exception("Unknown value" +  str(element))
         if AL.TOP in self.data or \
                 (AL.MINUS in self.data and \
                  AL.PLUS in self.data and \

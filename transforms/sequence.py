@@ -106,7 +106,7 @@ class Sequence(LiftNode):
 
     def visit_TernaryOp(self, node): # pylint: disable=invalid-name
         """Transform Ternary to If"""
-        #initalize variables
+        #initialize variables
         decl_1 = make_temp_value(node, self.id_generator, self.envr)
         decl_1.init = None
         val_1 = decl_1.name
@@ -131,7 +131,7 @@ class Sequence(LiftNode):
             self.generic_visit(node)
             return node
 
-        #initalize variables
+        #initialize variables
         decl_1 = make_temp_value(node, self.id_generator, self.envr)
         val_1 = decl_1.name
         self.envr.add(val_1, decl_1.type)

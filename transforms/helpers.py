@@ -69,7 +69,7 @@ def propagate_constant(binop):
                               left_value, right_value)
 
 def get_no_op():
-    """Returns node representina a no-op. Makes a deep copy because we con't
+    """Returns node representina a no-op. Makes a deep copy because we won't
     have any node duplication in the tree because parent links are used
     for interpreting."""
     return deepcopy(_NO_OP)

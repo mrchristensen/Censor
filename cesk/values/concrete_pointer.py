@@ -1,4 +1,4 @@
-'''Concerte Implementation of all the Types'''
+'''Concrete Implementation of all the Types'''
 from copy import deepcopy
 import cesk.limits as limits
 from .base_values import ReferenceValue, ByteValue, BaseInteger

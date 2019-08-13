@@ -56,7 +56,7 @@ class Factory():
 
     @staticmethod
     def getFloatClass(): #pylint: disable=invalid-name
-        '''retuns class for Float'''
+        '''Returns class for Float'''
         if cesk.config.CONFIG['values'] == 'concrete':
             from .concrete_float import ConcreteFloat as Float
         elif cesk.config.CONFIG['values'] == 'abstract':

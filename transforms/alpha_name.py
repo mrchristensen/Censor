@@ -86,7 +86,7 @@ class AlphaName(NodeTransformer):
 
     def rename_decl(self, decl): #pylint: disable=no-self-use
         '''finds a name not declared yet, places in map
-            add to funtion IDs'''
+            add to function IDs'''
         old_name = decl.name
         if not old_name in TO_RENAME_STACK_MAP:
             TO_RENAME_STACK_MAP[old_name] = []

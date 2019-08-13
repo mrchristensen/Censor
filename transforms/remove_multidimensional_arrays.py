@@ -106,7 +106,7 @@ class RemoveMultidimensionalArray(LiftNode):
 
         if isinstance(name, AST.ID): # all array refs
             ref_type = self.envr.get_type(name)
-        else: #another stucture needs to be evaluated first to obtain the array
+        else: #another structure needs to be evaluated first to obtain the array
             ref_type = get_type(name, self.envr)
 
         #visits the array ref and returns the resulting type of the reference
@@ -145,7 +145,7 @@ class RemoveMultidimensionalArray(LiftNode):
         return result
 
     def visit_array_ref_helper(self, ref, typ):
-        """get the refrences paired with the right dimension to calculate
+        """get the references paired with the right dimension to calculate
          stride, leftover type is at bottom of tree"""
         rtyp = self._reverse_type(typ, ref.name)
         array_ref = ref
@@ -166,7 +166,7 @@ class RemoveMultidimensionalArray(LiftNode):
 
                 new_subscript = None
                 num_dim = len(offsets)
-                #for each extra dimension that is part of a multi demintional
+                #for each extra dimension that is part of a multidimensional
                 # array extract extra references to a binop calculation
                 i = num_dim-2
                 while i >= 0:

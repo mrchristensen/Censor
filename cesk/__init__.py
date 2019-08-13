@@ -30,7 +30,7 @@ class StateEnumeration: #pylint: disable=too-few-public-methods
         return str(self.ident)+'-'+str(self.time0)+'/'+str(self.time)
 
 def main(ast, graph_file_name, injection_point): #pylint: disable=too-many-locals,too-many-branches,too-many-statements
-    """Injects execution into main funciton and maintains work queue"""
+    """Injects execution into main function and maintains work queue"""
 
     #values to be returned
     memory_safe = True

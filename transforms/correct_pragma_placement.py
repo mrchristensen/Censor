@@ -30,8 +30,8 @@ class CorrectPragmaPlacement(NodeTransformer):
         return node
 
     def ensure_compound(self, compound, index, item):
-        """ If pragma grap next and make compound,
-            if compound do nothing alse make compound """
+        """ If pragma graph next and make compound,
+            if compound do nothing else make compound """
         if isinstance(item, AST.Pragma):
             block = [item]
             index += 1

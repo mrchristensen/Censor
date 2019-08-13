@@ -4,7 +4,7 @@ import logging
 import pycparser
 import pycparser.c_ast as AST
 import cesk.linksearch as ls
-from cesk.values import generate_unitialized_value
+from cesk.values import generate_uninitialized_value
 from cesk.values import generate_null_pointer
 from cesk.values import generate_pointer, generate_value
 from cesk.values.base_values import ByteValue, SizedSet
@@ -96,7 +96,7 @@ class State: #pylint:disable=too-few-public-methods
                 "ka "+str(self.kont_addr)).replace(':', ' ')
 
 class ErrorState: #pylint: disable=too-few-public-methods
-    """ Holds program state that errored upon execution """
+    """ Holds program state that hit an error upon execution """
     def __init__(self, state, msg): #ctrl, envr, stor, kont_addr, time_stamp):
         self.ctrl = state.ctrl
         self.envr = state.envr
@@ -221,7 +221,7 @@ class Ctrl: #pylint:disable=too-few-public-methods
             return hash(self.node)
 
     def __repr__(self):
-        if self.body:#this will not be unique for every contral
+        if self.body:#this will not be unique for every control
             return (type(self.body.block_items[self.index]).__name__+" at "+
                     str(self.body.block_items[self.index].coord))
         if self.node:
@@ -256,7 +256,7 @@ class FrameAddress:
         return "("+str(self.frame)+", "+str(self.ident)+")"
 
 class Envr:
-    """Holds the enviorment/frame (a maping of identifiers to addresses)"""
+    """Holds the environment/frame (a maping of identifiers to addresses)"""
     next_frame_id = 1 #Tracks next concrete frame id
     global_envr_id = 0
     global_envr = None
@@ -266,7 +266,7 @@ class Envr:
         self.frame_id = self.allocF(func_name, ctrl)
 
     def allocF(self, name, ctrl): #pylint: disable=no-self-use,invalid-name
-        """ Allocation of frame identefiers """
+        """ Allocation of frame identifiers """
         value = None
         if name is None:
             name = 'global'
@@ -309,17 +309,17 @@ class Envr:
         global_env.frame_id = Envr.global_envr_id
         Envr.global_envr = global_env
 
-    def is_localy_defined(self, ident):
+    def is_locally_defined(self, ident):
         """returns if a given identifier is local to this scope"""
         return ident in self.local_variables
 
     @staticmethod
-    def is_globaly_defined(ident):
+    def is_globally_defined(ident):
         """returns if a given identifier is local to this scope"""
         return ident in Envr.global_envr.local_variables
 
     def __contains__(self, ident):
-        return self.is_localy_defined(ident) or Envr.is_globaly_defined(ident)
+        return self.is_locally_defined(ident) or Envr.is_globally_defined(ident)
 
     def __eq__(self, other):
         return self.frame_id == other.frame_id
@@ -365,7 +365,7 @@ class MemoryBlock: #pylint: disable=too-many-instance-attributes
     def _add_value(self, size):
         """ Adds a memory slot to store a value """
         if cnf.CONFIG['store_update'] == 'strong':
-            self.block.append(generate_unitialized_value(size))
+            self.block.append(generate_uninitialized_value(size))
         elif cnf.CONFIG['store_update'] == 'weak':
             self.block.append(SizedSet(size))
         else:
@@ -379,7 +379,7 @@ class MemoryBlock: #pylint: disable=too-many-instance-attributes
         return [[0, offset]]
 
     def _get_index_list(self, offset):
-        """ given an offset returns the number of time a succ map
+        """ given an offset returns the number of time a successor map
             would need to be called to find the item and offset remaning """
         if not isinstance(offset, int):
             logging.error("TOP memory access made")
@@ -537,20 +537,18 @@ class MemoryBlock: #pylint: disable=too-many-instance-attributes
                 if isinstance(value, SizedSet):
                     for val in value:
                         if val not in old_values:
-                            logging.debug("$$$First True Change")
                             is_change = True
                             old_values.add(val)
                 elif value not in old_values:
-                    logging.debug("$$$Seccond True Change")
                     is_change = True
                     old_values.add(value)
                 #else value already in store, no update
                 continue
             #begin a partial or overlapping write
-            logging.debug("$$$Self on weak write: %s", str(self))
-            logging.debug("$$$Self.block on weak write: %s", str(self.block))
-            logging.debug("$$$Self.read on weak write: %s", str(self.read))
-            logging.debug("$$$value on weak write: %s", str(value))
+            logging.debug("Self on weak write: %s", str(self))
+            logging.debug("Self.block on weak write: %s", str(self.block))
+            logging.debug("Self.read on weak write: %s", str(self.read))
+            logging.debug("Value on weak write: %s", str(value))
             logging.debug("Is_change: %s", str(is_change))
             logging.debug("Ending a weak write")
             raise NotImplementedError("Partial weak write not implemented")

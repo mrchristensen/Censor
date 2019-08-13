@@ -55,7 +55,7 @@ class YamlTestCase(unittest.TestCase):
             if output['memory_safe'] == is_safe:
                 return True, 'pass test'
             else:
-                #faili
+                #fail
                 if check_for is None:
                     check_for = 'memsafety'
                 return False, 'Expected '+str(is_safe)+' in checking '+check_for
@@ -83,7 +83,7 @@ class YamlTestCase(unittest.TestCase):
             locks
 
             this is the list of folders that have
-            at least a few applicaple test"""
+            at least a few applicable test"""
         file_path = '../../sv-benchmarks/c/heap-manipulation/'
         for file in os.listdir(file_path):
             if file.endswith(".yml"):

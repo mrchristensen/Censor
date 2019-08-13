@@ -223,7 +223,7 @@ def check_for_implicit_decl(ident):
     if compound is not None:
         if compound in LinkSearch.envr_lut:
             comp_envr = LinkSearch.envr_lut[compound]
-            if comp_envr.is_localy_defined(ident.name):
+            if comp_envr.is_locally_defined(ident.name):
                 return None
         if compound in LinkSearch.scope_decl_lut:
             for decl in LinkSearch.scope_decl_lut[compound]:

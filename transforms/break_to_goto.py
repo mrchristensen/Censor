@@ -5,10 +5,10 @@ from .node_transformer import NodeTransformer
 from .lift_node import LiftNode
 
 class BreakToGoto(LiftNode):
-    """Transform to change break statments to goto code"""
+    """Transform to change break statements to goto code"""
 
     def visit_DoWhile(self, node): #pylint: disable=invalid-name
-        """for each DoWhile, look for break statments"""
+        """for each DoWhile, look for break statements"""
         return self.visit_loop(node)
 
     def visit_While(self, node): #pylint: disable=invalid-name
@@ -34,7 +34,7 @@ class BreakPlacer(NodeTransformer):
         self.label = None
 
     def visit_Break(self, node): #pylint: disable=invalid-name
-        """Replace continue with goto statment"""
+        """Replace continue with goto statement"""
         if self.label is None:
             self.label = self.id_generator.get_unique_id()
         return Goto(self.label, coord=node.coord)

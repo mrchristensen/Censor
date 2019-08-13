@@ -15,7 +15,7 @@ class SizeofType(NodeTransformer):
     struct node *n = (struct node*)malloc(sizeof(struct node));
 
     For now this transform is only being applied in Decl nodes
-    where identifiers are most commonly used unitialized
+    where identifiers are most commonly used uninitialized
     """
     class ReplaceIDWithType(NodeTransformer):
         """Replace id with type in sizeof"""

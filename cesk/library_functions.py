@@ -1,5 +1,5 @@
 """ Set of cstd library functions with a CESK specific implementation:
-need the state and an array containing the values of the arguements passed """
+need the state and an array containing the values of the arguments passed """
 import re
 #import logging
 import random
@@ -12,7 +12,7 @@ from cesk.values.base_values import SizedSet
 
 #pylint: disable=line-too-long
 def mocked_function(state, args, return_address):#pylint: disable=unused-argument
-    '''returns two values to the store, 1 and 2, in orderto test the weak store functionality'''
+    '''returns two values to the store, 1 and 2, in order to test the weak store functionality'''
     errs = set()
     value = SizedSet(4)
     value.update({values.generate_constant_value(str(2), 'int'), values.generate_constant_value(str(4), 'int')})

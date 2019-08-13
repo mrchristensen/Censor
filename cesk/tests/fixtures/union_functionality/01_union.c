@@ -13,3 +13,7 @@ int main( ) {
    printf("%f", data.f);
    return 0;
 }
+
+int test(){
+   return 0;
+}

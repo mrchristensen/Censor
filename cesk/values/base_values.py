@@ -17,12 +17,12 @@ BINOPS = {
     "<<": "__lshift__", #integer only
     ">>": "__rshift__", #integer only
     "&" : "__and__", #integer only
-    "^" : "__xor__", #integer ontl
+    "^" : "__xor__", #integer only
     "|" : "__or__",  #integer only
     "&&": "transformed",
     "||": "transformed"
-    #all assentments should be transformed
-    #turinary operator is transformed as well
+    #all assignments should be transformed
+    #ternary operator is transformed as well
 }
 
 UNOPS = {
@@ -61,12 +61,12 @@ class ArithmeticValue:
         else:
             raise TransformError("Unexpected Operation\n")
     def transformed(self, other=None):
-        """ method to throw error message """ 
+        """ method to throw error message """
         raise TransformError("Operator should be removed by transforms\n");
     def interpreted(self, other=None):
-        """ method to throw error message """ 
+        """ method to throw error message """
         raise TransformError("Operator should be handled by the interpreter\n");
-    #Binary and Unary Operators that muxt be overridden
+    #Binary and Unary Operators that must be overridden
     def __add__(self, other):
         pass
     def __sub__(self, other):
@@ -190,8 +190,8 @@ class ByteValue:
         self.size = size
 
     def append(self, other):
-        """ increase self by others size and add its bits to self 
-            Warning this fuction does not mutate it only copies and appends"""
+        """ increase self by others size and add its bits to self
+            Warning this function does not mutate it only copies and appends"""
         result = ByteValue()
         result.size = self.size + other.size
         result.bits = self.bits + other.bits
@@ -223,7 +223,7 @@ class ByteValue:
         return bytes(bytes_lst)
 
     def fromInt(self, int_value):
-        """ writes to location equivelent to the unsigned integer value """
+        """ writes to location equivalent to the unsigned integer value """
         assert(int_value >= 0)
         index = 0
         while index < self.size*8:
@@ -253,11 +253,11 @@ class ByteValue:
 
     def __hash__(self):
         return hash(str(self))
- 
-class UnitializedValue(ArithmeticValue):
-    """ Type to represent a unitialized value of a certian size """
-    bad_use_str = 'Use of a unitialized value'
- 
+
+class uninitializedValue(ArithmeticValue):
+    """ Type to represent a uninitialized value of a certian size """
+    bad_use_str = 'Use of a uninitialized value'
+
     def __init__(self, size, type_of='uninitialized'):
         self.size = size #in bytes
         self.data = None
@@ -265,23 +265,23 @@ class UnitializedValue(ArithmeticValue):
 
     def perform_operation(self, operator, value):
         """Performs operation and returns value."""
-        raise MemoryAccessViolation(UnitializedValue.bad_use_str)        
+        raise MemoryAccessViolation(uninitializedValue.bad_use_str)
 
     def get_truth_value(self):
         """Returns a bool denoting what truth value the ArithmeticValue would
         have if it were inside of an if statement in C"""
-        raise MemoryAccessViolation(UnitializedValue.bad_use_str)
+        raise MemoryAccessViolation(uninitializedValue.bad_use_str)
 
     def get_block(self):
-        """Mimics a pointer trying to access unitialized values."""
-        raise MemoryAccessViolation(UnitializedValue.bad_use_str)        
+        """Mimics a pointer trying to access uninitialized values."""
+        raise MemoryAccessViolation(uninitializedValue.bad_use_str)
 
     def get_byte_value(self, offset=-1, num_bytes=None):
         """ Returns x random bytes, should only be valid if called from write """
         return ByteValue(self.size)
 
     def __str__(self):
-        return "Unitialized Value size %d" % self.size
+        return "uninitialized Value size %d" % self.size
 
 #helper class for the store
 class SizedSet(set):

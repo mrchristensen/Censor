@@ -11,73 +11,73 @@ class CWithOMPGenerator(CGenerator):
         accumulation in generic_visit.
     """
     def visit_OmpFor(self, n):
-        """Return pragman string"""
+        """Return pragma string"""
         return '#pragma ' + n.pragma + '\n' + self.generic_visit(n)
 
     def visit_OmpParallel(self, n):
-        """Return pragman string"""
+        """Return pragma string"""
         return '#pragma ' + n.pragma + '\n' + self.generic_visit(n)
 
     def visit_OmpSections(self, n):
-        """Return pragman string"""
+        """Return pragma string"""
         return '#pragma ' + n.pragma + '\n' + self.generic_visit(n)
 
     def visit_OmpSection(self, n):
-        """Return pragman string"""
+        """Return pragma string"""
         return '#pragma ' + n.pragma + '\n' + self.generic_visit(n)
 
     def visit_OmpSingle(self, n):
-        """Return pragman string"""
+        """Return pragma string"""
         return '#pragma ' + n.pragma + '\n' + self.generic_visit(n)
 
     def visit_OmpTask(self, n):
-        """Return pragman string"""
+        """Return pragma string"""
         return '#pragma ' + n.pragma + '\n' + self.generic_visit(n)
 
     def visit_OmpTaskloop(self, n):
-        """Return pragman string"""
+        """Return pragma string"""
         return '#pragma ' + n.pragma + '\n' + self.generic_visit(n)
 
     def visit_OmpTaskloopSimd(self, n):
-        """Return pragman string"""
+        """Return pragma string"""
         return '#pragma ' + n.pragma + '\n' + self.generic_visit(n)
 
     def visit_OmpMaster(self, n):
-        """Return pragman string"""
+        """Return pragma string"""
         return '#pragma ' + n.pragma + '\n' + self.generic_visit(n)
 
     def visit_OmpCritical(self, n):
-        """Return pragman string"""
+        """Return pragma string"""
         return '#pragma ' + n.pragma + '\n' + self.generic_visit(n)
 
     def visit_OmpBarrier(self, n):
-        """Return pragman string"""
+        """Return pragma string"""
         return '#pragma ' + n.pragma + '\n' + self.generic_visit(n)
 
     def visit_OmpTaskwait(self, n):
-        """Return pragman string"""
+        """Return pragma string"""
         return '#pragma ' + n.pragma + '\n' + self.generic_visit(n)
 
     def visit_OmpTaskgroup(self, n):
-        """Return pragman string"""
+        """Return pragma string"""
         return '#pragma ' + n.pragma + '\n' + self.generic_visit(n)
 
     def visit_OmpAtomic(self, n):
-        """Return pragman string"""
+        """Return pragma string"""
         return '#pragma ' + n.pragma + '\n' + self.generic_visit(n)
 
     def visit_OmpFlush(self, n):
-        """Return pragman string"""
+        """Return pragma string"""
         return '#pragma ' + n.pragma + '\n' + self.generic_visit(n)
 
     def visit_OmpCancel(self, n):
-        """Return pragman string"""
+        """Return pragma string"""
         return '#pragma ' + n.pragma + '\n' + self.generic_visit(n)
 
     def visit_OmpCancellationPoint(self, n):
-        """Return pragman string"""
+        """Return pragma string"""
         return '#pragma ' + n.pragma + '\n' + self.generic_visit(n)
 
     def visit_OmpThreadprivate(self, n):
-        """Return pragman string"""
+        """Return pragma string"""
         return '#pragma ' + n.pragma + '\n' + self.generic_visit(n)

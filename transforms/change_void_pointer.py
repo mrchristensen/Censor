@@ -75,7 +75,7 @@ class ChangeToVoidPointer(LiftNode):
 
     def add_reference_array(self, node):
         """ Because the interpreter see only an id or memory access at a
-            location add the reference to get the location explicity """
+            location add the reference to get the location explicitly """
         #TODO does not work for arrays that are parametersi
         #b/c arrays are incorrectly typed as arrays when they are pointers
         return AST.UnaryOp('&', node) #cesk interpreter needs

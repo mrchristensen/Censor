@@ -25,4 +25,4 @@ class TransformError(CESKException):
         or not expected to be found in c code """
     error_code = 4
 #Other ideas for errors
-#Unitialized Value Read
+#Uninitialized Value Read

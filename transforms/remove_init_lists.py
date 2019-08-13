@@ -178,7 +178,7 @@ def flatten_array_init(decl):
         decl.type.dim = Constant('int', str(size))
     if not isinstance(decl.init, InitList):
         return inits
-        #TODO allow for other types of Array initilization
+        #TODO allow for other types of Array initialization
         #decl.show()
         #raise NotImplementedError(_NOT_IMPLEMENTED_MESSAGE)
     for i, init in enumerate(decl.init.exprs):

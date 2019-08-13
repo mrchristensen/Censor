@@ -28,7 +28,7 @@ def get_type(expr, env):
 def make_temp_ptr(lvalue_expr, id_generator, env):
     """Given an lvalue, this function will return a Decl node representing a
     declaration of a new unique identifier, and assigning the address of the
-    given lvalue to that unique idenitfier. This is very useful when you need
+    given lvalue to that unique identifier. This is very useful when you need
     a temp variable while simplifying complicated expressions in the AST."""
     temp_name = id_generator.get_unique_id()
     lvalue_addr = UnaryOp('&', lvalue_expr, coord=lvalue_expr.coord)
@@ -41,7 +41,7 @@ def make_temp_ptr(lvalue_expr, id_generator, env):
 def make_temp_value(expr, id_generator, env):
     """Given an expression, this function will return a Decl node representing
     a declaration of a new unique identifier, and assigning the expression
-    to that unique idenitfier. This is very useful when you need
+    to that unique identifier. This is very useful when you need
     a temp variable while simplifying complicated expressions in the AST."""
     name = id_generator.get_unique_id()
     typ = get_type(expr, env)

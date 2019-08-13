@@ -106,7 +106,7 @@ class ConcreteInteger(BV.BaseInteger): #pylint:disable=too-few-public-methods
                 if bit == look_for:
                     data += place
                 elif bit == BV.ByteValue.top:
-                    data += place*random.randint(0, 1)#unknown pick ranodm value
+                    data += place*random.randint(0, 1)#unknown pick random value
                 place *= 2
 
         return cls(data, type_of, byte_value.size)

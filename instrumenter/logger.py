@@ -60,7 +60,7 @@ def is_yeti(node):
     return any(f == node.decl.name for f in YETI_FUNCS) \
             or 'INIT_GLOBALS' in node.decl.name
 
-class PropogateTaskIds(NodeTransformer):
+class PropagateTaskIds(NodeTransformer):
     """
     Modify every function call and function definition to pass
     the current task id and parent task id
@@ -114,7 +114,7 @@ class Logger(Registry):
                 item.body.block_items[0:0] = task_ids
         deps = ['omp.h', 'stdio.h', 'stdlib.h']
         file_ast = IncludeDependencies(deps).visit(file_ast)
-        file_ast = PropogateTaskIds().visit(file_ast)
+        file_ast = PropagateTaskIds().visit(file_ast)
         io_index = find_end_include(file_ast, 'stdio')
         file_ast.ext[io_index+1:io_index+1] = self.ast.ext
         file_ast.ext.insert(0, YETI_TASK_ID_GEN)

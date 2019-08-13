@@ -25,7 +25,7 @@ class TestIfToIfGoto(GoldenTestCase):
         golden_file = self.fixtures + '/if_else_golden.c'
         self.assert_transform_golden(self.transform, golden_file, input_file)
 
-    def test_without_compund(self):
+    def test_without_compound(self):
         """ Test if-else statement
         """
         input_file = self.fixtures + '/if_simple_input.c'
