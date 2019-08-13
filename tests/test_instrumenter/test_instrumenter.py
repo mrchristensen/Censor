@@ -1,4 +1,4 @@
-"""Test Instrumenter"""
+'''Test Instrumenter'''
 
 from tests.helpers import GoldenTestCase
 from instrumenter.instrumenter import Instrumenter
@@ -15,21 +15,21 @@ TRANSFORMS = [
 ]
 
 def transform_omp(ast):
-    """Transform Pragmas to Omp Nodes"""
+    '''Transform Pragmas to Omp Nodes'''
     for transform in TRANSFORMS:
         ast = transform.visit(ast)
     return ast
 
 class TestInstrumenter(GoldenTestCase):
-    """Test Instrumenter"""
+    '''Test Instrumenter'''
 
     def setUp(self): #pylint: disable=invalid-name
-        """Set up test case"""
+        '''Set up test case'''
         self.fixtures = '/test_instrumenter/fixtures/instrumenter'
         self.instrumenter = None
 
     def transform(self, ast):
-        """Transform input AST"""
+        '''Transform input AST'''
         ast = transform_omp(ast)
         id_generator = IDGenerator(ast)
         environments = TypeEnvironmentCalculator().get_environments(ast)
@@ -37,5 +37,5 @@ class TestInstrumenter(GoldenTestCase):
         return self.instrumenter.visit(ast)
 
     def test_fixtures(self):
-        """Test all golden files"""
+        '''Test all golden files'''
         self.assert_all_transform_golden(self.transform, self.fixtures)

@@ -1,4 +1,4 @@
-"""Test PragmaToOmpSection -- Replacing Pragma omp with Omp Nodes"""
+'''Test PragmaToOmpSection -- Replacing Pragma omp with Omp Nodes'''
 
 import unittest
 import pycparser
@@ -7,28 +7,28 @@ from transforms.omp_section import PragmaToOmpSection
 
 #pylint: disable=missing-docstring,invalid-name
 class TestOmpSection(unittest.TestCase):
-    """Test OmpSection Node"""
+    '''Test OmpSection Node'''
 
     class PragmaVisitor(omp.omp_ast.NodeVisitor):
-        """Pragma node visitor; collect all pragma nodes"""
+        '''Pragma node visitor; collect all pragma nodes'''
 
         def __init__(self):
             self.nodes = []
 
         def visit_Pragma(self, node):
-            """Collect nodes, does not recurse as Pragma nodes have no
-            children"""
+            '''Collect nodes, does not recurse as Pragma nodes have no
+            children'''
             self.nodes.append(node)
 
     class OmpSectionVisitor(omp.omp_ast.NodeVisitor):
-        """OmpSection node visitor; recursibely collect all OmpSection
-        nodes"""
+        '''OmpSection node visitor; recursibely collect all OmpSection
+        nodes'''
 
         def __init__(self):
             self.nodes = []
 
         def visit_OmpSection(self, node):
-            """Recursively collect OmpSection nodes"""
+            '''Recursively collect OmpSection nodes'''
 
             self.nodes.append(node)
             self.generic_visit(node)
@@ -39,8 +39,8 @@ class TestOmpSection(unittest.TestCase):
         cls.transform = PragmaToOmpSection()
 
     def test_simple(self):
-        """Test omp section pragma with two clauses"""
-        c = """
+        '''Test omp section pragma with two clauses'''
+        c = '''
         int main() {
             int i = 0;
             #pragma omp sections private(i) reduction(+: i)
@@ -53,7 +53,7 @@ class TestOmpSection(unittest.TestCase):
                 { i++; }
             }
         }
-        """
+        '''
         ast = self.parser.parse(c)
         pv = self.PragmaVisitor()
         ov = self.OmpSectionVisitor()

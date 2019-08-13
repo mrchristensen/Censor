@@ -1,4 +1,4 @@
-"""Test PragmaToOmpFor -- Replacing Pragma omp with Omp Nodes"""
+'''Test PragmaToOmpFor -- Replacing Pragma omp with Omp Nodes'''
 
 import unittest
 import pycparser
@@ -8,27 +8,27 @@ from transforms.omp_for import PragmaToOmpFor
 
 #pylint: disable=missing-docstring,invalid-name
 class TestOmpFor(unittest.TestCase):
-    """Test OmpFor Node"""
+    '''Test OmpFor Node'''
 
     class PragmaVisitor(omp.omp_ast.NodeVisitor):
-        """Pragma node visitor; collect all pragma nodes"""
+        '''Pragma node visitor; collect all pragma nodes'''
 
         def __init__(self):
             self.nodes = []
 
         def visit_Pragma(self, node):
-            """Collect nodes, does not recurse as Pragma nodes have no
-            children"""
+            '''Collect nodes, does not recurse as Pragma nodes have no
+            children'''
             self.nodes.append(node)
 
     class OmpForVisitor(omp.omp_ast.NodeVisitor):
-        """OmpFor node visitor; recursibely collect all OmpFor nodes"""
+        '''OmpFor node visitor; recursibely collect all OmpFor nodes'''
 
         def __init__(self):
             self.nodes = []
 
         def visit_OmpFor(self, node):
-            """Recursively collect OmpFor nodes"""
+            '''Recursively collect OmpFor nodes'''
 
             self.nodes.append(node)
             self.generic_visit(node)
@@ -39,14 +39,14 @@ class TestOmpFor(unittest.TestCase):
         cls.transform = PragmaToOmpFor()
 
     def test_simple(self):
-        c = """
+        c = '''
         int main() {
             #pragma omp for
             for (int i = 0; i < 100; i++) {
 
             }
         }
-        """
+        '''
         ast = self.parser.parse(c)
         pv = self.PragmaVisitor()
         ov = self.OmpForVisitor()
@@ -61,14 +61,14 @@ class TestOmpFor(unittest.TestCase):
 
 
     def test_clauses_one(self):
-        c = """
+        c = '''
         int main() {
             #pragma omp for collapse(2)
             for (int i = 0; i < 100; i++) {
 
             }
         }
-        """
+        '''
         ast = self.parser.parse(c)
         pv = self.PragmaVisitor()
         ov = self.OmpForVisitor()
@@ -84,14 +84,14 @@ class TestOmpFor(unittest.TestCase):
         self.assertEqual(2, ov.nodes[0].clauses[0].n)
 
     def test_clauses_many(self):
-        c = """
+        c = '''
         int main() {
             #pragma omp for collapse(2) ordered
             for (int i = 0; i < 100; i++) {
 
             }
         }
-        """
+        '''
         ast = self.parser.parse(c)
         pv = self.PragmaVisitor()
         ov = self.OmpForVisitor()
@@ -108,7 +108,7 @@ class TestOmpFor(unittest.TestCase):
         self.assertTrue(isinstance(ov.nodes[0].clauses[1], OmpClause.Ordered))
 
     def test_nested_for(self):
-        c = """
+        c = '''
         int main() {
             #pragma omp for collapse(2) ordered
             for (int i = 0; i < 100; i++) {
@@ -118,7 +118,7 @@ class TestOmpFor(unittest.TestCase):
                 }
             }
         }
-        """
+        '''
         ast = self.parser.parse(c)
         pv = self.PragmaVisitor()
         ov = self.OmpForVisitor()

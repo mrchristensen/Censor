@@ -1,4 +1,4 @@
-"""Test PragmaToOmpParallel -- Replacing Pragma omp with Omp Nodes"""
+'''Test PragmaToOmpParallel -- Replacing Pragma omp with Omp Nodes'''
 
 import unittest
 import pycparser
@@ -7,28 +7,28 @@ from transforms.omp_parallel import PragmaToOmpParallel
 
 #pylint: disable=missing-docstring,invalid-name
 class TestOmpParallel(unittest.TestCase):
-    """Test OmpParallel Node"""
+    '''Test OmpParallel Node'''
 
     class PragmaVisitor(omp.omp_ast.NodeVisitor):
-        """Pragma node visitor; collect all pragma nodes"""
+        '''Pragma node visitor; collect all pragma nodes'''
 
         def __init__(self):
             self.nodes = []
 
         def visit_Pragma(self, node):
-            """Collect nodes, does not recurse as Pragma nodes have no
-            children"""
+            '''Collect nodes, does not recurse as Pragma nodes have no
+            children'''
             self.nodes.append(node)
 
     class OmpParallelVisitor(omp.omp_ast.NodeVisitor):
-        """OmpParallel node visitor; recursibely collect all OmpParallel
-        nodes"""
+        '''OmpParallel node visitor; recursibely collect all OmpParallel
+        nodes'''
 
         def __init__(self):
             self.nodes = []
 
         def visit_OmpParallel(self, node):
-            """Recursively collect OmpParallel nodes"""
+            '''Recursively collect OmpParallel nodes'''
 
             self.nodes.append(node)
             self.generic_visit(node)
@@ -39,14 +39,14 @@ class TestOmpParallel(unittest.TestCase):
         cls.transform = PragmaToOmpParallel()
 
     def test_simple(self):
-        """Test simple omp parallel pragma"""
-        c = """
+        '''Test simple omp parallel pragma'''
+        c = '''
         int main() {
             #pragma omp parallel
             {
             }
         }
-        """
+        '''
         ast = self.parser.parse(c)
         child = ast.ext[0].body.block_items[1]
         pv = self.PragmaVisitor()
@@ -63,15 +63,15 @@ class TestOmpParallel(unittest.TestCase):
 
 
     def test_clauses_one(self):
-        """Test omp parallel pragma with if clause"""
-        c = """
+        '''Test omp parallel pragma with if clause'''
+        c = '''
         int main() {
             int i = 0;
             #pragma omp parallel if(10)
             {
             }
         }
-        """
+        '''
         ast = self.parser.parse(c)
         pv = self.PragmaVisitor()
         ov = self.OmpParallelVisitor()
@@ -87,14 +87,14 @@ class TestOmpParallel(unittest.TestCase):
         self.assertEqual(ov.nodes[0].clauses[0].scalar, 10)
 
     def test_clauses_many(self):
-        """Test omp parallel pragma with two clauses"""
-        c = """
+        '''Test omp parallel pragma with two clauses'''
+        c = '''
         int main() {
             int i = 0;
             #pragma omp parallel if(10) num_threads(4) default(shared) private(a) reduction(+: a, b, c)
             functionCall();
         }
-        """
+        '''
         ast = self.parser.parse(c)
         pv = self.PragmaVisitor()
         ov = self.OmpParallelVisitor()

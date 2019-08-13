@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-"""Main function for cesk analyzer"""
+'''Main function for cesk analyzer'''
 
 import tempfile
 import json
@@ -17,8 +17,8 @@ import cesk
 from cesk.exceptions import CESKException
 
 def run_interpreter(ast, results, graph_name, injection_point):
-    """ function for redirecting the output of main to a file and
-        returning the result as a string  """
+    '''function for redirecting the output of main to a file and
+        returning the result as a string'''
     output = tempfile.NamedTemporaryFile()
     prev = sys.stdout
     prevfd = os.dup(sys.stdout.fileno())
@@ -39,7 +39,7 @@ def run_interpreter(ast, results, graph_name, injection_point):
 
 #pylint: disable=too-many-statements
 def main():
-    """Parses arguments and calls correct tool"""
+    '''Parses arguments and calls correct tool'''
     parser = argparse.ArgumentParser(description='Runs censor with the cesk ' +
                                      'interpreter. For more info see the md.')
     parser.add_argument('filename')

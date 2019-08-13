@@ -1,4 +1,4 @@
-""" Computes the size and alignment based on values in limits.py """
+'''Computes the size and alignment based on values in limits.py'''
 import re
 import pycparser.c_ast as AST
 import cesk.limits as limits
@@ -6,18 +6,18 @@ from cesk.limits import StructPackingScheme as SPS
 from transforms.helpers import propagate_constant
 
 def get_size_ast(ast_type_node, env=None):
-    """returns the size in bytes of the ast type,
-        nested in an unsigned long constant"""
+    '''Returns the size in bytes of the ast type,
+        nested in an unsigned long constant'''
     size, _ = get_size_and_alignment(ast_type_node, env)
     return size
 
 def c_to_int(constant):
-    """ takes in a Constant ast node and returns a python int """
+    '''Takes in a Constant ast node and returns a python int'''
     int_str = re.sub(r"l|u|L|U", "", constant.value)
     return int(int_str, 0)
 
 def get_size_and_alignment(ast_type, env=None):
-    """returns size as an AST node and alignmentas an integer"""
+    '''Returns size as an AST node and alignment as an integer'''
     if isinstance(ast_type, AST.ArrayDecl):
         size, alignment = get_size_and_alignment(ast_type.type, env)
         if (isinstance(size, AST.Constant) and
@@ -48,7 +48,7 @@ def get_size_and_alignment(ast_type, env=None):
     return size, alignment
 
 def get_identifier_size(ast_type):
-    """ gets the size of simple types int, long, etc """
+    '''Gets the size of simple types int, long, etc'''
     num_bytes = limits.CONFIG.get_size(ast_type.names)
     size = AST.Constant('int', str(num_bytes)+'l')
     if num_bytes < limits.CONFIG.get_word_size():
@@ -73,7 +73,7 @@ def _size_compact(decls, env):
     return num_bytes, alignment
 
 def _reduce_binop(binop):
-    """ evaluates binops of constant integer values """
+    '''Evaluates binops of constant integer values'''
     binop = propagate_constant(binop)
     if not isinstance(binop, AST.Constant):
         raise Exception("Arrays must be of constant size to get size")
@@ -100,7 +100,7 @@ def _size_std(decls, env):
     return num_bytes, alignment
 
 def get_struct_size_and_align(ast_type, env):
-    """ Same as above, but only for structs """
+    '''Same as above, but only for structs'''
     decls = ast_type.decls
     if decls is None:
         if env is None:
@@ -118,7 +118,7 @@ def get_struct_size_and_align(ast_type, env):
     return size, alignment
 
 def get_union_size_and_align(ast_type, env=None):
-    """ Same as above, but only for unions """
+    '''Same as above, but only for unions'''
     if env is None:
         raise Exception("Environment needed to determine size of union")
     decls = ast_type.decls
@@ -206,7 +206,7 @@ def _offset_std(decls, field, env):
     return offset, field_type
 
 def get_struct_offset(struct_type, field, env):
-    """ Calculate and the offset and type of the field requested """
+    '''Calculate and the offset and type of the field requested'''
     if isinstance(struct_type, AST.TypeDecl):
         struct_type = struct_type.type
     decls = struct_type.decls

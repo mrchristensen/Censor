@@ -1,22 +1,22 @@
-"""Computation Graph"""
+'''Computation Graph'''
 
 import csv
 from collections import OrderedDict
 
 def task_ids(line):
-    """Parse out arguments for processing isolated and post"""
+    '''Parse out arguments for processing isolated and post'''
     task_id = int(line[1].strip())
     parent_id = int(line[2].strip())
     return (task_id, parent_id)
 
 def read_write_args(line):
-    """Parse out arguments for processing reads and writes"""
+    '''Parse out arguments for processing reads and writes'''
     addr = line[1].strip()
     task_id = int(line[2].strip())
     return (addr, task_id)
 
 class Node():
-    """Computation Graph Node"""
+    '''Computation Graph Node'''
 
     def __init__(self):
         self.reads = []
@@ -28,15 +28,15 @@ class Node():
         return 'N(%s,%s)' % (len_reads, len_writes)
 
     def add_read(self, addr):
-        """Adds memory access to reads array"""
+        '''Adds memory access to reads array'''
         self.reads.append(addr)
 
     def add_write(self, addr):
-        """Adds memory access to writes array"""
+        '''Adds memory access to writes array'''
         self.writes.append(addr)
 
 class Graph():
-    """Computation Graph Base class"""
+    '''Computation Graph Base class'''
 
     def __init__(self):
         self.nodes = OrderedDict()
@@ -62,28 +62,28 @@ class Graph():
         return graph
 
     def add_node(self, node):
-        """Adds node to graph"""
+        '''Adds node to graph'''
         self.nodes[node] = []
 
     def add_edge(self, from_node, to_node):
-        """Adds directed edge between nodes"""
+        '''Adds directed edge between nodes'''
         if from_node not in self.nodes or to_node not in self.nodes:
             raise KeyError('Node not in graph')
         self.nodes[from_node].append(to_node)
 
     def has_race(self):
-        """Returns true if a race can be proven"""
+        '''Returns true if a race can be proven'''
         raise NotImplementedError
 
     def from_log_file(self, log_path):
-        """Builds graph from log file"""
+        '''Builds graph from log file'''
         with open(log_path) as log_file:
             log = csv.reader(log_file)
             for line in log:
                 self.process_log_line(line)
 
     def process_log_line(self, line):
-        """Processes one line from log file"""
+        '''Processes one line from log file'''
         if line[0] == 'post':
             self.process_post(*task_ids(line))
         elif line[0] == 'isolated':
@@ -102,33 +102,33 @@ class Graph():
             self.process_write(*read_write_args(line))
 
     def process_post(self, task_id, parent_id):
-        """Process one line from log file"""
+        '''Process one line from log file'''
         raise NotImplementedError
 
     def process_isolated(self, task_id, parent_id):
-        """Process one line from log file"""
+        '''Process one line from log file'''
         raise NotImplementedError
 
     def process_await(self):
-        """Process one line from log file"""
+        '''Process one line from log file'''
         raise NotImplementedError
 
     def process_ewait(self):
-        """Process one line from log file"""
+        '''Process one line from log file'''
         raise NotImplementedError
 
     def process_omp_clause_read(self, addr, task_id):
-        """Process one line from log file"""
+        '''Process one line from log file'''
         raise NotImplementedError
 
     def process_omp_clause_write(self, addr, task_id):
-        """Process one line from log file"""
+        '''Process one line from log file'''
         raise NotImplementedError
 
     def process_read(self, addr, task_id):
-        """Process one line from log file"""
+        '''Process one line from log file'''
         raise NotImplementedError
 
     def process_write(self, addr, task_id):
-        """Process one line from log file"""
+        '''Process one line from log file'''
         raise NotImplementedError

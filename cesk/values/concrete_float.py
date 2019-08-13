@@ -1,15 +1,15 @@
-""" Concrete Float Class """
+'''Concrete Float Class'''
 import struct
 import cesk.limits as limits
 from .base_values import BaseFloat, ByteValue
 from .factory import Factory
 
 class ConcreteFloat(BaseFloat):  #pylint:disable=too-few-public-methods
-    """ implementation of a float.
+    '''Implementation of a float.
     NOTE: this class will represent 'float,' and 'double,' and 'long double'
     from C99 as a 64 bit floating point number. This gives some potentially
     incorrect rounding for c programs that use the 'float' or 'long double'
-    data types, which is supposed to be represented as a 32 or float."""
+    data types, which is supposed to be represented as a 32 or float.'''
 
     def __init__(self, data, type_of):
         self.data = float(data)
@@ -55,7 +55,7 @@ class ConcreteFloat(BaseFloat):  #pylint:disable=too-few-public-methods
         return self.data == other.data
 
     def get_byte_value(self, start=-1, num_bytes=None):
-        """value of the unsigned bits stored"""
+        '''Value of the unsigned bits stored'''
         #TODO get binary value
         if start == -1:
             num_bytes = self.size
@@ -76,7 +76,7 @@ class ConcreteFloat(BaseFloat):  #pylint:disable=too-few-public-methods
 
     @classmethod
     def from_byte_value(cls, byte_value, type_of):
-        """ Method for Integer Generation from a byte value """
+        '''Method for Integer Generation from a byte value'''
         float_value = cls(0.0, type_of)
 
         if byte_value.size == 4:

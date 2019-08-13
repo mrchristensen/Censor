@@ -1,4 +1,4 @@
-"""Holds the data structures for the CESK machine"""
+'''Holds the data structures for the CESK machine'''
 
 import logging
 import pycparser
@@ -14,7 +14,7 @@ from cesk.exceptions import MemoryAccessViolation, UnknownConfiguration, \
                            CESKException
 
 class State: #pylint:disable=too-few-public-methods
-    """Holds a program state"""
+    '''Holds a program state'''
     #ctrl = None #control
     #envr = None  #environment
     #stor = None #store
@@ -31,39 +31,39 @@ class State: #pylint:disable=too-few-public-methods
         self.tick()
 
     def set_ctrl(self, ctrl):
-        """attaches a control object to the state"""
+        '''Attaches a control object to the state'''
         self.ctrl = ctrl
 
     def set_envr(self, envr):
-        """attaches an environment object to the state"""
+        '''Attaches an environment object to the state'''
         self.envr = envr
 
     def set_stor(self, stor):
-        """attaches a stor object to the state"""
+        '''Attaches a stor object to the state'''
         self.stor = stor
 
     def set_kont_addr(self, kont_addr):
-        """attaches a kont_addr object to the state"""
+        '''Attaches a kont_addr object to the state'''
         self.kont_addr = kont_addr
 
     def get_kont(self):
-        '''returns kont'''
+        '''Returns kont'''
         if self.kont_addr == 0:
             return None #halt kont
         else:
             return self.stor.read_kont(self.kont_addr)
 
     def get_next(self):
-        """ Moves the ctrl and returns the new state """
+        '''Moves the ctrl and returns the new state'''
         next_ctrl = self.ctrl.get_next()
         return State(next_ctrl, self.envr, self.stor, self.kont_addr)
 
     def get_error(self, err_str):
-        """ generates an error state based on current state """
+        '''Generates an error state based on current state'''
         return ErrorState(self, err_str)
 
     def tick(self):
-        """ Sets the time stamp for the state """
+        '''Sets the time stamp for the state'''
         if cnf.CONFIG['tick'] == 'concrete':
             State._time += 1
             self.time_stamp = State._time
@@ -96,7 +96,7 @@ class State: #pylint:disable=too-few-public-methods
                 "ka "+str(self.kont_addr)).replace(':', ' ')
 
 class ErrorState: #pylint: disable=too-few-public-methods
-    """ Holds program state that hit an error upon execution """
+    '''Holds program state that hit an error upon execution'''
     def __init__(self, state, msg): #ctrl, envr, stor, kont_addr, time_stamp):
         self.ctrl = state.ctrl
         self.envr = state.envr
@@ -125,21 +125,21 @@ class ErrorState: #pylint: disable=too-few-public-methods
                 "to "+str(self.kont_addr)).replace(':', ' ')+"\n"+self.message
 
 class Ctrl: #pylint:disable=too-few-public-methods
-    """Holds the control pointer or location of the program"""
+    '''Holds the control pointer or location of the program'''
 
     def construct_node(self, node):
-        """ sets the node """
+        '''Sets the node'''
         self.node = node
 
     def construct_body(self, index, body):
-        """ sets the index and body """
+        '''Sets the index and body'''
         self.index = index
         self.body = body
 
     def __init__(self, first, second=None):
-        """There are two types of control: The normal ones that have an index in
+        '''There are two types of control: The normal ones that have an index in
         a body, and the special ones that only hold a Node. This picks which
-        constructor to use"""
+        constructor to use'''
         self.index = None
         self.body = None
         self.node = None
@@ -157,14 +157,14 @@ class Ctrl: #pylint:disable=too-few-public-methods
             raise CESKException("Malformed Ctrl init")
 
     def stmt(self):
-        """Retrieves the statement at the location."""
+        '''Retrieves the statement at the location.'''
         if self.node:
             return self.node
         return self.body.block_items[self.index]
 
     def get_next(self):
-        """takes state and returns a state with ctrl for the next statement
-        to execute"""
+        '''Takes state and returns a state with ctrl for the next statement
+        to execute'''
 
         if self.body: #if a standard compound-block:index ctrl
             if self.index + 1 < len(self.body.block_items):
@@ -229,7 +229,7 @@ class Ctrl: #pylint:disable=too-few-public-methods
         return "No body in ctrl"
 
 class FrameAddress:
-    """ Contains a link between frame identifier and variable identifier """
+    '''Contains a link between frame identifier and variable identifier'''
 
     def __init__(self, frame_id, ident):
         self.frame = frame_id
@@ -237,11 +237,11 @@ class FrameAddress:
         #super(FrameAddress, self).__init__(0, 1)
 
     def get_frame(self):
-        """ Returns frame identifier """
+        '''Returns frame identifier'''
         return self.frame
 
     def get_id(self):
-        """ Returns identifier name """
+        '''Returns identifier name'''
         return self.ident
 
     def __hash__(self):
@@ -256,7 +256,7 @@ class FrameAddress:
         return "("+str(self.frame)+", "+str(self.ident)+")"
 
 class Envr:
-    """Holds the environment/frame (a maping of identifiers to addresses)"""
+    '''Holds the environment/frame (a maping of identifiers to addresses)'''
     next_frame_id = 1 #Tracks next concrete frame id
     global_envr_id = 0
     global_envr = None
@@ -266,7 +266,7 @@ class Envr:
         self.frame_id = self.allocF(func_name, ctrl)
 
     def allocF(self, name, ctrl): #pylint: disable=no-self-use,invalid-name
-        """ Allocation of frame identifiers """
+        '''Allocation of frame identifiers'''
         value = None
         if name is None:
             name = 'global'
@@ -285,7 +285,7 @@ class Envr:
         return value
 
     def get_address(self, ident):
-        """looks up the address associated with an identifier"""
+        '''Looks up the address associated with an identifier'''
         while not isinstance(ident, str):
             ident = ident.name
         if ident in self.local_variables:
@@ -298,24 +298,24 @@ class Envr:
         # return None
 
     def map_new_identifier(self, ident):
-        """Add a new identifier to the mapping"""
+        '''Add a new identifier to the mapping'''
         frame_addr = FrameAddress(self.frame_id, ident)
         self.local_variables[ident] = frame_addr
         return frame_addr
 
     @staticmethod
     def set_global(global_env):
-        """ sets a global environment """
+        '''Sets a global environment'''
         global_env.frame_id = Envr.global_envr_id
         Envr.global_envr = global_env
 
     def is_locally_defined(self, ident):
-        """returns if a given identifier is local to this scope"""
+        '''Returns if a given identifier is local to this scope'''
         return ident in self.local_variables
 
     @staticmethod
     def is_globally_defined(ident):
-        """returns if a given identifier is local to this scope"""
+        '''Returns if a given identifier is local to this scope'''
         return ident in Envr.global_envr.local_variables
 
     def __contains__(self, ident):
@@ -331,7 +331,7 @@ class Envr:
         return str(self.frame_id)
 
 class MemoryBlock: #pylint: disable=too-many-instance-attributes
-    """ Block of Memory """
+    '''Block of Memory'''
 
     def __init__(self, sizes, length, extra):
         self.shape = (sizes, length, extra)
@@ -363,7 +363,7 @@ class MemoryBlock: #pylint: disable=too-many-instance-attributes
             raise UnknownConfiguration('store_update')
 
     def _add_value(self, size):
-        """ Adds a memory slot to store a value """
+        '''Adds a memory slot to store a value'''
         if cnf.CONFIG['store_update'] == 'strong':
             self.block.append(generate_uninitialized_value(size))
         elif cnf.CONFIG['store_update'] == 'weak':
@@ -372,15 +372,15 @@ class MemoryBlock: #pylint: disable=too-many-instance-attributes
             raise UnknownConfiguration("store_update")
 
     def _get_index_item(self, offset):
-        """ given an offset returns value or throws error """
+        '''Given an offset returns value or throws error'''
         if not isinstance(offset, int):
             logging.error("TOP memory access made")
             offset = 0
         return [[0, offset]]
 
     def _get_index_list(self, offset):
-        """ given an offset returns the number of time a successor map
-            would need to be called to find the item and offset remaning """
+        '''Given an offset returns the number of time a successor map
+            would need to be called to find the item and offset remaning'''
         if not isinstance(offset, int):
             logging.error("TOP memory access made")
             return [[i, 0] for i in range(len(self.block))]
@@ -399,14 +399,14 @@ class MemoryBlock: #pylint: disable=too-many-instance-attributes
         return [[index, offset]]
 
     def not_in_block(self, offset, size):
-        """ function to identify if offset is in the block """
+        '''Function to identify if offset is in the block'''
         if isinstance(offset, int):
             return offset < 0 or offset+size > self.size
         else: #is abstract literal top
             return False #add possible memory error here
 
     def strong_read(self, offset, read_size):
-        """ return value or set of values based on read """
+        '''Return value or set of values based on read'''
         if self.not_in_block(offset, read_size):
             raise MemoryAccessViolation("Illegal Read")
 
@@ -430,7 +430,7 @@ class MemoryBlock: #pylint: disable=too-many-instance-attributes
         return byte_value
 
     def weak_read(self, offset, read_size):
-        """ return value or set of values based on read """
+        '''Return value or set of values based on read'''
         if self.not_in_block(offset, read_size):
             raise MemoryAccessViolation("Illegal Read")
 
@@ -465,8 +465,8 @@ class MemoryBlock: #pylint: disable=too-many-instance-attributes
             return result
 
     def strong_write(self, offset, value):
-        """ Writes the value given at the offset given
-            returns True if values are changed False otherwise"""
+        '''Writes the value given at the offset given
+            returns True if values are changed False otherwise'''
         if self.not_in_block(offset, value.size):
             raise MemoryAccessViolation("Illegal Write")
         for index, start in self._get_index(offset):
@@ -520,13 +520,13 @@ class MemoryBlock: #pylint: disable=too-many-instance-attributes
                     #neat finish write to store and be done
 
     def _write_on_offset(self, index, new_data, old_value):
-        """ Manages how to write when mixing bytes """
+        '''Manages how to write when mixing bytes'''
         # TODO check if old/new value are sets and handle
         self.block[index] = generate_value(new_data, old_value.type_of)
 
     def weak_write(self, offset, value):
-        """ Writes the value given at the offset given
-            returns True if values are changed False otherwise"""
+        '''Writes the value given at the offset given
+            returns True if values are changed False otherwise'''
         logging.debug("Begining a weak write")
         if self.not_in_block(offset, value.size):
             raise MemoryAccessViolation("Illegal Write")
@@ -557,11 +557,11 @@ class MemoryBlock: #pylint: disable=too-many-instance-attributes
         return is_change
 
     def free(self):
-        """ Marks the block as free """
+        '''Marks the block as free'''
         self.is_free = True
 
 class Stor: #pylint: disable=too-many-instance-attributes
-    """Represents the contents of memory at a moment in time."""
+    '''Represents the contents of memory at a moment in time.'''
     heap_address_counter = 0
 
     def __init__(self, to_copy=None):
@@ -583,7 +583,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
             raise CESKException("Stor Copy Constructor Expects a Stor Object")
 
     def _add_new_block(self, block):
-        """ Add new block and return pointer """
+        '''Add new block and return pointer'''
         logging.info("Make new block: shape %s, at %d",
                      str(block.shape), self.next_block_id)
         pointer = generate_pointer(self.next_block_id, block.size)
@@ -592,8 +592,8 @@ class Stor: #pylint: disable=too-many-instance-attributes
         return pointer
 
     def allocM(self, base, list_of_sizes, length=1, extra=0): #pylint: disable=invalid-name
-        ''' new allocM to have only successors and
-            all pointers only have one base pointer per block '''
+        '''New allocM to have only successors and
+            all pointers only have one base pointer per block'''
         if base in self.base_pointers:
             return self.base_pointers[base]
 
@@ -603,7 +603,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
         return block_ptr
 
     def allocH(self, state): #pylint: disable=invalid-name
-        """ Calls the right allocator based on input and allocH config """
+        '''Calls the right allocator based on input and allocH config'''
         if cnf.CONFIG['allocH'] == 'abstract':
             return state.ctrl
         elif cnf.CONFIG['allocH'] == 'concrete':
@@ -615,12 +615,12 @@ class Stor: #pylint: disable=too-many-instance-attributes
             raise UnknownConfiguration("allocH")
 
     def fa2ptr(self, frame_address):
-        """ Fetch store address for a frame address """
+        '''Fetch store address for a frame address'''
         return self.base_pointers[frame_address]
 
     def _check_address(self, block, action):
-        """ Checks to see if address is valid and
-            reports error if found """
+        '''Checks to see if address is valid and
+            reports error if found'''
         if block >= self.next_block_id:
             raise MemoryAccessViolation("Out of bounds "+action)
         elif block == self.null_addr.get_block():
@@ -631,8 +631,8 @@ class Stor: #pylint: disable=too-many-instance-attributes
             raise MemoryAccessViolation("Base is Free, invalid "+action)
 
     def read(self, address):
-        """Read the contents of the store at address. Returns None if undefined.
-        """
+        '''Read the contents of the store at address.
+            Returns None if undefined.'''
         if isinstance(address, SizedSet):
             #read to all location in the set
             if not address: #if set is empty
@@ -667,7 +667,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
 
     # MARKER - this is the one
     def write(self, address, value):
-        """ Calls strong or weak write as determined by configuration """
+        '''Calls strong or weak write as determined by configuration'''
         #if there is nothing to catch what we return then just quit
         # (no reason to write)
         # if address is None:
@@ -706,7 +706,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
         return set()
 
     def free(self, address):
-        """ Replaces values in store with a free value """
+        '''Replaces values in store with a free value'''
         if isinstance(address, SizedSet):
             if not address:
                 raise MemoryAccessViolation("Invalid Free")
@@ -736,8 +736,8 @@ class Stor: #pylint: disable=too-many-instance-attributes
         return set()
 
     def get_nearest_address(self, address):
-        """ returns a pointer to the nearest address
-            with an offset set to make difference """
+        '''Returns a pointer to the nearest address
+            with an offset set to make difference'''
         #address = generate_pointer(address, self)
         if address == 0:
             return self.null_addr
@@ -761,7 +761,7 @@ class Stor: #pylint: disable=too-many-instance-attributes
         return self.null_addr
 
     def write_kont(self, kont_addr, kai):
-        """ records the continuation for the continuation address """
+        '''Records the continuation for the continuation address'''
         if cnf.CONFIG['allocK'] == 'concrete':
             self.kont_map[kont_addr] = {kai}
         else: #allocK == 0-cfa or p4f or trivial
@@ -770,22 +770,22 @@ class Stor: #pylint: disable=too-many-instance-attributes
             self.kont_map[kont_addr].add(kai)
 
     def read_kont(self, kont_addr):
-        """ returns the continuation(s) for the given kont_addr """
+        '''Returns the continuation(s) for the given kont_addr'''
         if kont_addr not in self.kont_map:
             raise CESKException("Address not in memory: " + str(kont_addr))
         return self.kont_map[kont_addr]
 
     def get_time(self):
-        """ Updates when new address is allocated or store value is changed """
+        '''Updates when new address is allocated or store value is changed'''
         return self.time
 
 class Kont: #pylint: disable=too-few-public-methods
-    """Kontinuations"""
+    '''Kontinuations'''
 
     allocK_address = 2
     @staticmethod
     def allocK(state=None, nxt_ctrl=None, nxt_envr=None): #pylint: disable=invalid-name
-        """ Generator for continuation addresses """
+        '''Generator for continuation addresses'''
         if cnf.CONFIG['allocK'] == "concrete":
             value = str(Kont.allocK_address)+" "+str(state.ctrl)
             Kont.allocK_address += 1
@@ -804,7 +804,7 @@ class Kont: #pylint: disable=too-few-public-methods
         self.return_address = address # If Kont returns to an assignment
 
     def invoke(self, state, value):
-        """ Evaluates the return of a function """
+        '''Evaluates the return of a function'''
         if self.kont_addr is 0: #Halt
             return set(), set()
         errors = set()

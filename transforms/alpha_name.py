@@ -9,7 +9,7 @@ TO_RENAME_STACK_MAP = {} # map from an old_id to a stack of new_ids.
 RE_DECLS_IN_SCOPE = [set()] # Stack of sets of all ids of new decls in scopes.
 
 class AlphaName(NodeTransformer):
-    """Renames all variables so that functions can contain removable scopes"""
+    '''Renames all variables so that functions can contain removable scopes'''
 
     def visit_FileAST(self, node): # pylint: disable=invalid-name
         '''Find all global variables and add their ids to GLOBAL_IDS
@@ -34,7 +34,7 @@ class AlphaName(NodeTransformer):
         return node
 
     def visit_For(self, node): # pylint: disable=invalid-name
-        """ handles declarations in a for loop """
+        '''Handles declarations in a for loop'''
         return self.visit_Compound(node)
 
     def visit_Compound(self, node): # pylint: disable=invalid-name
@@ -85,7 +85,7 @@ class AlphaName(NodeTransformer):
         return node
 
     def rename_decl(self, decl): #pylint: disable=no-self-use
-        '''finds a name not declared yet, places in map
+        '''Finds a name not declared yet, places in map
             add to function IDs'''
         old_name = decl.name
         if not old_name in TO_RENAME_STACK_MAP:

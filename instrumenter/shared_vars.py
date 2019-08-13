@@ -1,4 +1,4 @@
-"""
+'''
 SharedVars helpers
 
 It has been decided that these helpers are a premature optimization.
@@ -15,7 +15,7 @@ aliases a shared one we would need to log reads and writes to it as well.
 We could do some points-to analysis to find these edge cases and include them in
 the set of identifiers to be instrumented but it would be a lot of work before
 we even know if it would help in a significant way.
-"""
+'''
 
 from pycparser.c_ast import ID, Compound, NodeVisitor, DeclList, Assignment, For
 from omp.omp_ast import OmpParallel
@@ -24,7 +24,7 @@ from transforms.node_transformer import NodeTransformer
 from transforms.helpers import WithParent
 
 def private_ids(omp):
-    """Return list of identifiers made private by parent Omp node"""
+    '''Return list of identifiers made private by parent Omp node'''
     ids = []
     klass = omp.__class__.__name__
     if 'Omp' in klass and hasattr(omp, 'clauses'):
@@ -36,7 +36,7 @@ def private_ids(omp):
     return ids
 
 def find_iteration_variable(node):
-    """Finds the id for the iteration variable in For node"""
+    '''Finds the id for the iteration variable in For node'''
     if isinstance(node.init, DeclList):
         return node.init.decls[0].name
     elif isinstance(node.init, Assignment):
@@ -45,44 +45,44 @@ def find_iteration_variable(node):
         raise NotImplementedError
 
 class SharedVars():
-    """Holds the environment of shared variables"""
+    '''Holds the environment of shared variables'''
 
     def __init__(self, parent=None):
         self.parent = parent
         self.vars = set()
 
     def update(self, ids):
-        """Add a set of ids as shared variables to the current scope"""
+        '''Add a set of ids as shared variables to the current scope'''
         self.vars.update(ids)
 
     def contains(self, ident):
-        """Return true if ident is a shared variable in current scope"""
+        '''Return true if ident is a shared variable in current scope'''
         if isinstance(ident, ID):
             ident = ident.name
         return ident in self.vars
 
 class DeclVisitor(NodeVisitor):
-    """Used to update state: locals"""
+    '''Used to update state: locals'''
     def __init__(self, whitelist):
         self.locals = set()
         self.whitelist = whitelist
 
     def skip(self, node): # pylint: disable=no-self-use
-        """Only visit current scope"""
+        '''Only visit current scope'''
         return node is None or isinstance(node, (For, Compound))
 
     def node_is_private(self, node): # pylint: disable=no-self-use, unused-argument
-        """Return False if the node could return a reference to shared memory"""
+        '''Return False if the node could return a reference to shared memory'''
         #return node.name in self.whitelist
         return True
 
     def visit_Decl(self, node): # pylint: disable=invalid-name
-        """Update state: locals, aliases"""
+        '''Update state: locals, aliases'''
         if self.node_is_private(node.init):
             self.locals.add(node.name)
 
     def visit_Assignment(self, node): # pylint: disable=invalid-name
-        """Remove an ID from locals if it is assigned to a shared variable"""
+        '''Remove an ID from locals if it is assigned to a shared variable'''
         #if self.node_is_private(node.lvalue) \
         #        and not self.node_is_private(node.rvalue):
         #    self.locals.remove(node.lvalue.name)
@@ -90,22 +90,22 @@ class DeclVisitor(NodeVisitor):
         pass
 
 class IDVisitor(NodeVisitor):
-    """Used to update state: scope"""
+    '''Used to update state: scope'''
     def __init__(self, whitelist):
         self.whitelist = whitelist
         self.shared = set()
 
     def skip(self, node): # pylint: disable=no-self-use
-        """Only visit current scope"""
+        '''Only visit current scope'''
         return node is None or isinstance(node, (For, Compound))
 
     def visit_ID(self, node): # pylint: disable=invalid-name
-        """Update state: shared"""
+        '''Update state: shared'''
         if node.name not in self.whitelist:
             self.shared.add(node.name)
 
 class SharedVarsVisitor(WithParent):
-    """
+    '''
     Returns a SharedVars for the AST.
 
     This transform should be a visitor but inherits from node transformer
@@ -136,7 +136,7 @@ class SharedVarsVisitor(WithParent):
     We don't have to worry about whether we are in a parallel region or not
     because the information we gather will only be used later by an
     Instrumenter class that takes care of that logic.
-    """
+    '''
     #TODO: handle function arguments
 
     def __init__(self):
@@ -147,19 +147,19 @@ class SharedVarsVisitor(WithParent):
         self.locals = set()
 
     def new_scope(self):
-        """Sets up state for visiting a new scope"""
+        '''Sets up state for visiting a new scope'''
         self.scope = SharedVars(self.scope)
         self.made_private.update(private_ids(self.parent))
 
     def update_locals(self, *nodes):
-        """Constructs a DeclVisitor and visits nodes to update locals"""
+        '''Constructs a DeclVisitor and visits nodes to update locals'''
         decl_visitor = DeclVisitor(self.made_private)
         for node in nodes:
             decl_visitor.visit(node)
         self.locals.update(decl_visitor.locals)
 
     def update_scope(self, *nodes):
-        """Constructs an IDVisitor and visits nodes to update scope"""
+        '''Constructs an IDVisitor and visits nodes to update scope'''
         whitelist = self.locals | self.made_private
         id_visitor = IDVisitor(whitelist)
         for node in nodes:
@@ -167,7 +167,7 @@ class SharedVarsVisitor(WithParent):
         self.scope.update(id_visitor.shared)
 
     def restore_scope(self, node):
-        """Restores state after visiting a scope and returns the node visited"""
+        '''Restores state after visiting a scope and returns the node visited'''
         self.scopes[node] = self.scope
         self.locals.clear()
         node = self.generic_visit(node)
@@ -175,9 +175,8 @@ class SharedVarsVisitor(WithParent):
         return node
 
     def visit_For(self, node): # pylint: disable=invalid-name
-        """Separate scope for for loops. Iteration variable is private.
-        Parent will always be a OmpFor node.
-        """
+        '''Separate scope for for loops. Iteration variable is private.
+        Parent will always be a OmpFor node.'''
         self.new_scope()
         self.update_locals(node, node.stmt)
         self.made_private.add(find_iteration_variable(node))
@@ -185,7 +184,7 @@ class SharedVarsVisitor(WithParent):
         return self.restore_scope(node)
 
     def visit_Compound(self, node): # pylint: disable=invalid-name
-        """Visit each scope and add to the environment"""
+        '''Visit each scope and add to the environment'''
         if isinstance(self.parent, OmpParallel):
             self.made_private.clear()
         self.new_scope()
@@ -194,20 +193,18 @@ class SharedVarsVisitor(WithParent):
         return self.restore_scope(node)
 
 class WithSharedVars(NodeTransformer):
-    """
-    NodeTransformer base class that has helper methods defined
-    for dealing with shared variables
-    """
+    '''NodeTransformer base class that has helper methods defined
+        for dealing with shared variables'''
     def __init__(self, ast):
         self.scopes = SharedVarsVisitor().visit(ast)
         self.shared_vars = self.scopes["GLOBAL"]
 
     def is_shared(self, ident):
-        """Return true if variable is shared in scope"""
+        '''Return true if variable is shared in scope'''
         return self.shared_vars.contains(ident)
 
     def visit_Compound(self, node): # pylint: disable=invalid-name
-        """Set environment for shared variables"""
+        '''Set environment for shared variables'''
         old_shared_vars = self.shared_vars
         self.shared_vars = self.scopes[node]
         retval = self.generic_visit(node)

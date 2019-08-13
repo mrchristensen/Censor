@@ -1,4 +1,4 @@
-"""Test SimplifyOmpFor """
+'''Test SimplifyOmpFor'''
 
 from transforms.simplify_omp_for import SimplifyOmpFor
 from transforms.omp_for import PragmaToOmpFor
@@ -7,15 +7,15 @@ from transforms.type_environment_calculator import TypeEnvironmentCalculator
 from tests.helpers import GoldenTestCase
 
 class TestRemoveCompoundAssignment(GoldenTestCase):
-    """Test RemoveCompoundAssignment transform"""
+    '''Test RemoveCompoundAssignment transform'''
 
     def setUp(self):
-        """Set up test variables needed for GoldenTestCase"""
+        '''Set up test variables needed for GoldenTestCase'''
         self.fixtures = '/test_transforms/fixtures/simplify_omp_for'
         self.transformer = None
 
     def transform(self, ast):
-        """Transform input AST"""
+        '''Transform input AST'''
         id_generator = IDGenerator(ast)
         environments = TypeEnvironmentCalculator().get_environments(ast)
         pre_transformer = PragmaToOmpFor()
@@ -24,5 +24,5 @@ class TestRemoveCompoundAssignment(GoldenTestCase):
         return self.transformer.visit(ast)
 
     def test_remove_compound_assignment(self):
-        """Run golden test cases"""
+        '''Run golden test cases'''
         self.assert_all_transform_golden(self.transform, self.fixtures)

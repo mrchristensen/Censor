@@ -1,4 +1,4 @@
-"""Pragma to OMP Critical Node transform"""
+'''Pragma to OMP Critical Node transform'''
 
 import re
 from omp.omp_ast import OmpCritical
@@ -11,7 +11,7 @@ STR_TO_CLAUSE_TYPE = {
 }
 
 class PragmaToOmpCritical(PragmaToOmp):
-    """Transform omp critical pragmas"""
+    '''Transform omp critical pragmas'''
 
     def __init__(self):
         super().__init__(

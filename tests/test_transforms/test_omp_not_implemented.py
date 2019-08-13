@@ -1,4 +1,4 @@
-"""Test OmpNotImplemented"""
+'''Test OmpNotImplemented'''
 
 
 import unittest
@@ -7,15 +7,15 @@ from transforms.omp_not_implemented import OmpNotImplemented
 from transforms.omp_parallel import PragmaToOmpParallel
 
 class TestOmpNotImplemented(unittest.TestCase):
-    """Test OmpNotImplemented"""
+    '''Test OmpNotImplemented'''
 
     def setUp(self):
-        """Set up test case"""
+        '''Set up test case'''
         self.parser = CParser()
         self.transform = OmpNotImplemented()
 
     def test_throws_error(self):
-        """Test that error is raised on pragma omp"""
+        '''Test that error is raised on pragma omp'''
         c_source = '''
         int main() {
           #pragma omp parallel
@@ -27,7 +27,7 @@ class TestOmpNotImplemented(unittest.TestCase):
         self.assertRaises(NotImplementedError, self.transform.visit, ast)
 
     def test_no_error(self):
-        """Test error is not thrown on Omp node"""
+        '''Test error is not thrown on Omp node'''
         c_source = '''
         int main () {
             #pragma omp parallel

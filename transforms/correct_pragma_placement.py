@@ -1,14 +1,14 @@
-"""Pragma to OMP Parallel Node transform"""
+'''Pragma to OMP Parallel Node transform'''
 
 import pycparser.c_ast as AST
 from .node_transformer import NodeTransformer
 
 class CorrectPragmaPlacement(NodeTransformer):
-    """ Put compound blocks where needed in order to have
-        pragma's properly be before what they were meant to"""
+    '''Put compound blocks where needed in order to have
+        pragma's properly be before what they were meant to'''
 
     def visit_Compound(self, node): #pylint: disable=invalid-name
-        """Search compound for pragma nodes to transform"""
+        '''Search compound for pragma nodes to transform'''
         if node.block_items is None:
             return node
         self.remove_list = [] #pylint: disable=attribute-defined-outside-init
@@ -30,8 +30,8 @@ class CorrectPragmaPlacement(NodeTransformer):
         return node
 
     def ensure_compound(self, compound, index, item):
-        """ If pragma graph next and make compound,
-            if compound do nothing else make compound """
+        '''If pragma graph next and make compound,
+            if compound do nothing else make compound'''
         if isinstance(item, AST.Pragma):
             block = [item]
             index += 1

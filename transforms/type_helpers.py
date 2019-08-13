@@ -1,8 +1,8 @@
-"""
+'''
 Helpers for working with information about types during AST transformations.
 All references to the c specification refer to the version here:
     http://www.open-std.org/jtc1/sc22/WG14/www/docs/n1256.pdf
-"""
+'''
 from copy import deepcopy
 import io
 from enum import Enum
@@ -11,25 +11,25 @@ import cesk.limits as limits
 from transforms.helpers import add_identifier, remove_identifier
 
 class Side(Enum):
-    """Return type of function asking which type of a binary operand that
-    both sides should be cast to."""
+    '''Return type of function asking which type of a binary operand that
+    both sides should be cast to.'''
     LEFT = 1
     RIGHT = 2
     NOCAST = 3
 
 def get_type(expr, env):
-    """Takes in an expression and a type environment (map of identifiers to
+    '''Takes in an expression and a type environment (map of identifiers to
     types) and returns a new node representing the type of the given expression.
     NOTE: testing for this method is largely done through the test cases
     for remove_compound_assignment, which cover needing to calculate the type
-    of many different kinds of expressions."""
+    of many different kinds of expressions.'''
     return deepcopy(_get_type_helper(expr, env))
 
 def make_temp_ptr(lvalue_expr, id_generator, env):
-    """Given an lvalue, this function will return a Decl node representing a
+    '''Given an lvalue, this function will return a Decl node representing a
     declaration of a new unique identifier, and assigning the address of the
     given lvalue to that unique identifier. This is very useful when you need
-    a temp variable while simplifying complicated expressions in the AST."""
+    a temp variable while simplifying complicated expressions in the AST.'''
     temp_name = id_generator.get_unique_id()
     lvalue_addr = UnaryOp('&', lvalue_expr, coord=lvalue_expr.coord)
     lvalue_type = get_type(lvalue_expr, env)
@@ -39,18 +39,18 @@ def make_temp_ptr(lvalue_expr, id_generator, env):
                 coord=lvalue_expr.coord)
 
 def make_temp_value(expr, id_generator, env):
-    """Given an expression, this function will return a Decl node representing
+    '''Given an expression, this function will return a Decl node representing
     a declaration of a new unique identifier, and assigning the expression
     to that unique identifier. This is very useful when you need
-    a temp variable while simplifying complicated expressions in the AST."""
+    a temp variable while simplifying complicated expressions in the AST.'''
     name = id_generator.get_unique_id()
     typ = get_type(expr, env)
     return Decl(name, [], [], [], add_identifier(typ, name), expr, None,
                 coord=expr.coord)
 
 def cast_if_needed(type_node, expr, env):
-    """Decides if it is necessary to cast the given expr to be assigned to a
-       variable of the given type or if the types are already unified."""
+    '''Decides if it is necessary to cast the given expr to be assigned to a
+       variable of the given type or if the types are already unified.'''
     expr_type = get_type(expr, env)
     expr_str = io.StringIO()
     type_str = io.StringIO()
@@ -62,11 +62,10 @@ def cast_if_needed(type_node, expr, env):
     return Cast(type_node, expr, coord=expr.coord)
 
 def resolve_types(left, right): # pylint: disable=too-many-return-statements
-    """Given two types, figure out what types they should be cast to when
+    '''Given two types, figure out what types they should be cast to when
     a binary operation is performed on two objects with the given types
     The rules implemented here come directly from the c spec,
-    section, 6.3.1.8 Usual arithmetic conversions, p. 44.
-    """
+    section, 6.3.1.8 Usual arithmetic conversions, p. 44.'''
     if _is_ptr(left) and _is_integral(right):
         return Side.NOCAST
     elif _is_integral(left) and _is_ptr(right):
@@ -92,8 +91,8 @@ def resolve_types(left, right): # pylint: disable=too-many-return-statements
     raise NotImplementedError()
 
 def _get_type_helper(expr, env): # pylint: disable=too-many-return-statements,too-many-branches
-    """Does all of the actual work for get_type, but returns a reference to
-    a node that is currently in the AST."""
+    '''Does all of the actual work for get_type, but returns a reference to
+    a node that is currently in the AST.'''
     if isinstance(expr, (TypeDecl, PtrDecl, ArrayDecl, Typename)):
         return expr
     elif isinstance(expr, str):
@@ -165,7 +164,7 @@ def _get_id_type(expr, env):
     return type_node
 
 def _is_integral(type_node):
-    """Returns if the given type node describes an integral type."""
+    '''Returns if the given type node describes an integral type.'''
     # TODO: Add support for user-defined integral types that are
     # defined through typedef's or enums
     if _is_float(type_node):
@@ -181,7 +180,7 @@ def _is_integral(type_node):
     return False
 
 def _is_float(type_node):
-    """Returns if the given type node describes an integral type."""
+    '''Returns if the given type node describes an integral type.'''
     # TODO: Add support for user-defined floating types that are
     # defined through typedef's
     if isinstance(type_node, TypeDecl):
@@ -198,36 +197,36 @@ def _is_float(type_node):
     return False
 
 def _is_arithmetic_type(typ):
-    """Returns true if the type node is an arithmetic type"""
+    '''Returns true if the type node is an arithmetic type'''
     return _is_float(typ) or _is_integral(typ)
 
 def _is_ptr(type_node):
-    """Returns true if the given type node describes a pointer type."""
+    '''Returns true if the given type node describes a pointer type.'''
     return isinstance(type_node, PtrDecl)
 
 def _is_array(type_node):
-    """Returns true is the given type node describes an array type."""
+    '''Returns true is the given type node describes an array type.'''
     return isinstance(type_node, ArrayDecl)
 
 def _get_integral_range(type_node):
-    """Takes in a type_node describing an integral type and returns the range
+    '''Takes in a type_node describing an integral type and returns the range
     of integers that the given integral type can represent, e.g.
     _get_integral_range(TypeDecl(None, [],
-                    IdentifierType(['char'])) == Range(-128,127)"""
+                    IdentifierType(['char'])) == Range(-128,127)'''
     # TODO: Add support for user-defined integral types that are
     # defined through typedef's or enums
     type_string = " ".join(type_node.type.names)
     return limits.RANGES[type_string]
 
 def _is_signed(int_range):
-    """Takes a Range, says if that Range represents a signed integral type."""
+    '''Takes a Range, says if that Range represents a signed integral type.'''
     return int_range.min != 0
 
 def _resolve_integral_types(left, right): # pylint: disable=too-many-return-statements
-    """Given two integral types, figure out what types they should be cast to
+    '''Given two integral types, figure out what types they should be cast to
     when a binary operation is performed on two objects with the given types.
     For the rationale, see c spec, section, 6.3.1.8 Usual arithmetic
-    conversions, p. 44."""
+    conversions, p. 44.'''
     # TODO Add support for user-defined integral types that are
     # defined through typedef's or enums
     l_range = _get_integral_range(left)
@@ -257,10 +256,10 @@ def _resolve_integral_types(left, right): # pylint: disable=too-many-return-stat
         raise Exception("Incorrect integer Limits!")
 
 def _resolve_floating_types(left, right):
-    """Given two integral types, figure out what types they should be cast to
+    '''Given two integral types, figure out what types they should be cast to
     when a binary operation is performed on two objects with the given types.
     For the rationale, see c spec, section, 6.3.1.8 Usual arithmetic
-    conversions, p. 44."""
+    conversions, p. 44.'''
     # TODO support for typedef defined floating types
     # TODO support for complex floating types
     if left.type.names == right.type.names:
@@ -274,12 +273,12 @@ def _resolve_floating_types(left, right):
     return Side.RIGHT
 
 def _get_ternary_type(expr, env):
-    """Takes a TernaryOp node and a type environment and returns
+    '''Takes a TernaryOp node and a type environment and returns
     a node representing the type of the given expression.
     If the two sides of the ternary operator have arithmetic types
     then the two types are resolved as if there were an operator between them.
     Otherwise the types must be the same so just return the type of one side.
-    See the c spec, p. 90. for Ternarys, p. 44 about binary operations"""
+    See the c spec, p. 90. for ternaries, p. 44 about binary operations'''
     # TODO There might be some corner cases with pointers and type qualifiers
     left_type = get_type(expr.iftrue, env)
     right_type = get_type(expr.iffalse, env)
@@ -295,13 +294,13 @@ def _get_ternary_type(expr, env):
             return get_type(expr.iftrue, env)
 
 def _is_nullptr_const(node):
-    """Returns a boolean representing whether or not the given node could be
-    interpreted as a nullptr constant."""
+    '''Returns a boolean representing whether or not the given node could be
+    interpreted as a nullptr constant.'''
     return isinstance(node, Constant) and node.value == 0
 
 def _get_binop_type(expr, env):
-    """Takes in a BinaryOp node and a type environment (map of identifiers to
-    types) and returns a node representing the type of the given expression."""
+    '''Takes in a BinaryOp node and a type environment (map of identifiers to
+    types) and returns a node representing the type of the given expression.'''
     if expr.op in ['<', '<=', '==', '>', '>=', '!=', '&&', '||']:
         return TypeDecl(None, [], IdentifierType(['int']))
     elif expr.op in ['%', '*', '+', '-', '/', '^', '|', '&', '<<', '>>']:
@@ -327,8 +326,8 @@ def _get_binop_type(expr, env):
         raise NotImplementedError()
 
 def _get_unop_type(expr, env):
-    """Takes in a UnaryOp node and a type environment (map of identifiers to
-    types) and returns a node representing the type of the given expression."""
+    '''Takes in a UnaryOp node and a type environment (map of identifiers to
+    types) and returns a node representing the type of the given expression.'''
     if expr.op == 'sizeof':
         return TypeDecl(None, [], IdentifierType(['unsigned', 'long']))
     elif expr.op == '!':
@@ -350,7 +349,7 @@ def _get_unop_type(expr, env):
         raise NotImplementedError()
 
 def _get_structref_type(expr, env):
-    """Resolve the type of a StructRef node."""
+    '''Resolve the type of a StructRef node.'''
     # find the type of whatever is on the left of the . or ->
     type_decl = _get_type_helper(expr.name, env)
     if isinstance(type_decl, PtrDecl):

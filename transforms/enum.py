@@ -4,13 +4,13 @@ from transforms.node_transformer import NodeTransformer
 from transforms.helpers import propagate_constant
 
 class Enum(NodeTransformer):
-    """Replaces all enums with integer constants"""
+    '''Replaces all enums with integer constants'''
 
     def __init__(self):
         self.name_to_number = {}
 
     def visit_FileAST(self, node): # pylint: disable=invalid-name
-        '''collects all enum definitions and visits then removes them'''
+        '''Collects all enum definitions and visits then removes them'''
         all_enum_definitions = []
         for element in node.ext:
             if ((isinstance(element, AST.Decl) and
@@ -24,7 +24,7 @@ class Enum(NodeTransformer):
         return self.generic_visit(node)
 
     def visit_Compound(self, node): # pylint: disable=invalid-name
-        '''collects all enum definitions and visits then removes them'''
+        '''Collects all enum definitions and visits then removes them'''
         all_enum_definitions = []
         if not node.block_items:
             return self.generic_visit(node)

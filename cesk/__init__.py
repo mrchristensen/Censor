@@ -1,4 +1,4 @@
-"""Starts the CESK machine"""
+'''Starts the CESK machine'''
 
 import logging
 import sys
@@ -16,7 +16,7 @@ logging.basicConfig(filename='logfile.txt', level=logging.DEBUG,
                     format='%(levelname)s: %(message)s', filemode='w')
 
 class StateEnumeration: #pylint: disable=too-few-public-methods
-    """ Keeps track of information about a state """
+    '''Keeps track of information about a state'''
     next_id = 0
     def __init__(self, time):
         self.time = time
@@ -26,11 +26,11 @@ class StateEnumeration: #pylint: disable=too-few-public-methods
         StateEnumeration.next_id += 1
 
     def get_time(self):
-        """ string of first created to last updated """
+        '''String of first created to last updated'''
         return str(self.ident)+'-'+str(self.time0)+'/'+str(self.time)
 
 def main(ast, graph_file_name, injection_point): #pylint: disable=too-many-locals,too-many-branches,too-many-statements
-    """Injects execution into main function and maintains work queue"""
+    '''Injects execution into main function and maintains work queue'''
 
     #values to be returned
     memory_safe = True
@@ -109,7 +109,7 @@ def main(ast, graph_file_name, injection_point): #pylint: disable=too-many-local
     return memory_safe, states_generated, states_matched, states_evaluated
 
 def implemented_nodes():
-    """ returns a list of implemented node type names """
+    '''returns a list of implemented node type names'''
     return impl_nodes()
 
 def prepare_start_state(injection_function):
@@ -127,7 +127,7 @@ def prepare_start_state(injection_function):
     return State(start_ctrl, start_envr, start_stor, kont_addr)
 
 def init_globals(stor):
-    """ Initializes the global found by linksearch """
+    '''Initializes the global found by linksearch'''
     fake_state = State(None, Envr("init_globals", None), stor, None)
     for decl in ls.LinkSearch.global_decl_list:
         logging.debug("Global %s", str(decl.name))

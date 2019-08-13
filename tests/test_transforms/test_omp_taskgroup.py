@@ -1,4 +1,4 @@
-"""Test PragmaToOmpTaskgroup -- Replacing Pragma omp with Omp Nodes"""
+'''Test PragmaToOmpTaskgroup -- Replacing Pragma omp with Omp Nodes'''
 
 import unittest
 import pycparser
@@ -7,27 +7,27 @@ from transforms.omp_taskgroup import PragmaToOmpTaskgroup
 
 #pylint: disable=invalid-name
 class TestOmpTaskgroup(unittest.TestCase):
-    """Test OmpTaskgroup Node"""
+    '''Test OmpTaskgroup Node'''
 
     class PragmaVisitor(omp.omp_ast.NodeVisitor):
-        """Pragma node visitor; collect all pragma nodes"""
+        '''Pragma node visitor; collect all pragma nodes'''
 
         def __init__(self):
             self.nodes = []
 
         def visit_Pragma(self, node):
-            """Collect nodes, does not recurse as Pragma nodes have no
-            children"""
+            '''Collect nodes, does not recurse as Pragma nodes have no
+            children'''
             self.nodes.append(node)
 
     class OmpTaskgroupVisitor(omp.omp_ast.NodeVisitor):
-        """OmpTaskgroup node visitor"""
+        '''OmpTaskgroup node visitor'''
 
         def __init__(self):
             self.nodes = []
 
         def visit_OmpTaskgroup(self, node):
-            """Collect OmpTaskgroup nodes"""
+            '''Collect OmpTaskgroup nodes'''
             self.nodes.append(node)
 
     @classmethod
@@ -36,8 +36,8 @@ class TestOmpTaskgroup(unittest.TestCase):
         cls.transform = PragmaToOmpTaskgroup()
 
     def test_simple(self):
-        """Test simple omp taskgroup pragma"""
-        c = """
+        '''Test simple omp taskgroup pragma'''
+        c = '''
         int main() {
             #pragma omp parallel
             {
@@ -46,7 +46,7 @@ class TestOmpTaskgroup(unittest.TestCase):
                 }
             }
         }
-        """
+        '''
         ast = self.parser.parse(c)
         child = ast.ext[0].body.block_items[1].block_items[1]
         pv = self.PragmaVisitor()

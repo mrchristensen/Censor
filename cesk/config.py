@@ -1,4 +1,4 @@
-""" File to store global options for CESK """
+'''File to store global options for CESK'''
 
 CONFIG = {#default values for when cesk main in run
     'values'       : 'abstract', # {concrete, abstract, trivial}
@@ -11,7 +11,7 @@ CONFIG = {#default values for when cesk main in run
     }
 
 
-"""
+'''
 
 store_update
     strong: all updates to the store are replaced with the new value
@@ -19,7 +19,7 @@ store_update
 
 allocF
     uses m-cfa allocation not k-cfa
-"""
+'''
 
 #Groups of configuration types for different analysis
 CONFIGS = ['CONCRETE', 'ABSTRACT', 'TRIVIAL']

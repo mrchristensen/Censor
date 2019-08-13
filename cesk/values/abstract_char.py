@@ -1,8 +1,8 @@
-""" Abstract Char Class"""
+'''Abstract Char Class'''
 from .factory import Factory
 
 class AbstractChar(Factory.getIntegerClass()):
-    """ implementation of an char Type"""
+    '''Implementation of an char Type'''
     def __init__(self, data, type_of='char', foo=None):#pylint: disable=unused-argument
         if isinstance(data, str) and ('\'' in data):
             char = data.replace("\'", "")

@@ -1,10 +1,10 @@
-"""Test asserting the correct order of calling functions."""
+'''Test asserting the correct order of calling functions.'''
 
 import unittest
 from ssl.correct_call_order import verify_correctness, IncorrectCallOrder
 import pycparser
 
-C = """extern void a();
+C = '''extern void a();
         extern void b();
         extern void d();
         extern void e();
@@ -24,23 +24,23 @@ C = """extern void a();
 
             f();
             g();
-        }"""
+        }'''
 
 #pylint: disable=invalid-name
 class TestCorrectCallOrder(unittest.TestCase):
-    """Test correct call order."""
+    '''Test correct call order.'''
     @classmethod
     def setUpClass(cls):
         cls.parser = pycparser.CParser()
 
     def test_correct(self):
-        """true case"""
+        '''True case'''
         defined_orders = {'a': ['a', 'b', 'c'], 'f': ['f', 'g']}
         ast = self.parser.parse(C)
         self.assertTrue(verify_correctness(ast, defined_orders))
 
     def test_incorrect(self):
-        """false case"""
+        '''False case'''
         defined_orders = {'a': ['a', 'b', 'c'], 'f': ['e', 'f', 'g']}
         ast = self.parser.parse(C)
         with self.assertRaises(IncorrectCallOrder):

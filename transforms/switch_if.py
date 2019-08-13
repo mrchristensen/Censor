@@ -1,4 +1,4 @@
-""" AST transform: switch statements, as in:
+'''AST transform: switch statements, as in:
 
         switch (x) {
             case 1:
@@ -24,7 +24,7 @@
         Case2:
             goto End;
         End:
-"""
+'''
 
 from copy import deepcopy
 from pycparser.c_ast import If, Compound, Goto, Label, BinaryOp
@@ -32,14 +32,13 @@ from pycparser.c_ast import Default, For, DoWhile, While, EmptyStatement
 from .node_transformer import NodeTransformer
 
 class SwitchToIf(NodeTransformer):
-    """NodeTransformer to change switch statements to if-else-if-goto changes"""
+    '''NodeTransformer to change switch statements to if-else-if-goto changes'''
 
     def __init__(self, id_gen):
         self.id_gen = id_gen
 
     def visit_Switch(self, node): #pylint: disable=invalid-name
-        """ Recursively modify Switch
-        """
+        '''Recursively modify Switch'''
         node = self.generic_visit(node)
 
         complist = []
@@ -84,7 +83,7 @@ class SwitchToIf(NodeTransformer):
         return Compound(complist, coord=node.coord)
 
     class BreakToGoto(NodeTransformer):
-        """NodeTransformer to change breaks into Goto statements"""
+        '''NodeTransformer to change breaks into Goto statements'''
 
         def __init__(self, endlabel):
             self.endlabel = endlabel
@@ -96,5 +95,5 @@ class SwitchToIf(NodeTransformer):
                 return super().generic_visit(node)
 
         def visit_Break(self, node): #pylint: disable=invalid-name
-            """ changes breaks to Goto nodes """
+            '''Changes breaks to Goto nodes'''
             return Goto(self.endlabel, coord=node.coord)

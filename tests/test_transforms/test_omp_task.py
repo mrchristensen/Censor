@@ -1,4 +1,4 @@
-"""Test PragmaToOmpTask -- Replacing Pragma omp with Omp Nodes"""
+'''Test PragmaToOmpTask -- Replacing Pragma omp with Omp Nodes'''
 
 import unittest
 import pycparser
@@ -7,27 +7,27 @@ from transforms.omp_task import PragmaToOmpTask
 
 #pylint: disable=missing-docstring,invalid-name
 class TestOmpTask(unittest.TestCase):
-    """Test OmpTask Node"""
+    '''Test OmpTask Node'''
 
     class PragmaVisitor(omp.omp_ast.NodeVisitor):
-        """Pragma node visitor; collect all pragma nodes"""
+        '''Pragma node visitor; collect all pragma nodes'''
 
         def __init__(self):
             self.nodes = []
 
         def visit_Pragma(self, node):
-            """Collect nodes, does not recurse as Pragma nodes have no
-            children"""
+            '''Collect nodes, does not recurse as Pragma nodes have no
+            children'''
             self.nodes.append(node)
 
     class OmpTaskVisitor(omp.omp_ast.NodeVisitor):
-        """OmpTask node visitor; recursibely collect all OmpTask nodes"""
+        '''OmpTask node visitor; recursibely collect all OmpTask nodes'''
 
         def __init__(self):
             self.nodes = []
 
         def visit_OmpTask(self, node):
-            """Recursively collect OmpTask nodes"""
+            '''Recursively collect OmpTask nodes'''
 
             self.nodes.append(node)
             self.generic_visit(node)
@@ -38,14 +38,14 @@ class TestOmpTask(unittest.TestCase):
         cls.transform = PragmaToOmpTask()
 
     def test_simple(self):
-        """Test simple omp task pragma"""
-        c = """
+        '''Test simple omp task pragma'''
+        c = '''
         int main() {
             #pragma omp task
             {
             }
         }
-        """
+        '''
         ast = self.parser.parse(c)
         child = ast.ext[0].body.block_items[1]
         pv = self.PragmaVisitor()
@@ -62,15 +62,15 @@ class TestOmpTask(unittest.TestCase):
 
 
     def test_clauses_one(self):
-        """Test omp task pragma with if clause"""
-        c = """
+        '''Test omp task pragma with if clause'''
+        c = '''
         int main() {
             int i = 0;
             #pragma omp task if(10)
             {
             }
         }
-        """
+        '''
         ast = self.parser.parse(c)
         pv = self.PragmaVisitor()
         ov = self.OmpTaskVisitor()
@@ -86,14 +86,14 @@ class TestOmpTask(unittest.TestCase):
         self.assertEqual(ov.nodes[0].clauses[0].scalar, 10)
 
     def test_clauses_many(self):
-        """Test omp task pragma with two clauses"""
-        c = """
+        '''Test omp task pragma with two clauses'''
+        c = '''
         int main() {
             int i = 0;
             #pragma omp task if(10) default(shared) private(a) priority(10)
             functionCall();
         }
-        """
+        '''
         ast = self.parser.parse(c)
         pv = self.PragmaVisitor()
         ov = self.OmpTaskVisitor()

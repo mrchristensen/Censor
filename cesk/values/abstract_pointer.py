@@ -1,5 +1,5 @@
-""" Abstact Pointer class that uses the
-    Abstracted integer object as its offset """
+'''Abstact Pointer class that uses the
+    Abstracted integer object as its offset'''
 from copy import deepcopy
 import cesk.limits as limits
 from cesk.exceptions import MemoryAccessViolation
@@ -7,8 +7,8 @@ from .base_values import ReferenceValue, ByteValue, BaseInteger
 from .factory import Factory
 
 class AbstractPointer(ReferenceValue):  #pylint:disable=too-few-public-methods
-    """ implementation of a Pointer to a store address.
-        if it changes by a non const amount then it is top """
+    '''Implementation of a Pointer to a store address.
+        if it changes by a non const amount then it is top'''
 
     def __init__(self, address, type_size, offset=Factory.Integer(0, 'long')):
         self.data = int(address)
@@ -82,7 +82,7 @@ class AbstractPointer(ReferenceValue):  #pylint:disable=too-few-public-methods
                 ' size '+ str(self.type_size)
 
     def get_byte_value(self, start=-1, num_bytes=None):
-        """ value of the unsigned bits stored from start to start+num_bytes """
+        '''Value of the unsigned bits stored from start to start+num_bytes'''
         if not isinstance(self.offset, int):
             return ByteValue(self.size)
         result = self.data + self.offset
@@ -101,5 +101,5 @@ class AbstractPointer(ReferenceValue):  #pylint:disable=too-few-public-methods
         return byte_value
 
     def get_block(self):
-        """ returns block identifier """
+        '''Returns block identifier'''
         return self.data

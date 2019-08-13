@@ -1,5 +1,5 @@
-"""Classes to represent values, and a function for generating
-a value based on an assignment node"""
+'''Classes to represent values, and a function for generating
+a value based on an assignment node'''
 import logging
 import pycparser.c_ast as AST
 from cesk.linksearch import get_sizes
@@ -11,7 +11,7 @@ from .factory import Factory
 
 
 def string_constant(value):
-    """ handle makeing a const string constant """
+    '''Handle makeing a const string constant'''
     #TODO this needs a better implementation so as to be able to copy or
     #   read at an index
     return value, 'string'
@@ -19,7 +19,7 @@ def string_constant(value):
     #return PtrDecl([], TypeDecl(None, [], IdentifierType(['char'])))
 
 def float_constant(value):
-    """ handle makeing a const float constant """
+    '''Handle makeing a const float constant'''
     if value[-1] in "fF":
         return float(value[:-1]), 'float'
     elif value[-1] in "lL":
@@ -28,7 +28,7 @@ def float_constant(value):
         return float(value), 'double'
 
 def int_constant(value):
-    """ handle makeing a const int constant """
+    '''Handle makeing a const int constant'''
     unsigned = ''
     type_of = 'int'
     if value[-1] in "uU":
@@ -50,7 +50,7 @@ def int_constant(value):
         return val, unsigned+type_of
 
 def char_constant(value):
-    """ handle makeing a const char constant """
+    '''Handle makeing a const char constant'''
     if isinstance(value, str):
         if len(value) == 1:
             return ord(value), 'char'
@@ -62,7 +62,7 @@ def char_constant(value):
 
 # needs to know what size it needs to be sometimes
 def generate_constant_value(value, type_of='int'):
-    """ Given a string, parse it as a constant value. """
+    '''Given a string, parse it as a constant value.'''
     if type_of == 'string':
         #raise CESKException("implementation needed for general use of strings")
         return string_constant(value)[0]
@@ -78,8 +78,8 @@ def generate_constant_value(value, type_of='int'):
 
 
 def generate_value(value, type_of):
-    """ given value in bits and type_of as string, size for special cases
-        special cases include pointer, bit_value, uninitialized """
+    '''Given value in bits and type_of as string, size for special cases
+        special cases include pointer, bit_value, uninitialized'''
     if not isinstance(value, BV.ByteValue):
         raise CESKException("BV.ByteValue must be passed into generate_value")
 
@@ -104,13 +104,13 @@ def generate_value(value, type_of):
     raise CESKException("Unexpected value type %s"%type_of)
 
 def generate_uninitialized_value(size):
-    """ Generates special value that is uninitialized but has a size """
+    '''Generates special value that is uninitialized but has a size'''
     return BV.uninitializedValue(size)
 
 
 def generate_default_value(size):
-    """Generates a default value of the given size (used for uninitialized
-    variables)."""
+    '''Generates a default value of the given size (used for uninitialized
+    variables).'''
     value = Factory.Integer(0, 'bit_value', size)
     return value
 
@@ -119,12 +119,12 @@ def generate_function_definition(node):
     return Factory.FunctionDefinition(node)
 
 def generate_pointer(address, size):
-    """Given a address (int) package it into a pointer"""
+    '''Given a address (int) package it into a pointer'''
     return Factory.Pointer(address, size, 0)
 
 def copy_pointer(pointer, ptr_type=None):
-    """ Given a point a type and the state
-        generate the cast if needed pointer (shallow copy of pointer) """
+    '''Given a point a type and the state
+        generate the cast if needed pointer (shallow copy of pointer)'''
     if ptr_type is None:
         size = pointer.type_size
     else: #cast to ptr of different type
@@ -134,14 +134,14 @@ def copy_pointer(pointer, ptr_type=None):
     return Factory.Pointer(pointer.data, size, pointer.offset)
 
 def generate_null_pointer():
-    """ Build a pointer that will not dereference """
+    '''Build a pointer that will not dereference'''
     return Factory.Pointer(0, 1)
 
 #value is the value to be cast ( I think )
 #typedeclt is the type to cast to ( I think )
 #state (cesk state)
 def cast(value, typedeclt, state=None):  # pylint: disable=unused-argument
-    """Casts the given value a  a value of the given type."""
+    '''Casts the given value a  a value of the given type.'''
     result = value
     #Int -> Int
     #Int -> Pointer

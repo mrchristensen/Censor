@@ -1,4 +1,4 @@
-"""Pragma to OMP Atomic Node transform"""
+'''Pragma to OMP Atomic Node transform'''
 
 import re
 from omp.omp_ast import OmpAtomic
@@ -14,7 +14,7 @@ STR_TO_CLAUSE_TYPE = {
 }
 
 class PragmaToOmpAtomic(PragmaToOmp):
-    """Transform omp atomic pragmas"""
+    '''Transform omp atomic pragmas'''
 
     def __init__(self):
         super().__init__(

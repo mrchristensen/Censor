@@ -1,4 +1,4 @@
-"""Test SharedVars"""
+'''Test SharedVars'''
 
 import unittest
 from pycparser.c_parser import CParser
@@ -12,24 +12,24 @@ TRANSFORMS = [
 ]
 
 def transform_omp(ast):
-    """Transform Pragmas to Omp Nodes"""
+    '''Transform Pragmas to Omp Nodes'''
     for transform in TRANSFORMS:
         ast = transform.visit(ast)
     return ast
 
 class TestSharedVars(unittest.TestCase):
-    """Test SharedVars"""
+    '''Test SharedVars'''
     # TODO Create exhaustive list of test cases
     # If we don't get to all of them then we will at least know which
     # situations we need to throw a NotImplementedError in
 
     def setUp(self):
-        """Set up test case"""
+        '''Set up test case'''
         self.parser = CParser()
         self.visitor = SharedVarsVisitor()
 
     def test_simple_parallel(self):
-        """Simple test case, 'a' and 't' are shared"""
+        '''Simple test case, 'a' and 't' are shared'''
         c_source = '''
         int main() {
           int a[100];
@@ -49,11 +49,11 @@ class TestSharedVars(unittest.TestCase):
         self.assertTrue(self.visitor.scopes[omp_for_scope].contains('t'))
 
     def test_parallel_with_private(self):
-        """Simple test case with some private clauses.
+        '''Simple test case with some private clauses.
         Note: technically these firstprivate and lastprivate aren't used
         correctly here because the variables are used uninitialized but it
         doesn't matter for the test.
-        """
+        '''
         c_source = '''
         int main() {
           int a[100];
@@ -86,7 +86,7 @@ class TestSharedVars(unittest.TestCase):
         self.assertTrue(self.visitor.scopes[omp_for_scope].contains('t'))
 
     def test_inc_variable(self):
-        """Test that inc variables are not detected as shared inside for loop"""
+        '''Test that inc variables are not detected as shared inside for loop'''
         c_source = '''
         int main() {
           int a[100];

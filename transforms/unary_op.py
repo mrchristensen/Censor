@@ -1,11 +1,11 @@
-""" AST transform: unary ops in expressions such as:
+'''AST transform: unary ops in expressions such as:
 
     sizeof is replaced by its constant equivalent
     int x = sizeof(long long)
     -->
     int x = 8;
 
-"""
+'''
 
 from copy import deepcopy
 import pycparser.c_ast as AST
@@ -14,15 +14,15 @@ from .type_helpers import get_type, make_temp_value
 from .sizeof import get_size_ast
 
 class LiftUnaryOp(LiftNode):
-    """ Tranforms unary operators into another equivalent AST"""
+    '''Tranforms unary operators into another equivalent AST'''
 
     def visit_For(self, node): #pylint: disable=invalid-name
-        """ Ignore items within a For loop conditions """
+        '''Ignore items within a For loop conditions'''
         node.stmt = self.visit(node.stmt)
         return node
 
     def visit_UnaryOp(self, node): #pylint: disable=invalid-name
-        """ Special parsing of UnaryOp AST nodes """
+        '''Special parsing of UnaryOp AST nodes'''
         #  Recursively remove Unary Ops
         if node.op == 'sizeof':
             type_node = get_type(node.expr, self.envr)
@@ -45,7 +45,7 @@ class LiftUnaryOp(LiftNode):
             raise NotImplementedError()
 
     def inc_and_dec(self, node):
-        """ handles transforming pre and post increment and decrement op """
+        '''Handles transforming pre and post increment and decrement op'''
         if node.op == 'p++':
             decl = make_temp_value(node.expr, self.id_generator, self.envr)
             binop = AST.BinaryOp('+', deepcopy(node.expr),
@@ -77,9 +77,9 @@ class LiftUnaryOp(LiftNode):
         return node
 
 def constant_one():
-    """ return the number 1 as an ast constant """
+    '''Return the number 1 as an ast constant'''
     return AST.Constant('int', '1')
 
 def constant_zero():
-    """ return the number 0 as an ast constant """
+    '''Return the number 0 as an ast constant'''
     return AST.Constant('int', '0')

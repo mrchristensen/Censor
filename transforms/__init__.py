@@ -1,4 +1,4 @@
-"""
+'''
 AST source to source transformations
 
 Some transforms must be done before others to ensure correctness.
@@ -26,7 +26,7 @@ BreakToGoto < DoWhileToGoto
 TypeDef < AlphaName
 Enum < TypeDef
 
-"""
+'''
 
 # imports for transforms
 import logging
@@ -74,15 +74,14 @@ from .id_generator import IDGenerator
 from .type_environment_calculator import TypeEnvironmentCalculator
 
 def get_transformers(ast):
-    """ Return transformer constructor-dependency function tuples for all
+    '''Return transformer constructor-dependency function tuples for all
         transformers.
 
         Following this constructor-dependency function tuple form,
         we can obtain information about the current transformation more
         easily (through doing things like `constructor.__class__.__name__`,
         for example). This is especially beneficial in regression testing
-        for producing more readable, useful output.
-    """
+        for producing more readable, useful output.'''
     # one id_generator must be passed to all transforms, to
     # ensure unique ids across transforms
     id_generator = IDGenerator(ast)
@@ -145,7 +144,7 @@ def get_transformers(ast):
            lambda ast: [id_generator, type_env_calc.get_environments(ast)]) #ReD
 
 def transform(ast):
-    """Perform each transform in package"""
+    '''Perform each transform in package'''
     for (constructor, dep_func) in get_transformers(ast):
         logging.info("Starting %s transform", constructor)
         transformer = constructor(*dep_func(ast))

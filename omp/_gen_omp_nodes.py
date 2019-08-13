@@ -1,4 +1,4 @@
-"""Generates nodes for parsing OMP"""
+'''Generates nodes for parsing OMP'''
 
 from .omp_ast_gen import OmpASTCodeGenerator
 

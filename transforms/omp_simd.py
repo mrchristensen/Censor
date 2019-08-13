@@ -1,4 +1,4 @@
-"""OmpSimd Transform"""
+'''OmpSimd Transform'''
 
 import re
 from omp.omp_ast import OmpSimd
@@ -19,7 +19,7 @@ STR_TO_CLAUSE_TYPE = {
 
 
 class PragmaToOmpSimd(PragmaToOmp):
-    """OmpSimd Transform"""
+    '''OmpSimd Transform'''
 
     def __init__(self):
         super().__init__(

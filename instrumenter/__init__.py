@@ -1,4 +1,4 @@
-"""Starts instrumenter"""
+'''Starts instrumenter'''
 
 import utils
 from omp.c_with_omp_generator import CWithOMPGenerator
@@ -9,7 +9,7 @@ from transforms.type_environment_calculator import TypeEnvironmentCalculator
 PROGRAM_NAME = 'yeti_instrumented.c'
 
 def main(ast):
-    """Main entry point to the yeti tool"""
+    '''Main entry point to the yeti tool'''
     id_generator = IDGenerator(ast)
     environments = TypeEnvironmentCalculator().get_environments(ast)
     ast = Instrumenter(id_generator, environments).visit(ast)

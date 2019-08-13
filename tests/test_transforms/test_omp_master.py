@@ -1,4 +1,4 @@
-"""Test PragmaToOmpMaster -- Replacing Pragma omp with Omp Nodes"""
+'''Test PragmaToOmpMaster -- Replacing Pragma omp with Omp Nodes'''
 
 import unittest
 import pycparser
@@ -7,27 +7,27 @@ from transforms.omp_master import PragmaToOmpMaster
 
 #pylint: disable=invalid-name
 class TestOmpMaster(unittest.TestCase):
-    """Test OmpMaster Node"""
+    '''Test OmpMaster Node'''
 
     class PragmaVisitor(omp.omp_ast.NodeVisitor):
-        """Pragma node visitor; collect all pragma nodes"""
+        '''Pragma node visitor; collect all pragma nodes'''
 
         def __init__(self):
             self.nodes = []
 
         def visit_Pragma(self, node):
-            """Collect nodes, does not recurse as Pragma nodes have no
-            children"""
+            '''Collect nodes, does not recurse as Pragma nodes have no
+            children'''
             self.nodes.append(node)
 
     class OmpMasterVisitor(omp.omp_ast.NodeVisitor):
-        """OmpMaster node visitor; recursibely collect all OmpMaster nodes"""
+        '''OmpMaster node visitor; recursibely collect all OmpMaster nodes'''
 
         def __init__(self):
             self.nodes = []
 
         def visit_OmpMaster(self, node):
-            """Recursively collect OmpMaster nodes"""
+            '''Recursively collect OmpMaster nodes'''
 
             self.nodes.append(node)
             self.generic_visit(node)
@@ -38,8 +38,8 @@ class TestOmpMaster(unittest.TestCase):
         cls.transform = PragmaToOmpMaster()
 
     def test_simple(self):
-        """Test simple omp master pragma"""
-        c = """
+        '''Test simple omp master pragma'''
+        c = '''
         int main() {
             #pragma omp parallel
             {
@@ -49,7 +49,7 @@ class TestOmpMaster(unittest.TestCase):
                 }
             }
         }
-        """
+        '''
         ast = self.parser.parse(c)
         pv = self.PragmaVisitor()
         ov = self.OmpMasterVisitor()

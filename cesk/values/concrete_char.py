@@ -1,10 +1,10 @@
-""" The char class"""
+'''The char class'''
 import random
 from .factory import Factory
 from .base_values import ByteValue
 
 class ConcreteChar(Factory.getIntegerClass()):
-    """ implementation of an char Type"""
+    '''Implementation of an char Type'''
     def __init__(self, data, type_of='char', size=None):
         if isinstance(data, str) and ('\'' in data):
             char = data.replace("\'", "")
@@ -34,7 +34,7 @@ class ConcreteChar(Factory.getIntegerClass()):
         return Factory.Char(value, self.type_of)
 
     def get_char(self):
-        """ Changes int value to char"""
+        '''Changes int value to char'''
         return chr(self.data)
 
     def __str__(self):
@@ -45,7 +45,7 @@ class ConcreteChar(Factory.getIntegerClass()):
 
     @classmethod
     def from_byte_value(cls, byte_value, type_of):
-        """ Method for Integer Generation from a byte value """
+        '''Method for Integer Generation from a byte value'''
         data = 0
         place = 128
         for bit in byte_value.bits:

@@ -1,4 +1,4 @@
-"""Pragma to OMP Parallel Node transform"""
+'''Pragma to OMP Parallel Node transform'''
 
 import re
 from pycparser.c_ast import Pragma
@@ -23,7 +23,7 @@ SECTIONS_STR_TO_CLAUSE_TYPE = {
     }
 
 class PragmaToOmpParallelSections(PragmaToOmp):
-    """Pragma to OMP Parallel Node transform"""
+    '''Pragma to OMP Parallel Node transform'''
 
     def __init__(self):
         super().__init__(
@@ -33,7 +33,7 @@ class PragmaToOmpParallelSections(PragmaToOmp):
         )
 
     def visit_Compound(self, node):
-        """Search compound for pragma nodes to transform"""
+        '''Search compound for pragma nodes to transform'''
         node = self.generic_visit(node)
         if node.block_items is None:
             return node

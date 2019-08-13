@@ -1,4 +1,4 @@
-"""
+'''
 Transforms struct access to equivalent pointer arithmetic
 
 struct a{
@@ -16,7 +16,7 @@ int main(){
 *((int*)((void*)&tester + 0))
 *((int*)((void*)&tester + 2))
 
-"""
+'''
 
 from copy import deepcopy
 import pycparser.c_ast as AST
@@ -26,10 +26,10 @@ from .helpers import make_unit_pointer, remove_identifier
 from .sizeof import get_struct_offset
 
 class StructRefToPointerArith(LiftNode):
-    """ Transform all StructRef accessess to void* arithmetic """
+    '''Transform all StructRef accessess to void* arithmetic'''
 
     def visit_StructRef(self, node): # pylint: disable=invalid-name
-        """ Remove by changing to pointer arithmetic """
+        '''Remove by changing to pointer arithmetic'''
         self.generic_visit(node)
         if node.type == '.':
             reference = AST.UnaryOp('&', node.name, node.coord)
@@ -51,6 +51,6 @@ class StructRefToPointerArith(LiftNode):
         return deepcopy(result)
 
 def make_ptr_of_type(node):
-    """ Nests a type in a PtrDecl """
+    '''Nests a type in a PtrDecl'''
     remove_identifier(node)
     return AST.PtrDecl([], node, coord=node.coord)

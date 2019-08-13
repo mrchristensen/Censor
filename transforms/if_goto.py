@@ -1,4 +1,4 @@
-""" AST transform: complex if chains, as in:
+'''AST transform: complex if chains, as in:
 
         if (cond1) {
 
@@ -20,21 +20,20 @@
         }
         // Else branch
         end:
-"""
+'''
 
 from pycparser.c_ast import If, Compound, Goto, Label
 from .node_transformer import NodeTransformer
 from .helpers import ensure_compound, get_no_op
 
 class IfToIfGoto(NodeTransformer):
-    """NodeTransformer to change if-else-if-else to if-goto"""
+    '''NodeTransformer to change if-else-if-else to if-goto'''
 
     def __init__(self, id_gen):
         self.id_gen = id_gen
 
     def visit_If(self, node): #pylint: disable=invalid-name
-        """ Recursively modify If
-        """
+        '''Recursively modify If'''
         node = self.generic_visit(node)
         node.iftrue = ensure_compound(node.iftrue)
         node.iffalse = ensure_compound(node.iffalse)
@@ -48,8 +47,7 @@ class IfToIfGoto(NodeTransformer):
                [Label(end_label, no_op, coord=node.coord)]
 
     def mangle_if(self, node, end_label):
-        """ If rewrite
-        """
+        '''If rewrite'''
         true_branch = ensure_compound(node.iftrue)
         true_branch.block_items.append(Goto(end_label, coord=node.coord))
 

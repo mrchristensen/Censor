@@ -1,4 +1,4 @@
-"""Test PragmaToOmpTaskwait -- Replacing Pragma omp with Omp Nodes"""
+'''Test PragmaToOmpTaskwait -- Replacing Pragma omp with Omp Nodes'''
 
 import unittest
 import pycparser
@@ -7,27 +7,27 @@ from transforms.omp_taskwait import PragmaToOmpTaskwait
 
 #pylint: disable=invalid-name
 class TestOmpTaskwait(unittest.TestCase):
-    """Test OmpTaskwait Node"""
+    '''Test OmpTaskwait Node'''
 
     class PragmaVisitor(omp.omp_ast.NodeVisitor):
-        """Pragma node visitor; collect all pragma nodes"""
+        '''Pragma node visitor; collect all pragma nodes'''
 
         def __init__(self):
             self.nodes = []
 
         def visit_Pragma(self, node):
-            """Collect nodes, does not recurse as Pragma nodes have no
-            children"""
+            '''Collect nodes, does not recurse as Pragma nodes have no
+            children'''
             self.nodes.append(node)
 
     class OmpTaskwaitVisitor(omp.omp_ast.NodeVisitor):
-        """OmpTaskwait node visitor"""
+        '''OmpTaskwait node visitor'''
 
         def __init__(self):
             self.nodes = []
 
         def visit_OmpTaskwait(self, node):
-            """Collect OmpTaskwait nodes"""
+            '''Collect OmpTaskwait nodes'''
             self.nodes.append(node)
 
     @classmethod
@@ -36,8 +36,8 @@ class TestOmpTaskwait(unittest.TestCase):
         cls.transform = PragmaToOmpTaskwait()
 
     def test_simple(self):
-        """Test simple omp taskwait pragma"""
-        c = """
+        '''Test simple omp taskwait pragma'''
+        c = '''
         int main() {
             #pragma omp parallel
             {
@@ -47,7 +47,7 @@ class TestOmpTaskwait(unittest.TestCase):
                 #pragma omp taskwait
             }
         }
-        """
+        '''
         ast = self.parser.parse(c)
         pv = self.PragmaVisitor()
         ov = self.OmpTaskwaitVisitor()

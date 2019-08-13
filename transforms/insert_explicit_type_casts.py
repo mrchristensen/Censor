@@ -1,4 +1,4 @@
-"""Makes all typecasts explicit"""
+'''Makes all typecasts explicit'''
 from pycparser.c_ast import Cast, TypeDecl, PtrDecl, \
                             ArrayDecl, FuncDecl, UnaryOp
 from pycparser.c_ast import InitList, Constant, Struct, Union, ID, EllipsisParam
@@ -13,14 +13,14 @@ from .helpers import remove_identifier
 # const extern volatile static register
 
 class InsertExplicitTypeCasts(NodeTransformer):
-    """NodeTransformer to make all typecasts in the program explicit."""
+    '''NodeTransformer to make all typecasts in the program explicit.'''
     def __init__(self, environments):
         self.environments = environments
         self.env = environments["GLOBAL"]
 
     def visit_Compound(self, node): #pylint: disable=invalid-name
-        """Reassign the environment to be the environment of the current
-        compound block."""
+        '''Reassign the environment to be the environment of the current
+        compound block.'''
         parent = self.env
         self.env = self.environments[node]
         retval = self.generic_visit(node)
@@ -28,7 +28,7 @@ class InsertExplicitTypeCasts(NodeTransformer):
         return retval
 
     def visit_Decl(self, node): #pylint: disable=invalid-name
-        """Add necessary type casts when the Decl involves an assignment."""
+        '''Add necessary type casts when the Decl involves an assignment.'''
         if node.init:
             type_node = get_type(ID(node.name), self.env)
             node.init = self.handle_assignment(type_node, node.init)
@@ -36,7 +36,7 @@ class InsertExplicitTypeCasts(NodeTransformer):
         return node
 
     def visit_BinaryOp(self, node): #pylint: disable=invalid-name
-        """Add all necessary typecasts to aribitrary arithmetic expressions."""
+        '''Add all necessary typecasts to arbitrary arithmetic expressions.'''
         # recursively visit children and perform needed type annotations
         node = self.generic_visit(node)
 
@@ -53,15 +53,15 @@ class InsertExplicitTypeCasts(NodeTransformer):
         return node
 
     def visit_Assignment(self, node): #pylint: disable=invalid-name
-        """Add a type cast based on type info about the lvalue stored in
-        the Environment."""
+        '''Add a type cast based on type info about the lvalue stored in
+        the Environment.'''
         node.lvalue = self.generic_visit(node.lvalue)
         lvalue_type = get_type(node.lvalue, self.env)
         node.rvalue = self.handle_assignment(lvalue_type, node.rvalue)
         return node
 
     def visit_FuncCall(self, node): #pylint: disable=invalid-name
-        """Put explicit type casts in front of each parameter in the call."""
+        '''Put explicit type casts in front of each parameter in the call.'''
         func_type = get_type(node.name, self.env)
         if isinstance(func_type, PtrDecl):
             func_type = func_type.type
@@ -87,7 +87,7 @@ class InsertExplicitTypeCasts(NodeTransformer):
         return self.generic_visit(node)
 
     def handle_assignment(self, type_node, rvalue):
-        """Handle type cast upon assignment whether part of a Decl or not."""
+        '''Handle type cast upon assignment whether part of a Decl or not.'''
         ril_error_message = "RemoveInitLists must be done first."
 
         rvalue = self.visit(rvalue)

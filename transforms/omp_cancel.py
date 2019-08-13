@@ -1,4 +1,4 @@
-"""Pragma to OMP Cancel Node transform"""
+'''Pragma to OMP Cancel Node transform'''
 
 import re
 from omp.omp_ast import OmpCancel
@@ -14,7 +14,7 @@ STR_TO_CLAUSE_TYPE = {
     }
 
 class PragmaToOmpCancel(PragmaToOmp):
-    """Pragma to OmpCancel Node transform"""
+    '''Pragma to OmpCancel Node transform'''
 
     def __init__(self):
         super().__init__(

@@ -1,4 +1,4 @@
-"""
+'''
 Wrap Ompfor in an extra compound block and lift any expressions
 out of the for loop header. For example,
 
@@ -17,7 +17,7 @@ might be transformed to
 
     }
 }
-"""
+'''
 
 from pycparser.c_ast import Assignment, DeclList, Compound, UnaryOp, BinaryOp
 from pycparser.c_ast import ID, Constant
@@ -25,8 +25,8 @@ from .type_helpers import make_temp_value
 from .node_transformer import NodeTransformer
 
 def get_iter_var(loop, nodes):
-    """"find the name of the variable of iteration, pull out the Decl if
-    there is one."""
+    '''Find the name of the variable of iteration, pull out the Decl if
+    there is one.'''
     iter_var = None
     if isinstance(loop.init, Assignment) and \
         isinstance(loop.init.lvalue, ID):
@@ -42,19 +42,19 @@ def get_iter_var(loop, nodes):
     return iter_var
 
 def simplified(node):
-    """Return true if node is ID or Constant"""
+    '''Return true if node is ID or Constant'''
     return isinstance(node, (ID, Constant))
 
 class SimplifyOmpFor(NodeTransformer):
-    """Transform to simplify the header of omp for loops."""
+    '''Transform to simplify the header of omp for loops.'''
     def __init__(self, id_generator, environments):
         self.environments = environments
         self.env = environments["GLOBAL"]
         self.id_generator = id_generator
 
     def visit_Compound(self, node): #pylint: disable=invalid-name
-        """Reassign the environment to be the environment of the current
-        compound block."""
+        '''Reassign the environment to be the environment of the current
+        compound block.'''
         parent = self.env
         self.env = self.environments[node]
         retval = self.generic_visit(node)
@@ -62,8 +62,8 @@ class SimplifyOmpFor(NodeTransformer):
         return retval
 
     def visit_OmpFor(self, node):  #pylint: disable=invalid-name
-        """Wrap Ompfor in an extra compound block and lift any expressions
-        out of the for loop header."""
+        '''Wrap Ompfor in an extra compound block and lift any expressions
+        out of the for loop header.'''
         loop = node.loops
         nodes = []
 
@@ -85,7 +85,7 @@ class SimplifyOmpFor(NodeTransformer):
             return Compound(nodes, node.coord)
 
     def pull_condition(self, loop, iter_var):
-        """pull out condition to evaluate it to a constant in advance."""
+        '''pull out condition to evaluate it to a constant in advance.'''
         bound_decl = None
         if simplified(loop.cond.left) and simplified(loop.cond.right):
             return bound_decl
@@ -103,8 +103,8 @@ class SimplifyOmpFor(NodeTransformer):
         return bound_decl
 
     def pull_incrementation(self, loop, iter_var):
-        """Pull out iteration step size, evaluate it to a constant
-        in advance."""
+        '''Pull out iteration step size, evaluate it to a constant
+        in advance.'''
         iter_decl = None
         if isinstance(loop.next, Assignment):
             if len(loop.next.op) == 2:

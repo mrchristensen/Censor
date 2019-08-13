@@ -1,11 +1,11 @@
-""" Abstract Integer that acts like a concrete integer from -1 to K """
+'''Abstract Integer that acts like a concrete integer from -1 to K'''
 import cesk.values.base_values as BV
 from .concrete_integer import ConcreteInteger
 from .abstract_literals import AbstractLiterals as AL
 from .factory import Factory
 
 class KInteger(ConcreteInteger):
-    """ Implementation of K-integer """
+    '''Implementation of K-integer'''
     K = 100 #TODO allow for dynamic configuration of K value
     def __init__(self, data, type_of, size=1):
         if isinstance(data, set):
@@ -15,7 +15,7 @@ class KInteger(ConcreteInteger):
         self.max_value = KInteger.K
 
     def get_truth_value(self):
-        """ Set of truth values """
+        '''Set of truth values'''
         if self.data == AL.TOP:
             return {True, False}
         else:
@@ -88,14 +88,14 @@ class KInteger(ConcreteInteger):
             return super().__ge__(other)
 
     def bound(self, value):
-        """ Simulates two's complement overflow of integral types """
+        '''Simulates two's complement overflow of integral types'''
         if value == AL.TOP or value < self.min_value or value > self.max_value:
             return AL.TOP
         else:
             return value
 
     def get_byte_value(self, start=-1, num_bytes=None):
-        """value of the unsigned bits stored"""
+        '''Value of the unsigned bits stored'''
         if self.data == AL.TOP:
             if start == -1:
                 return BV.ByteValue(self.size)
@@ -106,7 +106,7 @@ class KInteger(ConcreteInteger):
 
     @classmethod
     def from_byte_value(cls, byte_value, type_of):
-        """ Method for Integer Generation from a byte value """
+        '''Method for Integer Generation from a byte value'''
         import logging
         if BV.ByteValue.top in byte_value.bits:
             logging.debug("Top Created")
@@ -114,11 +114,11 @@ class KInteger(ConcreteInteger):
         return super().from_byte_value(byte_value, type_of)
 
     def cast_to_integer(self, to_type):
-        """ cast to integer """
+        '''Cast to integer'''
         return Factory.Integer(self.data, to_type)
 
     def cast_to_float(self, to_type):
-        """ cast to float """
+        '''Cast to float'''
         return Factory.Float(float(self.data), to_type)
 
     def __hash__(self):

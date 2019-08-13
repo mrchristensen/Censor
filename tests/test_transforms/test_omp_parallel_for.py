@@ -1,4 +1,4 @@
-"""Test PragmaToOmpParallelFor -- Replacing Pragma omp with Omp Nodes"""
+'''Test PragmaToOmpParallelFor -- Replacing Pragma omp with Omp Nodes'''
 
 import unittest
 import pycparser
@@ -7,34 +7,34 @@ from transforms.omp_parallel_for import PragmaToOmpParallelFor
 
 #pylint: disable=missing-docstring,invalid-name
 class TestOmpParallelFor(unittest.TestCase):
-    """Test OmpParallelFor Node"""
+    '''Test OmpParallelFor Node'''
 
     class PragmaVisitor(omp.omp_ast.NodeVisitor):
-        """Pragma node visitor; collect all pragma nodes"""
+        '''Pragma node visitor; collect all pragma nodes'''
 
         def __init__(self):
             self.nodes = []
 
         def visit_Pragma(self, node):
-            """Collect nodes, does not recurse as Pragma nodes have no
-            children"""
+            '''Collect nodes, does not recurse as Pragma nodes have no
+            children'''
             self.nodes.append(node)
 
     class OmpParallelForVisitor(omp.omp_ast.NodeVisitor):
-        """OmpParallelFor node visitor; recursibely collect all
-        OmpParallelFor nodes"""
+        '''OmpParallelFor node visitor; recursibely collect all
+        OmpParallelFor nodes'''
 
         def __init__(self):
             self.nodes = []
 
         def visit_OmpParallel(self, node):
-            """Recursively collect OmpParallel nodes"""
+            '''Recursively collect OmpParallel nodes'''
 
             self.nodes.append(node)
             self.generic_visit(node)
 
         def visit_OmpFor(self, node):
-            """Recursively collect OmpFor nodes"""
+            '''Recursively collect OmpFor nodes'''
             self.nodes.append(node)
             self.generic_visit(node)
 
@@ -44,15 +44,15 @@ class TestOmpParallelFor(unittest.TestCase):
         cls.transform = PragmaToOmpParallelFor()
 
     def test_simple(self):
-        """Test simple omp parallel for pragma"""
-        c = """
+        '''Test simple omp parallel for pragma'''
+        c = '''
         int main() {
             #pragma omp parallel for
             for (int i = 0; i < 10; i++)
             {
             }
         }
-        """
+        '''
         ast = self.parser.parse(c)
         child = ast.ext[0].body.block_items[1]
         pv = self.PragmaVisitor()
@@ -70,8 +70,8 @@ class TestOmpParallelFor(unittest.TestCase):
 
 
     def test_clauses_one(self):
-        """Test omp parallel for pragma with if clause"""
-        c = """
+        '''Test omp parallel for pragma with if clause'''
+        c = '''
         int main() {
             int i = 0;
             #pragma omp parallel for if(10) schedule(static, 2)
@@ -79,7 +79,7 @@ class TestOmpParallelFor(unittest.TestCase):
             {
             }
         }
-        """
+        '''
         ast = self.parser.parse(c)
         child = ast.ext[0].body.block_items[2]
         pv = self.PragmaVisitor()
@@ -98,14 +98,14 @@ class TestOmpParallelFor(unittest.TestCase):
         self.assertEqual('static', ov.nodes[1].clauses[0].kind)
 
     def test_clauses_many(self):
-        """Test omp parallel for pragma with two clauses"""
-        c = """
+        '''Test omp parallel for pragma with two clauses'''
+        c = '''
         int main() {
             int i = 0;
             #pragma omp parallel for if(10) num_threads(4) default(shared) private(a) reduction(+: a, b, c) lastprivate(i)
             for(int i = 0; i < 10; i++);
         }
-        """
+        '''
         ast = self.parser.parse(c)
         child = ast.ext[0].body.block_items[2]
         pv = self.PragmaVisitor()

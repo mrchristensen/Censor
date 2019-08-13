@@ -1,4 +1,4 @@
-"""Test PragmaToOmpAtomic -- Replacing Pragma omp with Omp Nodes"""
+'''Test PragmaToOmpAtomic -- Replacing Pragma omp with Omp Nodes'''
 
 import unittest
 import pycparser
@@ -7,27 +7,27 @@ from transforms.omp_atomic import PragmaToOmpAtomic
 
 #pylint: disable=invalid-name
 class TestOmpAtomic(unittest.TestCase):
-    """Test OmpAtomic Node"""
+    '''Test OmpAtomic Node'''
 
     class PragmaVisitor(omp.omp_ast.NodeVisitor):
-        """Pragma node visitor; collect all pragma nodes"""
+        '''Pragma node visitor; collect all pragma nodes'''
 
         def __init__(self):
             self.nodes = []
 
         def visit_Pragma(self, node):
-            """Collect nodes, does not recurse as Pragma nodes have no
-            children"""
+            '''Collect nodes, does not recurse as Pragma nodes have no
+            children'''
             self.nodes.append(node)
 
     class OmpAtomicVisitor(omp.omp_ast.NodeVisitor):
-        """OmpAtomic node visitor; recursibely collect all OmpAtomic nodes"""
+        '''OmpAtomic node visitor; recursibely collect all OmpAtomic nodes'''
 
         def __init__(self):
             self.nodes = []
 
         def visit_OmpAtomic(self, node):
-            """Recursively collect OmpAtomic nodes"""
+            '''Recursively collect OmpAtomic nodes'''
 
             self.nodes.append(node)
             self.generic_visit(node)
@@ -38,14 +38,14 @@ class TestOmpAtomic(unittest.TestCase):
         cls.transform = PragmaToOmpAtomic()
 
     def test_simple(self):
-        """Test simple omp atomic pragma"""
-        c = """
+        '''Test simple omp atomic pragma'''
+        c = '''
         int main() {
             #pragma omp atomic
             {
             }
         }
-        """
+        '''
         ast = self.parser.parse(c)
         child = ast.ext[0].body.block_items[1]
         pv = self.PragmaVisitor()
@@ -63,14 +63,14 @@ class TestOmpAtomic(unittest.TestCase):
 
 
     def test_clauses_one(self):
-        """Test omp atomic pragma with name clause"""
-        c = """
+        '''Test omp atomic pragma with name clause'''
+        c = '''
         int main() {
             #pragma omp atomic read
             {
             }
         }
-        """
+        '''
         ast = self.parser.parse(c)
         child = ast.ext[0].body.block_items[1]
         pv = self.PragmaVisitor()
@@ -87,13 +87,13 @@ class TestOmpAtomic(unittest.TestCase):
         self.assertTrue(isinstance(ov.nodes[0].clauses[0], omp.clause.Read))
 
     def test_clauses_many(self):
-        """Test omp atomic pragma with two clauses"""
-        c = """
+        '''Test omp atomic pragma with two clauses'''
+        c = '''
         int main() {
             #pragma omp atomic seq_cst write
             i++;
         }
-        """
+        '''
         ast = self.parser.parse(c)
         child = ast.ext[0].body.block_items[1]
         pv = self.PragmaVisitor()

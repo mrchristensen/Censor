@@ -1,4 +1,4 @@
-"""Base class for Pragma to OMP Node transforms"""
+'''Base class for Pragma to OMP Node transforms'''
 
 import re
 from pycparser.c_ast import Pragma
@@ -6,8 +6,8 @@ from .node_transformer import NodeTransformer
 from .helpers import ensure_compound
 
 class PragmaToOmp(NodeTransformer):
-    """ Base class for Pragma to OMP Node transforms, defining commonly used.
-    """
+    '''Base class for Pragma to OMP Node transforms, defining commonly used.
+    '''
 
     def __init__(self, construct, pattern, str_to_clause_type,
                  structured_block=True):
@@ -22,9 +22,9 @@ class PragmaToOmp(NodeTransformer):
         self.clause_pattern = re.compile(pattern)
 
     def filter_clause_str(self, pragma_string):
-        """Filters clauses that are not in clause dictionary
+        '''Filters clauses that are not in clause dictionary
         Used for seperating combined constructs into separate
-        constructs"""
+        constructs'''
         clause_str = ''
         clause_strs = self.clause_pattern.findall(pragma_string)
         for clause in clause_strs:
@@ -34,8 +34,8 @@ class PragmaToOmp(NodeTransformer):
         return clause_str
 
     def parse_clauses(self, clause_strs):
-        """ Parse pragma strings to generate Omp Clause Nodes.
-        """
+        '''Parse pragma strings to generate Omp Clause Nodes.
+        '''
         clause_nodes = []
         for clause in clause_strs:
             parts = self.parse_clause(clause)
@@ -48,9 +48,9 @@ class PragmaToOmp(NodeTransformer):
 
     @staticmethod
     def parse_clause(clause):
-        """ Parse individual clause into lists where first element is clause
+        '''Parse individual clause into lists where first element is clause
         name and following are arguments.
-        """
+        '''
         clause = "".join(clause.split()) # Removes whitespace
         delimiters = "():,"
         parts = []
@@ -68,23 +68,23 @@ class PragmaToOmp(NodeTransformer):
         return parts
 
     def pragma_matches(self, pragma_string):
-        """ Test that a pragma string matches this node types pattern.
-        """
+        '''Test that a pragma string matches this node types pattern.
+        '''
         if not self.pattern:
             raise ValueError("self.pattern must be set by child class")
         return self.pattern.match(pragma_string) != None
 
     def clause_nodes_from_pragma_string(self, pragma_string):
-        """ Generate OmpClause nodes from a pragma string.
-        """
+        '''Generate OmpClause nodes from a pragma string.
+        '''
         clause_strs = self.clause_pattern.findall(pragma_string)
         clauses = self.parse_clauses(clause_strs)
         return clauses
 
     def visit_Compound(self, node): #pylint: disable=invalid-name
-        """ Visit each compound node and check it's children for the Pragma
+        '''Visit each compound node and check it's children for the Pragma
             nodes we want to change. Recursively alter, if found.
-        """
+        '''
 
         # Recur
         node = self.generic_visit(node)

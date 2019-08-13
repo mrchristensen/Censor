@@ -1,4 +1,4 @@
-"""
+'''
 Both for implementing certain transforms (e.g. inserting explicit type casts)
 and for doing the interpreting, dealing with initializer lists like
 
@@ -43,7 +43,7 @@ void censorXX_INIT_GLOBALS() {
     b[0] = 2;
     b[1] = 4;
 }
-"""
+'''
 # after having four lines of pycparser import, I decided to do them all at once
 from copy import deepcopy
 from pycparser.c_ast import * # pylint: disable=wildcard-import, unused-wildcard-import
@@ -76,20 +76,20 @@ from .type_helpers import get_type
 # TODO: once this transform is implemented, uncomment the
 # "raise IncorrectTransformOrder" in insert_explicit_type_casts
 
-_NOT_IMPLEMENTED_MESSAGE = """The RemoveInitLists transform has only been
-implemented for initializer lists that are a list of constant expressions."""
+_NOT_IMPLEMENTED_MESSAGE = '''The RemoveInitLists transform has only been
+implemented for initializer lists that are a list of constant expressions.'''
 
 class RemoveInitLists(NodeTransformer):
-    """Transform for removing all initializer lists and compound
-    initializers."""
+    '''Transform for removing all initializer lists and compound
+    initializers.'''
     def __init__(self, id_generator, environments):
         self.environments = environments
         self.env = environments["GLOBAL"]
         self.id_generator = id_generator
 
     def visit_Compound(self, node): # pylint: disable=invalid-name
-        """Reassign the environment to be the environment of the current
-        compound block."""
+        '''Reassign the environment to be the environment of the current
+        compound block.'''
         parent = self.env
         self.env = self.environments[node]
         retval = self.generic_visit(node)
@@ -97,8 +97,8 @@ class RemoveInitLists(NodeTransformer):
         return retval
 
     def visit_FileAST(self, node): # pylint: disable=invalid-name
-        """Insert function declaration, definition, and call for initializing
-        globals."""
+        '''Insert function declaration, definition, and call for initializing
+        globals.'''
         # node.show()
         line_info = Coord("None", 1, 0)
         func_name = self.id_generator.get_unique_id() + "_INIT_GLOBALS"
@@ -135,7 +135,7 @@ class RemoveInitLists(NodeTransformer):
         return node
 
     def visit_Decl(self, node): # pylint: disable=invalid-name,no-self-use
-        """Flatten initializer lists that happen in non-global scope."""
+        '''Flatten initializer lists that happen in non-global scope.'''
         if isinstance(node.type, ArrayDecl) and node.init:
             retval = [node]
             result = flatten_array_init(node)
@@ -153,12 +153,12 @@ class RemoveInitLists(NodeTransformer):
             return node
 
 def is_main(node):
-    """Determines if an AST object is a FuncDef named main."""
+    '''Determines if an AST object is a FuncDef named main.'''
     return isinstance(node, FuncDef) and node.decl.name == 'main'
 
 def is_constant_expression(node):
-    """Returns a boolean telling if a node represents a constant
-    expression in C or not."""
+    '''Returns a boolean telling if a node represents a constant
+    expression in C or not.'''
     if isinstance(node, UnaryOp):
         return is_constant_expression(node.expr)
     elif isinstance(node, BinaryOp):
@@ -168,8 +168,8 @@ def is_constant_expression(node):
         return isinstance(node, Constant)
 
 def flatten_array_init(decl):
-    """Takes a Decl with an initializer list, returns a list of assignment
-    nodes that take care of the initialization."""
+    '''Takes a Decl with an initializer list, returns a list of assignment
+    nodes that take care of the initialization.'''
     inits = []
     if decl.init is None:
         return inits
@@ -192,8 +192,8 @@ def flatten_array_init(decl):
     return inits
 
 def flatten_struct_init(decl, env):
-    """Takes a Decl with an initializer list, returns a list of assignment
-    nodes that take care of the initialization."""
+    '''Takes a Decl with an initializer list, returns a list of assignment
+    nodes that take care of the initialization.'''
     typ = get_type(decl.name, env)
     fields = typ.type.decls
     inits = []

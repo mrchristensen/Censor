@@ -1,15 +1,15 @@
 #!/usr/bin/python3
-"""Tests that input and output for a single c file is equivalent
-   Usage python run_one_file.py <file to test>"""
+'''Tests that input and output for a single c file is equivalent
+   Usage python run_one_file.py <file to test>'''
 import argparse
 import subprocess
 from ceskvsgcc import CESKvsGCC, run_c
 
 class OneFileTest(CESKvsGCC):
-    """ Class to handle running one file through the cesk interpreter"""
+    '''Class to handle running one file through the cesk interpreter'''
 
     def test_file(self):
-        """ Function that does the work """
+        '''Function that does the work'''
         parser = argparse.ArgumentParser()
         parser.add_argument("file_name", nargs='+')
         parser.add_argument('--debug', '-d', action="store_true")

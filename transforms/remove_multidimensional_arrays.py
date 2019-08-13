@@ -1,4 +1,4 @@
-"""
+'''
 Changes all array accesses to pointer arithmetic
 
 Examples:
@@ -22,17 +22,17 @@ int n = 4, m = 6;
 char buf[100];
 int temp = n*m;
 buf[temp]='m';
-"""
+'''
 from copy import deepcopy
 import pycparser.c_ast as AST
 from .lift_node import LiftNode
 from .type_helpers import make_temp_value, get_type, _is_array
 #possibly change names to Simplify Arrays and ArrayReferences
 class RemoveMultidimensionalArray(LiftNode):
-    """Remove Multidimensional Arrays Transform"""
+    '''Remove Multidimensional Arrays Transform'''
 
     def visit_UnaryOp(self, node): #pylint: disable=invalid-name
-        """ Checks for array_ref nested inside a UnaryOp """
+        '''Checks for array_ref nested inside a UnaryOp'''
         if (node.op == '&') and isinstance(node.expr, AST.ArrayRef):
             node = self.visit_array_ref(node.expr, True)
             return node
@@ -45,7 +45,7 @@ class RemoveMultidimensionalArray(LiftNode):
         return node
 
     def visit_FuncDecl(self, node): #pylint: disable=invalid-name
-        """ Change the declaration of an array param to a pointer """
+        '''Change the declaration of an array param to a pointer.'''
         param_list = node.args
         if param_list is None:
             return self.generic_visit(node)
@@ -61,13 +61,13 @@ class RemoveMultidimensionalArray(LiftNode):
         return node
 
     def visit_ArrayRef(self, node): #pylint: disable=invalid-name
-        """ Simplifies ArrayRef to a single dimension """
+        '''Simplifies ArrayRef to a single dimension'''
         node.subscript = self.generic_visit(node.subscript)
         node = self.visit_array_ref(node)
         return node
 
     def visit_ArrayDecl(self, node, in_func_decl=False): #pylint: disable=invalid-name
-        """ Simplifies Arrays to a single dimension """
+        '''Simplifies Arrays to a single dimension'''
         node = self.visit_array_decl(node)
         node = self.generic_visit(node)
         #lift non_constant array decl dim to a value so that the size is
@@ -86,7 +86,7 @@ class RemoveMultidimensionalArray(LiftNode):
         return node
 
     def visit_array_decl(self, array_decl): #pylint: disable=no-self-use
-        """ Visit a combines nested array_decl nodes """
+        '''Visit a combines nested array_decl nodes'''
         temp = array_decl.type
         #copy = deepcopy(array_decl) #might need this for type aliasing
         while isinstance(temp, AST.ArrayDecl):
@@ -98,8 +98,8 @@ class RemoveMultidimensionalArray(LiftNode):
         return array_decl
 
     def visit_array_ref(self, array_ref, is_referenced=False):
-        """Visits and simplifies array ref to single dimension with
-            only constants and id's for subscripts"""
+        '''Visits and simplifies array ref to single dimension with
+            only constants and id's for subscripts'''
         name = array_ref
         while isinstance(name, AST.ArrayRef):
             name = name.name
@@ -136,7 +136,7 @@ class RemoveMultidimensionalArray(LiftNode):
         return array_ref
 
     def _get_size(self, ref_type, index): #pylint: disable=no-self-use
-        """computes the product of all nested dimensions"""
+        '''Computes the product of all nested dimensions'''
         result = index
         while isinstance(ref_type, AST.ArrayDecl):
             result = AST.BinaryOp('*', result, ref_type.dim, ref_type.coord)
@@ -145,8 +145,8 @@ class RemoveMultidimensionalArray(LiftNode):
         return result
 
     def visit_array_ref_helper(self, ref, typ):
-        """get the references paired with the right dimension to calculate
-         stride, leftover type is at bottom of tree"""
+        '''Get the references paired with the right dimension to calculate
+         stride, leftover type is at bottom of tree'''
         rtyp = self._reverse_type(typ, ref.name)
         array_ref = ref
         while isinstance(ref, AST.ArrayRef):
@@ -202,9 +202,9 @@ class RemoveMultidimensionalArray(LiftNode):
         return rtyp
 
     def _reverse_type(self, typ, ref_counter):
-        """ Reverses a type for a certian number of array references
+        '''Reverses a type for a certian number of array references
             the rest is tacked on the end and is equivalent to the type
-            of the result of the array reference """
+            of the result of the array reference'''
         bottom = self._make_next(typ, None)
         if bottom is None:
             return typ
@@ -229,7 +229,7 @@ class RemoveMultidimensionalArray(LiftNode):
         return bottom
 
     def _make_next(self, typ, subpart): #pylint: disable=no-self-use
-        """ Helper for _reverse_type to build the proper nodes """
+        '''Helper for _reverse_type to build the proper nodes'''
         if isinstance(typ, AST.ArrayDecl):
             return AST.ArrayDecl(subpart, typ.dim, typ.dim_quals, typ.coord)
         elif isinstance(typ, AST.PtrDecl):
@@ -238,7 +238,7 @@ class RemoveMultidimensionalArray(LiftNode):
             return None
 
     def lift_to_value(self, value):
-        """Lift node to compound block"""
+        '''Lift node to compound block'''
         decl = make_temp_value(value, self.id_generator, self.envr)
         decl.quals = ['const']
         decl.type.quals += ['const']

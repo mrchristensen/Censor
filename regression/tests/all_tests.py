@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Regression Test Driver"""
+'''Regression Test Driver'''
 import sys
 import unittest
 

@@ -1,4 +1,4 @@
-""" Run Memory checks """
+'''Run Memory checks'''
 
 import os
 import subprocess
@@ -8,10 +8,10 @@ import yaml
 from cesk.exceptions import CESKException
 
 class YamlTestCase(unittest.TestCase):
-    """ able to take in an c file and associated yaml file and test them """
+    '''Able to take in an c file and associated yaml file and test them'''
 
     def run_c_file(self, yml_file):
-        """ reads a yaml file add fetches and analyzes the give .i/.c file """
+        '''Reads a yaml file add fetches and analyzes the give .i/.c file'''
         path = os.path.dirname(yml_file)
         with open(yml_file, 'r') as yml:
             test_info = yaml.load(yml)
@@ -65,7 +65,7 @@ class YamlTestCase(unittest.TestCase):
             return False, 'Error in interpretation'
 
     def test_basic(self):
-        """ Tests for deref errors for our basic c files """
+        '''Tests for deref errors for our basic c files'''
         file_path = '../cesk/tests/fixtures/faulting_memory_access/'
         for file in os.listdir(file_path):
             if file.endswith(".yml"):
@@ -74,7 +74,7 @@ class YamlTestCase(unittest.TestCase):
                     self.failureException(msg)
 
     def test_memsafety(self):
-        """ test sv_comp memsaftey test cases
+        '''Test sv_comp memsaftey test cases
             array-memsafety, array-examples, memsafety,
             memsafety-ext, memsafety-ext2, list-ext-properties,
             memory-alloca, ldv-memsafety, heap-manipulation,
@@ -82,8 +82,8 @@ class YamlTestCase(unittest.TestCase):
             loop-acceleration, ntdrivers, ntdrivers-simplified,
             locks
 
-            this is the list of folders that have
-            at least a few applicable test"""
+            This is the list of folders that have
+            at least a few applicable test'''
         file_path = '../../sv-benchmarks/c/heap-manipulation/'
         for file in os.listdir(file_path):
             if file.endswith(".yml"):

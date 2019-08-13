@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-"""Main function for generic c analyzer"""
+'''Main function for generic c analyzer'''
 
 import argparse
 import sys
@@ -16,7 +16,7 @@ from transforms import transform
 TOOLS = ['censor', 'observer', 'ssl', 'print', 'transform', 'instrumenter']
 
 def read_args():
-    """ build argument parser and returns parsed args """
+    '''Build argument parser and returns parsed args'''
 
     parser = argparse.ArgumentParser(description='Runs censor concretely. ' +
                                      'For more information see the readme.')
@@ -39,7 +39,7 @@ def read_args():
     return parser.parse_args()
 
 def main():
-    """Parses arguments and calls correct tool"""
+    '''Parses arguments and calls correct tool'''
     args = read_args()
 
     ast = parse(args.filenames[0], args.includes, args.pycparser, args.sanitize)
@@ -54,7 +54,7 @@ def main():
 
 #pylint: disable=too-many-locals
 def parse(filename, includes, pycparser_path, sanitize, preproccess=True):
-    """ Calls pycparser and returns the ast """
+    '''Calls pycparser and returns the ast'''
     dir_name = path.dirname(filename)
 
     temp = None
@@ -105,8 +105,8 @@ def parse(filename, includes, pycparser_path, sanitize, preproccess=True):
 
 
 def run_tool(tool, ast, args):
-    """ figure out what analysis is supposed to happen and call the
-        appropriate one """
+    '''Figure out what analysis is supposed to happen and call the
+        appropriate one'''
     if tool == "censor":
         import censor
         censor.main(ast)
@@ -136,7 +136,7 @@ def run_tool(tool, ast, args):
         censor.main(ast) #default to censor
 
 def print_ast(ast):
-    """ Steps to print the ast """
+    '''Steps to print the ast'''
     print("-------------------------BEFORE TRANSFORMS------------------------")
     from copy import deepcopy
     copy_ast = deepcopy(ast)
@@ -148,7 +148,7 @@ def print_ast(ast):
     ast.show()
 
 def observe_ast(ast, observer, cesk):
-    """ Steps to Observe """
+    '''Steps to Observe'''
     watchman = observer.Observer()
     transform(ast)
     watchman.visit(ast)

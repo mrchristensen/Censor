@@ -1,11 +1,11 @@
-""" TFloat Class """
+'''TFloat Class'''
 import cesk.limits as limits
 from .factory import Factory
 from .abstract_literals import AbstractLiterals
 from .base_values import ByteValue, BaseFloat
 
 class TFloat(BaseFloat):  #pylint:disable=too-few-public-methods
-    """Abstraction of Float where Float can only be T"""
+    '''Abstraction of Float where Float can only be T'''
 
     def __init__(self, data, type_of):#pylint: disable=unused-argument
         self.data = set([AbstractLiterals.TOP])
@@ -43,7 +43,7 @@ class TFloat(BaseFloat):  #pylint:disable=too-few-public-methods
         return Factory.Integer(set([0, 1]), 'int')
 
     def get_byte_value(self, start=-1, num_bytes=None):#pylint: disable=unused-argument
-        """value of the unsigned bits stored"""
+        '''Value of the unsigned bits stored'''
         #TODO get binary value
         return ByteValue(self.size)
 

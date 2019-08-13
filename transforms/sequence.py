@@ -58,16 +58,16 @@
     val_2 = expr_2;
     func(val_1,val_2);
 
- '''
+'''
 from pycparser.c_ast import *  # pylint: disable=wildcard-import, unused-wildcard-import
 from .lift_node import LiftNode
 from .type_helpers import make_temp_value
 
 class Sequence(LiftNode):
-    """ Tranforms unary operators into another equivalent AST"""
+    '''Tranforms unary operators into another equivalent AST'''
 
     def visit_ExprList(self, node): # pylint: disable=invalid-name
-        """ Tranforms comma operators into multiple lines"""
+        '''Tranforms comma operators into multiple lines'''
         expressions = node.exprs
         expr_num = len(expressions)
         for i in range(expr_num):
@@ -80,7 +80,7 @@ class Sequence(LiftNode):
         return node
 
     def visit_FuncCall(self, node): # pylint: disable=invalid-name
-        """Transforms Functions to evaluate parameters beforehand"""
+        '''Transforms Functions to evaluate parameters beforehand'''
         expr_list = node.args
         if expr_list is None:
             return node
@@ -105,7 +105,7 @@ class Sequence(LiftNode):
         return ID(decl_1.name)
 
     def visit_TernaryOp(self, node): # pylint: disable=invalid-name
-        """Transform Ternary to If"""
+        '''Transform Ternary to If'''
         #initialize variables
         decl_1 = make_temp_value(node, self.id_generator, self.envr)
         decl_1.init = None
@@ -126,7 +126,7 @@ class Sequence(LiftNode):
         return ID(val_1)
 
     def visit_BinaryOp(self, node): # pylint: disable=invalid-name
-        """Special case for each binaryOp || and &&"""
+        '''Special case for each binaryOp || and &&'''
         if node.op != '&&' and node.op != '||':
             self.generic_visit(node)
             return node

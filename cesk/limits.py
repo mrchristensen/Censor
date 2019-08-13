@@ -1,19 +1,19 @@
-""" Stores and generates necessary run time environment information
+'''Stores and generates necessary run time environment information
 Concrete values for macros that would be accessed through <limits.h> in C.
 From the C99 standard: "Their implementation-defined values shall be equal or
-greater in magnitude (absolute value) to those shown, with the same sign."""
+greater in magnitude (absolute value) to those shown, with the same sign.'''
 from enum import Enum
 from collections import namedtuple
 
 #This file acts as a configuration to match complier needs/wants
 
 class NumberRepresentation(Enum):
-    """ enum to represent different number configurations"""
+    '''Enum to represent different number configurations'''
     ONES_COMPLEMENT = 1
     TWOS_COMPLEMENT = 2
 
 class StructPackingScheme(Enum):
-    """ Enum to represent different packing schemes """
+    '''Enum to represent different packing schemes'''
     PACT_COMPACT = 1
     GCC_STD = 2
 
@@ -31,7 +31,7 @@ std_char_sign = True #pylint: disable=invalid-name
 gcc_char_sign = True #pylint: disable=invalid-name
 
 class ConfigTypes(Enum):
-    """ Enum to save desired run time environments """
+    '''Enum to save desired run time environments'''
     GCC = 'gcc'
     STD = 'std'
     CESK = 'cesk'
@@ -54,7 +54,7 @@ ULLONG_MIN, ULLONG_MAX = 0, 0
 RANGES = {}
 
 def get_size_identifier(identifiers):
-    """ returns the combined string to look up in the size_dict """
+    '''Returns the combined string to look up in the size_dict'''
     typ = None
     for identifier in identifiers:
         if identifier in ['_Bool', 'long', 'float', 'double',
@@ -71,7 +71,7 @@ def get_size_identifier(identifiers):
 
 #only for integer values
 def get_min_max(byte_width, number_rep, signed=True):
-    """ Returns min and max value given the parameters """
+    '''Returns min and max value given the parameters'''
     byte_width *= 8
     if number_rep == NumberRepresentation.ONES_COMPLEMENT:
         if signed:
@@ -92,7 +92,7 @@ def get_min_max(byte_width, number_rep, signed=True):
 Range = namedtuple('Range', ['min', 'max'])
 
 def set_alias():
-    """ defines all possible types available """
+    '''Defines all possible types available'''
     #Possible integer types (groups are equivalent)
     #Make sure all are available in ranges
     #char
@@ -155,7 +155,7 @@ def set_alias():
     #long double
 
 def set_ranges():
-    """ Sets values for RANGES based on constants """
+    '''Sets values for RANGES based on constants'''
     #calculate range
     RANGES["char"] = Range(CHAR_MIN, CHAR_MAX)
     RANGES["unsigned char"] = Range(UCHAR_MIN, UCHAR_MAX)
@@ -171,8 +171,8 @@ def set_ranges():
     set_alias()
 
 class Config:
-    """ Groups the necessary information to simulate
-             different run time environments """
+    '''Groups the necessary information to simulate
+             different run time environments'''
     def __init__(self, config_type):
         self.type = config_type
         if config_type == ConfigTypes.GCC:
@@ -196,18 +196,18 @@ class Config:
     #takes a list of strings and returns type size if available
     #will only work for valid c types that are listed below
     def get_size(self, identifiers):
-        """ return the size based on a list of identifiers """
+        '''Returns the size based on a list of identifiers'''
         typ = get_size_identifier(identifiers)
         return self.size_dict[typ]
 
     #this will be the size of any pointer
     def get_word_size(self):
-        """ returns the word size for the set configuration """
+        '''Returns the word size for the set configuration'''
         return self.size_dict['word']
 
     def set_constants(self):
-        """ Declares contants to match chosen configuration
-            Also sets RANGES to match as well """
+        '''Declares contants to match chosen configuration
+            Also sets RANGES to match as well'''
         global CHAR_BIT, SCHAR_MIN, SCHAR_MAX, UCHAR_MIN, UCHAR_MAX #pylint: disable=global-statement
         global CHAR_MIN, CHAR_MAX, MB_LEN_MAX, SHRT_MIN, SHRT_MAX #pylint: disable=global-statement
         global USHRT_MIN, USHRT_MAX, INT_MIN, INT_MAX, UINT_MIN #pylint: disable=global-statement
@@ -244,7 +244,7 @@ class Config:
 CONFIG = Config(ConfigTypes.CESK)
 #---------------------------------------------------------------------
 def set_config(config_string):
-    """ Take a string and sets global CONFIG and types appropriately """
+    '''Take a string and sets global CONFIG and types appropriately'''
     global CONFIG #pylint: disable=global-statement
     config_string = config_string.lower()
     if config_string == 'gcc':

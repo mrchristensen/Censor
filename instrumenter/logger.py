@@ -1,4 +1,4 @@
-"""AST function definitions for logging inserted when instrumenting"""
+'''AST function definitions for logging inserted when instrumenting'''
 
 from os import path
 from pycparser.c_ast import * # pylint: disable=wildcard-import, unused-wildcard-import
@@ -30,7 +30,7 @@ YETI_TASK_ID_GEN = Decl(
     )
 
 def make_task_param(identifier):
-    """Return task id parameter"""
+    '''Return task id parameter'''
     return Decl(
         identifier,
         [], [], [],
@@ -56,21 +56,19 @@ YETI_FUNCS = [
     ]
 
 def is_yeti(node):
-    """Return true if AST is a FuncCall or FuncDef of this tool"""
+    '''Return true if AST is a FuncCall or FuncDef of this tool'''
     return any(f == node.decl.name for f in YETI_FUNCS) \
             or 'INIT_GLOBALS' in node.decl.name
 
 class PropagateTaskIds(NodeTransformer):
-    """
-    Modify every function call and function definition to pass
-    the current task id and parent task id
-    """
+    '''Modify every function call and function definition to pass
+    the current task id and parent task id'''
 
     def __init__(self):
         self.user_funcs = []
 
     def visit_FuncDef(self, node): # pylint: disable=invalid-name
-        """Make first two parameters task id and parent id"""
+        '''Make first two parameters task id and parent id'''
         node = self.generic_visit(node)
         if is_main(node) or is_yeti(node):
             return node
@@ -86,7 +84,7 @@ class PropagateTaskIds(NodeTransformer):
         return node
 
     def visit_FuncCall(self, node): # pylint: disable=invalid-name
-        """Make first two arguments task id and parent id"""
+        '''Make first two arguments task id and parent id'''
         node = self.generic_visit(node)
         if node.name.name not in self.user_funcs:
             return node
@@ -99,14 +97,14 @@ class PropagateTaskIds(NodeTransformer):
 
 
 class Logger(Registry):
-    """Class to provide AST function definitions for logging to be inserted
-    when instrumenting"""
+    '''Class to provide AST function definitions for logging to be inserted
+    when instrumenting'''
 
     def __init__(self):
         self.ast = parse_file(path.dirname(__file__) + '/' + LOGGER_C_FILE)
 
     def embed_definitions(self, file_ast):
-        """Return AST with the declarations and definitions needed"""
+        '''Return AST with the declarations and definitions needed'''
         for item in file_ast.ext:
             if is_main(item):
                 task_ids = self.make_task_ids()
@@ -121,7 +119,7 @@ class Logger(Registry):
         return file_ast
 
     def register_memory_access(self, mode, var):
-        """Return code to register memory access"""
+        '''Return code to register memory access'''
         return FuncCall(
             ID(YETI_LOG_MEMORY_ACCESS),
             ExprList([
@@ -132,7 +130,7 @@ class Logger(Registry):
         )
 
     def register_post(self):
-        """Return code to register post of task"""
+        '''Return code to register post of task'''
         return FuncCall(
             ID(YETI_LOG_POST),
             ExprList([
@@ -142,7 +140,7 @@ class Logger(Registry):
         )
 
     def register_isolated(self):
-        """Return code to register isolated region"""
+        '''Return code to register isolated region'''
         return FuncCall(
             ID(YETI_LOG_ISOLATED),
             ExprList([
@@ -152,15 +150,15 @@ class Logger(Registry):
         )
 
     def register_await(self):
-        """Return code to register await"""
+        '''Return code to register await'''
         return FuncCall(ID(YETI_LOG_AWAIT), None)
 
     def register_ewait(self):
-        """Return code to register ewait"""
+        '''Return code to register ewait'''
         return FuncCall(ID(YETI_LOG_EWAIT), None)
 
     def make_task_id(self): # pylint: disable=no-self-use
-        """Return code to generate new task id"""
+        '''Return code to generate new task id'''
         return Decl(
             YETI_TASK,
             [], [], [],
@@ -177,7 +175,7 @@ class Logger(Registry):
             )
 
     def make_task_ids(self): # pylint: disable=no-self-use
-        """Return code to generate new task ids"""
+        '''Return code to generate new task ids'''
         return [
             Decl(
                 YETI_PARENT_TASK,

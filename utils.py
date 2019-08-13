@@ -1,4 +1,4 @@
-"""Shared Utility Functions for c analyzers"""
+'''Shared Utility Functions for c analyzers'''
 
 import os
 import platform
@@ -14,11 +14,11 @@ Thread = namedtuple('Thread', ['function', 'init_store'])
 State = namedtuple('State', ['loc', 'store'])
 
 def find_main(ast):
-    """Examines the AST for a unique main function."""
+    '''Examines the AST for a unique main function.'''
     return find_injection(ast, 'main')
 
 def find_injection(ast, injection_point):
-    """Examines the AST for a unique main function."""
+    '''Examines the AST for a unique main function.'''
     if injection_point is None:
         injection_point = 'main'
 
@@ -29,21 +29,20 @@ def find_injection(ast, injection_point):
         raise Exception("No main function found")
 
 def is_injection(ext, inject):
-    """Determines if an AST object is a FuncDef where the name is inject"""
+    '''Determines if an AST object is a FuncDef where the name is inject'''
     return isinstance(ext, pycparser.c_ast.FuncDef) and ext.decl.name == inject
 
 def is_main(ext):
-    """Determines if an AST object is a FuncDef where the name is main"""
+    '''Determines if an AST object is a FuncDef where the name is main'''
     return is_injection(ext, 'main')
 
 def sanitize(ast):
-    """ Strip fake includes from preprocessed ast.
-    """
+    '''Strip fake includes from preprocessed ast.'''
     from transforms.helpers import NodeTransformer
     class Sanitizer(NodeTransformer):
-        """Sanitizing NodeTransformer"""
+        '''Sanitizing NodeTransformer'''
         def visit_FileAST(self, node): #pylint: disable=invalid-name, no-self-use
-            """Visit the FileAST and remove typedefs included by fake libc"""
+            '''Visit the FileAST and remove typedefs included by fake libc'''
             marks = []
             for i, child in enumerate(node):
                 if isinstance(child, pycparser.c_ast.Pragma) \
@@ -65,8 +64,7 @@ def sanitize(ast):
     Sanitizer().visit(ast)
 
 def preserve_include_preprocess(path):
-    """ Run sed on source file to preserve includes through gcc preprocessing
-    """
+    '''Run sed on source file to preserve includes through gcc preprocessing'''
     with open(path, 'r') as myfile:
         data = myfile.read()
     newdata = re.sub(
@@ -76,9 +74,8 @@ def preserve_include_preprocess(path):
     open(path, "w").write(newdata)
 
 def preserve_include_postprocess(path):
-    """ Run sed on transformed source file to remove fake_libc_includes and
-        replace them with the original includes.
-    """
+    '''Run sed on transformed source file to remove fake_libc_includes and
+        replace them with the original includes.'''
     inserting_sed = os.path.dirname(os.path.realpath(__file__)) \
                     + r'/utils/insert_includes.sed'
     deleting_sed = os.path.dirname(os.path.realpath(__file__)) \
@@ -87,7 +84,7 @@ def preserve_include_postprocess(path):
     run_sed_file(deleting_sed, path)
 
 def run_sed_file(sed, path):
-    """ Runs the custom preprocessing on the files based on the sed version """
+    '''Runs the custom preprocessing on the files based on the sed version'''
     if platform.system() == 'Darwin':
         return subprocess.run(['sed', '-Ef', sed, path])
     else:
@@ -95,7 +92,7 @@ def run_sed_file(sed, path):
 
 
 def preserve_include_find_end(node, start_index):
-    """Find end of #pragma BEGIN include block and return index"""
+    '''Find end of #pragma BEGIN include block and return index'''
     for i, child in enumerate(node.ext[start_index:]):
         if isinstance(child, pycparser.c_ast.Pragma) \
             and "END" in child.string:
@@ -105,7 +102,7 @@ def preserve_include_find_end(node, start_index):
     return -1
 
 def find_dependencies(path_to_makefile="./", name_of_makefile="Makefile"):
-    '''Returns a list of Strings of all of the depenencies of a makefile.
+    '''Returns a list of Strings of all of the dependencies of a makefile.
     Currently extracts each "example.c" in all instances of "make -dn"
     outputting a "Considering target file 'example.c'."'''
     command = 'make -dn -C ' + path_to_makefile
@@ -135,7 +132,7 @@ def find_dependencies(path_to_makefile="./", name_of_makefile="Makefile"):
     return dependencies
 
 def semicolon(start_index, string):
-    """if semicolon"""
+    '''If semicolon'''
     index = start_index
     while string[index].isspace():
         index += 1
@@ -148,8 +145,8 @@ def semicolon(start_index, string):
     return index
 
 def volatile(start_index, string):
-    """ finds end match of a paren ( returns that index,
-        returns start_index if no paren found """
+    '''Finds end match of a paren ( returns that index,
+        returns start_index if no paren found'''
     index = start_index
     while string[index].isspace():
         index += 1
@@ -162,8 +159,7 @@ def volatile(start_index, string):
     return index
 
 def remove_gcc_extentions(text):
-    """ Run sed on source file to remove selected common gcc extentions
-    """
+    '''Run sed on source file to remove selected common gcc extentions'''
     pattern = r'(asm)|(__restrict__)|(__inline__)|(__extension__)|(__attribute(__)*)|(\({)' #pylint: disable=line-too-long
     matches = re.finditer(pattern, text)
     if matches is None:
@@ -220,8 +216,8 @@ def remove_gcc_extentions(text):
     return "".join(altered_text)
 
 def paren_match(start_index, string):
-    """ finds end match of a paren ( returns that index,
-    returns start_index if no paren found """
+    '''Finds end match of a paren ( returns that index,
+    returns start_index if no paren found'''
     index = start_index
     while string[index].isspace():
         index += 1

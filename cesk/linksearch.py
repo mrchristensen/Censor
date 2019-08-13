@@ -1,4 +1,4 @@
-"""Functions to interpret c code directly"""
+'''Functions to interpret c code directly'''
 import logging
 from copy import deepcopy
 import pycparser.c_ast as AST
@@ -6,7 +6,7 @@ from cesk.limits import StructPackingScheme as SPS
 import cesk.limits as limits
 
 class LinkSearch(AST.NodeVisitor): #
-    """Holds various look-up-tables for functions, labels, etc."""
+    '''Holds various look-up-tables for functions, labels, etc.'''
     parent_lut = {}
     index_lut = {}
     label_lut = {}
@@ -95,8 +95,8 @@ class LinkSearch(AST.NodeVisitor): #
 
 
 def get_sizes(ast_type, list_so_far):
-    """ Populates list_so_far with a list of sizes for each variable in
-        the struct """
+    '''Populates list_so_far with a list of sizes for each variable in
+        the struct'''
     if isinstance(ast_type, AST.ArrayDecl):
         alignment = get_array_sizes(ast_type, list_so_far)
     elif isinstance(ast_type, (AST.Decl, AST.TypeDecl, AST.Typename)):
@@ -126,7 +126,7 @@ def get_sizes(ast_type, list_so_far):
     return alignment
 
 def get_array_sizes(ast_type, list_so_far):
-    """ handles finding sizes and alignment for array type """
+    '''Handles finding sizes and alignment for array type'''
     arr_list = []
     alignment = get_sizes(ast_type.type, arr_list)
     if isinstance(ast_type.dim, AST.Constant):
@@ -141,7 +141,7 @@ def get_array_sizes(ast_type, list_so_far):
     return alignment
 
 def get_struct_sizes(ast_type, list_so_far):
-    """ handles finding sizes and alignment for struct type """
+    '''Handles finding sizes and alignment for struct type'''
     decls = ast_type.decls
     if decls is None:
         if ast_type.name in LinkSearch.struct_lut:
@@ -173,7 +173,7 @@ def get_struct_sizes(ast_type, list_so_far):
     return alignment
 
 def get_union_sizes(ast_type, list_so_far):
-    """ handles finding sizes and alignment for union type """
+    '''Handles finding sizes and alignment for union type'''
     decls = ast_type.decls
     if decls is None:
         if ast_type.name in LinkSearch.union_lut:
@@ -209,7 +209,7 @@ def get_union_sizes(ast_type, list_so_far):
     return alignment
 
 def check_for_implicit_decl(ident):
-    """See continuation edge case 12. Determine if a implicit decl is needed"""
+    '''See continuation edge case 12. Determine if a implicit decl is needed'''
     compound = None
     parent = LinkSearch.parent_lut[ident]
     while True:

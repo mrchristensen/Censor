@@ -1,4 +1,4 @@
-"""A static analyzer; see the README for details."""
+'''A static analyzer; see the README for details.'''
 
 from collections import deque, namedtuple
 import pycparser
@@ -11,28 +11,27 @@ ArrayAddress = namedtuple('ArrayAddress', ['array', 'index'])
 StructAddress = namedtuple('StructAddress', ['struct', 'field'])
 
 class Location:
-    """Represents a program location."""
+    '''Represents a program location.'''
     def __init__(self, index, function):
         self.index = index
         self.function = function
 
     def __add__(self, offset):
-        """Returns the location in the same function with the line number offset
+        '''Returns the location in the same function with the line number offset
         by the value offset. This is used most commonly as loc+1 to get the
-        syntactic successor to a Location.
-        """
+        syntactic successor to a Location.'''
         return Location(self.index+offset, self.function)
 
     def stmt(self):
-        """Retrieves the statement at the location."""
+        '''Retrieves the statement at the location.'''
         return self.function.funcDef.body.block_items[self.index]
 
     def funcdef(self):
-        """Retrieves the FuncDef object wrapped in the function."""
+        '''Retrieves the FuncDef object wrapped in the function.'''
         return self.function.funcDef
 
 class Store:
-    """Represents the contents of memory at a moment in time."""
+    '''Represents the contents of memory at a moment in time.'''
     def __init__(self, memory=None):
         if memory is None:
             self.memory = {}
@@ -40,16 +39,15 @@ class Store:
             self.memory = memory
 
     def read(self, address):
-        """Read the contents of the store at address. Returns None if undefined.
-        """
+        '''Read the contents of the store at address.
+            Returns None if undefined.'''
         if address in self.memory:
             return self.memory[address]
         return None
 
     def write(self, address, value):
-        """Write value to the store at address. If there is an existing value,
-        merge value into the existing value.
-        """
+        '''Write value to the store at address. If there is an existing value,
+        merge value into the existing value.'''
         memory = self.memory.copy()
         if address in self.memory:
             memory[address] = self.memory[address].merge(value)
@@ -58,13 +56,12 @@ class Store:
         return Store(memory)
 
 def inject_thread(function):
-    """Takes a function and makes a thread that can be placed on the thread
-    queue.
-    """
+    '''Takes a function and makes a thread that can be placed on the thread
+    queue.'''
     return Thread(function, Store())
 
 def is_main(ext):
-    """Determines if an AST object is a FuncDef named main."""
+    '''Determines if an AST object is a FuncDef named main.'''
     return isinstance(ext, pycparser.c_ast.FuncDef) and ext.decl.name == 'main'
 
 THREAD_QUEUE = []
@@ -73,36 +70,34 @@ THREAD_QUEUE = []
 BOTTOM = None
 
 def analyze_threads():
-    """Driver function. Iterates through the list of threads (which may expand),
-    analyzing each in turn.
-    """
+    '''Driver function. Iterates through the list of threads (which may expand),
+    analyzing each in turn.'''
     for thread in THREAD_QUEUE:
         analyze_thread(thread)
 
 def may_be_zero(aint):
-    """Evaluate if the given abstract int may be zero."""
+    '''Evaluate if the given abstract int may be zero.'''
     # TODO
     return aint == aint
 
 def may_be_nonzero(aint):
-    """Evaluate if the given abstract int may be nonzero. This is not simply the
-    inverse of may_be_zero!
-    """
+    '''Evaluate if the given abstract int may be nonzero. This is not simply the
+        inverse of may_be_zero!'''
     # TODO
     return aint == aint
 
 def do_unary_op(unop, store):
-    """Evaluate a unary op. Return the result and the store, which may change.
-    """
+    '''Evaluate a unary op. Return the result
+        and the store, which may change.'''
     return (unop, store)
 
 def do_binary_op(binop, store):
-    """Evaluate a binary op. Return the result and the store, which may change.
-    """
+    '''Evaluate a binary op. Return the result
+        and the store, which may change.'''
     return (binop, store)
 
 def eval_exp(exp, store):
-    """Evaluate an expression. Return its result as an abstract value."""
+    '''Evaluate an expression. Return its result as an abstract value.'''
     rvalue = exp
     if isinstance(exp, pycparser.c_ast.UnaryOp):
         (rvalue, store) = do_unary_op(exp, store)
@@ -123,7 +118,7 @@ def eval_exp(exp, store):
     return (rvalue, store)
 
 def resolve(lvalue, store):
-    """Determine the abstract address to use for a given lvalue."""
+    '''Determine the abstract address to use for a given lvalue.'''
     address = lvalue
     if isinstance(lvalue, pycparser.c_ast.ID):
         address = lvalue.name
@@ -139,7 +134,7 @@ def resolve(lvalue, store):
     return (address, store)
 
 def handle_assignment(state: State):
-    """Evaluate an assignment statement."""
+    '''Evaluate an assignment statement.'''
     stmt = state.loc.stmt
     store = state.store
     address = resolve(stmt.lvalue, store)
@@ -148,7 +143,7 @@ def handle_assignment(state: State):
     return State(state.loc+1, store)
 
 def analyze_statement(state: State):
-    """Execute one statement. Return the resulting state."""
+    '''Execute one statement. Return the resulting state.'''
     # pylint: disable=too-many-branches
     # pylint: disable=too-many-statements
     stmt = state.loc.stmt()
@@ -298,7 +293,7 @@ def analyze_statement(state: State):
     return successors
 
 def analyze_thread(thread: Thread):
-    """Performs analysis on a single function."""
+    '''Performs analysis on a single function.'''
     func = thread.function
     store = thread.init_store
     index = 0
@@ -309,9 +304,8 @@ def analyze_thread(thread: Thread):
             queue.extend(successors)
 
 def main(ast):
-    """Perform AAM-style abstract interpretation intraprocedurally on each
-    function in the ast reachable from main.
-    """
+    '''Perform AAM-style abstract interpretation intraprocedurally on each
+    function in the ast reachable from main.'''
 
     main_function = find_main(ast)
     ast.show()

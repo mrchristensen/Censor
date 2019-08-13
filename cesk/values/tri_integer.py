@@ -1,4 +1,4 @@
-""" Integer Class that only can be negative zero or positive """
+'''Integer Class that only can be negative zero or positive'''
 import cesk.limits as limits
 from .base_values import BaseInteger, ByteValue
 from .factory import Factory
@@ -6,8 +6,8 @@ from .abstract_literals import AbstractLiterals as AL
 
 
 class TriInteger(BaseInteger): #pylint:disable=too-few-public-methods
-    """ implementation of an Integral Type for PLUS-MINUS-ZERO
-        Assuming no overflow happens"""
+    '''Implementation of an Integral Type for PLUS-MINUS-ZERO
+        Assuming no overflow happens'''
 
     def __init__(self, data, type_of, size=1):
         self.data = set()
@@ -175,7 +175,7 @@ class TriInteger(BaseInteger): #pylint:disable=too-few-public-methods
         return (self < other).__not__()
 
     def get_byte_value(self, start=-1, num_bytes=None):
-        """value of the unsigned bits stored"""
+        '''Value of the unsigned bits stored'''
         byte_value = ByteValue(self.size)
         if AL.TOP in self.data:
             return byte_value
@@ -194,7 +194,7 @@ class TriInteger(BaseInteger): #pylint:disable=too-few-public-methods
 
     @classmethod
     def from_byte_value(cls, byte_value, type_of):
-        """ convert to abstract from byte value """
+        '''Convert to abstract from byte value'''
         types = set()
         if byte_value.bits[0] != ByteValue.zero:
             types.add(AL.MINUS)

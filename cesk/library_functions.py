@@ -1,5 +1,5 @@
-""" Set of cstd library functions with a CESK specific implementation:
-need the state and an array containing the values of the arguments passed """
+'''Set of cstd library functions with a CESK specific implementation:
+need the state and an array containing the values of the arguments passed'''
 import re
 #import logging
 import random
@@ -12,7 +12,7 @@ from cesk.values.base_values import SizedSet
 
 #pylint: disable=line-too-long
 def mocked_function(state, args, return_address):#pylint: disable=unused-argument
-    '''returns two values to the store, 1 and 2, in order to test the weak store functionality'''
+    '''Returns two values to the store, 1 and 2, in order to test the weak store functionality'''
     errs = set()
     value = SizedSet(4)
     value.update({values.generate_constant_value(str(2), 'int'), values.generate_constant_value(str(4), 'int')})
@@ -21,42 +21,42 @@ def mocked_function(state, args, return_address):#pylint: disable=unused-argumen
     return {state.get_next()}, errs
 
 def netlink_notify_kernel(state, args, return_address):#pylint: disable=unused-argument
-    '''mocks void netlink_notify_kernel(tls_daemon_ctx_t* ctx, unsigned long id, int response)'''
+    '''Mocks void netlink_notify_kernel(tls_daemon_ctx_t* ctx, unsigned long id, int response)'''
     return {state.get_next()}, {}
 
 def tls_opts_create(state, args, return_address):#pylint: disable=unused-argument
-    '''mocks tls_opts_t* tls_opts_create(char* path)'''
+    '''Mocks tls_opts_t* tls_opts_create(char* path)'''
     return {state.get_next()}, {}
 
 def memcpy(state, args, return_address):#pylint: disable=unused-argument
-    '''void* __cdecl memcpy(...)'''
+    '''Mocks void* __cdecl memcpy(...)'''
     return {state.get_next()}, {}
 
 def nla_get_u64(state, args, return_address):#pylint: disable=unused-argument
-    '''mocks uint64_t nla_get_u64(struct nlattr *);'''
+    '''Mocks uint64_t nla_get_u64(struct nlattr *);'''
     return {state.get_next()}, {}
 
 def nla_data(state, args, return_address):#pylint: disable=unused-argument
-    '''mocks void *	nla_data(const struct nlattr *)'''
+    '''Mocks void *	nla_data(const struct nlattr *)'''
     return {state.get_next()}, {}
 
 def event_base_new(state, args, return_address):#pylint: disable=unused-argument
-    '''mocks struct event_base *event_base_new(void)'''
+    '''Mocks struct event_base *event_base_new(void)'''
     return {state.get_next()}, {}
 
 def hashmap_create(state, args, return_address):#pylint: disable=unused-argument
-    '''mock hmap_t* hashmap_create(int num_buckets)'''
+    '''Mock hmap_t* hashmap_create(int num_buckets)'''
     #Return: "struct hmap" with "num_buckets = arg[0]" - at also malloc'ed up some stuff
     return {state.get_next()}, {}
 
 def hashmap_get(state, args, return_address):#pylint: disable=unused-argument
-    '''mocks void* hashmap_get(hmap_t* map, unsigned long key)'''
+    '''Mocks void* hashmap_get(hmap_t* map, unsigned long key)'''
     value = values.generate_null_pointer()
     errs = state.stor.write(return_address, value)
     return {state.get_next()}, errs
 
 def hashmap_add(state, args, return_address):#pylint: disable=unused-argument
-    '''mocks int hashmap_add(hmap_t* map, unsigned long key, void* value)'''
+    '''Mocks int hashmap_add(hmap_t* map, unsigned long key, void* value)'''
     value = SizedSet(4)
     value.update({values.generate_constant_value(str(0), 'int'), values.generate_constant_value(str(1), 'int')})
     errs = set()
@@ -65,14 +65,14 @@ def hashmap_add(state, args, return_address):#pylint: disable=unused-argument
     return {state.get_next()}, errs
 
 def socket(state, args, return_address):#pylint: disable=unused-argument
-    '''mocks socket(int domain, int type, int protocol)'''
+    '''Mocks socket(int domain, int type, int protocol)'''
     #TODO make this top
     value = values.generate_constant_value(str(random.randint(0, 2)), 'int')
     errs = state.stor.write(return_address, value)
     return {state.get_next()}, errs
 
 def nla_len(state, args, return_address):#pylint: disable=unused-argument
-    '''mocks nla_len()'''
+    '''Mocks nla_len()'''
     errs = set()
     # value = str(args[0].nla_len)
     # logging.debug("%%% " + value)
@@ -80,18 +80,18 @@ def nla_len(state, args, return_address):#pylint: disable=unused-argument
     return {state.get_next()}, errs
 
 def evutil_make_socket_nonblocking(state, args, return_address):#pylint: disable=unused-argument
-    '''mocks evutil_make_socket_nonblocking(evutil_socket_t sock)'''
+    '''Mocks evutil_make_socket_nonblocking(evutil_socket_t sock)'''
     value = values.generate_constant_value(str(random.randint(0, 2)), 'int')
     errs = state.stor.write(return_address, value)
     return {state.get_next()}, errs
 
 def tls_server_wrapper_setup(state, args, return_address):#pylint: disable=unused-argument
-    '''mocks tls_conn_ctx_t* tls_server_wrapper_setup(evutil_socket_t efd, evutil_socket_t ifd, tls_daemon_ctx_t* daemon_ctx,
+    '''Mocks tls_conn_ctx_t* tls_server_wrapper_setup(evutil_socket_t efd, evutil_socket_t ifd, tls_daemon_ctx_t* daemon_ctx,
 	tls_opts_t* tls_opts, struct sockaddr* internal_addr, int internal_addrlen)'''
     return {state.get_next()}, {}
 
 def printf(state, args, return_address):#pylint: disable=unused-argument
-    '''performs printf'''
+    '''Performs printf'''
     value_array = []
     for i in range(1, len(args)):
         value_array.append(str(args[i]))
@@ -107,7 +107,7 @@ def printf(state, args, return_address):#pylint: disable=unused-argument
     return {state.get_next()}, {}
 
 def free(state, args, return_address):#pylint: disable=unused-argument
-    """ Completes a free operation """
+    '''Completes a free operation'''
     errs = state.stor.free(args[0])
     return {state.get_next()}, errs
 

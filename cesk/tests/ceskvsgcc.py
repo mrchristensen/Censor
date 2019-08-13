@@ -1,4 +1,4 @@
-"""Tests for the concrete CESK interpreter"""
+'''Tests for the concrete CESK interpreter'''
 import tempfile
 import subprocess
 import json
@@ -12,14 +12,14 @@ BLUE = "\033[96m"
 RESET = "\033[39m"
 
 def print_pass(file_name):
-    """ Standard print function for a test that passes """
+    '''Standard print function for a test that passes'''
     sys.stdout.write(GREEN)
     print("PASSED:   ", end='')
     sys.stdout.write(RESET)
     print(file_name)
 
 def print_fail(file_name, message):
-    """ Standard print function for a test that fails """
+    '''Standard print function for a test that fails'''
     sys.stdout.write(RED)
     print("FAILED:   ", end='')
     sys.stdout.write(RESET)
@@ -27,13 +27,11 @@ def print_fail(file_name, message):
     print(message)
 
 class CESKvsGCC(TestCase):
-    """
-    Unit test class for testing if a c program
-    gives the same output under gcc and under our CESK interpreter.
-    """
+    '''Unit test class for testing if a c program gives the same
+        output under gcc and under our CESK interpreter.'''
     def assert_same_output(self, file_path): #pylint: disable=no-self-use
-        """asserts that a c file will have the same output under gcc and under
-        our cesk interpreter"""
+        '''Asserts that a c file will have the same output under gcc and under
+        our cesk interpreter'''
         gcc_out = run_c(file_path)
         try:
             cesk_out = run_c_cesk(file_path)
@@ -50,8 +48,8 @@ class CESKvsGCC(TestCase):
             print_fail(path.basename(file_path) + ' see ^^^^^', '')
 
     def assert_memory_access(self, file_path, is_safe):
-        """ Pass in a file and whether or not it is memory safe
-            Runs the interpreter and checks to see if it detects the error """
+        '''Pass in a file and whether or not it is memory safe
+            Runs the interpreter and checks to see if it detects the error'''
         cesk_out = run_c_cesk(file_path)
         results = json.loads(cesk_out)
 
@@ -62,30 +60,30 @@ class CESKvsGCC(TestCase):
             print_fail(path.basename(file_path), message)
 
     def assert_all_memory_safe(self, folder, is_safe):
-        """asserts that an entire folder full of c files will have the same
-        output under gcc and under our cesk interpreter"""
+        '''Asserts that an entire folder full of c files will have the same
+        output under gcc and under our cesk interpreter'''
         files = sorted([path.join(folder, f) for f in listdir(folder)
                         if f.endswith('.c')])
         for file in files:
             self.assert_memory_access(file, is_safe)
 
     def assert_all_equal(self, folder):
-        """asserts that an entire folder full of c files will have the same
-        output under gcc and under our cesk interpreter"""
+        '''Asserts that an entire folder full of c files will have the same
+        output under gcc and under our cesk interpreter'''
         files = sorted([path.join(folder, f) for f in listdir(folder)
                         if f.endswith('.c')])
         for file in files:
             self.assert_same_output(file)
 
 def run_c_cesk(file_path):
-    """runs a c source file using the cesk tool, returns stdout as a byte
-    string."""
+    '''Runs a c source file using the cesk tool, returns stdout as a byte
+    string.'''
     stdout = subprocess.check_output(['python3', '../../cesk_main.py',
                                       '-c', 'CONCRETE', file_path])
     return stdout.decode("utf-8")
 
 def run_c(file_path):
-    """compiles and runs a c source file and returns stdout as a byte string."""
+    '''Compiles and runs a c source file and returns stdout as a byte string.'''
     out_path = path.join(tempfile.gettempdir(), "censor_out")
     subprocess.check_output(['gcc', file_path, '-o', out_path])
     stdout = subprocess.check_output([out_path])

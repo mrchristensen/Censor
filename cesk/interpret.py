@@ -1,4 +1,4 @@
-"""Functions to interpret c code directly"""
+'''Functions to interpret c code directly'''
 import logging
 import pycparser.c_ast as AST
 from cesk.values.base_values import BaseInteger
@@ -10,8 +10,8 @@ import cesk.library_functions as lib_func
 from cesk.exceptions import CESKException
 
 def execute(state):
-    """Takes a state evaluates the stmt from ctrl and returns a set of
-    states, and a set of error strings if an error occurred"""
+    '''Takes a state evaluates the stmt from ctrl and returns a set of
+    states, and a set of error strings if an error occurred'''
     stmt = state.ctrl.stmt()
     obj_name = stmt.__class__.__name__
     if obj_name in implemented_nodes():
@@ -103,7 +103,7 @@ def handle_FuncCall(stmt, state, address=None): # pylint: disable=invalid-name
         return func(stmt, state, func_def_frame_addr, address)
 
 def func(stmt, state, func_def_frame_addr, address=None):
-    '''handles most function calls delegated by handle_FuncCall'''
+    '''Handles most function calls delegated by handle_FuncCall'''
     if stmt.args is None:
         expr_list = []
     else:
@@ -242,11 +242,11 @@ def handle_Assignment(stmt, state): #pylint: disable=invalid-name
     return states, errors
 
 def handle_UnaryOp(stmt, state): # pylint: disable=invalid-name,unused-argument
-    """decodes and evaluates unary_ops"""
+    '''Decodes and evaluates unary_ops'''
     return {state.get_next()}, set()
 
 def handle_Return(stmt, state):# pylint: disable=invalid-name
-    """satisfies kont"""
+    '''Satisfies kont'''
     logging.debug("Return")
     exp = stmt.expr
     value = None
@@ -263,8 +263,7 @@ def handle_Return(stmt, state):# pylint: disable=invalid-name
     return ret_set, errors
 
 def implemented_nodes():
-    """ Return set of nodes that the interpreter currently implements.
-    """
+    '''Return set of nodes that the interpreter currently implements.'''
     return {
         'Assignment',
         'BinaryOp',
@@ -283,9 +282,8 @@ def implemented_nodes():
     }
 
 def should_not_find():
-    """ Return map of nodes that the interpreter shouldn't find.
-    Includes reason why it should not be found
-    """
+    '''Return map of nodes that the interpreter shouldn't find.
+    Includes reason why it should not be found'''
     return {
         'ArrayDecl':'ArrayDecl should have been found as a child of Decl',
         'ExprList':'ExprList should only appear inside FuncCall/Decl',
@@ -299,8 +297,7 @@ def should_not_find():
     }
 
 def todo_implement_nodes():
-    """ Return set of nodes that were marked as '#todo implement' at some point
-    """
+    '''Return set of nodes that were marked '#todo implement' at some point'''
     # TODO these of course :)
     return {
         'CompoundLiteral',
@@ -317,8 +314,7 @@ def todo_implement_nodes():
     }
 
 def should_be_transformed_nodes():
-    """ Return set of nodes that should have been removed by transforms.
-    """
+    '''Return set of nodes that should have been removed by transforms.'''
     return {
         'ArrayRef',
         'Break',
@@ -336,8 +332,8 @@ def should_be_transformed_nodes():
     }
 
 def assignment_helper(operator, address, exp, state):
-    """Creates continuation to evaluate exp and assigns resulting value to the
-    given address"""
+    '''Creates continuation to evaluate exp and assigns resulting value to the
+    given address'''
     #pylint: disable=too-many-function-args
     if operator == '=':
         value = None
@@ -358,7 +354,7 @@ def assignment_helper(operator, address, exp, state):
         raise CESKException(operator + " is not yet implemented")
 
 def decl_helper(decl, state):
-    """Maps the identifier to a new address and passes assignment part"""
+    '''Maps the identifier to a new address and passes assignment part'''
     name = decl.name
     f_addr = state.envr.map_new_identifier(name)
 
@@ -376,8 +372,8 @@ def decl_helper(decl, state):
     return f_addr
 
 def get_int_data(integer):
-    """ When a store is weak determines what integer value to use for size,
-        It chooses the smallest value """
+    '''When a store is weak determines what integer value to use for size,
+        It chooses the smallest value'''
     if isinstance(integer, set):
         smallest = None
         for item in integer:
@@ -394,7 +390,7 @@ def get_int_data(integer):
     raise CESKException("Integer was expected")
 
 def get_array_length(array, state):
-    """Calculates size and allocates Array. Returns address of first item"""
+    '''Calculates size and allocates Array. Returns address of first item'''
     logging.debug('  Array Decl')
     if isinstance(array.type, AST.ArrayDecl):
         raise CESKException("Multidim. arrays should be transformed to single")
@@ -416,7 +412,7 @@ def get_array_length(array, state):
                             " are not yet implemented")
 
 def get_value(stmt, state): #pylint: disable=too-many-return-statements
-    """ get value for simple id's constants or references and casts of them """
+    '''Get value for simple id's constants or references and casts of them'''
     if isinstance(stmt, AST.Constant):
         value = generate_constant_value(stmt.value, stmt.type)
         return value, set()
@@ -452,7 +448,7 @@ def get_value(stmt, state): #pylint: disable=too-many-return-statements
 
 def get_address(reference, state):
     # pylint: disable=too-many-branches
-    """get_address"""
+    '''Get_address'''
     if isinstance(reference, AST.ID):
         ident = reference
         while not isinstance(ident, str):
@@ -509,7 +505,7 @@ def get_address(reference, state):
         raise CESKException("Unsupported lvalue " + str(reference))
 
 def mem_alloc(exp, state):
-    """ Calls the appropriate memory allocation and evaluates the cast """
+    '''Calls the appropriate memory allocation and evaluates the cast'''
     if isinstance(exp, AST.Cast):
         mem_alloc_call = exp
         while isinstance(mem_alloc_call, AST.Cast): #handle nested cast
@@ -532,7 +528,7 @@ def mem_alloc(exp, state):
 
 
 def mem_alloc_helper(stmt, state, break_up_list):
-    '''performs memory allocation and returns CESKPointer to allocated memory'''
+    '''Performs memory allocation and returns CESKPointer to allocated memory'''
     if stmt.name.name == "malloc":
         param = stmt.args.exprs[0]
     #TODO Implement specifics of calloc (write all alloc with nmemb)
@@ -567,7 +563,7 @@ def mem_alloc_helper(stmt, state, break_up_list):
     return pointer
 
 def is_mem_alloc(stmt):
-    """ checks to see if a function is a memory allocation call """
+    '''Checks to see if a function is a memory allocation call'''
     while isinstance(stmt, AST.Cast):
         stmt = stmt.expr
     return (isinstance(stmt, AST.FuncCall) and

@@ -1,11 +1,11 @@
-""" ConcreteInteger Class """
+'''ConcreteInteger Class'''
 import random
 import cesk.values.base_values as BV
 import cesk.limits as limits
 from .factory import Factory
 
 class ConcreteInteger(BV.BaseInteger): #pylint:disable=too-few-public-methods
-    """ implementation of an Integral Type"""
+    '''Implementation of an Integral Type'''
 
     def __init__(self, data, type_of, size=1):
         if type_of == 'bit_value':
@@ -21,7 +21,7 @@ class ConcreteInteger(BV.BaseInteger): #pylint:disable=too-few-public-methods
             self.data = self.bound(data)
 
     def get_truth_value(self):
-        """ Truth value of an integer """
+        '''Truth value of an integer'''
         return {self.data != 0}
 
     def __add__(self, other):
@@ -63,7 +63,7 @@ class ConcreteInteger(BV.BaseInteger): #pylint:disable=too-few-public-methods
         return Factory.Integer(int(self.data >= other.data), 'int')
 
     def bound(self, value):
-        """ Simulates two's complement overflow of integral types """
+        '''Simulates two's complement overflow of integral types'''
         unsigned = value - self.min_value
         umax = self.max_value - self.min_value + 1
         overflow = unsigned % umax
@@ -71,7 +71,7 @@ class ConcreteInteger(BV.BaseInteger): #pylint:disable=too-few-public-methods
         return sign
 
     def get_byte_value(self, start=-1, num_bytes=None):
-        """Value of the unsigned bits stored"""
+        '''Value of the unsigned bits stored'''
         result = self.data
         byte_value = None
         if self.data < 0:
@@ -90,7 +90,7 @@ class ConcreteInteger(BV.BaseInteger): #pylint:disable=too-few-public-methods
 
     @classmethod
     def from_byte_value(cls, byte_value, type_of):
-        """ Method for Integer Generation from a byte value """
+        '''Method for Integer Generation from a byte value'''
         data = 0
         place = 1
         look_for = BV.ByteValue.one

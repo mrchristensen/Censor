@@ -1,4 +1,4 @@
-"""
+'''
 This transform uses the LiftNode base class to enforce a simply structured AST.
 It defines an array of class names to search for. It performs a depth first
 search so it transforms the most deeply nested node first. This should ensure
@@ -49,7 +49,7 @@ only evaluated if the are reached.
 This transform will also break if a Label node only has one statement and it
 has parts that need to be lifted. The problem is fixed if the label's child
 is a Compound block.
-"""
+'''
 
 from copy import deepcopy
 import pycparser.c_ast as AST
@@ -58,10 +58,10 @@ from .type_helpers import make_temp_ptr, make_temp_value
 from .helpers import propagate_constant
 
 class LiftToCompoundBlock(LiftNode):
-    """LiftToCompoundBlock Transform"""
+    '''LiftToCompoundBlock Transform'''
 
     def visit_For(self, node): # pylint: disable=invalid-name
-        """Leave For conditions alone"""
+        '''Leave For conditions alone'''
         node.stmt = self.visit(node.stmt)
         return node
 
@@ -79,7 +79,7 @@ class LiftToCompoundBlock(LiftNode):
         return node
 
     def lift_field(self, node, field):
-        """Lift field value to compound block if necessary"""
+        '''Lift field value to compound block if necessary'''
         value = getattr(node, field, None)
         ref = None
         if isinstance(value, AST.Assignment):
@@ -106,7 +106,7 @@ class LiftToCompoundBlock(LiftNode):
         return node
 
     def lift_to_ptr(self, value):
-        """Lift node to compound block"""
+        '''Lift node to compound block'''
         decl = make_temp_ptr(value, self.id_generator, self.envr)
         decl.type = self.visit(decl.type) # simplify array decls
         self.insert_into_scope(decl)
@@ -114,19 +114,19 @@ class LiftToCompoundBlock(LiftNode):
         return AST.UnaryOp('*', AST.ID(decl.name), value.coord)
 
     def lift_to_value(self, value):
-        """Lift node to compound block"""
+        '''Lift node to compound block'''
         decl = make_temp_value(value, self.id_generator, self.envr)
         self.insert_into_scope(decl)
         self.envr.add(decl.name, decl.type)
         return AST.ID(decl.name, coord=decl.coord)
 
     def lift_assignment(self, value):
-        """Lift node to compound block"""
+        '''Lift node to compound block'''
         self.insert_into_scope(value)
         return deepcopy(value.lvalue)
 
     def lift_unaryop(self, value):
-        """Lift node to compound block"""
+        '''Lift node to compound block'''
         if value.op not in ['++', '--', 'p++', 'p--']:
             return None
         if 'p' in value.op:

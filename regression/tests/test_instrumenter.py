@@ -1,5 +1,5 @@
 
-""" Run regression tests on dataracebench tests. """
+'''Run regression tests on dataracebench tests.'''
 
 import tempfile
 from os.path import join
@@ -15,10 +15,10 @@ from transforms.id_generator import IDGenerator
 from instrumenter.instrumenter import Instrumenter
 
 class TestDataRaceBench(RegressionTestCase):
-    """ Test dataracebench micro-benchmarks """
+    '''Test dataracebench micro-benchmarks'''
 
     def setUp(self): #pylint: disable=invalid-name
-        """Setup"""
+        '''Setup'''
         self.fixtures = '../dataracebench/micro-benchmarks/no'
         self.includes = ['../dataracebench/micro-benchmarks',
                          '../dataracebench/micro-benchmarks/utilities']
@@ -33,7 +33,7 @@ class TestDataRaceBench(RegressionTestCase):
         self.instrumenter = None
 
     def instrument(self, ast):
-        """Instrument AST"""
+        '''Instrument AST'''
         ast = transform(ast)
         id_generator = IDGenerator(ast)
         environments = TypeEnvironmentCalculator().get_environments(ast)
@@ -41,7 +41,7 @@ class TestDataRaceBench(RegressionTestCase):
         return self.instrumenter.visit(ast)
 
     def run_compilation(self, fixture):
-        """Run compilation and return result"""
+        '''Run compilation and return result'''
         benchmark = _temp_copy(fixture)
         utils.preserve_include_preprocess(benchmark.name)
         ast = _parse_ast_from_file(benchmark.name, self.includes)
@@ -56,8 +56,7 @@ class TestDataRaceBench(RegressionTestCase):
 
 
     def test_all(self):
-        """ Assert instrumented code compiles
-        """
+        '''Assert instrumented code compiles'''
         for fixture in get_fixtures(self.fixtures):
             print('Testing instrumenter with ' + fixture)
             res = self.run_compilation(fixture)

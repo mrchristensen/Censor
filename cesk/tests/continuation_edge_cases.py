@@ -1,13 +1,13 @@
 #!/usr/bin/python3
-"""Tests basic functionality of arithmetic, functions, and linked lists,
-using only ints and pointers, not worrying about corner cases."""
+'''Tests basic functionality of arithmetic, functions, and linked lists,
+using only ints and pointers, not worrying about corner cases.'''
 
 from ceskvsgcc import CESKvsGCC
 
 class ContinuationEdgeCases(CESKvsGCC):
-    """Tests basic functionality"""
+    '''Tests basic functionality'''
     def test_continuation_edge_cases(self):
-        """Tests basic functionality"""
+        '''Tests basic functionality'''
         self.assert_all_equal("./fixtures/continuation_edge_cases")
 
 if __name__ == "__main__":

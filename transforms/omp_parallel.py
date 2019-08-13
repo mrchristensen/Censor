@@ -1,4 +1,4 @@
-"""Pragma to OMP Parallel Node transform"""
+'''Pragma to OMP Parallel Node transform'''
 
 import re
 from omp.omp_ast import OmpParallel
@@ -17,7 +17,7 @@ STR_TO_CLAUSE_TYPE = {
     }
 
 class PragmaToOmpParallel(PragmaToOmp):
-    """Pragma to OMP Parallel Node transform"""
+    '''Pragma to OMP Parallel Node transform'''
 
     def __init__(self):
         super().__init__(

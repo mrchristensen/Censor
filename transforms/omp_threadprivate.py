@@ -1,4 +1,4 @@
-"""Pragma to OMP Threadprivate Node transform"""
+'''Pragma to OMP Threadprivate Node transform'''
 
 import re
 from omp.omp_ast import OmpThreadprivate
@@ -10,7 +10,7 @@ STR_TO_CLAUSE_TYPE = {
 }
 
 class PragmaToOmpThreadprivate(PragmaToOmp):
-    """Transform omp threadprivate pragmas"""
+    '''Transform omp threadprivate pragmas'''
 
     def __init__(self):
         super().__init__(

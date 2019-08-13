@@ -1,4 +1,4 @@
-"""Pragma to OMP Task Node transform"""
+'''Pragma to OMP Task Node transform'''
 
 import re
 from omp.omp_ast import OmpTask
@@ -19,7 +19,7 @@ STR_TO_CLAUSE_TYPE = {
     }
 
 class PragmaToOmpTask(PragmaToOmp):
-    """Pragma to OMP Task Node transform"""
+    '''Pragma to OMP Task Node transform'''
 
     def __init__(self):
         super().__init__(

@@ -21,15 +21,13 @@ import sys
 
 class Node(object):
     __slots__ = ()
-    """ Abstract base class for AST nodes.
-    """
+    '''Abstract base class for AST nodes.'''
     def children(self):
-        """ A sequence of all children that are Nodes
-        """
+        '''A sequence of all children that are Nodes'''
         pass
 
     def show(self, buf=sys.stdout, offset=0, attrnames=False, nodenames=False, showcoord=False, _my_node_name=None):
-        """ Pretty print the Node and all its attributes and
+        '''Pretty print the Node and all its attributes and
             children (recursively) to a buffer.
 
             buf:
@@ -48,8 +46,7 @@ class Node(object):
 
             showcoord:
                 Do you want the coordinates of each Node to be
-                displayed.
-        """
+                displayed.'''
         lead = ' ' * offset
         if nodenames and _my_node_name is not None:
             buf.write(lead + self.__class__.__name__+ ' <' + _my_node_name + '>: ')
@@ -80,7 +77,7 @@ class Node(object):
 
 
 class NodeVisitor(object):
-    """ A base NodeVisitor class for visiting c_ast nodes.
+    '''A base NodeVisitor class for visiting c_ast nodes.
         Subclass it and define your own visit_XXX methods, where
         XXX is the class name you want to visit with these
         methods.
@@ -110,19 +107,16 @@ class NodeVisitor(object):
             You can use:
                 NodeVisitor.generic_visit(self, node)
         *   Modeled after Python's own AST visiting facilities
-            (the ast module of Python 3.0)
-    """
+            (the ast module of Python 3.0)'''
     def visit(self, node):
-        """ Visit a node.
-        """
+        '''Visit a node.'''
         method = 'visit_' + node.__class__.__name__
         visitor = getattr(self, method, self.generic_visit)
         return visitor(node)
 
     def generic_visit(self, node):
-        """ Called if no explicit visitor function exists for a
-            node. Implements preorder visiting of the node.
-        """
+        '''Called if no explicit visitor function exists for a
+            node. Implements preorder visiting of the node.'''
         for c_name, c in node.children():
             self.visit(c)
 

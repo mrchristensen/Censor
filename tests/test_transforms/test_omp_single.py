@@ -1,4 +1,4 @@
-"""Test PragmaToOmpSingle -- Replacing Pragma omp with Omp Nodes"""
+'''Test PragmaToOmpSingle -- Replacing Pragma omp with Omp Nodes'''
 
 import unittest
 import pycparser
@@ -7,27 +7,27 @@ from transforms.omp_single import PragmaToOmpSingle
 
 #pylint: disable=invalid-name
 class TestOmpSingle(unittest.TestCase):
-    """Test OmpSingle Node"""
+    '''Test OmpSingle Node'''
 
     class PragmaVisitor(omp.omp_ast.NodeVisitor):
-        """Pragma node visitor; collect all pragma nodes"""
+        '''Pragma node visitor; collect all pragma nodes'''
 
         def __init__(self):
             self.nodes = []
 
         def visit_Pragma(self, node):
-            """Collect nodes, does not recurse as Pragma nodes have no
-             children"""
+            '''Collect nodes, does not recurse as Pragma nodes have no
+             children'''
             self.nodes.append(node)
 
     class OmpSingleVisitor(omp.omp_ast.NodeVisitor):
-        """OmpSingle node visitor; recursibely collect all OmpSingle nodes"""
+        '''OmpSingle node visitor; recursibely collect all OmpSingle nodes'''
 
         def __init__(self):
             self.nodes = []
 
         def visit_OmpSingle(self, node):
-            """Recursively collect OmpSingle nodes"""
+            '''Recursively collect OmpSingle nodes'''
 
             self.nodes.append(node)
             self.generic_visit(node)
@@ -38,8 +38,8 @@ class TestOmpSingle(unittest.TestCase):
         cls.transform = PragmaToOmpSingle()
 
     def test_simple(self):
-        """Test simple omp single pragma"""
-        c = """
+        '''Test simple omp single pragma'''
+        c = '''
         int main() {
             #pragma omp parallel
             {
@@ -49,7 +49,7 @@ class TestOmpSingle(unittest.TestCase):
                 }
             }
         }
-        """
+        '''
         ast = self.parser.parse(c)
         pv = self.PragmaVisitor()
         ov = self.OmpSingleVisitor()
@@ -63,8 +63,8 @@ class TestOmpSingle(unittest.TestCase):
         self.assertEqual(1, len(ov.nodes))
 
     def test_clauses(self):
-        """Test simple omp single pragma with clauses"""
-        c = """
+        '''Test simple omp single pragma with clauses'''
+        c = '''
         int main() {
             #pragma omp parallel
             {
@@ -74,7 +74,7 @@ class TestOmpSingle(unittest.TestCase):
                 }
             }
         }
-        """
+        '''
         ast = self.parser.parse(c)
         pv = self.PragmaVisitor()
         ov = self.OmpSingleVisitor()

@@ -1,4 +1,4 @@
-"""Typedef transform"""
+'''Typedef transform'''
 
 from copy import deepcopy
 import pycparser.c_ast as AST
@@ -6,13 +6,11 @@ from transforms.lift_node import LiftNode
 from transforms.helpers import propagate_constant
 
 class RemoveTypedef(LiftNode):
-    """
-    Replace typedefined types with their actual types
-    """
+    '''Replace typedefined types with their actual types'''
 
     in_def = 0
     def visit_ArrayDecl(self, node): #pylint: disable=invalid-name
-        """ Checks Arraydecls within a typedef to remove non const sizing """
+        '''Checks Arraydecls within a typedef to remove non const sizing'''
         self.generic_visit(node)
         if self.in_def != 0:
             if isinstance(node.dim, AST.BinaryOp):
@@ -32,7 +30,7 @@ class RemoveTypedef(LiftNode):
         return node
 
     def visit_Struct(self, node): #pylint: disable=invalid-name
-        """ If a struct is namless when defined add an unique name to it """
+        '''If a struct is namless when defined add an unique name to it'''
         if node.decls is None:
             return node #not defining a struct
         else:
@@ -45,7 +43,7 @@ class RemoveTypedef(LiftNode):
         return node
 
     def visit_Enum(self, node): #pylint: disable=invalid-name
-        """ If a enum is namless when defined add an unique name to it """
+        '''If a enum is namless when defined add an unique name to it'''
         if node.values is None:
             return node #not defining a struct
         else:
@@ -58,7 +56,7 @@ class RemoveTypedef(LiftNode):
         return node
 
     def visit_Union(self, node): #pylint: disable=invalid-name
-        """ If a enum is namless when defined add an unique name to it """
+        '''If a enum is namless when defined add an unique name to it'''
         if node.decls is None:
             return node #not defining a struct
         else:
@@ -72,14 +70,14 @@ class RemoveTypedef(LiftNode):
 
 
     def visit_Typedef(self, node): #pylint: disable=invalid-name
-        """ Set member variable to determine if in typedef or not """
+        '''Set member variable to determine if in typedef or not'''
         self.in_def += 1
         node = self.generic_visit(node)
         self.in_def -= 1
         return node
 
     def visit_TypeDecl(self, node): #pylint: disable=invalid-name
-        """ Check Identifier Types for typedef names and replace """
+        '''Check Identifier Types for typedef names and replace'''
         self.generic_visit(node)
         if not isinstance(node.type, AST.IdentifierType):
             return node

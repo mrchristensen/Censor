@@ -1,4 +1,4 @@
-"""Pragma to OMP Single Node transform"""
+'''Pragma to OMP Single Node transform'''
 
 import re
 from omp.omp_ast import OmpSingle
@@ -13,7 +13,7 @@ STR_TO_CLAUSE_TYPE = {
     }
 
 class PragmaToOmpSingle(PragmaToOmp):
-    """Transform omp single pragmas"""
+    '''Transform omp single pragmas'''
 
     def __init__(self):
         super().__init__(

@@ -38,7 +38,7 @@ UNOPS = {
 }
 
 class ArithmeticValue:
-    """Abstract class for polymorphism between abstract and concrete values"""
+    '''Abstract class for polymorphism between abstract and concrete values'''
     #data member that should be present in all subclasses
     #data = None #store the value a data type that matches
     #type_of = None #stores the type string
@@ -46,7 +46,7 @@ class ArithmeticValue:
 
     #should not override
     def perform_operation(self, operator, value):
-        """Performs operation and returns value."""
+        '''Performs operation and returns value.'''
         if isinstance(value, SizedSet):
             result = SizedSet(self.size)
             for val in value:
@@ -61,10 +61,10 @@ class ArithmeticValue:
         else:
             raise TransformError("Unexpected Operation\n")
     def transformed(self, other=None):
-        """ method to throw error message """
+        '''Method to throw error message'''
         raise TransformError("Operator should be removed by transforms\n");
     def interpreted(self, other=None):
-        """ method to throw error message """
+        '''Method to throw error message'''
         raise TransformError("Operator should be handled by the interpreter\n");
     #Binary and Unary Operators that must be overridden
     def __add__(self, other):
@@ -82,7 +82,7 @@ class ArithmeticValue:
     def __le__(self, other):
         pass
     def equals(self, other):
-        """ Class to return an BaseInteger representing equals """
+        '''Class to return an BaseInteger representing equals'''
         pass
     def __ne__(self, other):
         pass
@@ -124,38 +124,38 @@ class ArithmeticValue:
         return hash(self.data)
 
     def get_truth_value(self):
-        """Returns a bool denoting what truth value the ArithmeticValue would
+        '''Returns a bool denoting what truth value the ArithmeticValue would
         have if it were inside of an if statement in C
-        can be true, false or both"""
+        can be true, false or both'''
         return set([bool(self.data)])
 
     def get_byte_value(self, start=-1, num_bytes=None):
-        """ mimics bit values in memory but allows for top or unknown bits """
+        '''Mimics bit values in memory but allows for top or unknown bits'''
         pass
 
     @classmethod
     def from_byte_value(cls, byte_value, type_of):
-        """ Takes a ByteValue and a type string and generates an instance of the class """
+        '''Takes a ByteValue and a type string and generates an instance of the class'''
         pass
 
     def cast_to_integer(self, to_type):
-        """ returns value as integer """
+        '''Returns value as integer'''
         pass
 
     def cast_to_float(self, to_type):
-        """ returns value as float """
+        '''Returns value as float'''
         pass
 
     def cast_to_pointer(self, to_type):
-        """ returns value as pointer """
+        '''Returns value as pointer'''
         pass
 
 class BaseInteger(ArithmeticValue):
-    """ Abstract Class to represent Integral Types """
+    '''Abstract Class to represent Integral Types'''
     #Every Operator needs to be implemented so no Exceptions Needed
 
 class BaseFloat(ArithmeticValue):
-    """ Abstract Class for floating types """
+    '''Abstract Class for floating types'''
     def __lshift__(self, other):
         raise TransformError("Floats do not support a left shift")
     def __rshift__(self, other):
@@ -170,17 +170,17 @@ class BaseFloat(ArithmeticValue):
         raise TransformError("Floats can not be cast to pointers")
 
 class ReferenceValue(ArithmeticValue): #pylint:disable=all
-    """Abstract Class for polymorphism between Pointers, ect."""
+    '''Abstract Class for polymorphism between Pointers, ect.'''
     def cast_to_float(self, to_type):
         raise TransformError("Pointers can not be cast to floats")
 
     def get_block(self):
-        """ Return block identifier """
+        '''Return block identifier'''
         return 0
 
 #Special Case values to handle needed gaps
 class ByteValue:
-    """ Class to represent values of bits from a partial read """
+    '''Class to represent values of bits from a partial read'''
     one = 1
     zero = 0
     top = 2
@@ -190,15 +190,15 @@ class ByteValue:
         self.size = size
 
     def append(self, other):
-        """ increase self by others size and add its bits to self
-            Warning this function does not mutate it only copies and appends"""
+        '''Increase self by others size and add its bits to self
+            Warning this function does not mutate it only copies and appends'''
         result = ByteValue()
         result.size = self.size + other.size
         result.bits = self.bits + other.bits
         return result
 
     def get_byte_value(self, start=-1, num_bytes=None):
-        """ dummy to make casting easier """
+        '''Dummy to make casting easier'''
         if start == -1:
             return deepcopy(self)
         if start+num_bytes > self.size:
@@ -209,8 +209,8 @@ class ByteValue:
         return value
 
     def get_bytes(self):
-        """ Results in a bytes-like object of len self.size and top is randomized
-            for the pack module used for floats """
+        '''Results in a bytes-like object of len self.size and top is randomized
+            for the pack module used for floats'''
         bytes_lst = []
         for byte in range(self.size):
             byte_val = 0
@@ -223,7 +223,7 @@ class ByteValue:
         return bytes(bytes_lst)
 
     def fromInt(self, int_value):
-        """ writes to location equivalent to the unsigned integer value """
+        '''Writes to location equivalent to the unsigned integer value'''
         assert(int_value >= 0)
         index = 0
         while index < self.size*8:
@@ -236,7 +236,7 @@ class ByteValue:
 
     @classmethod
     def fromByte(cls, byte_value):
-        """ Takes a int 0-255 and converts to a size 1 byte value """
+        '''Takes a int 0-255 and converts to a size 1 byte value'''
         assert(byte_value >= 0 and byte_value < 256)
         result = cls(1)
         for index in range(8):
@@ -255,7 +255,7 @@ class ByteValue:
         return hash(str(self))
 
 class uninitializedValue(ArithmeticValue):
-    """ Type to represent a uninitialized value of a certian size """
+    '''Type to represent a uninitialized value of a certian size'''
     bad_use_str = 'Use of a uninitialized value'
 
     def __init__(self, size, type_of='uninitialized'):
@@ -264,20 +264,20 @@ class uninitializedValue(ArithmeticValue):
         self.type_of = type_of
 
     def perform_operation(self, operator, value):
-        """Performs operation and returns value."""
+        '''Performs operation and returns value.'''
         raise MemoryAccessViolation(uninitializedValue.bad_use_str)
 
     def get_truth_value(self):
-        """Returns a bool denoting what truth value the ArithmeticValue would
-        have if it were inside of an if statement in C"""
+        '''Returns a bool denoting what truth value the ArithmeticValue would
+        have if it were inside of an if statement in C'''
         raise MemoryAccessViolation(uninitializedValue.bad_use_str)
 
     def get_block(self):
-        """Mimics a pointer trying to access uninitialized values."""
+        '''Mimics a pointer trying to access uninitialized values.'''
         raise MemoryAccessViolation(uninitializedValue.bad_use_str)
 
     def get_byte_value(self, offset=-1, num_bytes=None):
-        """ Returns x random bytes, should only be valid if called from write """
+        '''Returns x random bytes, should only be valid if called from write'''
         return ByteValue(self.size)
 
     def __str__(self):
@@ -285,15 +285,15 @@ class uninitializedValue(ArithmeticValue):
 
 #helper class for the store
 class SizedSet(set):
-    ''' Set but with the extra feature of knowing the byte size
+    '''Set but with the extra feature of knowing the byte size
         of objects stored within, also mirrors some functionality
-        of an arithmetic value, but returns sets instead  '''
+        of an arithmetic value, but returns sets instead'''
     def __init__(self, size):
         super().__init__()
         self.size = size
 
     def get_truth_value(self):
-        """ mimic calling truth value on all items in set """
+        '''Mimic calling truth value on all items in set'''
         truth_value = set()
         for value in self:
             truth_value.update(value.get_truth_value())
@@ -302,7 +302,7 @@ class SizedSet(set):
         return truth_value
 
     def perform_operation(self, operator, value):
-        """ Selects and performs operation on all values in set and in value"""
+        '''Selects and performs operation on all values in set and in value'''
         result = None
         for left in self:
             if isinstance(value, SizedSet):
@@ -319,7 +319,7 @@ class SizedSet(set):
         return result
 
     def get_byte_value(self, offset=-1, num_bytes=None):
-        """ Gets all values as their byte value """
+        '''Gets all values as their byte value'''
         byte_values = SizedSet(self.size)
         for value in self:
             byte_values.add(value.get_byte_value(offset, num_bytes))

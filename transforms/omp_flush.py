@@ -1,4 +1,4 @@
-"""Pragma to OMP Flush Node transform"""
+'''Pragma to OMP Flush Node transform'''
 
 import re
 from omp.omp_ast import OmpFlush
@@ -10,7 +10,7 @@ STR_TO_CLAUSE_TYPE = {
 }
 
 class PragmaToOmpFlush(PragmaToOmp):
-    """Transform omp flush pragmas"""
+    '''Transform omp flush pragmas'''
 
     def __init__(self):
         super().__init__(

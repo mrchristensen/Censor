@@ -14,7 +14,7 @@ class Factory():
 
     @staticmethod
     def getIntegerClass(): #pylint: disable=invalid-name
-        '''returns class for Integer'''
+        '''Returns class for Integer'''
         if cesk.config.CONFIG['values'] == 'concrete':
             from .concrete_integer import ConcreteInteger as Integer
         elif cesk.config.CONFIG['values'] == 'abstract':
@@ -28,7 +28,7 @@ class Factory():
 
     @staticmethod
     def getPointerClass(): #pylint: disable=invalid-name
-        '''returns class for Pointer'''
+        '''Returns class for Pointer'''
         if cesk.config.CONFIG['values'] == 'concrete':
             from .concrete_pointer import ConcretePointer as Pointer
         elif cesk.config.CONFIG['values'] == 'abstract':
@@ -42,7 +42,7 @@ class Factory():
 
     @staticmethod
     def getCharClass(): #pylint: disable=invalid-name
-        '''returns class for Char'''
+        '''Returns class for Char'''
         if cesk.config.CONFIG['values'] == 'concrete':
             from .concrete_char import ConcreteChar as Char
         elif cesk.config.CONFIG['values'] == 'abstract':

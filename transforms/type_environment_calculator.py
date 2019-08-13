@@ -1,4 +1,4 @@
-"""
+'''
 Creates a map from compound blocks in the AST to type environments.
 To use this for a transform that needs type information about Unions,
 Structs, Typedefs, and identifiers, have
@@ -23,7 +23,7 @@ def visit_Compound(self, node):
 
 in your visit_Compound, and then self.envr will always be the environment
 of your current scope.
-"""
+'''
 import logging
 from copy import deepcopy
 from pycparser.c_ast import ID, Struct, Union, Enum, FuncDecl, TypeDecl
@@ -32,7 +32,7 @@ from .id_generator import IDGenerator
 from .helpers import remove_identifier
 
 class Environment:
-    """Holds the enviornment (a mapping of identifiers to types)"""
+    '''Holds the environment (a mapping of identifiers to types)'''
     parent = None
 
     def __init__(self, parent=None):
@@ -40,8 +40,8 @@ class Environment:
         self.map_to_type = {}
 
     def get_type(self, ident):
-        """Returns the type currently associated with the given
-        identifier"""
+        '''Returns the type currently associated with the given
+        identifier'''
         if isinstance(ident, ID):
             ident = ident.name
 
@@ -53,7 +53,7 @@ class Environment:
             raise Exception("Undefined Identifier " + ident)
 
     def add(self, ident, type_node):
-        """Add a new identifier to the mapping"""
+        '''Add a new identifier to the mapping'''
         if isinstance(ident, ID):
             ident = ident.name
         if ident in self.map_to_type:
@@ -63,8 +63,8 @@ class Environment:
         self.map_to_type[ident] = type_node
 
     def show(self):
-        """Prints to the console all the identifiers being kept in the
-        environment."""
+        '''Prints to the console all the identifiers being kept in the
+        environment.'''
         out = "Current:\n"
         for ident in self.map_to_type:
             out += "\n\t" + ident
@@ -77,7 +77,7 @@ class Environment:
         print(out)
 
     def is_global(self, ident):
-        """ Returns whether or not the identifier is global """
+        '''Returns whether or not the identifier is global'''
         if ident in self.map_to_type:
             return self.parent is None
         elif self.parent is None:
@@ -94,7 +94,7 @@ class Environment:
             return key in self.parent
 
 class TypeEnvironmentCalculator(NodeTransformer):
-    """Aggregate type information for all of the scopes in the AST,
+    '''Aggregate type information for all of the scopes in the AST,
     return a dictionary mapping Compound nodes to the environment
     representing their scope.
     NOTE: It would make more technical sense for TypeEnvironmentCalculator to
@@ -103,8 +103,7 @@ class TypeEnvironmentCalculator(NodeTransformer):
     NodeTranformer for now because it needs to be able to handle both
     pycparser.c_ast.Node and omp.omp_ast.Node. If we ever figure out a way
     for all the nodes to be the same type, this should inherit from
-    NodeVisitor.
-    """
+    NodeVisitor.'''
     def __init__(self, id_generator=None):
         self.id_generator = id_generator
         self.envr = None
@@ -113,9 +112,9 @@ class TypeEnvironmentCalculator(NodeTransformer):
         self.in_func_param = False
 
     def get_environments(self, ast):
-        """Aggregate type information for all of the scopes in the AST,
+        '''Aggregate type information for all of the scopes in the AST,
         return a dictionary mapping Compound nodes to the environment
-        representing their scope."""
+        representing their scope.'''
         self.envr = Environment()
         self.environments = {"GLOBAL": self.envr}
         self.declared_not_defined = set()
@@ -123,7 +122,7 @@ class TypeEnvironmentCalculator(NodeTransformer):
         return self.environments
 
     def visit_Typedef(self, node): # pylint: disable=invalid-name
-        """Add typedefs to the type environment."""
+        '''Add typedefs to the type environment.'''
         # raise Exception("Unexpected Operation\n")
         # logging.debug("ccc " + str(node))
         self.envr.add(node.name, node.type)
@@ -158,8 +157,8 @@ class TypeEnvironmentCalculator(NodeTransformer):
         return node
 
     def visit_Compound(self, node): # pylint: disable=invalid-name
-        """Create a new environment with the current environment as its
-        parent so that scoping is handled properly."""
+        '''Create a new environment with the current environment as its
+        parent so that scoping is handled properly.'''
         self.envr = Environment(self.envr)
         retval = self.generic_visit(node)
         self.environments[node] = self.envr
@@ -167,8 +166,8 @@ class TypeEnvironmentCalculator(NodeTransformer):
         return retval
 
     def visit_FuncDef(self, node): # pylint: disable=invalid-name
-        """Add Create a new environment for the scope of the function. Add the
-        function parameters to this scope, then handle the body."""
+        '''Add Create a new environment for the scope of the function. Add the
+        function parameters to this scope, then handle the body.'''
         if node.decl.name in self.declared_not_defined:
             self.declared_not_defined.remove(node.decl.name)
         else:
@@ -188,7 +187,7 @@ class TypeEnvironmentCalculator(NodeTransformer):
         return node
 
     def visit_For(self, node): # pylint: disable=invalid-name
-        """The for loop header should have its own scope."""
+        '''The for loop header should have its own scope.'''
         self.envr = Environment(self.envr)
         node.init = self.visit(node.init)
         # don't need to visit node.cond or node.next because they can't
@@ -198,8 +197,8 @@ class TypeEnvironmentCalculator(NodeTransformer):
         return node
 
     def visit_Decl(self, node): # pylint: disable=invalid-name
-        """Visit Decl nodes so that we can save type information about
-        identifiers in the environment."""
+        '''Visit Decl nodes so that we can save type information about
+        identifiers in the environment.'''
         #TODO handle extern, static, etc properly
         # raise Exception("Unexpected Operation\n")
         type_node = deepcopy(node.type)
@@ -220,7 +219,7 @@ class TypeEnvironmentCalculator(NodeTransformer):
         return node
 
     def visit_TypeDecl(self, node): #pylint: disable=invalid-name
-        """ Examine TypeDecl """
+        '''Examine TypeDecl'''
         # logging.debug("$$$ " +str(node))
         # raise Exception("Unexpected Operation\n")
         type_node = node.type
