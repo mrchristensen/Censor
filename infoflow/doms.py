@@ -100,15 +100,3 @@ def doms(succ, r):
     dom[r] = 0
 
     return dom
-
-succs = {'a': set(['d']), 'b': set(['a', 'd', 'e']), 'c': set(['f', 'g']),
-         'd': set(['l']), 'e': set(['h']), 'f': set(['i']),
-         'g': set(['i', 'j']), 'h': set(['e', 'k']), 'i': set(['k']),
-         'j': set(['i']), 'k': set(['i', 'r']), 'l': set(['h']),
-         'r': set(['a', 'b', 'c'])}
-ds = doms(succs, 'r')
-expected = {'a': 'r', 'b': 'r', 'c': 'r', 'd': 'r', 'e': 'r', 'f': 'c',
-            'g': 'c', 'h': 'r', 'i': 'r', 'j': 'g', 'k': 'r', 'l': 'd', 'r': 0}
-for k in ds.keys():
-    if ds[k] != expected[k]:
-        print("expected %s but got %s" % (expected[k], ds[k]))

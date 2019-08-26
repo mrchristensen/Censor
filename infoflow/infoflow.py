@@ -159,8 +159,9 @@ class InfoFlow:
                 succ_eps = map(lambda state: state.get_e_p(), succs)
                 self.epg[kep] = succ_eps
             r_epg = self.epg.reverse()
+            # TODO calculate the exit node
             exit_node = None
-            self.doms = doms(r_epg, exit_node)
+            self.ip_doms = doms(r_epg, exit_node)
 
     def _serialize(self, start, graph):
         """Order the states in the graph and return them as a list. Currently a
@@ -183,6 +184,12 @@ class InfoFlow:
     def _run(self):
         """Perform an information flow analysis. Intended for internal use."""
         self._flows = WeakMap()
+        # Map containing all context taints: EP -> (EP -> set(taint))
+            # maybe EP -> set(EP)
+            # also, a global EP -> set(taint)
+        # The key is the execution point containing a context taint.
+        # Values are maps from execution points where branches occurred to the
+        # sets of taints on the condition at that branch.
         cts = WeakMap()
         t_s = WeakMap()
         def taints(addr):
@@ -201,20 +208,25 @@ class InfoFlow:
                 # TODO cts needs to map to maps, not sets - so we have to
                 # extract and flatten
                 from_context = cts[e_p]
+                # TODO origins should write to t_s or return a set here
                 self.origins(state, t_s)
                 writes = self.writes.writes_at(state.ctrl)
                 for (dest, sources) in writes:
                     t_s[dest] = all_taints(sources) | from_context
                 current_cts = WeakMap(cts[e_p]) # TODO this argument won't work
+                # add new context taints for successors
                 current_cts[e_p] = all_taints(state.get_branches())
-                for succ in self.epg[state]:
+                for succ in self.epg[e_p]:
+                    # TODO this could probably be cleaned up; this needs to
+                    # filter incoming CTs to remove any taints that have reached
+                    # their immediate postdominator.
                     for (branch, taints) in current_cts:
-                        if succ != self.doms[branch]:
+                        if succ != self.ip_doms[branch]:
                             cts[succ] = taints
-        # TODO go through sinks and report flows from sources
 
     def flows(self):
         """Run the analysis if necessary and return the information flows."""
         if not self.flows:
             self._run()
         return self.flows
+        # TODO whatever calls this should probably display the flows
