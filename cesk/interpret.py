@@ -483,6 +483,8 @@ def get_address(reference, state):
                     to_type = name.to_type
                 elif isinstance(name.to_type, AST.Typename):
                     to_type = name.to_type.type
+                elif isinstance(name.to_type, AST.TypeDecl):
+                    to_type = name.to_type.type
                 address, errors = get_address(name.expr, state)
                 address, errs = state.stor.read(address)
                 errors.update(errs)

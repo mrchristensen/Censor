@@ -38,7 +38,7 @@ def run_interpreter(ast, results, graph_name, injection_point):
 def main():
     """Parses arguments and calls correct tool"""
     parser = argparse.ArgumentParser()
-    parser.add_argument("filename")
+    parser.add_argument("filenames", nargs="+")
     parser.add_argument("--no_preprocess", "-n", \
                         required=False, action='store_true', \
                         help='Do not preproccess the file')
@@ -74,20 +74,26 @@ def main():
     #TODO add timing option for benchmarks
     try:
         start = time.process_time()
-        print("parsing first file")
-        ast = parse(args.filename, args.includes, args.pycparser, \
-                    True, needs_preprocess)
-        end = time.process_time()
-        print("time: " + str(end - start))
-        from manifest_visitor import ManifestVisitor
-        man_visit = ManifestVisitor(args.filename)
-        man_visit.visit(ast)
-        print(man_visit.externals)
+        print("parsing files")
+        asts = []
+        for file in args.filenames:
+            ast = parse(file, args.includes, args.pycparser, \
+                        True, needs_preprocess)
+            asts.append(ast)
 
+        end = time.process_time()
         result["parse_time"] = end - start
 
+        print(asts)
+
+        from manifest_visitor import ManifestVisitor
+        man_visit = ManifestVisitor(args.filenames)
+        man_visit.create_manifest(asts)
+        print(man_visit.externals.keys())
+
         start = time.process_time()
-        transform(ast)
+        for ast in asts:
+            transform(ast)
         end = time.process_time()
         result["transform_time"] = end - start
         start = time.process_time()
