@@ -6,11 +6,11 @@ class Factory():
     '''Factory holding the constructor for each value'''
 
     @staticmethod
-    def getFunctionDefinitionClass(): #pylint: disable=invalid-name
-        '''returns class for function definitions'''
-        from .function_definition import FunctionDefinition
-        Factory.getFunctionDefinitionClass = lambda: FunctionDefinition
-        return FunctionDefinition
+    def getPythonObjectClass(): #pylint: disable=invalid-name
+        '''returns class for python objects'''
+        from .python_object import PythonObject
+        Factory.getPythonObjectClass = lambda: PythonObject
+        return PythonObject
 
     @staticmethod
     def getIntegerClass(): #pylint: disable=invalid-name
@@ -89,6 +89,6 @@ class Factory():
         return Factory.getPointerClass()(address, type_size, offset)
 
     @staticmethod
-    def FunctionDefinition(node): #pylint: disable=invalid-name
-        '''Function Definition constructor'''
-        return Factory.getFunctionDefinitionClass()(node)
+    def PythonObject(node): #pylint: disable=invalid-name
+        '''Python Object constructor'''
+        return Factory.getPythonObjectClass()(node)

@@ -114,9 +114,9 @@ def generate_default_value(size):
     value = Factory.Integer(0, 'bit_value', size)
     return value
 
-def generate_function_definition(node):
-    '''Wraps node in a function definition'''
-    return Factory.FunctionDefinition(node)
+def generate_python_object(node):
+    '''Wraps python object in a writeable (stor-friendly) object'''
+    return Factory.PythonObject(node)
 
 def generate_pointer(address, size):
     '''Given a address (int) package it into a pointer'''
