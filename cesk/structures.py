@@ -318,7 +318,8 @@ class Envr:
         return ident in Envr.global_envr.local_variables
 
     def __contains__(self, ident):
-        return self.is_localy_defined(ident) or Envr.is_globaly_defined(ident) or \
+        return self.is_localy_defined(ident) or \
+            Envr.is_globaly_defined(ident) or \
             ident in Envr.Manifest.local_manifests[Envr.Manifest.filenames[0]]
 
     def __eq__(self, other):

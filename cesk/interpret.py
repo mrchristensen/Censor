@@ -517,7 +517,8 @@ def get_address_helper(name, state):
         return state.envr.get_address(name), set()
     except CESKException:
         # go to manifest to get the ast node for the var.
-        ident_def = Envr.Manifest.local_manifests[Envr.Manifest.filenames[0]][name]
+        first_filename = Envr.Manifest.filenames[0]
+        ident_def = Envr.Manifest.local_manifests[first_filename][name]
         if isinstance(ident_def, AST.FuncDef):
             logging.debug("Global function %s", name)
             f_addr = Envr.global_envr.map_new_identifier(name)
@@ -528,7 +529,8 @@ def get_address_helper(name, state):
             return f_addr, set()
         elif isinstance(ident_def, AST.Decl):
             logging.debug("Global %s", str(name))
-            fake_state = State(state.ctrl, Envr.global_envr, state.stor, state.kont_addr)
+            fake_state = State(state.ctrl, Envr.global_envr, state.stor, \
+                state.kont_addr)
             decl_helper(ident_def, fake_state)
             if ident_def.init:
                 address = fake_state.envr.get_address(ident_def.name)
