@@ -14,7 +14,7 @@ import cesk.config as cnf
 import cesk
 from cesk.exceptions import CESKException
 
-def run_interpreter(ast, results, graph_name, injection_point):
+def run_interpreter(ast, results, graph_name, injection_point, man_visit=None):
     """ function for redirecting the output of main to a file and
         returning the result as a string  """
     output = tempfile.NamedTemporaryFile()
@@ -24,7 +24,7 @@ def run_interpreter(ast, results, graph_name, injection_point):
     sys.stdout = open(output.name, "w")#I might need to close this
 
     memory_safe, states_generated, states_matched, states_evaluated \
-        = cesk.main(ast, graph_name, injection_point)
+        = cesk.main(ast, graph_name, injection_point, man_visit)
 
     os.dup2(prevfd, prev.fileno())
     sys.stdout = prev
@@ -74,7 +74,6 @@ def main():
     #TODO add timing option for benchmarks
     try:
         start = time.process_time()
-        print("parsing files")
         asts = []
         for file in args.filenames:
             ast = parse(file, args.includes, args.pycparser, \
@@ -84,20 +83,19 @@ def main():
         end = time.process_time()
         result["parse_time"] = end - start
 
-        print(asts)
-
-        from manifest_visitor import ManifestVisitor
-        man_visit = ManifestVisitor(args.filenames)
-        man_visit.create_manifest(asts)
-        print(man_visit.externals.keys())
 
         start = time.process_time()
         for ast in asts:
             transform(ast)
         end = time.process_time()
         result["transform_time"] = end - start
+
+        from manifest_visitor import ManifestVisitor
+        man_visit = ManifestVisitor(args.filenames)
+        man_visit.create_manifest(asts)
+
         start = time.process_time()
-        run_interpreter(ast, result, args.graph, args.inject)
+        run_interpreter(ast, result, args.graph, args.inject, man_visit)
         end = time.process_time()
         result["interpretation_time"] = end - start
     except CESKException as exception:

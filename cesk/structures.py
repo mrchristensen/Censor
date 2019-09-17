@@ -260,6 +260,7 @@ class Envr:
     next_frame_id = 1 #Tracks next concrete frame id
     global_envr_id = 0
     global_envr = None
+    Manifest = None
 
     def __init__(self, func_name, ctrl):
         self.local_variables = {} #A set of IdToAddr mappings
@@ -290,7 +291,7 @@ class Envr:
             ident = ident.name
         if ident in self.local_variables:
             return self.local_variables[ident]
-        elif ident in Envr.global_envr:
+        elif ident in Envr.global_envr.local_variables:
             return Envr.global_envr.local_variables[ident]
         raise CESKException(ident + " is not defined in this scope: " +
                             str(self.frame_id))
@@ -317,7 +318,8 @@ class Envr:
         return ident in Envr.global_envr.local_variables
 
     def __contains__(self, ident):
-        return self.is_localy_defined(ident) or Envr.is_globaly_defined(ident)
+        return self.is_localy_defined(ident) or Envr.is_globaly_defined(ident) or \
+            ident in Envr.Manifest.local_manifests[Envr.Manifest.filenames[0]]
 
     def __eq__(self, other):
         return self.frame_id == other.frame_id

@@ -6,7 +6,6 @@ import sys
 #import tempfile #removed for windows compatability, should find way to use
 from os import path
 
-from ssl.correct_call_order import verify_openssl_correctness
 import instrumenter
 import utils
 from omp.c_with_omp_generator import CWithOMPGenerator
@@ -114,6 +113,7 @@ def run_tool(tool, ast, args):
         import observer
         observe_ast(ast, observer, cesk)
     elif tool == "ssl":
+        from ssl.correct_call_order import verify_openssl_correctness
         verify_openssl_correctness(ast)
     elif tool == "print":
         print_ast(ast)
@@ -126,6 +126,7 @@ def run_tool(tool, ast, args):
             print(CWithOMPGenerator().visit(ast))
     else:
         print("No valid tool name given; defaulting to censor.")
+        import censor
         censor.main(ast) #default to censor
 
 def print_ast(ast):

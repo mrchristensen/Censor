@@ -10,7 +10,6 @@ class ManifestVisitor(AST.NodeVisitor):
     """visitor class to create manifest"""
     def __init__(self, name):
         self.filenames = name
-        print(name)
         self.externals = {}
         self.current_manifest = {}
         self.local_manifests = {}

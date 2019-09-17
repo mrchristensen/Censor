@@ -2,7 +2,8 @@
 import logging
 import pycparser.c_ast as AST
 from cesk.values.base_values import BaseInteger
-from cesk.values import generate_constant_value, cast
+from cesk.values import (generate_constant_value, cast,
+                         generate_function_definition)
 from cesk.values.factory import Factory
 from cesk.structures import State, Ctrl, Envr, Kont, FrameAddress
 import cesk.linksearch as ls
@@ -99,7 +100,7 @@ def handle_FuncCall(stmt, state, address=None): # pylint: disable=invalid-name
     elif is_mem_alloc(stmt):
         return {state.get_next()}, set()
     else:
-        func_def_frame_addr = state.envr.get_address(stmt.name.name)
+        func_def_frame_addr, _ = get_address(stmt.name, state)
         return func(stmt, state, func_def_frame_addr, address)
 
 def func(stmt, state, func_def_frame_addr, address=None):
@@ -252,7 +253,7 @@ def handle_Return(stmt, state):# pylint: disable=invalid-name
     value = None
     errors = set()
     if exp: #exp is always an ID because of transforms
-        address = state.envr.get_address(exp.name)
+        address, _ = get_address(exp, state)
         value, errors = state.stor.read(address) #safe
     ret_set = set()
     errors = set()
@@ -464,7 +465,7 @@ def get_address(reference, state):
                 decl_helper(checked_decl, state)
             else:
                 raise CESKException("Decl for %s not found"%(ident))
-        return state.envr.get_address(ident), set()
+        return get_address_helper(ident, state)
 
     elif isinstance(reference, AST.ArrayRef):
         raise CESKException("ArrayRef should be transformed")
@@ -474,7 +475,7 @@ def get_address(reference, state):
         if unary_op.op == "*":
             name = unary_op.expr
             if isinstance(name, AST.ID):
-                pointer = state.envr.get_address(name)
+                pointer, _ = get_address(name, state)
                 return state.stor.read(pointer)
             elif isinstance(name, AST.UnaryOp) and name.op == "&":
                 return get_address(name.expr, state) #They cancel out
@@ -509,6 +510,32 @@ def get_address(reference, state):
         raise NotImplementedError("Access to struct as a whole undefined still")
     else:
         raise CESKException("Unsupported lvalue " + str(reference))
+
+def get_address_helper(name, state):
+    '''Tries to get the address from the envr, checks manifest if fails'''
+    try:
+        return state.envr.get_address(name), set()
+    except CESKException:
+        # go to manifest to get the ast node for the var.
+        ident_def = Envr.Manifest.local_manifests[Envr.Manifest.filenames[0]][name]
+        if isinstance(ident_def, AST.FuncDef):
+            logging.debug("Global function %s", name)
+            f_addr = Envr.global_envr.map_new_identifier(name)
+            state.stor.allocM(f_addr, [8]) # word size
+            func_val = generate_function_definition(ident_def)
+            # MARKER
+            state.stor.write(f_addr, func_val)
+            return f_addr, set()
+        elif isinstance(ident_def, AST.Decl):
+            logging.debug("Global %s", str(name))
+            fake_state = State(state.ctrl, Envr.global_envr, state.stor, state.kont_addr)
+            decl_helper(ident_def, fake_state)
+            if ident_def.init:
+                address = fake_state.envr.get_address(ident_def.name)
+                value, _ = get_value(ident_def.init, fake_state)
+                # MARKER
+                fake_state.stor.write(address, value)
+        return state.envr.get_address(name), set()
 
 def mem_alloc(exp, state):
     """ Calls the appropriate memory allocation and evaluates the cast """
