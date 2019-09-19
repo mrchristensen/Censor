@@ -9,6 +9,7 @@ from cesk.structures import State, Ctrl, Envr, Kont, FrameAddress
 import cesk.linksearch as ls
 import cesk.library_functions as lib_func
 from cesk.exceptions import CESKException
+import transforms
 
 def execute(state):
     """Takes a state evaluates the stmt from ctrl and returns a set of
@@ -523,6 +524,7 @@ def get_address_helper(name, state):
             logging.debug("Global function %s", name)
             f_addr = Envr.global_envr.map_new_identifier(name)
             state.stor.allocM(f_addr, [8]) # word size
+            transforms.local_transform(ident_def)
             func_val = generate_function_definition(ident_def)
             # MARKER
             state.stor.write(f_addr, func_val)
@@ -532,6 +534,7 @@ def get_address_helper(name, state):
             fake_state = State(state.ctrl, Envr.global_envr, state.stor, \
                 state.kont_addr)
             decl_helper(ident_def, fake_state)
+            transforms.local_transform(ident_def)
             if ident_def.init:
                 address = fake_state.envr.get_address(ident_def.name)
                 value, _ = get_value(ident_def.init, fake_state)

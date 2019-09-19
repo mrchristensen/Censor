@@ -72,6 +72,9 @@ from .setjmp import Setjmp
 from .id_generator import IDGenerator
 from .type_environment_calculator import TypeEnvironmentCalculator
 
+ID_GENERATOR = None
+TYPE_ENV_CALC = None
+
 def get_transformers(ast):
     """ Return transformer constructor-dependency function tuples for all
         transformers.
@@ -84,9 +87,12 @@ def get_transformers(ast):
     """
     # one id_generator must be passed to all transforms, to
     # ensure unique ids across transforms
-    id_generator = IDGenerator(ast)
+    global ID_GENERATOR #pylint: disable=global-statement
+    global TYPE_ENV_CALC #pylint: disable=global-statement
 
-    type_env_calc = TypeEnvironmentCalculator(id_generator)
+    ID_GENERATOR = IDGenerator(ast)
+
+    TYPE_ENV_CALC = TypeEnvironmentCalculator(ID_GENERATOR)
 
     # Each dependency function must take one argument so that we can easily
     # chain transformations together without worrying about arity.
@@ -108,44 +114,72 @@ def get_transformers(ast):
     yield (PragmaToOmpSimd, lambda ast: [])
     yield (OmpNotImplemented, lambda ast: [])
     yield (RemoveTypedef,
-           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
+           lambda ast: [ID_GENERATOR, TYPE_ENV_CALC.get_environments(ast)])
     yield (AlphaName, lambda ast: [])
     yield (Enum, lambda ast: [])
     yield (SizeofType,
-           lambda ast: [type_env_calc.get_environments(ast)])
+           lambda ast: [TYPE_ENV_CALC.get_environments(ast)])
     yield (SimplifyOmpFor,
-           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
-    yield (SwitchToIf, lambda ast: [id_generator])
+           lambda ast: [ID_GENERATOR, TYPE_ENV_CALC.get_environments(ast)])
+    yield (SwitchToIf, lambda ast: [ID_GENERATOR])
     yield (ForToWhile, lambda ast: [])
     yield (BreakToGoto,
-           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
-    yield (WhileToGoto, lambda ast: [id_generator])
+           lambda ast: [ID_GENERATOR, TYPE_ENV_CALC.get_environments(ast)])
+    yield (WhileToGoto, lambda ast: [ID_GENERATOR])
     yield (Setjmp,
            lambda ast: [])
     yield (Sequence,
-           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
-    yield (IfToIfGoto, lambda ast: [id_generator])
+           lambda ast: [ID_GENERATOR, TYPE_ENV_CALC.get_environments(ast)])
+    yield (IfToIfGoto, lambda ast: [ID_GENERATOR])
     yield (RemoveCompoundAssignment,
-           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
+           lambda ast: [ID_GENERATOR, TYPE_ENV_CALC.get_environments(ast)])
     yield (RemoveInitLists,
-           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
+           lambda ast: [ID_GENERATOR, TYPE_ENV_CALC.get_environments(ast)])
     yield (RemoveMultidimensionalArray,
-           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
+           lambda ast: [ID_GENERATOR, TYPE_ENV_CALC.get_environments(ast)])
     yield (LiftUnaryOp,
-           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
+           lambda ast: [ID_GENERATOR, TYPE_ENV_CALC.get_environments(ast)])
     yield (ChangeToVoidPointer,
-           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
+           lambda ast: [ID_GENERATOR, TYPE_ENV_CALC.get_environments(ast)])
     yield (StructRefToPointerArith,
-           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
-    yield (SingleReturn, lambda ast: [id_generator])
+           lambda ast: [ID_GENERATOR, TYPE_ENV_CALC.get_environments(ast)])
+    yield (SingleReturn, lambda ast: [ID_GENERATOR])
     yield (InsertExplicitTypeCasts,
-           lambda ast: [type_env_calc.get_environments(ast)])
+           lambda ast: [TYPE_ENV_CALC.get_environments(ast)])
     yield (LiftToCompoundBlock,
-           lambda ast: [id_generator, type_env_calc.get_environments(ast)])
+           lambda ast: [ID_GENERATOR, TYPE_ENV_CALC.get_environments(ast)])
+
+def get_local_transformers(ast): #pylint: disable=unused-argument
+    """ Return transformer constructor-dependency function tuples for all
+        local transformers.
+
+        Following this constructor-dependency function tuple form,
+        we can obtain information about the current transformation more
+        easily (through doing things like `constructor.__class__.__name__`,
+        for example). This is especially beneficial in regression testing
+        for producing more readable, useful output.
+    """
+    # one id_generator must be passed to all transforms, to
+    # ensure unique ids across transforms
+
+    global ID_GENERATOR #pylint: disable=global-statement
+    global TYPE_ENV_CALC #pylint: disable=global-statement
+
+    # Each dependency function must take one argument so that we can easily
+    # chain transformations together without worrying about arity.
+    # NONE
+    return []
 
 def transform(ast):
     """Perform each transform in package"""
     for (constructor, dep_func) in get_transformers(ast):
+        transformer = constructor(*dep_func(ast))
+        ast = transformer.visit(ast)
+    return ast
+
+def local_transform(ast):
+    """Perform each transform that does not depend on the global scope"""
+    for (constructor, dep_func) in get_local_transformers(ast):
         transformer = constructor(*dep_func(ast))
         ast = transformer.visit(ast)
     return ast
