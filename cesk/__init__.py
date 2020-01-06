@@ -11,7 +11,7 @@ from cesk.interpret import (decl_helper, execute, get_value,
 import cesk.linksearch as ls
 from cesk.exceptions import CESKException, MemoryAccessViolation, \
                             UnknownConfiguration
-from cesk.values import generate_function_definition
+from cesk.values import generate_python_object
 logging.basicConfig(filename='logfile.txt', level=logging.DEBUG,
                     format='%(levelname)s: %(message)s', filemode='w')
 
@@ -144,7 +144,7 @@ def init_globals(stor):
         logging.debug("Global function %s", func)
         f_addr = fake_state.envr.map_new_identifier(func)
         fake_state.stor.allocM(f_addr, [8]) # word size
-        func_val = generate_function_definition(funcs[func])
+        func_val = generate_python_object(funcs[func])
         # MARKER
         fake_state.stor.write(f_addr, func_val)
 

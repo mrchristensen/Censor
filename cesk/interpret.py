@@ -3,7 +3,7 @@ import logging
 import pycparser.c_ast as AST
 from cesk.values.base_values import BaseInteger
 from cesk.values import (generate_constant_value, cast,
-                         generate_function_definition)
+                         generate_python_object)
 from cesk.values.factory import Factory
 from cesk.structures import State, Ctrl, Envr, Kont, FrameAddress
 import cesk.linksearch as ls
@@ -113,9 +113,9 @@ def func(stmt, state, func_def_frame_addr, address=None):
 
     func_defs, errors = state.stor.read(func_def_frame_addr)
     if isinstance(func_defs, set):
-        func_defs = set([func_def.node for func_def in func_defs])
+        func_defs = set([func_def.python_object for func_def in func_defs])
     else:
-        func_defs = set([func_defs.node])
+        func_defs = set([func_defs.python_object])
     return_states = set()
     errors = set()
     for func_def in func_defs:
@@ -165,29 +165,50 @@ def func_helper(params, func_def, state, ret_address):#pylint: disable=too-many-
 
 def setjmp(stmt, state, address):
     '''Resolves setjmp by storing a Kont in the setjmp'''
-    new_buf_name = AST.UnaryOp('*', stmt.args.exprs[0])
+    kont_addr = Kont.allocK(state)
+    state.stor.write_kont(kont_addr, Kont(state, address))
+    writeable_kont_addr = generate_python_object(kont_addr)
     buf_name = stmt.args.exprs[0]
-    buf_name = new_buf_name
-    buf_addr = get_address(buf_name, state)
-    jmp_buf = Kont.allocK()
-    state.stor.write_kont(jmp_buf, Kont(state, address))
+    buf_ptr, errors = get_address(buf_name, state)
+    buf, read_errors = state.stor.read(buf_ptr)
+
+    errors.update(read_errors)
+    errors.update(state.stor.write(buf, writeable_kont_addr))
 
     # return 0
     if address:
         state.stor.write(address, Factory.Integer(0, 'int'))
 
-    return assignment_helper('=', buf_addr, AST.Constant('int', str(jmp_buf)),
-                             state)
+    return {state.get_next()}, errors
 
 def longjmp(stmt, state):
     '''Resolves longjmp by restoring the kont in jmp_buf'''
-    buf_val = get_value(stmt.args.exprs[0], state)
-    kont = state.stor.read_kont(buf_val.data)
+    writeable_kont_addrs, errors = get_value(stmt.args.exprs[0], state)
+    if isinstance(writeable_kont_addrs, Factory.getIntegerClass()):
+        raise Exception("jmpbuf was cast somehow")
 
-    val = get_value(stmt.args.exprs[1], state)
+    kont_addrs = set()
+    if isinstance(writeable_kont_addrs, set):
+        for writeable_kont_addr in writeable_kont_addrs:
+            kont_addrs.add(writeable_kont_addr.python_object)
+    else:
+        kont_addrs = writeable_kont_addrs.python_object
+
+    konts = set()
+    if not isinstance(kont_addrs, set):
+        kont_addrs = set([kont_addrs])
+    for kont_addr in kont_addrs:
+        konts.update(state.stor.read_kont(kont_addr))
+
+    val, read_errors = get_value(stmt.args.exprs[1], state)
     if val.data == 0:
         val = Factory.Integer(1, 'int')
-    return kont.invoke(state, val)
+    ret_set = set()
+    for kont in konts:
+        next_states, errs = kont.invoke(state, val)
+        ret_set.update(next_states)
+        errors.update(errs)
+    return ret_set, errors.union(read_errors)
 
 def handle_EmptyStatement(stmt, state): #pylint: disable=invalid-name
      #pylint: disable=unused-argument
@@ -307,9 +328,6 @@ def todo_implement_nodes():
     return {
         'CompoundLiteral',
         'EllipsisParam',
-        'Enum',
-        'Enumerator',
-        'EnumeratorList',
         'For',
         'NamedInitializer',
         'ParamList',
@@ -525,7 +543,7 @@ def get_address_helper(name, state):
             f_addr = Envr.global_envr.map_new_identifier(name)
             state.stor.allocM(f_addr, [8]) # word size
             transforms.local_transform(ident_def)
-            func_val = generate_function_definition(ident_def)
+            func_val = generate_python_object(ident_def)
             # MARKER
             state.stor.write(f_addr, func_val)
             return f_addr, set()

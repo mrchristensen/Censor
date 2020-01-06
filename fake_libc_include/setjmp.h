@@ -7,7 +7,7 @@ void   _longjmp(jmp_buf, int);
 void   longjmp(jmp_buf, int);
 void   siglongjmp(sigjmp_buf, int);
 int    _setjmp(jmp_buf);
-int    setjmp(jmp_buf);
+int    setjmp(jmp_buf*); // modified to allow interpreter to store python objects in this variable
 int    sigsetjmp(sigjmp_buf, int);
 
 #endif

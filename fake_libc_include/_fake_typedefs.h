@@ -103,7 +103,7 @@ typedef int pthread_rwlockattr_t;
 typedef int pthread_spinlock_t;
 typedef int pthread_barrier_t;
 typedef int pthread_barrierattr_t;
-typedef int jmp_buf;
+typedef int* jmp_buf; // modified to allow interpreter to store python objects in this variable
 typedef int rlim_t;
 typedef int sa_family_t;
 typedef int sigjmp_buf;
