@@ -12,7 +12,7 @@ STR_TO_CLAUSE_TYPE = {
 class PragmaToOmpFlush(PragmaToOmp):
     """Transform omp flush pragmas"""
 
-    def __init__(self):
+    def __init__(self, _=None, __=None):
         super().__init__(
             OmpFlush,
             re.compile(r'omp +flush.*'),

@@ -25,7 +25,7 @@ STR_TO_CLAUSE_TYPE = {
 class PragmaToOmpTaskloop(PragmaToOmp):
     """Pragma to OMP Task Node transform"""
 
-    def __init__(self):
+    def __init__(self, _=None, __=None):
         super().__init__(
             OmpTaskloop,
             re.compile(r'omp +taskloop.*'),

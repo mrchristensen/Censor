@@ -5,7 +5,7 @@ from pycparser.c_ast import InitList, Constant, Struct, Union, ID, EllipsisParam
 from .helpers import IncorrectTransformOrder
 from .node_transformer import NodeTransformer
 from .type_helpers import Side, get_type, resolve_types, cast_if_needed
-from .helpers import remove_identifier
+from transforms.type_environment_calculator import remove_identifier
 
 # NOTE: return statements are note type casted because
 
@@ -14,7 +14,7 @@ from .helpers import remove_identifier
 
 class InsertExplicitTypeCasts(NodeTransformer):
     """NodeTransformer to make all typecasts in the program explicit."""
-    def __init__(self, environments):
+    def __init__(self, _, environments):
         self.environments = environments
         self.env = environments["GLOBAL"]
 
@@ -108,7 +108,7 @@ class InsertExplicitTypeCasts(NodeTransformer):
                 # TODO: figure out what to do with cases like
                 # char wow[100] = "wow"; where an array is initialized
                 # from a string
-                raise NotImplementedError()
+                raise NotImplementedError(rvalue)
             else:
                 raise NotImplementedError()
         elif isinstance(type_node, FuncDecl):

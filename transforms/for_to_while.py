@@ -5,7 +5,9 @@ from pycparser.c_ast import While, Compound, Constant, DoWhile, DeclList
 from pycparser.c_ast import Assignment, ExprList
 from omp.clause import Collapse, Ordered
 from .node_transformer import NodeTransformer
+from .lift_node import LiftNode
 from .helpers import append_statement, ensure_compound
+from .type_environment_calculator import Enviornment
 
 _ERROR_MESSAGE = """Handling the 'collapse' and 'ordered' clauses is not
 yet implemented. These clauses change which for loops are being parallelized
@@ -15,15 +17,15 @@ http://www.openmp.org/wp-content/uploads/openmp-4.5.pdf,
 section 2.7.1 'Loop Construct'
 """
 
-class ForToWhile(NodeTransformer):
-    """NodeTransformer to change for loops to while loops"""
+class ForToWhile(LiftNode):
+    """LiftNode to change for loops to while loops"""
 
     def visit_OmpFor(self, node): #pylint: disable=invalid-name
         """Don't transform the omp for loop, but go inside it to transform any
         loops that may be nested inside it."""
         if any(isinstance(x, (Collapse, Ordered)) for x in node.clauses):
             raise NotImplementedError(_ERROR_MESSAGE)
-        node.loops.stmt = ensure_compound(self.visit(node.loops.stmt))
+        node.loops.stmt = ensure_compound(self.visit(node.loops.stmt), self.environments, self.envr)
         return node
 
     def visit_For(self, node): #pylint: disable=invalid-name
@@ -44,7 +46,10 @@ class ForToWhile(NodeTransformer):
             raise NotImplementedError("Unexpected for initializer.")
 
         items.append(While(cond, stmt, node.coord))
-        return Compound(items, node.coord)
+        result_node = Compound(items, node.coord)
+        new_envr = Enviornment(self.envr)
+        self.environments[result_node] = new_envr
+        return result_node
 
 def transform_loop_condition(cond):
     """Transform empty for loop condition to a truthy value for while loop"""

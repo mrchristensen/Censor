@@ -12,7 +12,7 @@ STR_TO_CLAUSE_TYPE = {
 class PragmaToOmpThreadprivate(PragmaToOmp):
     """Transform omp threadprivate pragmas"""
 
-    def __init__(self):
+    def __init__(self, _=None, __=None):
         super().__init__(
             OmpThreadprivate,
             re.compile(r'omp +threadprivate\(.*\)'),

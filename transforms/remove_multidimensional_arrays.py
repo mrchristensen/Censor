@@ -27,6 +27,7 @@ from copy import deepcopy
 import pycparser.c_ast as AST
 from .lift_node import LiftNode
 from .type_helpers import make_temp_value, get_type, _is_array
+from transforms.type_environment_calculator import remove_identifier
 #possibly change names to Simplify Arrays and ArrayReferences
 class RemoveMultidimensionalArray(LiftNode):
     """Remove Multidimensional Arrays Transform"""
@@ -79,6 +80,7 @@ class RemoveMultidimensionalArray(LiftNode):
                 name = name.type
             if not self.envr.is_global(name.declname) and node.dim is not None:
                 node.dim = self.lift_to_value(node.dim)
+                self.envr.get_type(name.declname).dim = deepcopy(node.dim)
 
         if in_func_decl:
             node = AST.PtrDecl(None, node.type, coord=node.coord)
@@ -243,5 +245,7 @@ class RemoveMultidimensionalArray(LiftNode):
         decl.quals = ['const']
         decl.type.quals += ['const']
         self.insert_into_scope(decl)
-        self.envr.add(decl.name, decl.type)
+        new_type = deepcopy(decl.type)
+        remove_identifier(new_type)
+        self.envr.add(decl.name, new_type)
         return AST.ID(decl.name, coord=value.coord)

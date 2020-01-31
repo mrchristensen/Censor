@@ -19,7 +19,7 @@ STR_TO_CLAUSE_TYPE = {
 class PragmaToOmpFor(PragmaToOmp):
     """Transform omp for pragmas"""
 
-    def __init__(self):
+    def __init__(self, _=None, __=None):
         super().__init__(
             OmpFor,
             re.compile(r'omp +for.*'),

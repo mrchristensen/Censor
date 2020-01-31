@@ -62,7 +62,12 @@ class LiftNode(NodeTransformer):
         if node.block_items is not None:
             for i, item in enumerate(node.block_items):
                 self.index = i
-                node.block_items[i] = self.visit(item)
+                return_val = self.visit(item)
+                if isinstance(return_val, list):
+                    del node.block_items[i] # TODO change loop to while loop to support a removal in list
+                    node.block_items[i:i] = return_val
+                else:
+                    node.block_items[i] = return_val
         for i, items in self.block_items:
             if i < len(node.block_items):
                 node.block_items[i:i] = items

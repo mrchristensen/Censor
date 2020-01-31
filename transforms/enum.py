@@ -6,7 +6,8 @@ from transforms.helpers import propagate_constant
 class Enum(NodeTransformer):
     """Replaces all enums with integer constants"""
 
-    def __init__(self):
+    def __init__(self, _=None, __=None):
+        super().__init__()
         self.name_to_number = {}
 
     def visit_FileAST(self, node): # pylint: disable=invalid-name

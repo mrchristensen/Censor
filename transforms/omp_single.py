@@ -15,7 +15,7 @@ STR_TO_CLAUSE_TYPE = {
 class PragmaToOmpSingle(PragmaToOmp):
     """Transform omp single pragmas"""
 
-    def __init__(self):
+    def __init__(self, _=None, __=None):
         super().__init__(
             OmpSingle,
             re.compile(r'omp +single.*'),

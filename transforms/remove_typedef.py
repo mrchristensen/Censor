@@ -4,12 +4,12 @@ from copy import deepcopy
 import pycparser.c_ast as AST
 from transforms.lift_node import LiftNode
 from transforms.helpers import propagate_constant
+from transforms.type_environment_calculator import remove_identifier
 
 class RemoveTypedef(LiftNode):
     """
     Replace typedefined types with their actual types
     """
-
     in_def = 0
     def visit_ArrayDecl(self, node): #pylint: disable=invalid-name
         """ Checks Arraydecls within a typedef to remove non const sizing """
@@ -40,8 +40,8 @@ class RemoveTypedef(LiftNode):
         if node.name is None:
             node.name = self.id_generator.get_unique_id()
             struct_name = type(node).__name__ + " " + node.name
-            self.envr.add(struct_name,
-                          AST.TypeDecl(struct_name, [], node))
+            type_decl = AST.TypeDecl(struct_name, [], node)
+            self.envr.add(struct_name, deepcopy(node))
         return node
 
     def visit_Enum(self, node): #pylint: disable=invalid-name
@@ -78,12 +78,32 @@ class RemoveTypedef(LiftNode):
         self.in_def -= 1
         return node
 
+    def visit_FuncDecl(self, node): #pylint: disable=invalid-name
+        self.generic_visit(node)
+        if isinstance(node.type, AST.TypeDecl):
+            ident = node.type.declname
+        elif isinstance(node.type, AST.PtrDecl):
+            ident = node.type.type.declname
+        if ident is None: # is a function pointer parameter in a typedef
+            return node
+        if ident not in self.envr:
+            return node
+        if not isinstance(self.envr.get_type(ident), (AST.PtrDecl, AST.ArrayDecl)):
+            new_type = deepcopy(node.type)
+            remove_identifier(new_type)
+            self.envr.get_type(ident).type = new_type
+            new_args = deepcopy(node.args)
+            remove_identifier(new_args)
+            self.envr.get_type(ident).args = new_args
+        return node
+
     def visit_TypeDecl(self, node): #pylint: disable=invalid-name
         """ Check Identifier Types for typedef names and replace """
         self.generic_visit(node)
         if not isinstance(node.type, AST.IdentifierType):
             return node
         ident_type = node.type
+        name = ident_type.names[0]
         if ident_type.names[0] in self.envr:
             type_def = deepcopy(self.envr.get_type(ident_type.names[0]))
             if isinstance(type_def, AST.TypeDecl):
@@ -91,8 +111,14 @@ class RemoveTypedef(LiftNode):
                     struct_name = \
                         type(type_def.type)(deepcopy(type_def.type.name), None)
                     node.type = struct_name
+                    if node.declname and not isinstance(self.envr.get_type(node.declname), AST.FuncDecl):
+                        #ignores funcdecls. maybe change to only allow typedecls?
+                        cur_type = self.envr.get_type(node.declname)
+                        cur_type.type.type = deepcopy(struct_name) # updates envr
                     return node
                 node.type = deepcopy(type_def.type)
+                if node.declname and isinstance(self.envr.get_type(node.declname).type, AST.TypeDecl):
+                    self.envr.get_type(node.declname).type.type = deepcopy(type_def.type)
             elif isinstance(type_def,
                             (AST.PtrDecl, AST.ArrayDecl, AST.FuncDecl)):
                 new_node = deepcopy(type_def)

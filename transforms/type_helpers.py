@@ -8,7 +8,8 @@ import io
 from enum import Enum
 from pycparser.c_ast import * # pylint: disable=wildcard-import, unused-wildcard-import
 import cesk.limits as limits
-from transforms.helpers import add_identifier, remove_identifier
+from transforms.helpers import add_identifier
+from transforms.type_environment_calculator import remove_identifier
 
 class Side(Enum):
     """Return type of function asking which type of a binary operand that
@@ -35,6 +36,9 @@ def make_temp_ptr(lvalue_expr, id_generator, env):
     lvalue_type = get_type(lvalue_expr, env)
     ptr_to_lvalue = PtrDecl([], add_identifier(lvalue_type, temp_name),
                             coord=lvalue_expr.coord)
+    new_type = deepcopy(ptr_to_lvalue)
+    remove_identifier(new_type)
+    env.add(temp_name, deepcopy(new_type))
     return Decl(temp_name, [], [], [], ptr_to_lvalue, lvalue_addr, None,
                 coord=lvalue_expr.coord)
 
@@ -153,7 +157,7 @@ def _get_type_helper(expr, env): # pylint: disable=too-many-return-statements,to
 
 def _get_id_type(expr, env):
     # TODO: make it actually work for typedefs
-    type_node = env.get_type(expr.name)
+    type_node = deepcopy(env.get_type(expr.name))
     if type_node and isinstance(type_node.type, (Struct, Union)):
         struct_type = type_node.type
         # if you have the name of the struct but not its field declarations,

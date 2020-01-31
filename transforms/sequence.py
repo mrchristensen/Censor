@@ -59,9 +59,11 @@
     func(val_1,val_2);
 
  '''
+from copy import deepcopy
 from pycparser.c_ast import *  # pylint: disable=wildcard-import, unused-wildcard-import
 from .lift_node import LiftNode
 from .type_helpers import make_temp_value
+from transforms.type_environment_calculator import remove_identifier
 
 class Sequence(LiftNode):
     """ Tranforms unary operators into another equivalent AST"""
@@ -100,7 +102,9 @@ class Sequence(LiftNode):
         '''Lifts value'''
         generator = self.id_generator
         decl_1 = make_temp_value(val, generator, self.envr)
-        self.envr.add(decl_1.name, decl_1.type)
+        decl_copy = deepcopy(decl_1)
+        remove_identifier(decl_copy.type)
+        self.envr.add(decl_copy.name, decl_copy.type)
         self.insert_into_scope(decl_1)
         return ID(decl_1.name)
 

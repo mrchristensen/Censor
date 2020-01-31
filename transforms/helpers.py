@@ -20,6 +20,7 @@
 
 from copy import deepcopy
 from transforms.node_transformer import NodeTransformer
+from .type_environment_calculator import Enviornment
 import pycparser.c_ast as AST
 
 #Propagate constants
@@ -74,7 +75,7 @@ def get_no_op():
     for interpreting."""
     return deepcopy(_NO_OP)
 
-def ensure_compound(node):
+def ensure_compound(node, environments=None, parent_envr=None):
     """Wrap an AST node in a compound block if necessary"""
     if node is None:
         return None
@@ -83,7 +84,11 @@ def ensure_compound(node):
             node.block_items = []
         return node
     else:
-        return AST.Compound([node], node.coord)
+        new_compound = AST.Compound([node], node.coord)
+        if environments and parent_envr:
+            new_envr = Enviornment(parent_envr)
+            environments[new_compound] = new_envr
+        return new_compound
 
 def append_statement(compound, stmt):
     """
@@ -112,25 +117,6 @@ def make_unit_pointer(node):
                                 coord=node.coord)
     return AST.Cast(AST.Typename(None, [], void_ptr_type), node,
                     coord=node.coord)
-
-def remove_identifier(node):
-    """Takes in the type attribute of a Decl node and removes the identifier,
-    so it can be used for type casting. Returns the identifier"""
-    if isinstance(node, AST.TypeDecl):
-        # remove the identifier, end recursion
-        ident = node.declname
-        node.declname = None
-        return ident
-    elif isinstance(node, (AST.Struct, AST.Union, AST.Enum)):
-        # remove the identifier, end recursion
-        ident = node.name
-        node.name = None
-        return ident
-    elif isinstance(node, (AST.PtrDecl, AST.ArrayDecl, AST.FuncDecl)):
-        return remove_identifier(node.type)
-    else:
-        node.show()
-        raise NotImplementedError()
 
 def add_identifier(node, ident):
     """Given a node that could be used as the type attribute of a Decl, attach

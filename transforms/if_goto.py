@@ -23,25 +23,22 @@
 """
 
 from pycparser.c_ast import If, Compound, Goto, Label
-from .node_transformer import NodeTransformer
+from transforms.lift_node import LiftNode
 from .helpers import ensure_compound, get_no_op
 
-class IfToIfGoto(NodeTransformer):
+class IfToIfGoto(LiftNode):
     """NodeTransformer to change if-else-if-else to if-goto"""
-
-    def __init__(self, id_gen):
-        self.id_gen = id_gen
 
     def visit_If(self, node): #pylint: disable=invalid-name
         """ Recursively modify If
         """
         node = self.generic_visit(node)
-        node.iftrue = ensure_compound(node.iftrue)
-        node.iffalse = ensure_compound(node.iffalse)
+        node.iftrue = ensure_compound(node.iftrue, self.environments, self.envr)
+        node.iffalse = ensure_compound(node.iffalse, self.environments, self.envr)
         if node.iffalse is None:
             return node
 
-        end_label = self.id_gen.get_unique_id() + "_ENDIF"
+        end_label = self.id_generator.get_unique_id() + "_ENDIF"
         no_op = get_no_op()
         no_op.coord = node.coord
         return self.mangle_if(node, end_label) + \
@@ -50,10 +47,10 @@ class IfToIfGoto(NodeTransformer):
     def mangle_if(self, node, end_label):
         """ If rewrite
         """
-        true_branch = ensure_compound(node.iftrue)
+        true_branch = ensure_compound(node.iftrue, self.environments, self.envr)
         true_branch.block_items.append(Goto(end_label, coord=node.coord))
 
-        false_branch = ensure_compound(node.iffalse)
+        false_branch = ensure_compound(node.iffalse, self.environments, self.envr)
         if isinstance(false_branch, If):
             false_branch = self.mangle_if(false_branch, end_label)
             return [If(node.cond, true_branch, None, coord=node.coord),

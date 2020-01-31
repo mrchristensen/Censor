@@ -26,10 +26,9 @@ of your current scope.
 """
 import logging
 from copy import deepcopy
-from pycparser.c_ast import ID, Struct, Union, Enum, FuncDecl
+from pycparser.c_ast import ID, Struct, Union, Enum, FuncDecl, TypeDecl, PtrDecl, ArrayDecl, Typename, ParamList, EllipsisParam, Decl
 from .node_transformer import NodeTransformer
 from .id_generator import IDGenerator
-from .helpers import remove_identifier
 
 class Enviornment:
     """Holds the enviornment (a mapping of identifiers to types)"""
@@ -58,8 +57,7 @@ class Enviornment:
             ident = ident.name
         if ident in self.map_to_type:
             logging.error("Redefinition of %s", ident)
-            #raise Exception("Redefinition of " + ident)
-
+            # raise Exception("Redefinition of " + ident)
         self.map_to_type[ident] = type_node
 
     def show(self):
@@ -92,6 +90,26 @@ class Enviornment:
             return False
         else:
             return key in self.parent
+
+    def __eq__(self, item):
+        for key in self.map_to_type:
+            if key not in item.map_to_type:
+                return False
+            j1 = self.map_to_type[key]
+            j2 = item.map_to_type[key]
+            i1 = str(j1)
+            i2 = str(j2)
+            if i1 != i2:
+                return False
+        if self.parent and item.parent:
+            return self.parent.__eq__(item.parent)
+        if (not self.parent) and (not item.parent):
+            return True
+        else:
+            return False
+
+    def __ne__(self, item):
+        return not self.__eq__(item)
 
 class TypeEnvironmentCalculator(NodeTransformer):
     """Aggregate type information for all of the scopes in the AST,
@@ -165,6 +183,7 @@ class TypeEnvironmentCalculator(NodeTransformer):
         # don't need to visit node.cond or node.next because they can't
         # have Declarations in them
         node.stmt = self.visit(node.stmt)
+        # self.envr.parent.map_to_type.update(self.envr.map_to_type)
         self.envr = self.envr.parent
         return node
 
@@ -207,3 +226,28 @@ class TypeEnvironmentCalculator(NodeTransformer):
                     self.envr.add(ident, type_node)
         node = self.generic_visit(node)
         return node
+
+def remove_identifier(node):
+    """Takes in the type attribute of a Decl node and removes the identifier,
+    so it can be used for type casting. Returns the identifier"""
+    if isinstance(node, TypeDecl):
+        # remove the identifier, end recursion
+        ident = node.declname
+        node.declname = None
+        return ident
+    elif isinstance(node, (Struct, Union, Enum)):
+        # remove the identifier, end recursion
+        ident = node.name
+        node.name = None
+        return ident
+    elif isinstance(node, (PtrDecl, ArrayDecl, FuncDecl, Typename)):
+        return remove_identifier(node.type)
+    elif isinstance(node, ParamList):
+        for param in node.params:
+            remove_identifier(param)
+        return node
+    elif isinstance(node, (EllipsisParam, Decl)) or node is None:
+        return node
+    else:
+        node.show()
+        raise NotImplementedError()

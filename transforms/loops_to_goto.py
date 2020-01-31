@@ -25,23 +25,23 @@ if(x)
 """
 
 from pycparser.c_ast import If, Label, Goto
+from transforms.lift_node import LiftNode
 from .node_transformer import NodeTransformer
 from .helpers import ensure_compound
 
-class WhileToGoto(NodeTransformer):
+class WhileToGoto(LiftNode):
     """NodeTransformer to change while and do-while loops to goto"""
-
-    def __init__(self, id_generator):
-        self.id_generator = id_generator
 
     def remove_loop(self, cond, stmt, check_label):
         """ does the work of transforming the loop """
         loop_label = self.id_generator.get_unique_id()
 
         stmt = ensure_compound(stmt)
+        stmt_envr = self.environments[stmt]
         if_node = If(cond, Goto(loop_label, coord=cond.coord), None,
                      coord=cond.coord)
-        stmt.block_items.append(Label(check_label, ensure_compound(if_node),
+        stmt.block_items.append(Label(check_label,
+                                      ensure_compound(if_node, self.environments, stmt_envr),
                                       coord=cond.coord))
         #stmt.block_items.append(if_node)
 

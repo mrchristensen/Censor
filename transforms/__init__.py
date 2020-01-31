@@ -96,7 +96,8 @@ def get_transformers(ast):
 
     # Each dependency function must take one argument so that we can easily
     # chain transformations together without worrying about arity.
-    yield (CorrectPragmaPlacement, lambda ast: [])
+    yield (CorrectPragmaPlacement,
+           lambda ast: [None, TYPE_ENV_CALC.get_environments(ast)])
     yield (PragmaToOmpParallelSections, lambda ast: [])
     yield (PragmaToOmpParallelFor, lambda ast: [])
     yield (PragmaToOmpParallel, lambda ast: [])
@@ -118,7 +119,7 @@ def get_transformers(ast):
     yield (AlphaName, lambda ast: [])
     yield (Enum, lambda ast: [])
     yield (SizeofType,
-           lambda ast: [TYPE_ENV_CALC.get_environments(ast)])
+           lambda ast: [None, TYPE_ENV_CALC.get_environments(ast)])
     yield (SimplifyOmpFor,
            lambda ast: [ID_GENERATOR, TYPE_ENV_CALC.get_environments(ast)])
     yield (SwitchToIf, lambda ast: [ID_GENERATOR])
@@ -126,11 +127,11 @@ def get_transformers(ast):
     yield (BreakToGoto,
            lambda ast: [ID_GENERATOR, TYPE_ENV_CALC.get_environments(ast)])
     yield (WhileToGoto, lambda ast: [ID_GENERATOR])
-    yield (Setjmp,
-           lambda ast: [])
+    yield (Setjmp, lambda ast: [])
     yield (Sequence,
            lambda ast: [ID_GENERATOR, TYPE_ENV_CALC.get_environments(ast)])
-    yield (IfToIfGoto, lambda ast: [ID_GENERATOR])
+    yield (IfToIfGoto,
+           lambda ast: [ID_GENERATOR, TYPE_ENV_CALC.get_environments(ast)])
     yield (RemoveCompoundAssignment,
            lambda ast: [ID_GENERATOR, TYPE_ENV_CALC.get_environments(ast)])
     yield (RemoveInitLists,
@@ -143,9 +144,10 @@ def get_transformers(ast):
            lambda ast: [ID_GENERATOR, TYPE_ENV_CALC.get_environments(ast)])
     yield (StructRefToPointerArith,
            lambda ast: [ID_GENERATOR, TYPE_ENV_CALC.get_environments(ast)])
-    yield (SingleReturn, lambda ast: [ID_GENERATOR])
+    yield (SingleReturn,
+           lambda ast: [ID_GENERATOR, TYPE_ENV_CALC.get_environments(ast)])
     yield (InsertExplicitTypeCasts,
-           lambda ast: [TYPE_ENV_CALC.get_environments(ast)])
+           lambda ast: [None, TYPE_ENV_CALC.get_environments(ast)])
     yield (LiftToCompoundBlock,
            lambda ast: [ID_GENERATOR, TYPE_ENV_CALC.get_environments(ast)])
 
@@ -172,10 +174,11 @@ def get_local_transformers(ast): #pylint: disable=unused-argument
 
 def transform(ast):
     """Perform each transform in package"""
-    for (constructor, dep_func) in get_transformers(ast):
-        transformer = constructor(*dep_func(ast))
-        ast = transformer.visit(ast)
-    return ast
+    return new_transform(ast)
+#     for (constructor, dep_func) in get_transformers(ast):
+#         transformer = constructor(*dep_func(ast))
+#         ast = transformer.visit(ast)
+#     return ast
 
 def local_transform(ast):
     """Perform each transform that does not depend on the global scope"""
@@ -183,3 +186,26 @@ def local_transform(ast):
         transformer = constructor(*dep_func(ast))
         ast = transformer.visit(ast)
     return ast
+
+def new_transform(ast):
+    id_generator = IDGenerator(ast)
+    type_env_calc = TypeEnvironmentCalculator(id_generator)
+    environments = type_env_calc.get_environments(ast)
+
+    for (constructor, _) in get_transformers(ast):
+        transformer = constructor(id_generator, environments)
+        ast = transformer.visit(ast)
+
+        cur_envrs = TypeEnvironmentCalculator(IDGenerator(ast)).get_environments(ast)
+        envrs_are_equal(cur_envrs, environments, constructor)
+
+    return ast
+
+def envrs_are_equal(cur_envrs, environments, constructor):
+    if len(cur_envrs) != len(environments):
+        raise Exception("Envr count incorrect just after transform: " + str(constructor.__name__))
+    for key in cur_envrs:
+        if key not in environments:
+            raise Exception("Envr not present just after transform: " + str(constructor.__name__))
+        if cur_envrs[key] != environments[key]:
+            raise Exception("Inequal envr just after transform: " + str(constructor.__name__))

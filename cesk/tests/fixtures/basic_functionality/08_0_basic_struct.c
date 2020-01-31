@@ -2,17 +2,17 @@
 
 struct rectangle {
     int x;
-    int y;
+    // int y;
 };
 
 int main() {
-    struct rectangle a = {2, 4};
-    int x;
-    x = a.x;
+    struct rectangle a = {2};
+    // int x;
+    // x = a.x;
 
-    a.y = 6;    
+    // a.y = 6;    
 
-    printf("%d\n", x);
-    printf("%d\n", a.y);
-    return 0;
+    // printf("%d\n", x);
+    // printf("%d\n", a.y);
+    // return 0;
 }

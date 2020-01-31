@@ -9,7 +9,7 @@ STR_TO_CLAUSE_TYPE = {}
 class PragmaToOmpMaster(PragmaToOmp):
     """Transform omp master pragmas"""
 
-    def __init__(self):
+    def __init__(self, _=None, __=None):
         super().__init__(
             OmpMaster,
             re.compile(r'omp +master *'),

@@ -22,7 +22,8 @@ from copy import deepcopy
 import pycparser.c_ast as AST
 from .lift_node import LiftNode
 from .type_helpers import get_type
-from .helpers import make_unit_pointer, remove_identifier
+from .helpers import make_unit_pointer
+from transforms.type_environment_calculator import remove_identifier
 from .sizeof import get_struct_offset
 
 class StructRefToPointerArith(LiftNode):

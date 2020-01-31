@@ -29,7 +29,7 @@ class SizeofType(NodeTransformer):
             node.expr = get_type(node.expr, self.envr)
             return node
 
-    def __init__(self, environments):
+    def __init__(self, _, environments):
         self.environments = environments
         self.envr = self.environments["GLOBAL"]
 

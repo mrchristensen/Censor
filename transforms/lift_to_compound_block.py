@@ -56,6 +56,7 @@ import pycparser.c_ast as AST
 from .lift_node import LiftNode
 from .type_helpers import make_temp_ptr, make_temp_value
 from .helpers import propagate_constant
+from transforms.type_environment_calculator import remove_identifier
 
 class LiftToCompoundBlock(LiftNode):
     """LiftToCompoundBlock Transform"""
@@ -110,14 +111,18 @@ class LiftToCompoundBlock(LiftNode):
         decl = make_temp_ptr(value, self.id_generator, self.envr)
         decl.type = self.visit(decl.type) # simplify array decls
         self.insert_into_scope(decl)
-        self.envr.add(decl.name, decl.type)
+        type_copy = deepcopy(decl.type)
+        remove_identifier(type_copy)
+        self.envr.add(decl.name, type_copy)
         return AST.UnaryOp('*', AST.ID(decl.name), value.coord)
 
     def lift_to_value(self, value):
         """Lift node to compound block"""
         decl = make_temp_value(value, self.id_generator, self.envr)
         self.insert_into_scope(decl)
-        self.envr.add(decl.name, decl.type)
+        type_copy = deepcopy(decl.type)
+        remove_identifier(type_copy)
+        self.envr.add(decl.name, type_copy)
         return AST.ID(decl.name, coord=decl.coord)
 
     def lift_assignment(self, value):

@@ -34,7 +34,7 @@ from .node_transformer import NodeTransformer
 class SwitchToIf(NodeTransformer):
     """NodeTransformer to change switch statements to if-else-if-goto changes"""
 
-    def __init__(self, id_gen):
+    def __init__(self, id_gen, _=None):
         self.id_gen = id_gen
 
     def visit_Switch(self, node): #pylint: disable=invalid-name

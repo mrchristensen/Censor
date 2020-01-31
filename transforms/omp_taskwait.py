@@ -9,7 +9,7 @@ STR_TO_CLAUSE_TYPE = {}
 class PragmaToOmpTaskwait(PragmaToOmp):
     """Transform omp taskwait pragmas"""
 
-    def __init__(self):
+    def __init__(self, _=None, __=None):
         super().__init__(
             OmpTaskwait,
             re.compile(r'omp +taskwait *$'),

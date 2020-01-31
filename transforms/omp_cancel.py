@@ -16,7 +16,7 @@ STR_TO_CLAUSE_TYPE = {
 class PragmaToOmpCancel(PragmaToOmp):
     """Pragma to OmpCancel Node transform"""
 
-    def __init__(self):
+    def __init__(self, _=None, __=None):
         super().__init__(
             OmpCancel,
             re.compile(r'omp +cancel.*'),

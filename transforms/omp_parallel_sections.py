@@ -25,7 +25,7 @@ SECTIONS_STR_TO_CLAUSE_TYPE = {
 class PragmaToOmpParallelSections(PragmaToOmp):
     """Pragma to OMP Parallel Node transform"""
 
-    def __init__(self):
+    def __init__(self, _=None, __=None):
         super().__init__(
             None, # We override the default transform
             re.compile(r'omp +parallel +sections.*'),

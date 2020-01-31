@@ -2,17 +2,20 @@
 from copy import deepcopy
 from pycparser.c_ast import Return, Label, Goto, Decl, Assignment, ID
 from pycparser.c_ast import IdentifierType
-from .helpers import remove_identifier, add_identifier
+from transforms.type_environment_calculator import remove_identifier
+from .helpers import add_identifier
 from .node_transformer import NodeTransformer
 from .helpers import append_statement, prepend_statement
 
 class SingleReturn(NodeTransformer):
     """Transform all functions to contain only a single return statement."""
-    def __init__(self, id_generator):
+    def __init__(self, id_generator, env=None):
+        super().__init__()
         self.return_type = None
         self.retval_id = None
         self.return_label = None
         self.id_generator = id_generator
+        self.env = env
 
     def visit_FuncDef(self, node): # pylint: disable=invalid-name
         """Keep track of the return type of the function definition we
@@ -31,6 +34,9 @@ class SingleReturn(NodeTransformer):
                                       coord=node.coord)
             node.body = prepend_statement(node.body, retval_declaration)
             return_expression = ID(self.retval_id)
+            return_type_copy = deepcopy(self.return_type)
+            remove_identifier(return_type_copy)
+            self.env[node.body].add(self.retval_id, return_type_copy)
 
         node = self.generic_visit(node)
         return_statement = Label(self.return_label,

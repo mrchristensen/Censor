@@ -13,7 +13,7 @@ STR_TO_CLAUSE_TYPE = {
 class PragmaToOmpCritical(PragmaToOmp):
     """Transform omp critical pragmas"""
 
-    def __init__(self):
+    def __init__(self, _=None, __=None):
         super().__init__(
             OmpCritical,
             re.compile(r'omp +critical.*'),

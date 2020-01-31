@@ -37,6 +37,9 @@ class NodeTransformer(AST.NodeVisitor):
     Return a subclass of Node or a list of them to replace the node
     """
 
+    def __init__(self, _=None, __=None):
+        pass
+
     def skip(self, node): #pylint: disable=no-self-use
         """Override to not scan past certain types of nodes"""
         return node is None

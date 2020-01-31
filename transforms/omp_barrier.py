@@ -9,7 +9,7 @@ STR_TO_CLAUSE_TYPE = {}
 class PragmaToOmpBarrier(PragmaToOmp):
     """Transform omp barrier pragmas"""
 
-    def __init__(self):
+    def __init__(self, _=None, __=None):
         super().__init__(
             OmpBarrier,
             re.compile(r'omp +barrier *'),

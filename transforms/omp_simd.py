@@ -21,7 +21,7 @@ STR_TO_CLAUSE_TYPE = {
 class PragmaToOmpSimd(PragmaToOmp):
     """OmpSimd Transform"""
 
-    def __init__(self):
+    def __init__(self, _=None, __=None):
         super().__init__(
             OmpSimd,
             re.compile(r'omp +simd.*'),

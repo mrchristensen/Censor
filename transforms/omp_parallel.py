@@ -19,7 +19,7 @@ STR_TO_CLAUSE_TYPE = {
 class PragmaToOmpParallel(PragmaToOmp):
     """Pragma to OMP Parallel Node transform"""
 
-    def __init__(self):
+    def __init__(self, _=None,__=None):
         super().__init__(
             OmpParallel,
             re.compile(r'omp +parallel( +[a-zA-Z]+(\([0-9]+\))?)*'),

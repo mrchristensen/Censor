@@ -9,7 +9,7 @@ STR_TO_CLAUSE_TYPE = {}
 class PragmaToOmpSection(PragmaToOmp):
     """Pragma to OMP Sections Node transform"""
 
-    def __init__(self):
+    def __init__(self, _=None, __=None):
         super().__init__(
             OmpSection,
             re.compile(r'omp +section *$'),
